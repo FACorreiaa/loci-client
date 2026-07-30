@@ -10,6 +10,7 @@ import {
   LogoutRequestSchema,
   RefreshTokenRequestSchema,
   ChangePasswordRequestSchema,
+  VerifyMFARequestSchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/auth/auth_pb.js";
 import { clearAuthToken, getAuthToken, getRefreshToken, setAuthToken } from "../auth/tokens";
 import { queryKeys } from "./shared";
@@ -76,7 +77,64 @@ export const useLoginMutation = () => {
 
       const response = await authClient.login(request);
 
+      // A login that still owes a second factor carries no tokens. Storing the
+      // empty strings would look like a signed-in session with a token the
+      // server rejects on every call.
+      if (response.mfaRequired) {
+        return {
+          mfa_required: true as const,
+          mfa_token: response.mfaToken ?? "",
+          email: response.email,
+          message: response.message,
+        };
+      }
+
       // Store tokens
+      setAuthToken(response.accessToken, rememberMe, response.refreshToken);
+
+      return {
+        mfa_required: false as const,
+        access_token: response.accessToken,
+        refresh_token: response.refreshToken,
+        message: response.message,
+      };
+    },
+    onSuccess: (result) => {
+      // Nothing to invalidate until the login actually completes.
+      if (result.mfa_required) return;
+      queryClient.invalidateQueries({ queryKey: queryKeys.session });
+    },
+  }));
+};
+
+// useVerifyMFAMutation completes a challenged login.
+//
+// This is where the tokens finally arrive, so it is the only place besides
+// useLoginMutation that writes them.
+export const useVerifyMFAMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation(() => ({
+    mutationFn: async ({
+      mfaToken,
+      code,
+      recoveryCode,
+      rememberMe = false,
+    }: {
+      mfaToken: string;
+      code?: string;
+      recoveryCode?: string;
+      rememberMe?: boolean;
+    }) => {
+      const request = create(VerifyMFARequestSchema, {
+        mfaToken,
+        // Send exactly one — the server rejects both, so that ambiguity can
+        // never reach it.
+        ...(recoveryCode ? { recoveryCode } : { code }),
+      });
+
+      const response = await authClient.verifyMFA(request);
+
       setAuthToken(response.accessToken, rememberMe, response.refreshToken);
 
       return {

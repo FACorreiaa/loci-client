@@ -17,6 +17,7 @@ import {
   Phone,
   Upload,
   KeyRound,
+  ShieldCheck,
   CreditCard,
   Sparkles,
   ExternalLink,
@@ -47,6 +48,7 @@ import InterestsComponent from "~/components/features/Settings/Interests";
 import TravelProfiles from "~/components/features/Settings/TravelProfiles";
 import AppearanceSettings from "~/components/AppearanceSettings";
 import ApiKeys from "~/components/features/Settings/ApiKeys";
+import TwoFactor from "~/components/features/Settings/TwoFactor";
 import TasteAndPrivacy from "~/components/features/Settings/TasteAndPrivacy";
 import AccountData from "~/components/features/Settings/AccountData";
 import { Button } from "~/ui/button";
@@ -179,6 +181,7 @@ export default function SettingsPage() {
     // MCP lives inside the API-keys panel (endpoint + setup guide), so name the
     // tab after both rather than duplicating the panel.
     { id: "apikeys", label: "MCP & API Keys", icon: KeyRound },
+    { id: "security", label: "Security", icon: ShieldCheck },
     { id: "billing", label: "Plan & Billing", icon: CreditCard },
   ];
 
@@ -753,6 +756,8 @@ export default function SettingsPage() {
         return renderProfiles();
       case "apikeys":
         return <ApiKeys onNotification={(message, type) => setNotification({ message, type })} />;
+      case "security":
+        return <TwoFactor onNotification={(message, type) => setNotification({ message, type })} />;
       case "billing":
         return renderBilling();
       default:
