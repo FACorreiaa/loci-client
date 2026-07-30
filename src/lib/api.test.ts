@@ -70,6 +70,8 @@ describe("Auth API", () => {
 
       expect(mockLogin).toHaveBeenCalled();
       expect(result).toEqual({
+        mfa_required: false,
+        mfa_token: "",
         access_token: "fake-access-token",
         refresh_token: "fake-refresh-token",
         message: "Login successful",
@@ -77,6 +79,26 @@ describe("Auth API", () => {
         username: "",
         email: "test@example.com",
       });
+    });
+
+    // A user with two-factor auth gets no tokens from login. Passing empty
+    // strings on to setAuthToken would look like a signed-in session whose token
+    // the server rejects on every call.
+    it("reports an MFA challenge instead of tokens", async () => {
+      mockLogin.mockResolvedValue({
+        accessToken: "",
+        refreshToken: "",
+        message: "Enter your authentication code to finish signing in",
+        email: "test@example.com",
+        mfaRequired: true,
+        mfaToken: "challenge-token",
+      });
+
+      const result = await authAPI.login("test@example.com", "password123");
+
+      expect(result.mfa_required).toBe(true);
+      expect(result.mfa_token).toBe("challenge-token");
+      expect(result.access_token).toBe("");
     });
 
     it("should throw error on failed login", async () => {

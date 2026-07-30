@@ -55,6 +55,10 @@ const MODULES = [
   // trip: TripDay gained a city and TripDraft gained legs, so a trip can span
   // any number of cities across any number of days.
   { dir: "loci/trip", files: ["trip_pb.js", "trip_pb.d.ts"] },
+  // auth: MFA step-up. LoginResponse gained mfa_required/mfa_token and dropped
+  // the min_len on its token fields — an MFA challenge carries no tokens, so the
+  // old constraint made the challenge response literally unsendable.
+  { dir: "loci/auth", files: ["auth_pb.js", "auth_pb.d.ts"] },
 ];
 
 let synced = 0;

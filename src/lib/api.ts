@@ -10,6 +10,7 @@ import { AuthService } from "@buf/loci_loci-proto.bufbuild_es/loci/auth/auth_pb.
 import { ChatService } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
 import {
   LoginRequestSchema,
+  VerifyMFARequestSchema,
   RegisterRequestSchema,
   ValidateSessionRequestSchema,
   LogoutRequestSchema,
@@ -58,9 +59,15 @@ export const authAPI = {
       userId?: string;
       username?: string;
       email?: string;
+      mfaRequired?: boolean;
+      mfaToken?: string;
     };
 
     return {
+      // When true, there are no tokens in this response — the login is only
+      // half done and must be finished with verifyMFA.
+      mfa_required: loginResponse.mfaRequired === true,
+      mfa_token: loginResponse.mfaToken || "",
       access_token: loginResponse.accessToken,
       refresh_token: loginResponse.refreshToken,
       message: loginResponse.message,
@@ -68,6 +75,30 @@ export const authAPI = {
       user_id: loginResponse.userId || "",
       username: loginResponse.username || "",
       email: loginResponse.email || email, // Fallback to input email
+    };
+  },
+
+  /**
+   * Completes a login that was challenged for a second factor.
+   *
+   * Send either `code` (from the authenticator app) or `recoveryCode`, never
+   * both — the server rejects a request carrying both, because it would be
+   * ambiguous which factor was actually checked and consumed.
+   */
+  async verifyMFA(mfaToken: string, code: string, recoveryCode?: string) {
+    const request = create(
+      VerifyMFARequestSchema,
+      recoveryCode ? { mfaToken, recoveryCode } : { mfaToken, code },
+    );
+    const response = await authClient.verifyMFA(request);
+
+    return {
+      access_token: response.accessToken,
+      refresh_token: response.refreshToken,
+      message: response.message,
+      user_id: response.userId || "",
+      username: response.username || "",
+      email: response.email || "",
     };
   },
 

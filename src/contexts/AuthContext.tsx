@@ -35,6 +35,17 @@ interface User {
   updated_at: string;
 }
 
+/**
+ * What a password submission produced.
+ *
+ * A challenged login is a success for the password step and a non-event for the
+ * session: no tokens, no user, nothing stored. The caller must collect a code
+ * and call completeMFALogin.
+ */
+export type LoginOutcome =
+  | { mfaRequired: false }
+  | { mfaRequired: true; mfaToken: string; email: string };
+
 interface AuthContextType {
   user: () => User | null;
   isAuthenticated: () => boolean;
@@ -51,7 +62,12 @@ interface AuthContextType {
    * `retryAuth()` can recover.
    */
   authError: () => string | null;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<LoginOutcome>;
+  completeMFALogin: (
+    mfaToken: string,
+    code: string,
+    options?: { recoveryCode?: string; rememberMe?: boolean },
+  ) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updatePassword: (oldPassword: string, newPassword: string) => Promise<void>;
@@ -218,59 +234,90 @@ export const AuthProvider = (props: AuthProviderProps) => {
     onCleanup(off);
   });
 
+  // establishSession stores the tokens, sets the user, and navigates. Shared by
+  // the plain login and the MFA-completed login so there is one definition of
+  // what "signed in" means, reached only once a token actually exists.
+  const establishSession = (
+    response: {
+      access_token: string;
+      refresh_token: string;
+      user_id: string;
+      username: string;
+      email: string;
+    },
+    fallbackEmail: string,
+    rememberMe: boolean,
+  ): void => {
+    const { access_token, refresh_token, user_id, username, email: userEmail } = response;
+    setAuthToken(access_token, rememberMe, refresh_token);
+
+    // Build display name with proper fallbacks
+    const displayName = username || userEmail?.split("@")[0] || fallbackEmail.split("@")[0];
+
+    setUser({
+      id: user_id || "",
+      email: userEmail || fallbackEmail,
+      username: username || "",
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      role: "user",
+      firstname: "",
+      lastname: "",
+      display_name: displayName,
+    });
+
+    setIsLoading(false);
+    setAuthError(null);
+    setAuthReady(true);
+
+    const stored = typeof window !== "undefined" ? sessionStorage.getItem("auth_return_to") : null;
+    if (stored) {
+      sessionStorage.removeItem("auth_return_to");
+      navigate(stored);
+    } else {
+      navigate("/");
+    }
+  };
+
   const login = async (
     email: string,
     password: string,
     rememberMe: boolean = false,
+  ): Promise<LoginOutcome> => {
+    setIsLoading(true);
+    try {
+      // Authenticate with server and get access token
+      const response = await authAPI.login(email, password);
+
+      // A user with two-factor auth gets no tokens here. Nothing about the
+      // session changes until the second factor is verified — the caller is
+      // expected to collect a code and call completeMFALogin.
+      if (response.mfa_required) {
+        setIsLoading(false);
+        return { mfaRequired: true, mfaToken: response.mfa_token, email: response.email || email };
+      }
+
+      establishSession(response, email, rememberMe);
+      return { mfaRequired: false };
+    } catch (error) {
+      console.error("AuthProvider: Login failed:", error);
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  // completeMFALogin finishes a challenged login with a TOTP or recovery code.
+  const completeMFALogin = async (
+    mfaToken: string,
+    code: string,
+    options: { recoveryCode?: string; rememberMe?: boolean } = {},
   ): Promise<void> => {
     setIsLoading(true);
     try {
-      console.log("AuthProvider: Login attempt for:", email, "Remember me:", rememberMe);
-      // Authenticate with server and get access token
-      const response = await authAPI.login(email, password);
-      console.log("AuthProvider: Login successful, response:", response);
-
-      const { access_token, refresh_token, user_id, username, email: userEmail } = response;
-      setAuthToken(access_token, rememberMe, refresh_token);
-
-      // Build display name with proper fallbacks
-      const displayName = username || userEmail?.split("@")[0] || email.split("@")[0];
-
-      console.log(
-        "AuthProvider: Setting user with id:",
-        user_id,
-        "username:",
-        username,
-        "display_name:",
-        displayName,
-      );
-      setUser({
-        id: user_id || "",
-        email: userEmail || email,
-        username: username || "",
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        role: "user",
-        firstname: "",
-        lastname: "",
-        display_name: displayName,
-      });
-
-      console.log("AuthProvider: User set, navigating...");
-      setIsLoading(false);
-      setAuthError(null);
-      setAuthReady(true);
-      const stored =
-        typeof window !== "undefined" ? sessionStorage.getItem("auth_return_to") : null;
-      if (stored) {
-        sessionStorage.removeItem("auth_return_to");
-        navigate(stored);
-      } else {
-        navigate("/");
-      }
+      const response = await authAPI.verifyMFA(mfaToken, code, options.recoveryCode);
+      establishSession(response, response.email, options.rememberMe ?? false);
     } catch (error) {
-      console.error("AuthProvider: Login failed:", error);
       setIsLoading(false);
       throw error;
     }
@@ -320,6 +367,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
     authReady,
     authError,
     login,
+    completeMFALogin,
     register,
     logout,
     updatePassword,
