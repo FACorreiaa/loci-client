@@ -16,12 +16,12 @@
     "lighthouse:collect": "lhci collect --config=./lighthouserc.cjs",
     "format": "oxfmt .",
     "format:check": "oxfmt . --check",
-    "buf-update": "pnpm remove @buf/loci_loci-proto.bufbuild_es && pnpm add @buf/loci_loci-proto.bufbuild_es@latest && node scripts/sync-compare-proto.mjs",
-    "postinstall": "node scripts/sync-compare-proto.mjs",
+    "buf-update": "pnpm remove @buf/loci_loci-proto.bufbuild_es && pnpm add @buf/loci_loci-proto.bufbuild_es@latest",
+    "proto-bridge": "node scripts/sync-compare-proto.mjs",
     "prepare": "husky"
   },
   "dependencies": {
-    "@buf/loci_loci-proto.bufbuild_es": "2.13.0-20260723183220-70ef039f4f2f.1",
+    "@buf/loci_loci-proto.bufbuild_es": "2.13.0-20260730181749-dd254bd25519.1",
     "@bufbuild/protobuf": "^2.13.0",
     "@connectrpc/connect": "^2.1.2",
     "@connectrpc/connect-web": "^2.1.2",

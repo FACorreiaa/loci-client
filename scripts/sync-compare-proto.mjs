@@ -3,16 +3,22 @@
  * Copies locally-generated proto TS into the @buf npm package, rewriting import
  * paths to match the published BSR layout.
  *
- * This is the dev bridge for proto changes that are not on the BSR yet: the
- * server picks them up through its go.mod `replace`, and this does the same for
- * the client. Runs on postinstall, so it survives `pnpm install`.
+ * DORMANT as of proto v1.0.0 (2026-07-30). Every module listed below is now in
+ * the published BSR package, so there is nothing left to bridge.
  *
- * Currently bridging:
- *   - compare/v1   (CompareService)
- *   - localcontext (GoScore / GetGoScore — the "should I go this weekend?" score)
+ * It no longer runs on postinstall, deliberately. Overwriting a published
+ * package with whatever happens to be in a sibling working tree is useful
+ * exactly while a proto change is unreleased, and is a silent footgun the rest
+ * of the time: `pnpm install` would quietly replace a pinned, reviewed package
+ * with uncommitted local edits.
  *
- * When these land on the BSR, drop the matching entry from MODULES and run
- * `pnpm buf-update`.
+ * Use it when a proto change is again ahead of the BSR:
+ *   1. `buf generate` in ../loci-connect-proto
+ *   2. `pnpm proto-bridge` here
+ *   3. once it is released, `pnpm buf-update` and stop running this
+ *
+ * The server has the same escape hatch: a `replace` in go.mod, likewise removed
+ * at v1.0.0.
  */
 import { cpSync, mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
