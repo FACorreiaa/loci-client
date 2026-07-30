@@ -19,7 +19,7 @@ export default function MobileAppAnnouncement() {
           aria-hidden="true"
         />
         <div class="container px-4 sm:px-6 lg:px-8 relative z-10">
-          <Card class="max-w-5xl mx-auto glass-panel gradient-border border-0 shadow-xl relative overflow-hidden">
+          <Card class="max-w-5xl mx-auto relative overflow-hidden">
             {/* Background decoration */}
             <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div class="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
@@ -87,7 +87,7 @@ export default function MobileAppAnnouncement() {
                 {/* Right Column: Visual Feature List */}
                 <div class="relative">
                   <div class="grid gap-4">
-                    <div class="glass-panel p-5 rounded-2xl flex items-center gap-4 bg-white/60 dark:bg-white/5 backdrop-blur-md border border-white/40 dark:border-white/10 hover:border-blue-400/50 transition-colors">
+                    <div class="loci-card flex items-center gap-4 p-5">
                       <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
                         <Smartphone class="w-6 h-6" />
                       </div>
@@ -99,7 +99,7 @@ export default function MobileAppAnnouncement() {
                       </div>
                     </div>
 
-                    <div class="glass-panel p-5 rounded-2xl flex items-center gap-4 bg-white/60 dark:bg-white/5 backdrop-blur-md border border-white/40 dark:border-white/10 hover:border-purple-400/50 transition-colors">
+                    <div class="loci-card flex items-center gap-4 p-5">
                       <div class="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
                         <Badge class="w-6 h-6 rounded-full p-0 flex items-center justify-center" />{" "}
                         {/* Reusing Badge or Icon */}
@@ -113,7 +113,7 @@ export default function MobileAppAnnouncement() {
                       </div>
                     </div>
 
-                    <div class="glass-panel p-5 rounded-2xl flex items-center gap-4 bg-white/60 dark:bg-white/5 backdrop-blur-md border border-white/40 dark:border-white/10 hover:border-emerald-400/50 transition-colors">
+                    <div class="loci-card flex items-center gap-4 p-5">
                       <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                         <span class="text-lg font-bold">⚡️</span>
                       </div>

@@ -16,6 +16,7 @@ import {
   Sparkles,
   Settings,
   Clock,
+  GitCompare,
 } from "lucide-solid";
 import { detectDomain } from "~/lib/api/llm";
 import { createStreamingSession, getDomainRoute, streamingService } from "~/lib/chat-stream";
@@ -137,7 +138,7 @@ export default function LoggedInDashboard() {
       title: "Discover Nearby",
       subtitle: "Find hidden gems around you",
       route: "/discover?category=nearby",
-      tone: "bg-[#0c7df2]",
+      tone: "bg-primary",
     },
     {
       id: "food-adventure",
@@ -154,6 +155,14 @@ export default function LoggedInDashboard() {
       subtitle: "Museums, art, and history",
       route: "/discover?category=cultural",
       tone: "bg-[#4338ca]",
+    },
+    {
+      id: "weekend-compare",
+      icon: GitCompare,
+      title: "Weekend compare",
+      subtitle: "Évora vs Beja from Porto",
+      route: "/compare",
+      tone: "bg-accent",
     },
     {
       id: "weekend-plan",
@@ -307,8 +316,8 @@ export default function LoggedInDashboard() {
         <div class="mb-10">
           <div class="flex items-center justify-between mb-6">
             <div>
-              <h1 class="text-3xl font-bold text-foreground tracking-tight">
-                Welcome back, {displayName}! 👋
+              <h1 class="font-display text-3xl text-foreground tracking-tight">
+                Welcome back, {displayName}
               </h1>
               <p class="text-muted-foreground mt-1">Ready to discover something amazing today?</p>
             </div>
@@ -325,7 +334,7 @@ export default function LoggedInDashboard() {
 
           {/* Quick Stats */}
           <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-10">
-            <div class="rounded-xl p-5 bg-card/95 border border-border backdrop-blur-xl shadow-md">
+            <div class="loci-card rounded-xl p-5">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm text-muted-foreground">Saved Places</p>
@@ -338,7 +347,7 @@ export default function LoggedInDashboard() {
                 <Bookmark class="w-8 h-8 text-primary" />
               </div>
             </div>
-            <div class="rounded-xl p-5 bg-card/95 border border-border backdrop-blur-xl shadow-md">
+            <div class="loci-card rounded-xl p-5">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm text-muted-foreground">Itineraries</p>
@@ -349,7 +358,7 @@ export default function LoggedInDashboard() {
                 <Calendar class="w-8 h-8 text-primary" />
               </div>
             </div>
-            <div class="rounded-xl p-5 bg-card/95 border border-border backdrop-blur-xl shadow-md">
+            <div class="loci-card rounded-xl p-5">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm text-muted-foreground">Cities Explored</p>
@@ -362,7 +371,7 @@ export default function LoggedInDashboard() {
                 <Globe class="w-8 h-8 text-primary" />
               </div>
             </div>
-            <div class="rounded-xl p-5 bg-card/95 border border-border backdrop-blur-xl shadow-md">
+            <div class="loci-card rounded-xl p-5">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm text-muted-foreground">Discoveries</p>
@@ -378,7 +387,7 @@ export default function LoggedInDashboard() {
 
         {/* Main Search */}
         <div class="mb-10">
-          <div class="rounded-2xl p-6 sm:p-8 shadow-lg bg-card/95 border border-border backdrop-blur-xl">
+          <div class="loci-card rounded-2xl p-6 sm:p-8">
             <h2 class="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <Sparkles class="w-5 h-5 text-primary" />
               What would you like to discover?
@@ -450,7 +459,7 @@ export default function LoggedInDashboard() {
             {/* Personalized Suggestions */}
             {/* Trending Destinations */}
             <Show when={trendingQuery.data && trendingQuery.data.length > 0}>
-              <div class="rounded-2xl p-6 bg-card/95 border border-border backdrop-blur-xl shadow-lg">
+              <div class="loci-card rounded-2xl p-6">
                 <h3 class="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                   <TrendingUp class="w-5 h-5 text-primary" />
                   Trending Destinations
@@ -488,7 +497,7 @@ export default function LoggedInDashboard() {
           {/* Sidebar */}
           <div class="space-y-6">
             {/* Recent Activity */}
-            <div class="rounded-2xl p-6 bg-card/95 border border-border backdrop-blur-xl shadow-lg">
+            <div class="loci-card p-6">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-foreground">Recent Activity</h3>
                 <button class="text-primary hover:text-primary/80 text-sm font-semibold">
@@ -522,7 +531,7 @@ export default function LoggedInDashboard() {
             </div>
 
             {/* Quick Actions Sidebar */}
-            <div class="rounded-2xl p-6 bg-card/95 border border-border backdrop-blur-xl shadow-lg">
+            <div class="loci-card p-6">
               <h3 class="text-lg font-semibold text-foreground mb-4">Quick Actions</h3>
               <div class="space-y-3">
                 <button

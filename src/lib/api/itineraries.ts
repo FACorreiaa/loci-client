@@ -18,6 +18,7 @@ import type {
   PaginatedItinerariesResponse,
   BookmarkRequest as BookmarkRequestType,
 } from "./types";
+import { useAppQuery } from "./authed-query";
 
 const itineraryClient = createClient(ItineraryService, transport);
 
@@ -44,7 +45,7 @@ const mapProtoToItinerary = (proto: any): UserSavedItinerary => ({
 
 // Query to get all user's saved itineraries
 export const useAllUserItineraries = (options: { enabled?: boolean } = {}) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.userItineraries,
     queryFn: async (): Promise<PaginatedItinerariesResponse> => {
       const request = create(GetUserItinerariesRequestSchema, {
@@ -66,7 +67,7 @@ export const useAllUserItineraries = (options: { enabled?: boolean } = {}) => {
 
 // Query to get a single itinerary
 export const useItinerary = (itineraryId: string, options: { enabled?: boolean } = {}) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.itinerary(itineraryId),
     queryFn: async (): Promise<UserSavedItinerary> => {
       const request = create(GetItineraryRequestSchema, { itineraryId });

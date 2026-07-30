@@ -14,6 +14,7 @@ import { Button } from "~/ui/button";
 import { useSelection, type SelectionItem } from "~/lib/hooks/useSelection";
 import { SelectionToolbar } from "~/components/ui/SelectionToolbar";
 import { exportPOIsToPDF } from "~/lib/utils/pdf-export";
+import { StreamErrorCard } from "~/components/ui/StreamErrorCard";
 
 // Distance options in kilometers
 const DISTANCE_OPTIONS = [
@@ -91,6 +92,18 @@ export default function NearmePage() {
     const message = `Find places near me within ${distanceKm} kilometers. My location is at latitude ${lat.toFixed(6)} and longitude ${lon.toFixed(6)}. Show me restaurants, attractions, hotels, and activities nearby.`;
 
     startStream(message, "nearme", { latitude: lat, longitude: lon });
+  };
+
+  // Retry the last search. If we never got a fix, ask for location again -
+  // otherwise the retry button would be a no-op on the one failure mode that
+  // needs it most.
+  const retrySearch = () => {
+    const location = userLocation();
+    if (location) {
+      searchNearby(location.latitude, location.longitude, selectedDistance());
+    } else {
+      requestLocation();
+    }
   };
 
   // Re-search with new distance
@@ -219,9 +232,14 @@ export default function NearmePage() {
         when={allPois().length > 0}
         fallback={
           <div class="h-full w-full flex items-center justify-center text-muted-foreground p-4 text-center">
-            {isLoadingLocation() || state.isStreaming
-              ? "Getting your location and finding nearby places..."
-              : "Grant location access to find places near you"}
+            {/* The error case must win: showing "grant location access" after a
+                failed stream sent people back to a permission dialog they had
+                already accepted. */}
+            {state.error
+              ? "Couldn't load nearby places — see the message on the left."
+              : isLoadingLocation() || state.isStreaming
+                ? "Getting your location and finding nearby places..."
+                : "Grant location access to find places near you"}
           </div>
         }
       >
@@ -336,10 +354,11 @@ export default function NearmePage() {
 
         {/* Error State */}
         <Show when={state.error}>
-          <div class="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive">
-            <p class="font-bold">Unable to find nearby places</p>
-            <p class="text-sm opacity-90">{state.error}</p>
-          </div>
+          <StreamErrorCard
+            error={state.error!}
+            title="Unable to find nearby places"
+            onRetry={retrySearch}
+          />
         </Show>
 
         {/* Results */}

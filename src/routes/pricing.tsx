@@ -144,10 +144,17 @@ export default function Pricing() {
 
   const cell = (value: boolean | string) => {
     if (typeof value === "boolean") {
+      // `aria-label` is prohibited on a plain <div> (no role to label), so the
+      // "not included" marker announced as nothing. Give both states an
+      // explicit img role so the meaning survives for screen readers.
       return value ? (
-        <Check class="w-5 h-5 text-accent mx-auto" aria-label="Included" />
+        <Check class="w-5 h-5 text-accent mx-auto" role="img" aria-label="Included" />
       ) : (
-        <div class="w-5 h-5 mx-auto flex items-center justify-center" aria-label="Not included">
+        <div
+          class="w-5 h-5 mx-auto flex items-center justify-center"
+          role="img"
+          aria-label="Not included"
+        >
           <div class="w-4 h-0.5 bg-muted-foreground/50" />
         </div>
       );
@@ -299,7 +306,7 @@ export default function Pricing() {
               <ul class="space-y-1.5">
                 <For each={freeLimits}>
                   {(f) => (
-                    <li class="text-sm text-muted-foreground/80 flex gap-2">
+                    <li class="text-sm text-muted-foreground flex gap-2">
                       <span class="mt-2 w-1.5 h-1.5 rounded-full bg-muted-foreground shrink-0" />
                       {f}
                     </li>

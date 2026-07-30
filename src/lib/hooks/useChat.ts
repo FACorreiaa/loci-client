@@ -8,6 +8,7 @@ import { useUserLocation } from "~/contexts/LocationContext";
 import { useDefaultSearchProfile, useSearchProfiles } from "~/lib/api/profiles";
 import { useSaveItineraryMutation } from "~/lib/api/itineraries";
 import { logger } from "~/lib/logger";
+import { useAppQuery } from "../api/authed-query";
 
 export interface ChatMessage {
   id: string;
@@ -95,7 +96,7 @@ export function useChat() {
     setShowProfileSelector(false);
   };
 
-  const chatSessionsQuery = useQuery(() => useGetChatSessionsQuery(activeProfileId()));
+  const chatSessionsQuery = useAppQuery(() => useGetChatSessionsQuery(activeProfileId()));
 
   /** API sessions merged with the local fallback list (local de-duped). */
   const sessions = () => {

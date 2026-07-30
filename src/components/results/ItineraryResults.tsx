@@ -212,6 +212,8 @@ export default function ItineraryResults(props: ItineraryResultsProps) {
                         ).recommendation_rationale,
                         tags: poi.tags,
                       })}
+                      uncertaintyScore={poi.uncertainty_score}
+                      missingData={poi.missing_data}
                     />
                   </Show>
 

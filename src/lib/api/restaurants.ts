@@ -10,6 +10,7 @@ import {
 import { transport } from "../connect-transport";
 import { queryKeys } from "./shared";
 import type { RestaurantDetailedInfo } from "./types";
+import { useAppQuery } from "./authed-query";
 
 const favoritesClient = createClient(FavoritesService, transport);
 
@@ -39,7 +40,7 @@ const mapProtoToRestaurant = (proto: any): RestaurantDetailedInfo => ({
 
 // Get nearby restaurants
 export const useNearbyRestaurants = (lat: number, lng: number, radius?: number) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.nearbyRestaurants(lat, lng, radius),
     queryFn: async (): Promise<RestaurantDetailedInfo[]> => {
       const request = create(GetNearbyRestaurantsRequestSchema, {
@@ -58,7 +59,7 @@ export const useNearbyRestaurants = (lat: number, lng: number, radius?: number) 
 
 // Get restaurant details
 export const useRestaurantDetails = (restaurantId: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.restaurantDetails(restaurantId),
     queryFn: async (): Promise<RestaurantDetailedInfo> => {
       const request = create(GetRestaurantDetailsRequestSchema, { restaurantId });
@@ -77,7 +78,7 @@ export const useRestaurantDetails = (restaurantId: string) => {
 // It should remain in llm.ts or use the chat streaming endpoint
 export const useRestaurantsByPreferences = (preferences: any) => {
   // This is LLM-driven and handled by the streaming chat service
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.restaurantsByPreferences(preferences),
     queryFn: async (): Promise<RestaurantDetailedInfo[]> => {
       // LLM-driven queries should use the streaming chat endpoint

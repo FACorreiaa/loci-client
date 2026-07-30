@@ -2,15 +2,18 @@ import { cn } from "../cn";
 import type { ComponentProps, ParentComponent } from "solid-js";
 import { splitProps } from "solid-js";
 
+/**
+ * The one card surface.
+ *
+ * Previously `glass-panel gradient-border`, which stacked a decorative gradient
+ * edge on top of the panel and diverged from `.loci-card` used everywhere else —
+ * so the same visual idea had two implementations that drifted. This is the
+ * single card layer now; `<Card>` and a bare `.loci-card` render identically.
+ */
 export const Card = (props: ComponentProps<"div">) => {
   const [local, rest] = splitProps(props, ["class"]);
 
-  return (
-    <div
-      class={cn("rounded-xl text-card-foreground glass-panel gradient-border", local.class)}
-      {...rest}
-    />
-  );
+  return <div class={cn("loci-card text-card-foreground", local.class)} {...rest} />;
 };
 
 export const CardHeader = (props: ComponentProps<"div">) => {

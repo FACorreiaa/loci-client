@@ -220,7 +220,7 @@ export default function BillingPage() {
           </div>
 
           <div class="space-y-4">
-            <div class="rounded-2xl glass-panel border border-border p-6 shadow-sm">
+            <div class="loci-card p-6">
               <h3 class="font-semibold text-foreground mb-4">Quick actions</h3>
               <div class="space-y-3">
                 <Show when={pro()}>
@@ -281,7 +281,7 @@ export default function BillingPage() {
         <Show when={!pro()}>
           <div class="mt-8">
             <h2 class="text-xl font-bold text-foreground mb-4">Upgrade to Pro</h2>
-            <div class="rounded-2xl glass-panel border-2 border-primary/30 p-6 shadow-sm max-w-md">
+            <div class="loci-card border-2 border-primary/30 p-6 max-w-md">
               <div class="flex items-center gap-3 mb-3">
                 <Crown class="w-6 h-6 text-primary" />
                 <h3 class="text-lg font-bold text-foreground">Pro</h3>

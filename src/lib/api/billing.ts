@@ -8,6 +8,7 @@ import type {
 } from "@buf/loci_loci-proto.bufbuild_es/loci/payment/v1/payment_pb.js";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { transport } from "../connect-transport";
+import { useAppQuery } from "./authed-query";
 
 // Types
 // plan is the raw backend value: free | premium_monthly | premium_annual
@@ -92,7 +93,9 @@ function mapInvoice(invoice: PaymentInvoice): Invoice {
 // Queries
 /** Pass `getEnabled` so Solid Query re-evaluates when auth changes. */
 export function useUserSubscription(getEnabled?: () => boolean) {
-  return useQuery(() => ({
+  // useAppQuery, not useQuery: this is mounted by the public /pricing route,
+  // so during SSR it would otherwise be a disabled query that hangs the render.
+  return useAppQuery(() => ({
     queryKey: ["user-subscription"],
     enabled: getEnabled ? getEnabled() : true,
     queryFn: async (): Promise<SubscriptionData> => {
@@ -112,7 +115,7 @@ export function useUserSubscription(getEnabled?: () => boolean) {
 }
 
 export function usePaymentHistory(limit: number = 10) {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["payment-history", limit],
     queryFn: async (): Promise<PaymentHistoryItem[]> => {
       const response = await paymentClient.getUserPayments({ page: 1, pageSize: limit });
@@ -123,7 +126,7 @@ export function usePaymentHistory(limit: number = 10) {
 }
 
 export function useUserInvoices(limit: number = 10) {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["user-invoices", limit],
     queryFn: async (): Promise<Invoice[]> => {
       const response = await paymentClient.getUserInvoices({ page: 1, pageSize: limit });

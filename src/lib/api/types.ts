@@ -114,6 +114,8 @@ export interface POI {
   created_at?: string;
   recommendation_trace?: RecommendationTrace;
   recommendation_rationale?: string;
+  uncertainty_score?: number;
+  missing_data?: string[];
 }
 
 export interface ChatMessage {
@@ -621,6 +623,7 @@ export interface POIDetailedInfo {
   star_rating?: number;
   recommendation_rationale?: string;
   uncertainty_score?: number;
+  missing_data?: string[];
   recommendation_trace?: RecommendationTrace;
 }
 

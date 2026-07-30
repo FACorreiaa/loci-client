@@ -80,9 +80,15 @@ export default function Hero(props: HeroProps) {
               <Button
                 type="submit"
                 size="icon"
+                // Icon-only, so it needs a name of its own: without this it
+                // announced as just "button".
+                aria-label="Search"
                 class="rounded-full bg-primary hover:bg-primary/90 h-9 w-9 sm:h-10 sm:w-10 transition-all hover:scale-105"
               >
-                <FiArrowRight class="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
+                <FiArrowRight
+                  class="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground"
+                  aria-hidden="true"
+                />
               </Button>
             </div>
           </div>
@@ -125,9 +131,7 @@ export default function Hero(props: HeroProps) {
                     </div>
                   </div>
                   {selectedContext() === option.id && (
-                    <div
-                      class="absolute inset-0 rounded-xl ring-2 ring-primary/20 ring-offset-2 ring-offset-background"
-                    />
+                    <div class="absolute inset-0 rounded-xl ring-2 ring-primary/20 ring-offset-2 ring-offset-background" />
                   )}
                 </button>
               )}

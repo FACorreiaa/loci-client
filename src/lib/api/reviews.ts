@@ -15,6 +15,7 @@ import {
 import { PaginationRequestSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/common/common_pb.js";
 import { transport } from "../connect-transport";
 import { getAuthToken } from "../api";
+import { useAppQuery } from "./authed-query";
 
 const reviewClient = createClient(ReviewService, transport);
 
@@ -89,7 +90,7 @@ function toReview(r: ProtoReview): ReviewItem {
 // --- queries ---
 
 export function usePOIReviews(poiId: () => string | undefined) {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["reviews", "poi", poiId()],
     enabled: !!poiId(),
     queryFn: async (): Promise<ReviewItem[]> => {
@@ -105,7 +106,7 @@ export function usePOIReviews(poiId: () => string | undefined) {
 }
 
 export function useUserReviews() {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["reviews", "me"],
     enabled: !!getCurrentUserId(),
     queryFn: async (): Promise<ReviewItem[]> => {
@@ -123,7 +124,7 @@ export function useUserReviews() {
 }
 
 export function useRecentReviews() {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["reviews", "recent"],
     queryFn: async (): Promise<ReviewItem[]> => {
       const res = await reviewClient.getRecentReviews(

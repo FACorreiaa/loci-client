@@ -8,6 +8,7 @@ import {
 } from "@buf/loci_loci-proto.bufbuild_es/loci/city/city_pb.js";
 import { transport } from "../connect-transport";
 import { queryKeys } from "./shared";
+import { useAppQuery } from "./authed-query";
 
 const cityClient = createClient(CityService, transport);
 
@@ -54,7 +55,7 @@ export const getCities = async (): Promise<City[]> => {
 
 // React Query hook for getting all cities
 export const useCities = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.cities,
     queryFn: getCities,
     staleTime: 30 * 60 * 1000, // Cities don't change often, cache for 30 minutes

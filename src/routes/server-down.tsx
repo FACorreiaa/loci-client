@@ -45,7 +45,7 @@ const ServerDownPage: Component = () => {
 
   return (
     <div class="min-h-screen flex items-center justify-center px-4 py-8">
-      <div class="text-center max-w-lg mx-auto glass-panel gradient-border rounded-2xl p-8 shadow-xl">
+      <div class="text-center max-w-lg mx-auto loci-card p-8">
         {/* Animated Icon */}
         <div class="mb-8 relative">
           <div class="w-24 h-24 mx-auto bg-destructive rounded-full flex items-center justify-center animate-pulse shadow-lg ring-4 ring-border">
@@ -57,9 +57,7 @@ const ServerDownPage: Component = () => {
         </div>
 
         {/* Error Message */}
-        <h1 class="text-4xl sm:text-5xl font-bold text-foreground mb-4">
-          Server Unavailable
-        </h1>
+        <h1 class="text-4xl sm:text-5xl font-bold text-foreground mb-4">Server Unavailable</h1>
         <h2 class="text-xl sm:text-2xl font-semibold text-muted-foreground mb-4">
           Connection Refused
         </h2>
@@ -69,7 +67,7 @@ const ServerDownPage: Component = () => {
         </p>
 
         {/* Status Information */}
-        <div class="mb-8 p-4 glass-panel gradient-border rounded-lg text-left border-0">
+        <div class="mb-8 p-4 loci-card text-left">
           <div class="flex items-center justify-center gap-2 mb-3">
             <Wifi class="w-5 h-5 text-destructive" />
             <span class="font-medium text-foreground">Connection Status</span>
@@ -105,10 +103,8 @@ const ServerDownPage: Component = () => {
         </div>
 
         {/* Offline Features */}
-        <div class="mb-8 p-4 glass-panel gradient-border rounded-lg text-left">
-          <h3 class="font-semibold text-foreground mb-3">
-            What you can do while we're down:
-          </h3>
+        <div class="mb-8 p-4 loci-card text-left">
+          <h3 class="font-semibold text-foreground mb-3">What you can do while we're down:</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div class="flex items-center gap-2 text-muted-foreground">
               <span class="w-2 h-2 bg-primary rounded-full" />
@@ -131,9 +127,7 @@ const ServerDownPage: Component = () => {
 
         {/* Quick Navigation */}
         <div class="pt-6 border-t border-border">
-          <p class="text-sm text-muted-foreground mb-4">
-            Try these offline-friendly features:
-          </p>
+          <p class="text-sm text-muted-foreground mb-4">Try these offline-friendly features:</p>
           <div class="flex flex-wrap justify-center gap-3">
             <A
               href="/favorites"
@@ -157,7 +151,7 @@ const ServerDownPage: Component = () => {
         </div>
 
         {/* Travel Tip */}
-        <div class="mt-8 p-4 glass-panel gradient-border rounded-lg text-left">
+        <div class="mt-8 p-4 loci-card text-left">
           <div class="flex items-center justify-center gap-2 mb-2">
             <Compass class="w-4 h-4 text-accent" />
             <span class="text-sm font-medium text-foreground">Travel Tip</span>

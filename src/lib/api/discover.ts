@@ -15,6 +15,7 @@ import {
 import { PaginationRequestSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/common/common_pb.js";
 import { ChatSession as ProtoChatSession } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
 import { transport } from "../connect-transport";
+import { useAuthGate } from "../auth/useAuthGate";
 import type {
   DiscoverPageData,
   TrendingDiscovery,
@@ -23,6 +24,7 @@ import type {
   DiscoverResult,
   PaginationMetadata,
 } from "./types";
+import { useAppQuery } from "./authed-query";
 
 const discoverClient = createClient(DiscoverService, transport);
 
@@ -69,10 +71,14 @@ const toDiscoverResult = (r: ProtoDiscoverResult): DiscoverResult => ({
   star_rating: r.starRating || undefined,
 });
 
-// Get all discover page data via RPC
-export function useDiscoverPageData() {
-  return useQuery(() => ({
+// Get all discover page data via RPC. `enabled` gates the query on auth being
+// ready — firing before the token loads yields a 401 that the refresh
+// interceptor can mistake for a dead session and log the user out.
+export function useDiscoverPageData(enabled?: () => boolean) {
+  const gate = useAuthGate();
+  return useAppQuery(() => ({
     queryKey: ["discover", "page"],
+    enabled: gate(enabled),
     queryFn: async (): Promise<DiscoverPageData> => {
       const response = await discoverClient.getDiscoverPage(
         create(GetDiscoverPageRequestSchema, {}),
@@ -91,8 +97,10 @@ export function useDiscoverPageData() {
 
 // Get trending discoveries
 export function useTrendingDiscoveries(limit = 5) {
-  return useQuery(() => ({
+  const gate = useAuthGate();
+  return useAppQuery(() => ({
     queryKey: ["discover", "trending", limit],
+    enabled: gate(),
     queryFn: async (): Promise<TrendingDiscovery[]> => {
       const response = await discoverClient.getTrending(
         create(GetTrendingRequestSchema, {
@@ -108,8 +116,10 @@ export function useTrendingDiscoveries(limit = 5) {
 
 // Get featured collections
 export function useFeaturedCollections(limit = 4) {
-  return useQuery(() => ({
+  const gate = useAuthGate();
+  return useAppQuery(() => ({
     queryKey: ["discover", "featured", limit],
+    enabled: gate(),
     queryFn: async (): Promise<FeaturedCollection[]> => {
       const response = await discoverClient.getFeatured(
         create(GetFeaturedRequestSchema, {
@@ -154,7 +164,7 @@ export async function fetchRecentDiscoveries(
 
 // Get category results
 export function useCategoryResults(category: string, cityName?: string, pageSize = 12) {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["discover", "category", category, cityName, pageSize],
     queryFn: async (): Promise<DiscoverResult[]> => {
       const response = await discoverClient.getCategoryResults(

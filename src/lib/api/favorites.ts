@@ -14,6 +14,7 @@ import { create } from "@bufbuild/protobuf";
 import { transport } from "../connect-transport";
 import { getAuthToken } from "../api";
 import { handleEntitlementError } from "../entitlement-error";
+import { useAppQuery } from "./authed-query";
 
 // Create authenticated favorites client
 const favoritesClient = createClient(FavoritesService, transport);
@@ -212,7 +213,7 @@ async function _checkIsFavorited(itemId: string, contentType: string): Promise<b
 
 // Hook: Get favorites list
 export function useFavoritesList() {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["favorites", "list"],
     queryFn: fetchFavorites,
     staleTime: 2 * 60 * 1000, // 2 minutes

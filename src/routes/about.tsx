@@ -95,10 +95,11 @@ export default function About() {
                 <div
                   class={`rounded-2xl p-5 border border-border bg-gradient-to-br ${item.tone} backdrop-blur`}
                 >
-                  <h3 class="text-lg font-semibold text-foreground mb-2">{item.title}</h3>
-                  <p class="text-muted-foreground text-sm leading-relaxed">
-                    {item.body}
-                  </p>
+                  {/* h2, not h3: this grid is the first section after the page
+                      h1, so an h3 here skipped a level and broke the document
+                      outline for screen-reader navigation. Size is visual only. */}
+                  <h2 class="text-lg font-semibold text-foreground mb-2">{item.title}</h2>
+                  <p class="text-muted-foreground text-sm leading-relaxed">{item.body}</p>
                 </div>
               )}
             </For>
@@ -202,10 +203,7 @@ export default function About() {
                     itinerary download/upload features, and 24/7 personalized AI agent.
                   </p>
                 </div>
-                <div
-                  class="border-l-4 border-primary/60 pl-6"
-                  role="listitem"
-                >
+                <div class="border-l-4 border-primary/60 pl-6" role="listitem">
                   <h3 class="text-xl font-semibold text-foreground mb-2">Phase 3</h3>
                   <p class="text-foreground/80">
                     Multi-city expansion, curated content partnerships, and native mobile app
@@ -216,10 +214,7 @@ export default function About() {
             </section>
 
             {/* Call to Action */}
-            <section
-              class="text-center glass-panel gradient-border rounded-lg p-8"
-              aria-labelledby="cta-heading"
-            >
+            <section class="text-center loci-card p-8" aria-labelledby="cta-heading">
               <h2 id="cta-heading" class="text-2xl font-bold mb-4 text-foreground">
                 Ready to Discover Your City?
               </h2>

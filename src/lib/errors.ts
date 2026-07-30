@@ -3,7 +3,7 @@
  */
 
 export interface ParsedError {
-  type: "rate_limit" | "network" | "validation" | "server" | "unknown";
+  type: "quota_exhausted" | "rate_limit" | "network" | "validation" | "server" | "unknown";
   userMessage: string;
   technicalMessage: string;
   retryAfter?: number;
@@ -16,6 +16,28 @@ export interface ParsedError {
  */
 export const parseStreamError = (error: string): ParsedError => {
   const errorLower = error.toLowerCase();
+
+  // Your own daily plan quota, which is NOT the same thing as the upstream AI
+  // provider being busy: retrying in 60s cannot help, the counter resets at
+  // midnight UTC. Telling people "the AI service is busy" here sent them into a
+  // retry loop against a wall. Must be checked before the generic rate-limit
+  // branch, whose `resource_exhausted` match would otherwise swallow it.
+  if (
+    errorLower.includes("daily request quota") ||
+    errorLower.includes("daily free quota") ||
+    errorLower.includes("daily fair-use quota") ||
+    errorLower.includes("daily quota")
+  ) {
+    const isFree = errorLower.includes("plan free") || errorLower.includes("free quota");
+    return {
+      type: "quota_exhausted",
+      userMessage: isFree
+        ? "You've used today's free requests. The limit resets at midnight UTC — or upgrade to Pro for a higher one."
+        : "You've hit today's fair-use limit. It resets at midnight UTC.",
+      technicalMessage: error,
+      canRetry: false,
+    };
+  }
 
   // Rate limit / Quota exceeded
   if (

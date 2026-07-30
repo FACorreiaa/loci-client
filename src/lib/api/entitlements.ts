@@ -3,6 +3,7 @@
 // ships EntitlementService (then switch to createClient like billing.ts).
 import { useQuery } from "@tanstack/solid-query";
 import { getAuthToken } from "../auth/tokens";
+import { useAppQuery } from "./authed-query";
 
 const API_BASE_URL = import.meta.env.VITE_CONNECT_BASE_URL || "http://localhost:8000";
 
@@ -52,7 +53,7 @@ export async function fetchEntitlements(): Promise<Entitlements | null> {
 }
 
 export function useEntitlements() {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["entitlements"],
     queryFn: fetchEntitlements,
     staleTime: 60_000,

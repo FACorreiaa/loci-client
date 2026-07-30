@@ -3,7 +3,7 @@ import { Button } from "~/ui/button";
 import { TextField, TextFieldRoot } from "~/ui/textfield";
 import { Label } from "~/ui/label";
 import { Checkbox, CheckboxControl } from "~/ui/checkbox";
-import { A, useNavigate } from "@solidjs/router";
+import { A, useNavigate, useSearchParams } from "@solidjs/router";
 import { Component, createSignal, Show } from "solid-js";
 import { VsEye, VsEyeClosed } from "solid-icons/vs";
 import AuthLayout from "~/components/layout/Auth";
@@ -22,6 +22,7 @@ const inputBase =
 const SignIn: Component = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [formData, setFormData] = createSignal<Partial<FormData>>({
     email: "",
     password: "",
@@ -36,13 +37,23 @@ const SignIn: Component = () => {
   const googleLoginMutation = useGoogleLoginMutation();
   const appleLoginMutation = useAppleLoginMutation();
 
+  const afterAuthNavigate = () => {
+    const returnTo = (searchParams.returnTo as string) || sessionStorage.getItem("auth_return_to");
+    if (returnTo) {
+      sessionStorage.removeItem("auth_return_to");
+      navigate(returnTo);
+      return;
+    }
+    navigate("/");
+  };
+
   const handleGoogleLogin = async () => {
     setSocialLoading("google");
     setError("");
     setHasAuthError(false);
     try {
       await googleLoginMutation.mutateAsync();
-      navigate("/");
+      afterAuthNavigate();
     } catch (err: unknown) {
       const error = err as { message?: string };
       setError(error?.message || "Google sign-in failed. Please try again.");
@@ -58,7 +69,7 @@ const SignIn: Component = () => {
     setHasAuthError(false);
     try {
       await appleLoginMutation.mutateAsync();
-      navigate("/");
+      afterAuthNavigate();
     } catch (err: unknown) {
       const error = err as { message?: string };
       setError(error?.message || "Apple sign-in failed. Please try again.");

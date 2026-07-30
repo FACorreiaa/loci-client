@@ -47,7 +47,7 @@ export default function PreviewDiscoverPage() {
               </div>
 
               {/* Search Bar */}
-              <div class="glass-panel rounded-2xl p-6 shadow-lg border">
+              <div class="loci-card p-6">
                 <form onSubmit={handleSearch} class="relative">
                   <div class="flex flex-col md:flex-row gap-4">
                     <div class="flex-1 relative">
@@ -89,7 +89,7 @@ export default function PreviewDiscoverPage() {
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <For each={searchResults()}>
                 {(poi) => (
-                  <div class="glass-panel rounded-2xl p-4 hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer">
+                  <div class="loci-card loci-card-interactive p-4 duration-200 cursor-pointer">
                     <div class="flex items-start justify-between gap-3 mb-2">
                       <div class="flex-1">
                         <h3 class="text-base font-semibold text-foreground">{poi.name}</h3>

@@ -34,3 +34,5 @@ tmp
 
 # Wrangler / Vite PWA
 dev-dist
+.lighthouse
+.lighthouseci

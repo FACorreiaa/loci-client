@@ -22,7 +22,11 @@ export const CityInfoHeader: Component<CityInfoHeaderProps> = (props) => {
     <Show when={props.cityData || props.isLoading}>
       <div class="relative overflow-hidden rounded-2xl p-6 md:p-8 mb-6 text-white shadow-xl transition-all hover:shadow-2xl group">
         {/* Animated Background - Glassy Gradient */}
-        <div class="absolute inset-0 bg-gradient-to-br from-blue-600/90 via-purple-600/80 to-indigo-800/90 backdrop-blur-xl z-0" />
+        {/* Was a hardcoded blue→purple→indigo gradient under a heavy blur, which
+            ignored the theme entirely and did not match any other surface. The
+            hero gradient is token-driven, so it follows light/dark and the Loci
+            palette. */}
+        <div class="loci-hero absolute inset-0 z-0 rounded-none border-0 shadow-none" />
 
         {/* Accents/Noise for texture */}
         <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-0 mix-blend-overlay" />

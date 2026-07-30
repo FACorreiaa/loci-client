@@ -26,6 +26,12 @@ const QUICK_PROMPTS: QuickPrompt[] = [
   },
   {
     id: "3",
+    text: "Weekend: Évora or Beja from Porto",
+    description: "Compare two cities for a short trip",
+    domain: "general",
+  },
+  {
+    id: "4",
     text: "3-day cultural tour of Rome",
     description: "Museums, history, and architecture",
     domain: "itinerary",

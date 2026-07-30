@@ -7,6 +7,8 @@ import {
   GetUserProfileRequestSchema,
   UpdateUserProfileRequestSchema,
   UpdateProfileParamsSchema,
+  ExportUserDataRequestSchema,
+  DeleteAccountRequestSchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/user/user_pb.js";
 import { queryKeys } from "./shared";
 import {
@@ -17,6 +19,7 @@ import {
 import { getAuthToken } from "../auth/tokens";
 import { transport } from "../connect-transport";
 import type { UserProfile, UserProfileResponse } from "./types";
+import { useAppQuery } from "./authed-query";
 
 // Create the user service client
 const userClient = createClient(UserService, transport);
@@ -46,7 +49,7 @@ export interface UpdateUserProfileParams {
 // ===================
 
 export const useProfiles = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.profiles,
     queryFn: () => fetchPreferenceProfilesRPC() as unknown as Promise<UserProfile[]>,
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -54,7 +57,7 @@ export const useProfiles = () => {
 };
 
 export const useProfile = (profileId: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.profile(profileId),
     queryFn: async (): Promise<UserProfile | null> => {
       // Get profile from RPC via profiles.ts
@@ -66,7 +69,7 @@ export const useProfile = (profileId: string) => {
 };
 
 export const useDefaultProfile = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.defaultProfile,
     queryFn: async () => {
       const profiles = await fetchPreferenceProfilesRPC();
@@ -103,7 +106,7 @@ export const useCreateProfileMutation = () => {
  * Fetch the authenticated user's profile via RPC
  */
 export const useUserProfileQuery = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["userProfile", "rpc"],
     queryFn: async (): Promise<UserProfileResponse> => {
       const token = getAuthToken();
@@ -278,3 +281,25 @@ export const useUploadAvatarMutation = () => {
     },
   }));
 };
+
+// --- Account data controls (GDPR-style self-service) ---
+
+// Download a machine-readable export of the caller's data.
+export const exportUserData = async () => {
+  const res = await userClient.exportUserData(create(ExportUserDataRequestSchema, {}));
+  const blob = new Blob([res.data as unknown as BlobPart], {
+    type: res.contentType || "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = res.filename || "loci-data-export.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+// Permanently delete the account. `confirmation` must equal "DELETE" server-side.
+export const deleteAccount = async (confirmation: string) =>
+  userClient.deleteAccount(create(DeleteAccountRequestSchema, { confirmation }));

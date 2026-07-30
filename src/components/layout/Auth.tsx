@@ -17,7 +17,7 @@ const AuthLayout: Component<{ children: any; showBackButton?: boolean; onBack?: 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-center">
           {/* Story column */}
           <div class="hidden lg:block">
-            <div class="rounded-3xl p-8 space-y-6 glass-panel dark:gradient-border dark:shadow-[0_35px_120px_rgba(3,7,18,0.55)] shadow-lg">
+            <div class="loci-card space-y-6 p-8">
               <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-xs font-semibold uppercase tracking-[0.2em]">
                 Travel OS
               </div>

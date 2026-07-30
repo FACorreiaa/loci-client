@@ -12,6 +12,7 @@ import {
 import { queryKeys } from "./shared";
 import { transport } from "../connect-transport";
 import type { PersonalTag } from "./types";
+import { useAppQuery } from "./authed-query";
 
 // Create the tags service client
 const tagsClient = createClient(TagsService, transport);
@@ -21,7 +22,7 @@ const tagsClient = createClient(TagsService, transport);
 // ===============
 
 export const useTags = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.tags,
     queryFn: async (): Promise<PersonalTag[]> => {
       const request = create(GetTagsRequestSchema, {});

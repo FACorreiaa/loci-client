@@ -32,11 +32,12 @@ const API_BASE_URL = import.meta.env.VITE_CONNECT_BASE_URL || "http://localhost:
 const authClient = createClient(AuthService, transport);
 export const chatService = createClient(ChatService, transport);
 
-// Helper to parse JWT
-const parseJwt = (token: string) => {
+// Reads the JWT payload. Only used to pull `jti` for the ValidateSession
+// request field, which the proto requires to be 1-200 characters.
+const parseJwt = (token: string): { jti?: string } | null => {
   try {
     return JSON.parse(atob(token.split(".")[1]));
-  } catch (_e) {
+  } catch {
     return null;
   }
 };
@@ -105,14 +106,20 @@ export const authAPI = {
 
     console.log("validateSession: Making Connect RPC call to validate JWT...");
     try {
-      // Extract JTI (JWT ID) to use as session ID
-      // This satisfies length constraints (UUID) and gives the backend the correct ID to check
+      // The server authenticates this call from the Authorization header that
+      // the transport attaches; it no longer needs anything meaningful here.
+      //
+      // `session_id` cannot carry the access token: the proto constrains it to
+      // 1–200 characters and a JWT is ~370, so sending the token is rejected
+      // with InvalidArgument and sending nothing is rejected as too short. The
+      // JWT's `jti` is a UUID, which satisfies the constraint — that is the only
+      // reason it is here. Previously the server *parsed* this field as a token,
+      // so the `jti` always came back `valid: false` and session restore failed
+      // on every page load, which is what made a refresh look like a logout.
       const payload = parseJwt(token);
-      const sessionId = payload?.jti || "current";
-
-      console.log("validateSession: Using sessionId from JWT:", sessionId);
-
-      const request = create(ValidateSessionRequestSchema, { sessionId });
+      const request = create(ValidateSessionRequestSchema, {
+        sessionId: payload?.jti || "current-session",
+      });
       const response = await authClient.validateSession(request);
 
       console.log("validateSession: API response:", response);

@@ -38,6 +38,12 @@ interface MapComponentProps {
   followColorMode?: boolean;
   /** When true, map fills container edge-to-edge (no inset radius). */
   fullBleed?: boolean;
+  /** 3D camera + buildings + globe (Mapbox Standard). Default true. */
+  enable3D?: boolean;
+  /** Initial camera pitch in degrees. Defaults to 48 when enable3D, else 0. */
+  pitch?: number;
+  /** Auto camera fly-through of the itinerary stops on load. Default false. */
+  cinematic?: boolean;
 }
 
 const SOURCE_POIS = "loci-pois";
@@ -61,7 +67,13 @@ const isValidPoi = (poi: POI): boolean => {
 
 const MapComponent = (_props: MapComponentProps) => {
   const props = mergeProps(
-    { style: "mapbox://styles/mapbox/standard", showRoutes: true, followColorMode: true },
+    {
+      style: "mapbox://styles/mapbox/standard",
+      showRoutes: true,
+      followColorMode: true,
+      enable3D: true,
+      cinematic: false,
+    },
     _props,
   );
   const theme = useTheme();
@@ -79,6 +91,69 @@ const MapComponent = (_props: MapComponentProps) => {
 
   const resolveMapStyle = () =>
     props.followColorMode ? mapStyleForColorMode(theme.isDark()) : props.style;
+
+  // Tier 0: turn the flat Standard basemap into a 3D city — light preset, 3D
+  // objects (buildings), and atmospheric fog for the globe. Safe no-ops if the
+  // Standard config isn't available (e.g. a non-Standard style).
+  const apply3DConfig = () => {
+    if (!map || !props.enable3D) return;
+    try {
+      map.setConfigProperty("basemap", "lightPreset", theme.isDark() ? "night" : "day");
+      map.setConfigProperty("basemap", "show3dObjects", true);
+    } catch {
+      // Non-Standard style — config properties don't apply.
+    }
+    try {
+      map.setFog({
+        range: [1, 12],
+        "horizon-blend": 0.2,
+        color: theme.isDark() ? "#0b1220" : "#dfe8f5",
+        "high-color": theme.isDark() ? "#0a0f1e" : "#a9c6ff",
+        "space-color": theme.isDark() ? "#05070d" : "#0a1a3a",
+        "star-intensity": theme.isDark() ? 0.35 : 0.0,
+      });
+    } catch {
+      /* fog unsupported on this projection/style */
+    }
+  };
+
+  // Tier 1: cinematic camera fly-through of the itinerary stops, in order.
+  // Chained eased moves with pitch + a slow bearing sweep. Cancelled if the user
+  // interacts with the map.
+  let cinematicCancelled = false;
+  const flyThroughItinerary = () => {
+    if (!map) return;
+    const stops = props.pointsOfInterest
+      .filter(isValidPoi)
+      .slice()
+      .sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0));
+    if (stops.length === 0) return;
+
+    const cancel = () => {
+      cinematicCancelled = true;
+    };
+    map.once("dragstart", cancel);
+    map.once("zoomstart", cancel);
+
+    let i = 0;
+    const step = () => {
+      if (!map || cinematicCancelled || i >= stops.length) return;
+      const s = stops[i];
+      map.flyTo({
+        center: [toNum(s.longitude), toNum(s.latitude)],
+        zoom: 16.5,
+        pitch: 62,
+        bearing: (map.getBearing() + 55) % 360,
+        speed: 0.6,
+        curve: 1.5,
+        essential: true,
+      });
+      i += 1;
+      window.setTimeout(step, 3400);
+    };
+    // Small delay so the first move starts after the intro settles.
+    window.setTimeout(step, 900);
+  };
 
   const buildPopupContent = (poi: POI, index: number) => {
     const isMobile = mapContainer ? mapContainer.offsetWidth < 768 : true;
@@ -445,6 +520,8 @@ const MapComponent = (_props: MapComponentProps) => {
     const initialStyle = resolveMapStyle();
     activeStyleUrl = initialStyle;
 
+    const initialPitch = props.pitch ?? (props.enable3D ? 48 : 0);
+
     map = new mapboxgl.Map({
       container: mapContainer!,
       style: initialStyle,
@@ -452,6 +529,12 @@ const MapComponent = (_props: MapComponentProps) => {
       zoom: props.zoom || 12,
       minZoom: props.minZoom || 2,
       maxZoom: props.maxZoom || 20,
+      pitch: initialPitch,
+      bearing: props.enable3D ? -18 : 0,
+      // Globe projection for a rounded-earth discovery view; antialias smooths
+      // the Standard style's 3D building edges.
+      projection: props.enable3D ? "globe" : "mercator",
+      antialias: true,
     });
     map.getContainer().setAttribute("aria-label", "Map of itinerary points of interest");
 
@@ -471,8 +554,10 @@ const MapComponent = (_props: MapComponentProps) => {
     // is ready — `load` alone is too early on Standard and left layers empty.
     map.on("style.load", () => {
       if (!map) return;
+      apply3DConfig();
       ensureLayers();
       updateData(props.pointsOfInterest, true);
+      if (props.cinematic) flyThroughItinerary();
     });
 
     // If Standard re-emits style data and drops our layers, re-add them and

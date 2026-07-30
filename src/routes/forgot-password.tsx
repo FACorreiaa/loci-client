@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div class="flex min-h-[calc(100vh-theme(spacing.14))] items-center justify-center p-4">
-      <Card class="w-full max-w-md glass-panel gradient-border border-0 shadow-xl">
+      <Card class="w-full max-w-md loci-card">
         <form onSubmit={handleSubmit}>
           <CardHeader class="text-center">
             <CardTitle>Forgot Your Password?</CardTitle>
