@@ -24,6 +24,7 @@ import type {
   ActivityPreferences,
   ItineraryPreferences,
 } from "./types";
+import { useAppQuery } from "./authed-query";
 
 const profileClient = createClient(ProfileService, transport);
 
@@ -123,7 +124,7 @@ export const fetchPreferenceProfilesRPC = async (): Promise<SearchProfile[]> => 
 
 // Get all search profiles for the user
 export const useSearchProfiles = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.profiles,
     queryFn: async (): Promise<SearchProfile[]> => {
       const request = create(GetUserPreferenceProfilesRequestSchema, {});
@@ -137,7 +138,7 @@ export const useSearchProfiles = () => {
 
 // Get a specific search profile
 export const useSearchProfile = (profileId: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.profile(profileId),
     queryFn: async (): Promise<SearchProfile> => {
       const request = create(GetUserPreferenceProfileRequestSchema, { profileId });
@@ -151,7 +152,7 @@ export const useSearchProfile = (profileId: string) => {
 
 // Get the default search profile
 export const useDefaultSearchProfile = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.defaultProfile,
     queryFn: async (): Promise<SearchProfile | undefined> => {
       const request = create(GetUserPreferenceProfilesRequestSchema, {});
@@ -170,7 +171,7 @@ export const useDefaultSearchProfile = () => {
 
 // Get accommodation preferences for a profile
 export const useAccommodationPreferences = (profileId: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["profiles", profileId, "accommodation"],
     queryFn: async (): Promise<AccommodationPreferences> => {
       const request = create(GetDomainPreferencesRequestSchema, { profileId });
@@ -184,7 +185,7 @@ export const useAccommodationPreferences = (profileId: string) => {
 
 // Get dining preferences for a profile
 export const useDiningPreferences = (profileId: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["profiles", profileId, "dining"],
     queryFn: async (): Promise<DiningPreferences> => {
       const request = create(GetDomainPreferencesRequestSchema, { profileId });
@@ -198,7 +199,7 @@ export const useDiningPreferences = (profileId: string) => {
 
 // Get activity preferences for a profile
 export const useActivityPreferences = (profileId: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["profiles", profileId, "activities"],
     queryFn: async (): Promise<ActivityPreferences> => {
       const request = create(GetDomainPreferencesRequestSchema, { profileId });
@@ -212,7 +213,7 @@ export const useActivityPreferences = (profileId: string) => {
 
 // Get itinerary preferences for a profile
 export const useItineraryPreferences = (profileId: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["profiles", profileId, "itinerary"],
     queryFn: async (): Promise<ItineraryPreferences> => {
       const request = create(GetDomainPreferencesRequestSchema, { profileId });
@@ -226,7 +227,7 @@ export const useItineraryPreferences = (profileId: string) => {
 
 // Get combined filters for a domain
 export const useCombinedFilters = (profileId: string, domain?: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["profiles", profileId, "filters", domain || "general"],
     queryFn: async () => {
       const request = create(GetCombinedFiltersRequestSchema, { profileId, domain });

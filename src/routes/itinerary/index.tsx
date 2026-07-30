@@ -1,5 +1,5 @@
 import { createSignal, createMemo, Show, For, onMount, lazy } from "solid-js";
-import { useSearchParams } from "@solidjs/router";
+import { useSearchParams, useNavigate } from "@solidjs/router";
 import { useStreamedRpc } from "@/lib/hooks/useStreamedRpc";
 import ItineraryStreamView from "@/components/itinerary/ItineraryStreamView";
 import StopCard from "@/components/itinerary/StopCard";
@@ -14,6 +14,8 @@ import {
 const MapComponent = lazy(() => import("@/components/features/Map/Map"));
 const DetailedItemModal = lazy(() => import("@/components/DetailedItemModal"));
 import type { POI } from "@/components/features/Map/Map";
+import { getChatSession } from "@/lib/api/llm";
+import { getStoredSession, persistCompletedSession } from "@/lib/utils/chatUtils";
 
 // Stops per itinerary day — the live backend has no day field, so we bucket the
 // priority-ordered stops to colour the map by day and group the list.
@@ -22,6 +24,7 @@ const toNum = (v: unknown): number =>
   typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : 0;
 import SplitView from "@/components/layout/SplitView";
 import { CityInfoHeader } from "@/components/ui/CityInfoHeader";
+import LocalWeather from "@/components/LocalWeather";
 import { ActionToolbar } from "@/components/ui/ActionToolbar";
 import FloatingChat from "@/components/features/Chat/FloatingChat";
 import { useSaveItineraryMutation } from "@/lib/api/itineraries";
@@ -32,6 +35,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function ItineraryPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [message] = createSignal((searchParams.message as string) || "Show me an itinerary");
   const [cityName] = createSignal((searchParams.cityName as string) || "London");
   const [profileId] = createSignal((searchParams.profileId as string) || "");
@@ -70,71 +74,84 @@ export default function ItineraryPage() {
     return data;
   };
 
+  const restoreFromSessionStorage = (sessionIdFromUrl: string): boolean => {
+    const completedSession = sessionStorage.getItem("completedStreamingSession");
+    if (completedSession) {
+      try {
+        const parsed = JSON.parse(completedSession);
+        const parsedData = parsed.data || parsed;
+        if (
+          parsedData &&
+          (parsed.sessionId === sessionIdFromUrl || parsedData.session_id === sessionIdFromUrl)
+        ) {
+          setStore("data", normalizeStoredData(parsedData));
+          return true;
+        }
+      } catch (e) {
+        console.warn("Failed to parse completed streaming session:", e);
+      }
+    }
+
+    const activeSession = sessionStorage.getItem("active_streaming_session");
+    if (activeSession) {
+      try {
+        const parsed = JSON.parse(activeSession);
+        if (parsed.sessionId === sessionIdFromUrl && parsed.data) {
+          setStore("data", normalizeStoredData(parsed.data));
+          return true;
+        }
+      } catch (e) {
+        console.warn("Failed to parse active streaming session:", e);
+      }
+    }
+
+    const storedSession = getStoredSession(sessionIdFromUrl);
+    if (storedSession) {
+      setStore("data", normalizeStoredData(storedSession));
+      return true;
+    }
+
+    return false;
+  };
+
+  const hydrateFromServer = async (sessionIdFromUrl: string) => {
+    setStore("error", null);
+    setStore("isLoading", true);
+
+    try {
+      const itinerary = await getChatSession(sessionIdFromUrl);
+      if (!itinerary || stopsFromCityResponse(itinerary).stops.length === 0) {
+        throw new Error("This session has no saved itinerary yet. Try starting a new search.");
+      }
+
+      const normalizedData = normalizeStoredData(itinerary);
+      setStore("data", normalizedData);
+      persistCompletedSession(sessionIdFromUrl, normalizedData);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Could not load your itinerary. Please try again.";
+      setStore("error", new Error(message));
+    } finally {
+      setStore("isLoading", false);
+    }
+  };
+
+  const restoreOrHydrateSession = async (sessionIdFromUrl: string) => {
+    if (restoreFromSessionStorage(sessionIdFromUrl)) {
+      return;
+    }
+    await hydrateFromServer(sessionIdFromUrl);
+  };
+
   // Connect on mount - but only if we don't already have data from navigation
   onMount(() => {
     const sessionIdFromUrl = searchParams.sessionId as string;
-    const streaming = searchParams.streaming === "true";
-    const domain = searchParams.domain as string;
 
-    console.log("🔍 Itinerary page mount - checking params:", {
-      sessionIdFromUrl,
-      streaming,
-      domain,
-    });
-
-    // If we have a sessionId in the URL, we came from navigation (chat page or deep link)
-    // In this case, DON'T start a new connection - the FloatingChat will handle updates
     if (sessionIdFromUrl) {
-      console.log("📍 SessionId found in URL, attempting to restore data...");
-
-      // Try to restore data from session storage
-      const completedSession = sessionStorage.getItem("completedStreamingSession");
-      if (completedSession) {
-        try {
-          const parsed = JSON.parse(completedSession);
-          const parsedData = parsed.data || parsed;
-          if (
-            parsedData &&
-            (parsed.sessionId === sessionIdFromUrl || parsedData.session_id === sessionIdFromUrl)
-          ) {
-            console.log("✅ Found completed streaming session data, restoring...");
-            const normalizedData = normalizeStoredData(parsedData);
-            console.log("📦 Normalized data:", normalizedData);
-            setStore("data", normalizedData);
-            return;
-          }
-        } catch (e) {
-          console.warn("Failed to parse completed streaming session:", e);
-        }
-      }
-
-      // Check active streaming session
-      const activeSession = sessionStorage.getItem("active_streaming_session");
-      if (activeSession) {
-        try {
-          const parsed = JSON.parse(activeSession);
-          if (parsed.sessionId === sessionIdFromUrl && parsed.data) {
-            console.log("✅ Found active streaming session data, restoring...");
-            const normalizedData = normalizeStoredData(parsed.data);
-            console.log("📦 Normalized data:", normalizedData);
-            setStore("data", normalizedData);
-            return;
-          }
-        } catch (e) {
-          console.warn("Failed to parse active streaming session:", e);
-        }
-      }
-
-      // No data found but we have sessionId - data might still be streaming
-      // DON'T start a new connection - FloatingChat will handle updates via useChatSession
-      console.log(
-        "⏳ SessionId present but no cached data yet - waiting for streaming data via FloatingChat...",
-      );
+      void restoreOrHydrateSession(sessionIdFromUrl);
       return;
     }
 
-    // No sessionId in URL - this is a fresh page load, start new connection
-    console.log("🆕 Fresh page load (no sessionId), starting new streaming connection...");
     connect();
   });
 
@@ -151,11 +168,23 @@ export default function ItineraryPage() {
 
   const streamPhase = createMemo<StreamPhase>(() => {
     if (store.error) return "error";
+    if (store.isLoading && !store.data) return "skeleton";
     const m = itineraryModel();
     if (!store.data || m.stops.length === 0) return "skeleton";
     if (store.isLoading) return "enriching";
     return m.enrichedCount >= m.stops.length ? "done" : "enriching";
   });
+
+  const handleRetryHydrate = () => {
+    const sessionIdFromUrl = searchParams.sessionId as string;
+    if (sessionIdFromUrl) {
+      void hydrateFromServer(sessionIdFromUrl);
+    }
+  };
+
+  const handleBackToDiscover = () => {
+    navigate("/discover");
+  };
 
   // General POIs that aren't part of the itinerary, as static cards.
   const extraStops = createMemo<ItineraryStop[]>(() => {
@@ -352,7 +381,11 @@ export default function ItineraryPage() {
         when={mapPois().length > 0}
         fallback={
           <div class="h-full w-full flex items-center justify-center text-muted-foreground p-4 text-center">
-            {store.isLoading ? "Loading map data..." : "No items to display on map"}
+            {store.isLoading
+              ? "Loading map data..."
+              : store.error
+                ? "Could not load itinerary map"
+                : "No items to display on map"}
           </div>
         }
       >
@@ -363,6 +396,7 @@ export default function ItineraryPage() {
           selectedId={selectedId()}
           onSelect={(poi) => setSelectedId(poi.name)}
           onActivate={(poi) => openDetail(poi)}
+          cinematic
           fullBleed
         />
       </Show>
@@ -382,61 +416,88 @@ export default function ItineraryPage() {
   const ListContent = (
     <div class="h-full overflow-y-auto px-4 py-6 md:px-8 bg-background">
       <div class="max-w-3xl mx-auto pb-24">
-        <CityInfoHeader cityData={cityData()} isLoading={store.isLoading && !cityData()} />
-
-        <ItineraryStreamView
-          phase={streamPhase()}
-          title={itineraryModel().title}
-          summary={itineraryModel().summary}
-          stops={itineraryModel().stops}
-          enrichedCount={itineraryModel().enrichedCount}
-          error={store.error?.message}
-          stopsPerDay={STOPS_PER_DAY}
-          selectedKey={selectedId()}
-          onStopClick={(stop) => setSelectedId(stop.name)}
-        />
-
-        <TripKit
-          title={itineraryModel().title}
-          cityName={cityName()}
-          summary={itineraryModel().summary}
-          stops={tripKitStops()}
-          isPro={isPro()}
-          visible={
-            streamPhase() === "done" || (itineraryModel().stops.length > 0 && !store.isLoading)
-          }
-          stopsPerDay={STOPS_PER_DAY}
-        />
-
-        <Show when={store.tripId || (searchParams.tripId as string | undefined)}>
-          <div class="mt-4">
-            <EditTripCTA
-              tripId={(store.tripId || (searchParams.tripId as string)) ?? null}
-              cityName={cityName()}
-            />
-          </div>
-        </Show>
-
-        <Show when={extraStops().length > 0}>
-          <div class="mt-10">
-            <SectionHeader
-              kicker="Also nearby"
-              title="More to explore"
-              subtitle="Optional stops around your route"
-            />
-            <div class="space-y-3">
-              <For each={extraStops()}>
-                {(stop, i) => (
-                  <StopCard
-                    stop={stop}
-                    index={i()}
-                    selected={selectedId() === stop.name}
-                    onClick={(s) => setSelectedId(s.name)}
-                  />
-                )}
-              </For>
+        <Show
+          when={!store.error || store.data}
+          fallback={
+            <div class="loci-card rounded-2xl p-6 text-center space-y-4 mt-8">
+              <p class="font-display text-xl text-foreground">Couldn&apos;t build this itinerary</p>
+              <p class="text-sm text-muted-foreground">{store.error?.message}</p>
+              <button type="button" class="loci-hero__action mx-auto" onClick={() => connect()}>
+                Try again
+              </button>
+              <a href="/chat" class="block text-sm text-primary hover:underline">
+                Ask Loci in chat instead
+              </a>
             </div>
-          </div>
+          }
+        >
+          <CityInfoHeader cityData={cityData()} isLoading={store.isLoading && !cityData()} />
+
+          <Show when={cityData()?.center_latitude}>
+            <div class="mt-3">
+              <LocalWeather
+                latitude={cityData()?.center_latitude}
+                longitude={cityData()?.center_longitude}
+              />
+            </div>
+          </Show>
+
+          <ItineraryStreamView
+            phase={streamPhase()}
+            title={itineraryModel().title}
+            summary={itineraryModel().summary}
+            stops={itineraryModel().stops}
+            enrichedCount={itineraryModel().enrichedCount}
+            error={store.error?.message}
+            onRetry={searchParams.sessionId ? handleRetryHydrate : undefined}
+            onBack={searchParams.sessionId ? handleBackToDiscover : undefined}
+            stopsPerDay={STOPS_PER_DAY}
+            selectedKey={selectedId()}
+            onStopClick={(stop) => setSelectedId(stop.name)}
+          />
+
+          <TripKit
+            title={itineraryModel().title}
+            cityName={cityName()}
+            summary={itineraryModel().summary}
+            stops={tripKitStops()}
+            isPro={isPro()}
+            visible={
+              streamPhase() === "done" || (itineraryModel().stops.length > 0 && !store.isLoading)
+            }
+            stopsPerDay={STOPS_PER_DAY}
+          />
+
+          <Show when={store.tripId || (searchParams.tripId as string | undefined)}>
+            <div class="mt-4">
+              <EditTripCTA
+                tripId={(store.tripId || (searchParams.tripId as string)) ?? null}
+                cityName={cityName()}
+              />
+            </div>
+          </Show>
+
+          <Show when={extraStops().length > 0}>
+            <div class="mt-10">
+              <SectionHeader
+                kicker="Also nearby"
+                title="More to explore"
+                subtitle="Optional stops around your route"
+              />
+              <div class="space-y-3">
+                <For each={extraStops()}>
+                  {(stop, i) => (
+                    <StopCard
+                      stop={stop}
+                      index={i()}
+                      selected={selectedId() === stop.name}
+                      onClick={(s) => setSelectedId(s.name)}
+                    />
+                  )}
+                </For>
+              </div>
+            </div>
+          </Show>
         </Show>
       </div>
     </div>

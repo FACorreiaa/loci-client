@@ -35,6 +35,8 @@ export interface ItineraryStreamViewProps {
   /** how many shimmer rows to show before any skeleton arrives */
   skeletonCount?: number;
   error?: string;
+  onRetry?: () => void;
+  onBack?: () => void;
   onStopClick?: (stop: ItineraryStop) => void;
   /** When set, stops are grouped into days of this size with day headers. */
   stopsPerDay?: number;
@@ -114,9 +116,33 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
       </Show>
 
       <Show when={props.phase === "error"}>
-        <div class="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-destructive">
-          <AlertTriangle class="w-4 h-4 mt-0.5 shrink-0" />
-          <p class="text-sm">{props.error || "Something went wrong building your itinerary."}</p>
+        <div class="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-destructive space-y-3">
+          <div class="flex items-start gap-2">
+            <AlertTriangle class="w-4 h-4 mt-0.5 shrink-0" />
+            <p class="text-sm">{props.error || "Something went wrong building your itinerary."}</p>
+          </div>
+          <Show when={props.onRetry || props.onBack}>
+            <div class="flex flex-wrap gap-2 pl-6">
+              <Show when={props.onRetry}>
+                <button
+                  type="button"
+                  class="rounded-lg bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => props.onRetry?.()}
+                >
+                  Retry
+                </button>
+              </Show>
+              <Show when={props.onBack}>
+                <button
+                  type="button"
+                  class="rounded-lg border border-destructive/40 px-3 py-1.5 text-xs font-medium hover:bg-destructive/5"
+                  onClick={() => props.onBack?.()}
+                >
+                  Back to discover
+                </button>
+              </Show>
+            </div>
+          </Show>
         </div>
       </Show>
 

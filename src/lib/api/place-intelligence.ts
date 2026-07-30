@@ -10,6 +10,7 @@ import {
 import { createClient } from "@connectrpc/connect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { transport } from "~/lib/connect-transport";
+import { useAppQuery } from "./authed-query";
 
 const placeClient = createClient(PlaceIntelligenceService, transport);
 
@@ -55,7 +56,7 @@ const fieldNames = Object.fromEntries(
 ) as Record<ProtoPlaceFactField, PlaceFactField>;
 
 export const useVerificationTasks = () =>
-  useQuery(() => ({
+  useAppQuery(() => ({
     queryKey: ["place-intelligence", "tasks"],
     queryFn: async (): Promise<VerificationTask[]> => {
       const response = await placeClient.listVerificationTasks(
@@ -75,7 +76,7 @@ export const useVerificationTasks = () =>
   }));
 
 export const useContributorProfile = () =>
-  useQuery(() => ({
+  useAppQuery(() => ({
     queryKey: ["place-intelligence", "profile"],
     queryFn: async (): Promise<ContributorProfile> => {
       const profile = await placeClient.getMyContributorProfile(

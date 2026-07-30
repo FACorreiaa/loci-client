@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/solid-query";
 import { queryKeys } from "./shared";
 import { fetchPreferenceProfilesRPC, useUpdateSearchProfileMutation } from "./profiles";
 import { useUserProfileQuery, useUpdateProfileMutation } from "./user";
+import { useAppQuery } from "./authed-query";
 
 // ==================
 // SETTINGS QUERIES - STUB
@@ -10,7 +11,7 @@ import { useUserProfileQuery, useUpdateProfileMutation } from "./user";
 export const useSettings = () => {
   const userProfile = useUserProfileQuery();
 
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.settings,
     queryFn: async () => {
       const profiles = await fetchPreferenceProfilesRPC();

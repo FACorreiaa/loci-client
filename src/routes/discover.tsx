@@ -80,7 +80,7 @@ export default function DiscoverPage() {
   let abortController: AbortController | null = null;
 
   // Fetch discover page data (RPC)
-  const discoverData = useDiscoverPageData();
+  const discoverData = useDiscoverPageData(() => !!isAuthenticated());
 
   // Category data matching go-templui
   const categories = [
@@ -120,6 +120,8 @@ export default function DiscoverPage() {
     city: poi.city || poi.city_name,
     city_id: poi.city_id || poi.cityId,
     recommendation_rationale: poi.recommendation_rationale || poi.recommendationRationale,
+    uncertainty_score: poi.uncertainty_score ?? poi.uncertaintyScore,
+    missing_data: poi.missing_data ?? poi.missingData,
     llm_interaction_id: poi.llm_interaction_id,
     created_at: poi.created_at,
     recommendation_trace: normalizeRecommendationTrace(
@@ -541,6 +543,12 @@ export default function DiscoverPage() {
                   <p class="mt-3 text-sm text-primary font-medium">{progressMessage()}</p>
                 </Show>
               </div>
+              <div class="flex flex-wrap items-center gap-3">
+                <a href="/compare" class="loci-hero__action text-sm">
+                  Weekend: compare two cities
+                </a>
+                <span class="text-xs text-muted-foreground">e.g. Évora vs Beja from Porto</span>
+              </div>
               <Show when={discoverData.isError}>
                 <p class="text-sm loci-hero__subtitle">
                   Couldn’t reach the discover service, showing sample data.{" "}
@@ -659,6 +667,8 @@ export default function DiscoverPage() {
                                 recommendation_rationale: poi.recommendation_rationale,
                                 tags: poi.tags,
                               })}
+                              uncertaintyScore={poi.uncertainty_score}
+                              missingData={poi.missing_data}
                             />
                             <div class="flex items-center gap-3 text-xs text-muted-foreground mt-3">
                               <div class="flex items-center gap-1">

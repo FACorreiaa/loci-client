@@ -10,6 +10,7 @@ import { ActionToolbar } from "@/components/ui/ActionToolbar";
 import FloatingChat from "~/components/features/Chat/FloatingChat";
 import { Skeleton } from "~/ui/skeleton";
 import { Card, CardContent, CardHeader } from "~/ui/card";
+import { StreamErrorCard } from "~/components/ui/StreamErrorCard";
 
 export default function RestaurantsPage() {
   const [searchParams] = useSearchParams();
@@ -160,10 +161,11 @@ export default function RestaurantsPage() {
         <CityInfoHeader cityData={cityData()} isLoading={state.isStreaming && !cityData()} />
 
         <Show when={state.error}>
-          <div class="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive">
-            <p class="font-bold">Unable to load restaurants</p>
-            <p class="text-sm opacity-90">{state.error}</p>
-          </div>
+          <StreamErrorCard
+            error={state.error!}
+            title="Unable to load restaurants"
+            onRetry={() => startStream(message(), cityName())}
+          />
         </Show>
 
         <Show when={state.isStreaming && !restaurants().length}>

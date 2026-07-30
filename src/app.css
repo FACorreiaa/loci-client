@@ -6,3 +6,22 @@
 @import "./styles/motion-tokens.css";
 @import "./styles/theme-utilities.css";
 @import "./styles/animations.css";
+
+/* Print: strip chrome so a trip page prints clean (Slice 3 printable itinerary). */
+@media print {
+  nav,
+  footer,
+  .no-print,
+  .trip-extras input,
+  .trip-extras button {
+    display: none !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+}

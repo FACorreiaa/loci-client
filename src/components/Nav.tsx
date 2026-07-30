@@ -10,6 +10,7 @@ import {
   MapPin,
   Menu,
   MessageCircle,
+  GitCompare,
   Settings,
   Sparkles,
   User,
@@ -32,6 +33,7 @@ const publicItems = [
 
 const journeyItems = [
   { name: "Discover", href: "/discover", icon: Compass },
+  { name: "Compare", href: "/compare", icon: GitCompare },
   { name: "Nearby", href: "/nearme", icon: MapPin },
   { name: "Trips", href: "/trips", icon: Map },
   { name: "Ask Loci", href: "/chat", icon: MessageCircle },

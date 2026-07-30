@@ -11,7 +11,7 @@ export interface ChatHeaderProps {
 
 const ChatHeader: Component<ChatHeaderProps> = (props) => {
   return (
-    <div class="bg-card/80 backdrop-blur-xl border-b border-border p-3 sm:p-4 shadow-sm">
+    <div class="border-b border-border bg-card p-3 sm:p-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
           <button

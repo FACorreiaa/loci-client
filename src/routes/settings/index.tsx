@@ -1,4 +1,5 @@
 import { createEffect, createSignal, For, Show } from "solid-js";
+import { A } from "@solidjs/router";
 import {
   User,
   Tag,
@@ -16,6 +17,9 @@ import {
   Phone,
   Upload,
   KeyRound,
+  CreditCard,
+  Sparkles,
+  ExternalLink,
 } from "lucide-solid";
 import {
   useUpdateProfileMutation,
@@ -44,6 +48,7 @@ import TravelProfiles from "~/components/features/Settings/TravelProfiles";
 import AppearanceSettings from "~/components/AppearanceSettings";
 import ApiKeys from "~/components/features/Settings/ApiKeys";
 import TasteAndPrivacy from "~/components/features/Settings/TasteAndPrivacy";
+import AccountData from "~/components/features/Settings/AccountData";
 import { Button } from "~/ui/button";
 
 export default function SettingsPage() {
@@ -171,7 +176,10 @@ export default function SettingsPage() {
     { id: "tags", label: "Tags", icon: Tag },
     { id: "interests", label: "Interests", icon: Heart },
     { id: "profiles", label: "Travel Profiles", icon: Users },
-    { id: "apikeys", label: "API Keys", icon: KeyRound },
+    // MCP lives inside the API-keys panel (endpoint + setup guide), so name the
+    // tab after both rather than duplicating the panel.
+    { id: "apikeys", label: "MCP & API Keys", icon: KeyRound },
+    { id: "billing", label: "Plan & Billing", icon: CreditCard },
   ];
 
   // Get tags from API
@@ -332,6 +340,10 @@ export default function SettingsPage() {
 
         <div class="mb-6">
           <TasteAndPrivacy />
+        </div>
+
+        <div class="mb-6">
+          <AccountData />
         </div>
 
         <div class="grid lg:grid-cols-3 gap-6">
@@ -681,6 +693,54 @@ export default function SettingsPage() {
     />
   );
 
+  // Billing has its own full route; settings just needs to be a findable door to
+  // it. Plan and pricing were previously unreachable from here, which is what
+  // sent people hunting through the nav.
+  const renderBilling = () => (
+    <div class="space-y-4">
+      <div>
+        <h2 class="text-lg font-semibold text-foreground">Plan &amp; billing</h2>
+        <p class="text-sm text-muted-foreground mt-1">
+          Manage your subscription, payment method and invoices, or compare what each plan includes.
+        </p>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <A
+          href="/billing"
+          class="loci-card group flex items-start gap-3 rounded-lg border border-border p-4 transition-colors hover:border-primary/40"
+        >
+          <CreditCard class="w-5 h-5 mt-0.5 text-primary flex-shrink-0" />
+          <span class="min-w-0">
+            <span class="flex items-center gap-1.5 font-medium text-foreground">
+              Manage subscription
+              <ExternalLink class="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
+            </span>
+            <span class="block text-sm text-muted-foreground mt-0.5">
+              Current plan, payment method, invoices and cancellation.
+            </span>
+          </span>
+        </A>
+
+        <A
+          href="/pricing"
+          class="loci-card group flex items-start gap-3 rounded-lg border border-border p-4 transition-colors hover:border-primary/40"
+        >
+          <Sparkles class="w-5 h-5 mt-0.5 text-accent flex-shrink-0" />
+          <span class="min-w-0">
+            <span class="flex items-center gap-1.5 font-medium text-foreground">
+              Compare plans
+              <ExternalLink class="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
+            </span>
+            <span class="block text-sm text-muted-foreground mt-0.5">
+              What Pro adds, including higher daily request limits.
+            </span>
+          </span>
+        </A>
+      </div>
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab()) {
       case "settings":
@@ -693,6 +753,8 @@ export default function SettingsPage() {
         return renderProfiles();
       case "apikeys":
         return <ApiKeys onNotification={(message, type) => setNotification({ message, type })} />;
+      case "billing":
+        return renderBilling();
       default:
         return renderSettings();
     }

@@ -174,7 +174,9 @@ export default function Features() {
           <header class="text-center">
             <div class="rounded-3xl bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 border border-border shadow-lg p-10">
               <p class="text-sm uppercase tracking-[0.2em] text-accent mb-3">Features</p>
-              <h1 class="text-4xl md:text-6xl font-bold text-foreground mb-4">AI-powered travel.</h1>
+              <h1 class="text-4xl md:text-6xl font-bold text-foreground mb-4">
+                AI-powered travel.
+              </h1>
               <p class="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
                 Discover what makes Loci the smartest way to explore cities. We aim for WCAG AA/AAA
                 contrast in both Light (Latte) and Dark mode so it stays readable everywhere.
@@ -198,10 +200,7 @@ export default function Features() {
                       aria-labelledby={`feature-${index()}`}
                     >
                       <div class="flex items-center mb-4">
-                        <div
-                          class="bg-primary/10 p-3 rounded-lg mr-4"
-                          aria-hidden="true"
-                        >
+                        <div class="bg-primary/10 p-3 rounded-lg mr-4" aria-hidden="true">
                           <IconComponent class="w-6 h-6 text-primary" />
                         </div>
                         <h3
@@ -251,7 +250,7 @@ export default function Features() {
                   const IconComponent = capability.icon;
                   return (
                     <article
-                      class="glass-panel gradient-border rounded-lg p-6 border-0 shadow-lg"
+                      class="loci-card p-6"
                       role="listitem"
                       aria-labelledby={`capability-${index()}`}
                     >
@@ -275,10 +274,7 @@ export default function Features() {
           </section>
 
           {/* AI Capabilities */}
-          <section
-            class="glass-panel gradient-border rounded-lg p-8 mb-20"
-            aria-labelledby="ai-capabilities"
-          >
+          <section class="loci-card p-8 mb-20" aria-labelledby="ai-capabilities">
             <div class="text-center mb-8">
               <h2 id="ai-capabilities" class="text-3xl font-bold mb-4 text-foreground">
                 AI-Generated Itineraries
@@ -323,10 +319,7 @@ export default function Features() {
           </section>
 
           {/* Smart Memory & RAG Section */}
-          <section
-            class="glass-panel gradient-border rounded-lg p-8 mb-20 border-0"
-            aria-labelledby="smart-memory"
-          >
+          <section class="loci-card p-8 mb-20" aria-labelledby="smart-memory">
             <div class="text-center mb-8">
               <h2 id="smart-memory" class="text-3xl font-bold text-foreground mb-4">
                 Smart Memory & Contextual Understanding
@@ -339,10 +332,7 @@ export default function Features() {
             <div class="grid md:grid-cols-2 gap-8" role="list">
               <div class="bg-card rounded-lg p-6 border border-border" role="listitem">
                 <div class="flex items-center mb-4">
-                  <div
-                    class="bg-accent/10 p-3 rounded-lg mr-4"
-                    aria-hidden="true"
-                  >
+                  <div class="bg-accent/10 p-3 rounded-lg mr-4" aria-hidden="true">
                     <Database class="w-6 h-6 text-accent" />
                   </div>
                   <h3 class="text-xl font-semibold text-card-foreground">Conversation Memory</h3>
@@ -369,10 +359,7 @@ export default function Features() {
               </div>
               <div class="bg-card rounded-lg p-6 border border-border" role="listitem">
                 <div class="flex items-center mb-4">
-                  <div
-                    class="bg-primary/10 p-3 rounded-lg mr-4"
-                    aria-hidden="true"
-                  >
+                  <div class="bg-primary/10 p-3 rounded-lg mr-4" aria-hidden="true">
                     <Search class="w-6 h-6 text-primary" />
                   </div>
                   <h3 class="text-xl font-semibold text-card-foreground">Intelligent Retrieval</h3>
@@ -421,10 +408,7 @@ export default function Features() {
             </h2>
             <div class="grid md:grid-cols-2 gap-6" role="list">
               <div class="flex items-center" role="listitem">
-                <div
-                  class="bg-primary/10 p-2 rounded-lg mr-4"
-                  aria-hidden="true"
-                >
+                <div class="bg-primary/10 p-2 rounded-lg mr-4" aria-hidden="true">
                   <Zap class="w-5 h-5 text-primary" />
                 </div>
                 <div>
@@ -433,10 +417,7 @@ export default function Features() {
                 </div>
               </div>
               <div class="flex items-center" role="listitem">
-                <div
-                  class="bg-primary/10 p-2 rounded-lg mr-4"
-                  aria-hidden="true"
-                >
+                <div class="bg-primary/10 p-2 rounded-lg mr-4" aria-hidden="true">
                   <List class="w-5 h-5 text-primary" />
                 </div>
                 <div>
@@ -445,10 +426,7 @@ export default function Features() {
                 </div>
               </div>
               <div class="flex items-center" role="listitem">
-                <div
-                  class="bg-primary/10 p-2 rounded-lg mr-4"
-                  aria-hidden="true"
-                >
+                <div class="bg-primary/10 p-2 rounded-lg mr-4" aria-hidden="true">
                   <Users class="w-5 h-5 text-primary" />
                 </div>
                 <div>
@@ -457,10 +435,7 @@ export default function Features() {
                 </div>
               </div>
               <div class="flex items-center" role="listitem">
-                <div
-                  class="bg-primary/10 p-2 rounded-lg mr-4"
-                  aria-hidden="true"
-                >
+                <div class="bg-primary/10 p-2 rounded-lg mr-4" aria-hidden="true">
                   <Globe class="w-5 h-5 text-primary" />
                 </div>
                 <div>

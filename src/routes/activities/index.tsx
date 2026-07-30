@@ -11,6 +11,7 @@ import { Skeleton } from "~/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "~/ui/card";
 import { Badge } from "~/ui/badge";
 import FavoriteButton from "~/components/shared/FavoriteButton";
+import { StreamErrorCard } from "~/components/ui/StreamErrorCard";
 
 export default function ActivitiesPage() {
   const [searchParams] = useSearchParams();
@@ -161,10 +162,11 @@ export default function ActivitiesPage() {
         <CityInfoHeader cityData={cityData()} isLoading={state.isStreaming && !cityData()} />
 
         <Show when={state.error}>
-          <div class="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive">
-            <p class="font-bold">Unable to load activities</p>
-            <p class="text-sm opacity-90">{state.error}</p>
-          </div>
+          <StreamErrorCard
+            error={state.error!}
+            title="Unable to load activities"
+            onRetry={() => startStream(message(), cityName())}
+          />
         </Show>
 
         <Show when={state.isStreaming && !activities().length}>

@@ -1,5 +1,5 @@
 // Trip (editable day-by-day itinerary) queries + mutations over TripService.
-import { useQuery, useMutation, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -34,6 +34,7 @@ import {
   toProtoRecommendationTrace,
   type RecommendationTrace,
 } from "./recommendations";
+import { useAppQuery } from "./authed-query";
 
 const tripClient = createClient(TripService, transport);
 
@@ -58,6 +59,30 @@ export interface TripDay {
   dayNumber: number;
   date?: string; // ISO
   stops: TripStop[];
+  /** Which city this day is spent in. Empty means the trip's primary city. */
+  cityName?: string;
+  cityId?: string;
+  cityLat?: number;
+  cityLon?: number;
+  /** True when the day includes a move between cities. */
+  travelDay?: boolean;
+}
+
+/** Travel between two consecutive cities on a multi-city trip. */
+export interface TripLeg {
+  id?: string;
+  fromName: string;
+  toName: string;
+  fromLat?: number;
+  fromLon?: number;
+  toLat?: number;
+  toLon?: number;
+  distanceKm: number;
+  durationMins: number;
+  /** The day at whose end this leg happens; 0 is the outbound leg from home. */
+  afterDay: number;
+  mode?: string;
+  bookingUrl?: string;
 }
 
 export interface TripConstraint {
@@ -77,6 +102,8 @@ export interface Trip {
   title: string;
   constraints: TripConstraint;
   days: TripDay[];
+  /** Travel between cities. Empty for a single-city trip. */
+  legs?: TripLeg[];
   version: bigint;
   sourceSessionId?: string;
   createdAt: string;
@@ -105,10 +132,29 @@ const mapTrip = (p: ProtoTripDraft): Trip => ({
   sourceSessionId: p.sourceSessionId,
   createdAt: p.createdAt ? timestampDate(p.createdAt).toISOString() : new Date().toISOString(),
   updatedAt: p.updatedAt ? timestampDate(p.updatedAt).toISOString() : new Date().toISOString(),
+  legs: (p.legs ?? []).map((l) => ({
+    id: l.id,
+    fromName: l.fromName,
+    toName: l.toName,
+    fromLat: l.fromLat,
+    fromLon: l.fromLon,
+    toLat: l.toLat,
+    toLon: l.toLon,
+    distanceKm: l.distanceKm,
+    durationMins: l.durationMins,
+    afterDay: l.afterDay,
+    mode: l.mode,
+    bookingUrl: l.bookingUrl,
+  })),
   days: (p.days ?? []).map((d) => ({
     id: d.id,
     dayNumber: d.dayNumber,
     date: d.date ? timestampDate(d.date).toISOString() : undefined,
+    cityName: d.cityName,
+    cityId: d.cityId,
+    cityLat: d.cityLat,
+    cityLon: d.cityLon,
+    travelDay: d.travelDay,
     stops: (d.stops ?? []).map((s) => ({
       id: s.id,
       poiId: s.poiId,
@@ -163,6 +209,27 @@ const toProtoTrip = (t: Trip) =>
       dayNumber: d.dayNumber,
       date: d.date ? timestampFromDate(new Date(d.date)) : undefined,
       stops: d.stops.map(toProtoStop),
+      // Multi-city: which city this day belongs to. Omitted for single-city
+      // trips, where the server falls back to the trip's primary city.
+      cityName: d.cityName ?? "",
+      cityId: d.cityId || undefined,
+      cityLat: d.cityLat,
+      cityLon: d.cityLon,
+      travelDay: d.travelDay ?? false,
+    })),
+    legs: (t.legs ?? []).map((l) => ({
+      id: l.id || "",
+      fromName: l.fromName,
+      toName: l.toName,
+      fromLat: l.fromLat ?? 0,
+      fromLon: l.fromLon ?? 0,
+      toLat: l.toLat ?? 0,
+      toLon: l.toLon ?? 0,
+      distanceKm: l.distanceKm,
+      durationMins: l.durationMins,
+      afterDay: l.afterDay,
+      mode: l.mode || "drive",
+      bookingUrl: l.bookingUrl,
     })),
   });
 
@@ -176,7 +243,7 @@ const tripKeys = {
 // ---- queries ----
 
 export const useTrips = () =>
-  useQuery(() => ({
+  useAppQuery(() => ({
     queryKey: tripKeys.list(),
     queryFn: async () => {
       const res = await tripClient.listTrips(
@@ -189,7 +256,7 @@ export const useTrips = () =>
   }));
 
 export const useTrip = (id: () => string | undefined) =>
-  useQuery(() => ({
+  useAppQuery(() => ({
     queryKey: tripKeys.detail(id() ?? ""),
     enabled: !!id(),
     queryFn: async () => {

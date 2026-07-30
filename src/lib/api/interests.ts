@@ -11,6 +11,7 @@ import {
 import { queryKeys } from "./shared";
 import { transport } from "../connect-transport";
 import type { Interest } from "./types";
+import { useAppQuery } from "./authed-query";
 
 // Create the interest service client
 const interestClient = createClient(InterestService, transport);
@@ -20,7 +21,7 @@ const interestClient = createClient(InterestService, transport);
 // ===================
 
 export const useInterests = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.interests,
     queryFn: async (): Promise<Interest[]> => {
       const request = create(GetInterestsRequestSchema, { activeOnly: false });

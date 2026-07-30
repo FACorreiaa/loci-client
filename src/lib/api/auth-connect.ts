@@ -14,6 +14,7 @@ import {
 import { clearAuthToken, getAuthToken, getRefreshToken, setAuthToken } from "../auth/tokens";
 import { queryKeys } from "./shared";
 import { transport } from "../connect-transport";
+import { useAppQuery } from "./authed-query";
 
 // Create the auth service client
 const authClient = createClient(AuthService, transport);
@@ -23,7 +24,7 @@ const authClient = createClient(AuthService, transport);
 // =======================
 
 export const useValidateSession = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.session,
     queryFn: async () => {
       const token = getAuthToken();

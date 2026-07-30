@@ -143,9 +143,11 @@ export default function PWAInstall() {
               onClick={dismissBanner}
               variant="ghost"
               size="sm"
+              // Icon-only dismiss: without a name it announces as "button".
+              aria-label="Dismiss install prompt"
               class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0"
             >
-              <X class="w-4 h-4" />
+              <X class="w-4 h-4" aria-hidden="true" />
             </Button>
           </div>
         </div>

@@ -5,7 +5,7 @@ import { Button } from "~/ui/button";
 export default function NotFound() {
   return (
     <div class="min-h-screen flex items-center justify-center px-4 py-8">
-      <div class="text-center max-w-md mx-auto glass-panel gradient-border rounded-2xl p-8 shadow-xl">
+      <div class="text-center max-w-md mx-auto loci-card p-8">
         {/* Animated Icon */}
         <div class="mb-8 relative">
           <div class="w-24 h-24 mx-auto bg-primary rounded-full flex items-center justify-center shadow-lg ring-4 ring-border animate-pulse">
@@ -64,7 +64,7 @@ export default function NotFound() {
         </div>
 
         {/* Fun Travel Tip */}
-        <div class="mt-8 p-4 glass-panel gradient-border rounded-lg text-left">
+        <div class="mt-8 p-4 loci-card text-left">
           <div class="flex items-center justify-center gap-2 mb-2">
             <Compass class="w-4 h-4 text-primary" />
             <span class="text-sm font-medium text-foreground">Travel Tip</span>

@@ -10,6 +10,7 @@ import {
 import { transport } from "../connect-transport";
 import { queryKeys } from "./shared";
 import type { HotelDetailedInfo } from "./types";
+import { useAppQuery } from "./authed-query";
 
 const favoritesClient = createClient(FavoritesService, transport);
 
@@ -39,7 +40,7 @@ const mapProtoToHotel = (proto: any): HotelDetailedInfo => ({
 
 // Get nearby hotels
 export const useNearbyHotels = (lat: number, lng: number, radius?: number) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.nearbyHotels(lat, lng, radius),
     queryFn: async (): Promise<HotelDetailedInfo[]> => {
       const request = create(GetNearbyHotelsRequestSchema, {
@@ -58,7 +59,7 @@ export const useNearbyHotels = (lat: number, lng: number, radius?: number) => {
 
 // Get hotel details
 export const useHotelDetails = (hotelId: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.hotelDetails(hotelId),
     queryFn: async (): Promise<HotelDetailedInfo> => {
       const request = create(GetHotelDetailsRequestSchema, { hotelId });
@@ -78,7 +79,7 @@ export const useHotelDetails = (hotelId: string) => {
 export const useHotelsByPreferences = (preferences: any) => {
   // This is LLM-driven and handled by the streaming chat service
   // Keeping a stub here for backwards compatibility
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.hotelsByPreferences(preferences),
     queryFn: async (): Promise<HotelDetailedInfo[]> => {
       // LLM-driven queries should use the streaming chat endpoint

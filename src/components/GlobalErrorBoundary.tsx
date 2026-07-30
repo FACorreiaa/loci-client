@@ -1,6 +1,5 @@
 // Global Error Boundary component for catching unhandled errors
 import { ErrorBoundary as SolidErrorBoundary, Component, JSX, createSignal } from "solid-js";
-import { useNavigate } from "@solidjs/router";
 
 interface ErrorBoundaryProps {
   children: JSX.Element;
@@ -12,12 +11,13 @@ interface ErrorFallbackProps {
 }
 
 const ErrorFallback: Component<ErrorFallbackProps> = (props) => {
-  const navigate = useNavigate();
   const [showDetails, setShowDetails] = createSignal(false);
 
+  // Use window.location (not useNavigate): this fallback can render ABOVE the
+  // Router, where router primitives throw "can only be used inside a Route".
   const handleGoHome = () => {
     props.reset();
-    navigate("/");
+    if (typeof window !== "undefined") window.location.assign("/");
   };
 
   const handleRefresh = () => {
@@ -25,11 +25,18 @@ const ErrorFallback: Component<ErrorFallbackProps> = (props) => {
   };
 
   return (
-    <div class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div class="max-w-md w-full bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-2xl text-center">
+    <div class="min-h-screen flex items-center justify-center bg-background p-4">
+      {/* `bg-white/10` over a heavy blur only reads on a dark backdrop; on light
+          it was a near-invisible card. Tokens work on both. */}
+      <div class="loci-card max-w-md w-full p-8 text-center">
         {/* Error Icon */}
-        <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-red-500/20 flex items-center justify-center">
-          <svg class="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-destructive/15 flex items-center justify-center">
+          <svg
+            class="w-8 h-8 text-destructive"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -39,8 +46,8 @@ const ErrorFallback: Component<ErrorFallbackProps> = (props) => {
           </svg>
         </div>
 
-        <h1 class="text-2xl font-bold text-white mb-2">Something went wrong</h1>
-        <p class="text-slate-300 mb-6">
+        <h1 class="text-2xl font-bold text-foreground mb-2">Something went wrong</h1>
+        <p class="text-muted-foreground mb-6">
           We encountered an unexpected error. Don't worry, your data is safe.
         </p>
 
@@ -48,13 +55,13 @@ const ErrorFallback: Component<ErrorFallbackProps> = (props) => {
         <div class="flex flex-col gap-3 mb-6">
           <button
             onClick={handleRefresh}
-            class="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold rounded-xl transition-colors"
+            class="w-full rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Refresh Page
           </button>
           <button
             onClick={handleGoHome}
-            class="w-full py-3 px-4 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl transition-colors border border-white/20"
+            class="w-full rounded-xl border border-border px-4 py-3 font-semibold text-foreground transition-colors hover:bg-secondary"
           >
             Go to Home
           </button>
@@ -63,18 +70,18 @@ const ErrorFallback: Component<ErrorFallbackProps> = (props) => {
         {/* Error Details Toggle */}
         <button
           onClick={() => setShowDetails(!showDetails())}
-          class="text-sm text-slate-400 hover:text-slate-300 underline underline-offset-2"
+          class="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
         >
           {showDetails() ? "Hide" : "Show"} technical details
         </button>
 
         {showDetails() && (
           <div class="mt-4 p-4 bg-black/30 rounded-lg text-left overflow-auto max-h-48">
-            <p class="text-red-400 font-mono text-xs break-all">
+            <p class="font-mono text-xs text-destructive break-all">
               {props.error.name}: {props.error.message}
             </p>
             {props.error.stack && (
-              <pre class="text-slate-500 font-mono text-xs mt-2 whitespace-pre-wrap break-all">
+              <pre class="mt-2 font-mono text-xs text-muted-foreground whitespace-pre-wrap break-all">
                 {props.error.stack}
               </pre>
             )}
@@ -82,12 +89,9 @@ const ErrorFallback: Component<ErrorFallbackProps> = (props) => {
         )}
 
         {/* Support Link */}
-        <p class="mt-6 text-sm text-slate-500">
+        <p class="mt-6 text-sm text-muted-foreground">
           If this keeps happening, please{" "}
-          <a
-            href="mailto:support@loci.app"
-            class="text-emerald-400 hover:text-emerald-300 underline"
-          >
+          <a href="mailto:support@loci.app" class="text-primary underline hover:no-underline">
             contact support
           </a>
         </p>

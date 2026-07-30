@@ -21,6 +21,7 @@ import {
   toProtoRecommendationTrace,
   type RecommendationTrace,
 } from "./recommendations";
+import { useAppQuery } from "./authed-query";
 
 const listClient = createClient(ListService, transport);
 
@@ -81,7 +82,7 @@ export const contentTypeToProto = (type: string): ContentType => {
 // ===============
 
 export const useLists = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["lists"],
     queryFn: async () => {
       const userId = await getUserId();
@@ -102,7 +103,7 @@ export const useLists = () => {
 };
 
 export const useList = (listId: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["list", listId],
     queryFn: async () => {
       const userId = await getUserId();

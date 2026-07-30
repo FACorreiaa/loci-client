@@ -26,7 +26,7 @@ const OfflinePage: Component = () => {
 
   return (
     <div class="min-h-screen flex items-center justify-center px-4 bg-background py-12">
-      <div class="w-full max-w-md mx-auto px-6 glass-panel gradient-border rounded-2xl py-8 shadow-xl">
+      <div class="w-full max-w-md mx-auto px-6 loci-card py-8">
         <div class="text-center">
           <div class="w-20 h-20 mx-auto mb-6 bg-primary rounded-full flex items-center justify-center shadow-lg ring-4 ring-border">
             <Wifi class="w-10 h-10 text-primary-foreground" />

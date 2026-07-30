@@ -20,6 +20,7 @@ import { createClient } from "@connectrpc/connect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { getAuthToken } from "../auth/tokens";
 import { transport } from "../connect-transport";
+import { useAppQuery } from "./authed-query";
 
 const recommendationClient = createClient(RecommendationService, transport);
 
@@ -209,7 +210,7 @@ export async function recordRecommendationEvents(events: RecommendationEvent[]) 
 }
 
 export const usePersonalizationSettings = () =>
-  useQuery(() => ({
+  useAppQuery(() => ({
     queryKey: ["recommendation", "settings"],
     queryFn: async () =>
       mapSettings(
@@ -220,7 +221,7 @@ export const usePersonalizationSettings = () =>
   }));
 
 export const useTasteProfile = () =>
-  useQuery(() => ({
+  useAppQuery(() => ({
     queryKey: ["recommendation", "taste-profile"],
     queryFn: async () =>
       mapTasteProfile(

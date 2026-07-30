@@ -452,3 +452,20 @@
     @apply text-foreground antialiased;
   }
 }
+
+/* The active nav tab keeps the `text-muted-foreground` utility from its base
+   class list. Utilities beat @layer base no matter the specificity, so the
+   muted grey won and sat on the tinted active background at a 4.0 contrast
+   ratio - below the 4.5 minimum. Restating the colour here puts it in the same
+   layer, where the two-class selector wins; primary on that background scores
+   8.7. */
+@layer utilities {
+  /* Set BOTH properties here. Splitting them let a theme override supply the
+     background while this supplied the text colour, which produced near-white
+     on a pale tint (1.23:1). One rule, one layer, one guaranteed pairing:
+     primary on a 12% primary tint reads ~8:1 in light and dark alike. */
+  .jb-tab.jb-tab-active {
+    background-color: hsl(var(--primary) / 0.12);
+    color: hsl(var(--primary));
+  }
+}

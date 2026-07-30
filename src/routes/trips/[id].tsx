@@ -1,5 +1,7 @@
 import { createSignal, For, Show, createEffect } from "solid-js";
 import { useParams } from "@solidjs/router";
+import { Car } from "lucide-solid";
+import TripChecklists from "~/components/trip/TripChecklists";
 import {
   useTrip,
   useReorderStops,
@@ -256,7 +258,7 @@ export default function TripEditor() {
               </div>
             </Show>
 
-            <section class="mb-6 rounded-lg border p-4">
+            <section class="loci-card mb-6 rounded-xl p-4">
               <h2 class="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">
                 Trip preferences
               </h2>
@@ -327,184 +329,231 @@ export default function TripEditor() {
 
             <For each={t.days}>
               {(day) => (
-                <section class="mb-6">
-                  <h2 class="mb-2 text-lg font-medium">
-                    Day {day.dayNumber}
-                    <Show when={day.date}>
-                      <span class="ml-2 text-sm text-muted-foreground">
-                        {new Date(day.date!).toLocaleDateString()}
-                      </span>
-                    </Show>
-                  </h2>
-                  <ol class="space-y-2">
-                    <For each={day.stops}>
-                      {(stop, i) => (
-                        <li class="rounded-md border p-3">
-                          <div class="flex items-center gap-2">
-                            <div class="flex flex-col">
-                              <button
-                                class="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-                                disabled={i() === 0}
-                                onClick={() => moveStop(day, i(), -1)}
-                                aria-label="Move up"
-                              >
-                                ▲
-                              </button>
-                              <button
-                                class="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-                                disabled={i() === day.stops.length - 1}
-                                onClick={() => moveStop(day, i(), 1)}
-                                aria-label="Move down"
-                              >
-                                ▼
-                              </button>
-                            </div>
-                            <input
-                              class="flex-1 rounded-md border-transparent bg-transparent px-1 py-0.5 font-medium hover:border-input focus:border-input"
-                              value={stop.name}
-                              onChange={(e) => renameStop(stop, e.currentTarget.value)}
-                            />
-                            <input
-                              type="time"
-                              class="rounded-md border px-2 py-1 text-sm"
-                              value={minutesToHHMM(stop.startMinute)}
-                              onChange={(e) =>
-                                retimeStop(
-                                  stop,
-                                  hhmmToMinutes(e.currentTarget.value),
-                                  stop.durationMinutes,
-                                )
-                              }
-                            />
-                            <input
-                              type="number"
-                              min="0"
-                              step="15"
-                              class="w-20 rounded-md border px-2 py-1 text-sm"
-                              title="Duration (minutes)"
-                              value={stop.durationMinutes ?? ""}
-                              onChange={(e) =>
-                                retimeStop(
-                                  stop,
-                                  stop.startMinute,
-                                  e.currentTarget.value ? Number(e.currentTarget.value) : 0,
-                                )
-                              }
-                            />
-                            <span class="text-xs text-muted-foreground">min</span>
-                            <button
-                              type="button"
-                              class="rounded-md border px-2 py-1 text-xs hover:bg-muted"
-                              onClick={() =>
-                                setReplacingStopID((current) =>
-                                  current === stop.id ? null : stop.id,
-                                )
-                              }
-                              aria-expanded={replacingStopID() === stop.id}
-                            >
-                              {replacingStopID() === stop.id ? "Close search" : "Replace"}
-                            </button>
-                            <button
-                              type="button"
-                              class={`rounded-md border px-2 py-1 text-xs transition-colors ${
-                                removeConfirmID() === stop.id
-                                  ? "border-destructive bg-destructive text-destructive-foreground"
-                                  : "border-destructive/40 text-destructive hover:bg-destructive/10"
-                              }`}
-                              onClick={() => removeStop(stop)}
-                            >
-                              {removeConfirmID() === stop.id ? "Confirm remove" : "Remove"}
-                            </button>
-                          </div>
-                          <Show when={replacingStopID() === stop.id}>
-                            <div class="mt-3 pl-8">
-                              <PlacePicker
-                                cityName={t.cityName}
-                                label={`Replace ${stop.name}`}
-                                busy={replace.isPending}
-                                onSelect={(poi) => replaceStop(stop, poi)}
-                                onCancel={() => setReplacingStopID(null)}
+                <>
+                  {/* On a multi-city trip, the drive to the next city belongs
+                      between the days, which is where it actually happens. */}
+                  <For
+                    each={(t.legs ?? []).filter(
+                      (l) => l.afterDay === day.dayNumber - 1 && l.afterDay > 0,
+                    )}
+                  >
+                    {(leg) => (
+                      <div class="mb-6 flex items-center gap-2 px-1 text-sm text-muted-foreground">
+                        <Car class="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                        <span>
+                          {leg.fromName} → {leg.toName} · {Math.round(leg.distanceKm)} km ·{" "}
+                          {Math.floor(leg.durationMins / 60)}h
+                          {String(leg.durationMins % 60).padStart(2, "0")}
+                        </span>
+                      </div>
+                    )}
+                  </For>
+
+                  <section class="loci-card mb-6 rounded-xl p-4">
+                    <h2 class="mb-2 text-lg font-medium">
+                      Day {day.dayNumber}
+                      {/* The day's city, when the trip spans more than one. */}
+                      <Show when={day.cityName && day.cityName !== t.cityName}>
+                        <span class="ml-2 text-sm font-normal text-accent">{day.cityName}</span>
+                      </Show>
+                      <Show when={day.date}>
+                        <span class="ml-2 text-sm text-muted-foreground">
+                          {new Date(day.date!).toLocaleDateString()}
+                        </span>
+                      </Show>
+                      <Show when={day.travelDay}>
+                        <span class="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                          travel day
+                        </span>
+                      </Show>
+                    </h2>
+                    <ol class="space-y-2">
+                      <For each={day.stops}>
+                        {(stop, i) => (
+                          <li class="rounded-md border p-3">
+                            <div class="flex items-center gap-2">
+                              <div class="flex flex-col">
+                                <button
+                                  class="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
+                                  disabled={i() === 0}
+                                  onClick={() => moveStop(day, i(), -1)}
+                                  aria-label="Move up"
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  class="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
+                                  disabled={i() === day.stops.length - 1}
+                                  onClick={() => moveStop(day, i(), 1)}
+                                  aria-label="Move down"
+                                >
+                                  ▼
+                                </button>
+                              </div>
+                              <input
+                                class="flex-1 rounded-md border-transparent bg-transparent px-1 py-0.5 font-medium hover:border-input focus:border-input"
+                                value={stop.name}
+                                onChange={(e) => renameStop(stop, e.currentTarget.value)}
                               />
-                            </div>
-                          </Show>
-                          <div class="mt-2 flex flex-wrap items-center gap-2 pl-8">
-                            <WhyThisStop reason={stop.notes} />
-                            <Show when={stop.recommendationTrace}>
-                              <button
-                                type="button"
-                                class="rounded-md border px-2 py-1 text-xs hover:bg-muted"
-                                onClick={() =>
-                                  recordStopOutcome(stop, "RECOMMENDATION_EVENT_TYPE_KEPT_IN_TRIP")
-                                }
-                              >
-                                Keep this stop
-                              </button>
-                              <button
-                                type="button"
-                                class="rounded-md border px-2 py-1 text-xs hover:bg-muted"
-                                onClick={() =>
-                                  recordStopOutcome(
+                              <input
+                                type="time"
+                                class="rounded-md border px-2 py-1 text-sm"
+                                value={minutesToHHMM(stop.startMinute)}
+                                onChange={(e) =>
+                                  retimeStop(
                                     stop,
-                                    "RECOMMENDATION_EVENT_TYPE_VISIT_CONFIRMED",
+                                    hhmmToMinutes(e.currentTarget.value),
+                                    stop.durationMinutes,
                                   )
                                 }
+                              />
+                              <input
+                                type="number"
+                                min="0"
+                                step="15"
+                                class="w-20 rounded-md border px-2 py-1 text-sm"
+                                title="Duration (minutes)"
+                                value={stop.durationMinutes ?? ""}
+                                onChange={(e) =>
+                                  retimeStop(
+                                    stop,
+                                    stop.startMinute,
+                                    e.currentTarget.value ? Number(e.currentTarget.value) : 0,
+                                  )
+                                }
+                              />
+                              <span class="text-xs text-muted-foreground">min</span>
+                              <button
+                                type="button"
+                                class="rounded-md border px-2 py-1 text-xs hover:bg-muted"
+                                onClick={() =>
+                                  setReplacingStopID((current) =>
+                                    current === stop.id ? null : stop.id,
+                                  )
+                                }
+                                aria-expanded={replacingStopID() === stop.id}
                               >
-                                Mark visited
+                                {replacingStopID() === stop.id ? "Close search" : "Replace"}
                               </button>
-                              <select
-                                class="rounded-md border px-2 py-1 text-xs"
-                                aria-label={`Rate ${stop.name}`}
-                                value=""
-                                onChange={(event) => {
-                                  const rating = Number(event.currentTarget.value);
-                                  if (rating > 0) {
+                              <button
+                                type="button"
+                                class={`rounded-md border px-2 py-1 text-xs transition-colors ${
+                                  removeConfirmID() === stop.id
+                                    ? "border-destructive bg-destructive text-destructive-foreground"
+                                    : "border-destructive/40 text-destructive hover:bg-destructive/10"
+                                }`}
+                                onClick={() => removeStop(stop)}
+                              >
+                                {removeConfirmID() === stop.id ? "Confirm remove" : "Remove"}
+                              </button>
+                            </div>
+                            <Show when={replacingStopID() === stop.id}>
+                              <div class="mt-3 pl-8">
+                                <PlacePicker
+                                  cityName={t.cityName}
+                                  label={`Replace ${stop.name}`}
+                                  busy={replace.isPending}
+                                  onSelect={(poi) => replaceStop(stop, poi)}
+                                  onCancel={() => setReplacingStopID(null)}
+                                />
+                              </div>
+                            </Show>
+                            <div class="mt-2 flex flex-wrap items-center gap-2 pl-8">
+                              <WhyThisStop reason={stop.notes} />
+                              <Show when={stop.recommendationTrace}>
+                                <button
+                                  type="button"
+                                  class="rounded-md border px-2 py-1 text-xs hover:bg-muted"
+                                  onClick={() =>
                                     recordStopOutcome(
                                       stop,
-                                      "RECOMMENDATION_EVENT_TYPE_RATED",
-                                      rating,
-                                    );
-                                    event.currentTarget.value = "";
+                                      "RECOMMENDATION_EVENT_TYPE_KEPT_IN_TRIP",
+                                    )
                                   }
-                                }}
-                              >
-                                <option value="">Rate…</option>
-                                <For each={[1, 2, 3, 4, 5]}>
-                                  {(rating) => <option value={rating}>{rating} / 5</option>}
-                                </For>
-                              </select>
-                            </Show>
-                            <Show when={stop.bookingUrl}>
-                              <a
-                                href={stop.bookingUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                class="rounded-md border px-2 py-1 text-xs text-primary hover:bg-muted"
-                                onClick={() =>
-                                  recordStopOutcome(
-                                    stop,
-                                    "RECOMMENDATION_EVENT_TYPE_BOOKING_OPENED",
-                                  )
-                                }
-                              >
-                                Open booking
-                              </a>
-                            </Show>
-                          </div>
-                        </li>
-                      )}
-                    </For>
-                  </ol>
-                  <div class="mt-3">
-                    <PlacePicker
-                      cityName={t.cityName}
-                      label={`Add another place to Day ${day.dayNumber}`}
-                      busy={add.isPending}
-                      onSelect={(poi) => addStop(day, poi)}
-                    />
-                  </div>
-                </section>
+                                >
+                                  Keep this stop
+                                </button>
+                                <button
+                                  type="button"
+                                  class="rounded-md border px-2 py-1 text-xs hover:bg-muted"
+                                  onClick={() =>
+                                    recordStopOutcome(
+                                      stop,
+                                      "RECOMMENDATION_EVENT_TYPE_VISIT_CONFIRMED",
+                                    )
+                                  }
+                                >
+                                  Mark visited
+                                </button>
+                                <select
+                                  class="rounded-md border px-2 py-1 text-xs"
+                                  aria-label={`Rate ${stop.name}`}
+                                  value=""
+                                  onChange={(event) => {
+                                    const rating = Number(event.currentTarget.value);
+                                    if (rating > 0) {
+                                      recordStopOutcome(
+                                        stop,
+                                        "RECOMMENDATION_EVENT_TYPE_RATED",
+                                        rating,
+                                      );
+                                      event.currentTarget.value = "";
+                                    }
+                                  }}
+                                >
+                                  <option value="">Rate…</option>
+                                  <For each={[1, 2, 3, 4, 5]}>
+                                    {(rating) => <option value={rating}>{rating} / 5</option>}
+                                  </For>
+                                </select>
+                              </Show>
+                              <Show when={stop.bookingUrl}>
+                                <a
+                                  href={stop.bookingUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  class="rounded-md border px-2 py-1 text-xs text-primary hover:bg-muted"
+                                  onClick={() =>
+                                    recordStopOutcome(
+                                      stop,
+                                      "RECOMMENDATION_EVENT_TYPE_BOOKING_OPENED",
+                                    )
+                                  }
+                                >
+                                  Open booking
+                                </a>
+                              </Show>
+                            </div>
+                          </li>
+                        )}
+                      </For>
+                    </ol>
+                    <div class="mt-3">
+                      <PlacePicker
+                        cityName={t.cityName}
+                        label={`Add another place to Day ${day.dayNumber}`}
+                        busy={add.isPending}
+                        onSelect={(poi) => addStop(day, poi)}
+                      />
+                    </div>
+                  </section>
+                </>
               )}
             </For>
+
+            {/* The journey home, which has no day after it. */}
+            <For each={(t.legs ?? []).filter((l) => l.afterDay >= t.days.length && l.afterDay > 0)}>
+              {(leg) => (
+                <div class="mb-6 flex items-center gap-2 px-1 text-sm text-muted-foreground">
+                  <Car class="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                  <span>
+                    {leg.fromName} → {leg.toName} · {Math.round(leg.distanceKm)} km · heading home
+                  </span>
+                </div>
+              )}
+            </For>
+
+            <TripChecklists tripId={params.id!} />
           </>
         )}
       </Show>

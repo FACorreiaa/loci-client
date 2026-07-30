@@ -2,6 +2,7 @@ import { createSignal, batch } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { useAuth } from "~/contexts/AuthContext";
 import { streamChatEvents, type LociStreamEvent } from "~/lib/streaming/chatStream";
+import { parseStreamError } from "~/lib/errors";
 import {
   setStreamingSession,
   updateStreamingData,
@@ -1142,11 +1143,14 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
           },
         ]);
       } else {
+        // Run everything else through the shared parser so a daily-quota
+        // rejection reads as "you're out of requests until midnight UTC"
+        // instead of dumping the raw `resource_exhausted: ...` string.
         setChatHistory((prev) => [
           ...prev,
           {
             type: "error",
-            content: `Sorry, there was an error processing your request: ${errorMessage}`,
+            content: parseStreamError(errorMessage).userMessage,
             timestamp: new Date(),
           },
         ]);

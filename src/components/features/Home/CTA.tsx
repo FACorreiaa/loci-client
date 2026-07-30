@@ -11,7 +11,7 @@ export default function CTA() {
         aria-hidden="true"
       />
       <div class="container text-center px-4 sm:px-6 lg:px-8 relative z-10">
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 glass-panel gradient-border rounded-2xl px-5 py-6 sm:px-8 sm:py-8">
+        <div class="loci-card flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 px-5 py-6 sm:px-8 sm:py-8">
           <span
             id="cta-heading"
             class="text-base sm:text-lg text-foreground font-semibold tracking-tight"

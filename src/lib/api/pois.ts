@@ -9,6 +9,7 @@ import { transport } from "../connect-transport";
 import { logger } from "../logger";
 import { queryKeys } from "./shared";
 import type { POI, POIDetailedInfo } from "./types";
+import { useAppQuery } from "./authed-query";
 
 const favoritesClient = createClient(FavoritesService, transport);
 const poiClient = createClient(POIService, transport);
@@ -43,7 +44,7 @@ function mapProtoPOI(poi: ProtoPOI): POI {
 // ===============
 
 export const useFavorites = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.favorites,
     queryFn: async (): Promise<POIDetailedInfo[]> => {
       logger.debug("Fetching user favorites via RPC...");
@@ -155,7 +156,7 @@ export const useRemoveFromFavoritesMutation = () => {
 };
 
 export const usePOIDetails = (poiId: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.poiDetails(poiId),
     queryFn: async (): Promise<POI | null> => {
       const response = await poiClient.getPOI({ poiId });
@@ -185,7 +186,7 @@ export const useNearbyPOIs = (params?: {
 };
 
 export const useSearchPOIs = (query: string, filters?: any) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: queryKeys.searchPois(query, filters),
     queryFn: async (): Promise<POI[]> => searchPOIs(query, filters),
     enabled: !!query,

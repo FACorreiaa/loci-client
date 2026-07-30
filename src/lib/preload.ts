@@ -41,7 +41,8 @@ export const preloadReviewsRoute = () => {
 export const routePreloaders: Record<string, () => void> = {
   "/discover": preloadDiscoverRoute,
   "/nearme": preloadNearMeRoute,
-  "/near": preloadMap,
+  // "/near" now just redirects to /nearme, so preloading a map for it would
+  // fetch a chunk the redirect never renders.
   "/chat": preloadChatRoute,
   "/reviews": preloadReviewsRoute,
   "/hotels": preloadMap,

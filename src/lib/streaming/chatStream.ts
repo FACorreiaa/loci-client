@@ -204,13 +204,16 @@ export function mapProtoEvent(ev: ProtoStreamEvent): LociStreamEvent | null {
 }
 
 const buildRequest = (params: ChatStreamParams) =>
+  // These are `optional` fields with a min_len:1 validator. Sending "" POPULATES
+  // them (proto3 optional tracks presence), so the server rejects the request on
+  // validation. Omit empties (undefined) so they stay unpopulated and are skipped.
   create(ChatRequestSchema, {
     message: params.message,
-    cityName: params.cityName ?? "",
-    profileId: params.profileId ?? "",
-    sessionId: params.sessionId ?? "",
-    resumeToken: params.resumeToken ?? "",
-    requestId: params.requestId ?? "",
+    cityName: params.cityName || undefined,
+    profileId: params.profileId || undefined,
+    sessionId: params.sessionId || undefined,
+    resumeToken: params.resumeToken || undefined,
+    requestId: params.requestId || undefined,
     userLocation: params.userLocation
       ? { latitude: params.userLocation.userLat, longitude: params.userLocation.userLon }
       : undefined,

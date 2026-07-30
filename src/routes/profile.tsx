@@ -290,9 +290,7 @@ function ProfilePageContent() {
             <div class="text-sm text-muted-foreground">Places Visited</div>
           </div>
           <div class="bg-card rounded-lg p-4 text-center border border-border">
-            <div class="text-2xl font-bold text-accent">
-              {profile.stats.reviews_written}
-            </div>
+            <div class="text-2xl font-bold text-accent">{profile.stats.reviews_written}</div>
             <div class="text-sm text-muted-foreground">Reviews</div>
           </div>
           <div class="bg-card rounded-lg p-4 text-center border border-border">
@@ -309,18 +307,14 @@ function ProfilePageContent() {
             <h3 class="text-lg font-semibold text-foreground mb-4">Interests</h3>
             <div class="flex flex-wrap gap-2">
               <For each={profile.interests}>
-                {(interest) => (
-                  <span class="loci-chip text-sm font-medium">
-                    {interest}
-                  </span>
-                )}
+                {(interest) => <span class="loci-chip text-sm font-medium">{interest}</span>}
               </For>
             </div>
           </div>
         </Show>
 
         {/* Badges */}
-        <div class="glass-panel gradient-border rounded-lg p-6 border-0">
+        <div class="loci-card p-6">
           <h3 class="text-lg font-semibold text-foreground mb-4">Badges</h3>
           <div class="flex flex-wrap gap-3">
             <For each={profile.badges}>
@@ -489,7 +483,7 @@ function ProfilePageContent() {
 
           <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Profile Header */}
-            <div class="glass-panel gradient-border rounded-lg p-6 mb-6 border-0">
+            <div class="loci-card p-6 mb-6">
               <div class="flex flex-col md:flex-row gap-6">
                 {/* Avatar Section */}
                 <div class="flex flex-col items-center md:items-start">

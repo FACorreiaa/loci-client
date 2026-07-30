@@ -176,7 +176,7 @@ export default function RealTimeStats(props: RealTimeStatsProps) {
             <For each={statsItems()}>
               {(stat) => (
                 <div
-                  class="text-center group glass-panel gradient-border rounded-2xl px-4 py-6 sm:px-6 sm:py-8 hover:shadow-xl transition-all duration-300"
+                  class="loci-card loci-card-interactive group text-center px-4 py-6 sm:px-6 sm:py-8 duration-300"
                   role="listitem"
                 >
                   <div class="flex flex-col items-center">

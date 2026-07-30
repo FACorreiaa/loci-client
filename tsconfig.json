@@ -20,12 +20,8 @@
     ],
     "isolatedModules": true,
     "paths": {
-      "@/*": [
-        "./src/*" // Changed to point to the project root
-      ],
-      "~/*": [
-        "./src/*" // Optional, keep if you want a separate alias for src
-      ]
+      "@/*": ["./src/*"],
+      "~/*": ["./src/*"]
     }
   }
 }

@@ -102,7 +102,7 @@ export default function PromoCodeSection(props: PromoCodeSectionProps) {
       <div class="text-center mb-8">
         <button
           onClick={() => setShowPromoSection(!showPromoSection())}
-          class="inline-flex items-center gap-2 px-6 py-3 bg-[#0c7df2] hover:bg-[#0a6ed6] text-white rounded-lg font-medium transition-all duration-300 shadow-[0_14px_32px_rgba(12,125,242,0.22)] hover:shadow-[0_18px_40px_rgba(12,125,242,0.28)] transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 border border-white/30 dark:border-slate-800/60"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           aria-label="Toggle promo code section"
         >
           <Gift class="w-5 h-5" />
@@ -114,10 +114,10 @@ export default function PromoCodeSection(props: PromoCodeSectionProps) {
       {/* Promo Code Section */}
       <Show when={showPromoSection()}>
         <div class="max-w-2xl mx-auto">
-          <div class="glass-panel gradient-border rounded-2xl p-8 shadow-lg border-0">
+          <div class="loci-card p-8">
             {/* Header */}
             <div class="text-center mb-6">
-              <div class="w-16 h-16 bg-[#0c7df2] rounded-full flex items-center justify-center mx-auto mb-4 shadow-[0_14px_32px_rgba(12,125,242,0.22)] ring-2 ring-white/60 dark:ring-slate-800">
+              <div class="w-16 h-16 bg-primary text-primary-foreground rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <Tags class="w-8 h-8 text-white" />
               </div>
               <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">

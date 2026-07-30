@@ -113,7 +113,7 @@ export default function ProfileQuickSelect() {
 
         {/* Dropdown Menu */}
         <Show when={isOpen()}>
-          <div class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#0b1c36]/95 backdrop-blur-xl rounded-xl shadow-2xl border border-gray-300 dark:border-white/10 py-2 z-50 max-h-80 overflow-y-auto">
+          <div class="loci-card absolute top-full left-0 right-0 z-20 mt-2 overflow-hidden">
             <Show
               when={profiles().length > 0}
               fallback={

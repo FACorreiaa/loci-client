@@ -53,7 +53,7 @@ const ErrorBoundary: Component<ErrorBoundaryProps> = (props) => {
           when={props.fallback}
           fallback={
             <div class="min-h-screen flex items-center justify-center px-4 py-8">
-              <div class="text-center max-w-md mx-auto glass-panel gradient-border rounded-2xl p-8 shadow-xl">
+              <div class="loci-card text-center max-w-md mx-auto p-8">
                 {/* Dynamic Icon based on error type */}
                 <div class="mb-8 relative">
                   <div

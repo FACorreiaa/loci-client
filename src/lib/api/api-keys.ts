@@ -11,6 +11,7 @@ import {
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { create } from "@bufbuild/protobuf";
 import { transport } from "../connect-transport";
+import { useAppQuery } from "./authed-query";
 
 const apiKeyClient = createClient(ApiKeyService, transport);
 
@@ -45,7 +46,7 @@ function toView(k: ApiKey): ApiKeyView {
 }
 
 export function useApiKeys() {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: apiKeysQueryKey,
     queryFn: async (): Promise<ApiKeyView[]> => {
       const resp = await apiKeyClient.listApiKeys(create(ListApiKeysRequestSchema, {}));

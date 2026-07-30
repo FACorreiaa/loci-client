@@ -8,6 +8,7 @@ import { create } from "@bufbuild/protobuf";
 import { transport } from "../connect-transport";
 import { getAuthToken, authAPI } from "../api";
 import type { RecentInteractionsResponse, CityInteractions } from "./types";
+import { useAppQuery } from "./authed-query";
 
 // Create authenticated recents client
 const recentsClient = createClient(RecentsService, transport);
@@ -146,7 +147,7 @@ async function fetchRecentInteractions(limit: number = 10): Promise<RecentIntera
 
 // Hook for recent interactions (RPC-based)
 export const useRecentInteractions = (limit: number = 10) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["recents", "interactions", limit],
     queryFn: () => fetchRecentInteractions(limit),
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -155,7 +156,7 @@ export const useRecentInteractions = (limit: number = 10) => {
 
 // Hook for city details (uses same RPC but filters)
 export const useCityDetails = (cityName: string) => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["recents", "city", cityName],
     queryFn: async (): Promise<CityInteractions | null> => {
       const response = await fetchRecentInteractions(50);

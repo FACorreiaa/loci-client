@@ -160,6 +160,7 @@ export const mapPoi = (poi: ProtoPOIDetailedInfo): POIDetailedInfo => {
     description_poi: poi.descriptionPoi || "",
     recommendation_rationale: poi.recommendationRationale || "",
     uncertainty_score: poi.uncertaintyScore,
+    missing_data: poi.missingData || [],
     recommendation_trace: fromProtoRecommendationTrace(poi.recommendationTrace),
     created_at:
       poi.createdAt && typeof (poi.createdAt as any).toDate === "function"
@@ -601,6 +602,12 @@ export const getUserChatSessions = async (profileId: string): Promise<ChatSessio
     },
   });
   return response.sessions.map(mapProtoChatSession);
+};
+
+/** Load a single chat session and return its saved itinerary payload, if any. */
+export const getChatSession = async (sessionId: string): Promise<AiCityResponse | null> => {
+  const response = await chatClient.getChatSession({ sessionId });
+  return mapAiCityResponse(response.session?.currentItinerary) ?? null;
 };
 
 // Query hook for getting chat sessions

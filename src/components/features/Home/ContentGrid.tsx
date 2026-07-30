@@ -74,12 +74,12 @@ export default function ContentGrid(props: ContentGridProps) {
           <For each={props.items}>
             {(item, index) => (
               <Card
-                class="overflow-hidden transition-all hover:shadow-[0_18px_50px_rgba(14,165,233,0.25)] hover:-translate-y-1 duration-200 focus-within:ring-2 focus-within:ring-cyan-400 focus-within:ring-offset-2 glass-panel gradient-border"
+                class="loci-card-interactive overflow-hidden duration-200 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
                 role="listitem"
                 aria-labelledby={`card-title-${index()}`}
               >
                 <div
-                  class="h-32 sm:h-36 md:h-40 bg-white/40 dark:bg-slate-900/40 flex items-center justify-center"
+                  class="flex h-32 items-center justify-center bg-secondary/40 sm:h-36 md:h-40"
                   aria-hidden="true"
                 >
                   <span class="text-muted-foreground text-3xl sm:text-4xl md:text-5xl">

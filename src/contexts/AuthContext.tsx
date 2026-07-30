@@ -9,6 +9,7 @@ import {
 } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { getAuthToken, setAuthToken, clearAuthToken, isPersistentSession } from "~/lib/auth/tokens";
+import { isDeadSession } from "~/lib/auth/session-failure";
 import { onAuthExpired } from "~/lib/auth/auth-events";
 import { authAPI } from "~/lib/api";
 
@@ -38,6 +39,18 @@ interface AuthContextType {
   user: () => User | null;
   isAuthenticated: () => boolean;
   isLoading: () => boolean;
+  /**
+   * True once the initial session-restore attempt has finished, whatever its
+   * outcome. Route guards must wait for this before deciding to redirect - the
+   * restore is async, so `isAuthenticated()` is transiently false before it.
+   */
+  authReady: () => boolean;
+  /**
+   * Set when session restore failed for a reason that is NOT "your session is
+   * dead" (server down, network blip, CORS). Tokens are kept in that case and
+   * `retryAuth()` can recover.
+   */
+  authError: () => string | null;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -63,6 +76,8 @@ export const AuthProvider = (props: AuthProviderProps) => {
   const navigate = useNavigate();
   const [user, setUser] = createSignal<User | null>(null);
   const [isLoading, setIsLoading] = createSignal(true);
+  const [authReady, setAuthReady] = createSignal(false);
+  const [authError, setAuthError] = createSignal<string | null>(null);
 
   // Add a retry function for auth restoration
   const retryAuth = async () => {
@@ -70,13 +85,17 @@ export const AuthProvider = (props: AuthProviderProps) => {
     if (!token || user()) return;
 
     try {
-      const sessionResult = await authAPI.validateSession();
-      if (sessionResult.valid) {
-        const userProfile = await authAPI.getCurrentUser();
-        setUser(userProfile);
-      }
+      const userProfile = await authAPI.getCurrentUser();
+      setUser(userProfile);
+      setAuthError(null);
     } catch (error) {
       console.error("Auth retry failed:", error);
+      if (isDeadSession(error)) {
+        clearAuthToken();
+        setAuthError(null);
+      } else {
+        setAuthError("Could not reach the server. Retrying when the connection is back.");
+      }
     }
   };
 
@@ -98,6 +117,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
       console.log("AuthProvider: No token found");
       setUser(null);
       setIsLoading(false);
+      setAuthReady(true);
       console.log("AuthProvider: Initialization complete");
       return;
     }
@@ -117,15 +137,43 @@ export const AuthProvider = (props: AuthProviderProps) => {
       // 401 before this throws. Doing a SECOND manual refresh here raced that
       // rotation — both paths spent the same refresh token, the loser was
       // rejected (the server deletes the old session on rotation), and the user
-      // was logged out mid-navigation. So if we land here the session is
-      // genuinely dead: just clear and let the app route to sign-in.
+      // was logged out mid-navigation.
+      //
+      // But only an Unauthenticated response means the session is dead. Any
+      // other failure - server down, cold start, network blip, CORS - used to
+      // land here too and wipe perfectly valid tokens, which is what made
+      // "every page refresh signs me out" reproducible. Keep the tokens and let
+      // retryAuth() recover.
       console.error("AuthProvider: Session restoration failed:", error);
-      clearAuthToken();
-      setUser(null);
+      if (isDeadSession(error)) {
+        clearAuthToken();
+        setUser(null);
+      } else {
+        setUser(null);
+        setAuthError("Could not reach the server. Retrying when the connection is back.");
+      }
     }
 
     setIsLoading(false);
+    setAuthReady(true);
     console.log("AuthProvider: Initialization complete");
+  });
+
+  // Recover from a transient restore failure without making the user re-login:
+  // retry when the tab regains focus or the browser comes back online.
+  createEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const retry = () => {
+      if (authError() && !user() && getAuthToken()) void retryAuth();
+    };
+
+    window.addEventListener("focus", retry);
+    window.addEventListener("online", retry);
+    onCleanup(() => {
+      window.removeEventListener("focus", retry);
+      window.removeEventListener("online", retry);
+    });
   });
 
   // Listen for token changes to handle cross-tab authentication
@@ -162,7 +210,9 @@ export const AuthProvider = (props: AuthProviderProps) => {
       setUser(null);
       setIsLoading(false);
       if (typeof window !== "undefined" && !window.location.pathname.includes("/auth/")) {
-        navigate("/auth/signin");
+        const returnTo = window.location.pathname + window.location.search;
+        sessionStorage.setItem("auth_return_to", returnTo);
+        navigate(`/auth/signin?returnTo=${encodeURIComponent(returnTo)}`);
       }
     });
     onCleanup(off);
@@ -209,7 +259,16 @@ export const AuthProvider = (props: AuthProviderProps) => {
 
       console.log("AuthProvider: User set, navigating...");
       setIsLoading(false);
-      navigate("/");
+      setAuthError(null);
+      setAuthReady(true);
+      const stored =
+        typeof window !== "undefined" ? sessionStorage.getItem("auth_return_to") : null;
+      if (stored) {
+        sessionStorage.removeItem("auth_return_to");
+        navigate(stored);
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       console.error("AuthProvider: Login failed:", error);
       setIsLoading(false);
@@ -242,6 +301,8 @@ export const AuthProvider = (props: AuthProviderProps) => {
       clearAuthToken();
       setUser(null);
       setIsLoading(false);
+      setAuthError(null);
+      setAuthReady(true);
       navigate("/auth/signin");
     }
   };
@@ -256,6 +317,8 @@ export const AuthProvider = (props: AuthProviderProps) => {
     user,
     isAuthenticated,
     isLoading,
+    authReady,
+    authError,
     login,
     register,
     logout,
@@ -273,16 +336,23 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = (props: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, authReady } = useAuth();
   const navigate = useNavigate();
 
   createEffect(() => {
-    if (!isLoading() && !isAuthenticated()) {
+    // authReady - not isLoading - is the signal that the restore attempt is
+    // over. Redirecting on isLoading alone bounced logged-in users mid-restore.
+    if (authReady() && !isLoading() && !isAuthenticated()) {
+      // Remember where they were so sign-in can send them back instead of
+      // dumping them on the dashboard (e.g. opening a saved itinerary).
+      if (typeof window !== "undefined" && !window.location.pathname.includes("/auth/")) {
+        sessionStorage.setItem("auth_return_to", window.location.pathname + window.location.search);
+      }
       navigate("/auth/signin", { replace: true });
     }
   });
 
-  if (isLoading()) {
+  if (isLoading() || !authReady()) {
     // eslint-disable-next-line solid/components-return-once
     return (
       <div class="min-h-screen flex items-center justify-center">
@@ -315,16 +385,16 @@ interface PublicRouteProps {
 }
 
 export const PublicRoute = (props: PublicRouteProps) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, authReady } = useAuth();
   const navigate = useNavigate();
 
   createEffect(() => {
-    if (!isLoading() && isAuthenticated()) {
+    if (authReady() && !isLoading() && isAuthenticated()) {
       navigate(props.redirectTo || "/");
     }
   });
 
-  if (isLoading()) {
+  if (isLoading() || !authReady()) {
     // eslint-disable-next-line solid/components-return-once
     return (
       <div class="min-h-screen flex items-center justify-center">

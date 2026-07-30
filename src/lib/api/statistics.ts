@@ -1,10 +1,13 @@
 import { useQuery } from "@tanstack/solid-query";
 import { getAuthToken, authAPI } from "../api";
 import { createClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
 import { StatisticsService } from "@buf/loci_loci-proto.bufbuild_es/loci/statistics/statistics_pb.js";
+import { transport } from "../connect-transport";
+import { useAuthGate } from "../auth/useAuthGate";
+import { useAppQuery } from "./authed-query";
 
-// Get API base URL
+// Still needed by the SSE fallback below, which is a raw EventSource and not a
+// Connect client.
 const API_BASE_URL = import.meta.env.VITE_CONNECT_BASE_URL || "http://localhost:8000";
 
 // Helper to parse JWT payload
@@ -45,21 +48,12 @@ const getCurrentUserId = async (): Promise<string | null> => {
   return null;
 };
 
-// Create transport for ConnectRPC
-const createStatisticsTransport = () => {
-  const token = getAuthToken();
-  return createConnectTransport({
-    baseUrl: API_BASE_URL,
-    interceptors: [
-      (next) => async (req) => {
-        if (token) {
-          req.header.set("Authorization", `Bearer ${token}`);
-        }
-        return await next(req);
-      },
-    ],
-  });
-};
+// Statistics use the app-wide transport. They used to build their own, which
+// captured the access token once at creation time and carried no refresh
+// interceptor: after the 1h access-token TTL every statistics call 401'd with a
+// stale header, and nothing here could recover it. The shared transport handles
+// both the Authorization header and the single-flight token refresh.
+const statisticsClient = createClient(StatisticsService, transport);
 
 // Statistics types (matching proto definitions)
 export interface MainPageStatistics {
@@ -92,9 +86,7 @@ export interface LandingPageUserStats {
 // RPC API functions
 export const getMainPageStatistics = async (): Promise<MainPageStatistics> => {
   try {
-    const transport = createStatisticsTransport();
-    const client = createClient(StatisticsService, transport);
-    const response = await client.getMainPageStatistics({
+    const response = await statisticsClient.getMainPageStatistics({
       includeTrends: false,
       timeRange: "7d",
     });
@@ -118,9 +110,7 @@ export const getMainPageStatistics = async (): Promise<MainPageStatistics> => {
 
 export const getDetailedPOIStatistics = async (): Promise<DetailedPOIStatistics> => {
   try {
-    const transport = createStatisticsTransport();
-    const client = createClient(StatisticsService, transport);
-    const response = await client.getDetailedPOIStatistics({});
+    const response = await statisticsClient.getDetailedPOIStatistics({});
 
     const stats = response.statistics;
     return {
@@ -171,9 +161,7 @@ export const getLandingPageStatistics = async (): Promise<LandingPageUserStats> 
     }
 
     console.log("📊 getLandingPageStatistics: Making RPC call to GetLandingPageStatistics");
-    const transport = createStatisticsTransport();
-    const client = createClient(StatisticsService, transport);
-    const response = await client.getLandingPageStatistics({
+    const response = await statisticsClient.getLandingPageStatistics({
       userId: userId,
     });
 
@@ -198,7 +186,7 @@ export const getLandingPageStatistics = async (): Promise<LandingPageUserStats> 
 
 // Custom hooks for statistics
 export const useMainPageStatistics = () => {
-  return useQuery(() => ({
+  return useAppQuery(() => ({
     queryKey: ["statistics", "main-page"],
     queryFn: getMainPageStatistics,
     // Twice a day is enough for the landing observability surface
@@ -209,22 +197,24 @@ export const useMainPageStatistics = () => {
 };
 
 export const useDetailedPOIStatistics = () => {
-  return useQuery(() => ({
+  const gate = useAuthGate();
+  return useAppQuery(() => ({
     queryKey: ["statistics", "poi", "detailed"],
     queryFn: getDetailedPOIStatistics,
     refetchInterval: 60000, // Refetch every minute as fallback
     staleTime: 30000, // Consider data stale after 30 seconds
-    enabled: !!getAuthToken(), // Only fetch if authenticated
+    enabled: gate(),
   }));
 };
 
 export const useLandingPageStatistics = () => {
-  return useQuery(() => ({
+  const gate = useAuthGate();
+  return useAppQuery(() => ({
     queryKey: ["statistics", "landing-page"],
     queryFn: getLandingPageStatistics,
     refetchInterval: 60000, // Refetch every minute as fallback
     staleTime: 30000, // Consider data stale after 30 seconds
-    enabled: !!getAuthToken(), // Only fetch if user is authenticated
+    enabled: gate(),
   }));
 };
 

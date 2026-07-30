@@ -71,7 +71,7 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
       </Show>
 
       <div
-        class={`glass-panel lg:rounded-none lg:rounded-r-2xl flex flex-col z-40 fixed inset-y-0 left-0 w-72 sm:w-80 transform transition-transform duration-300 ease-in-out lg:static lg:inset-auto lg:w-80 lg:translate-x-0 lg:order-1 lg:z-10 ${
+        class={`flex flex-col border-r border-border bg-card z-40 fixed inset-y-0 left-0 w-72 sm:w-80 transform transition-transform duration-300 ease-in-out lg:static lg:inset-auto lg:w-80 lg:translate-x-0 lg:order-1 lg:z-10 ${
           props.open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -101,7 +101,7 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
           <div class="relative">
             <button
               onClick={props.onToggleProfileSelector}
-              class="w-full flex items-center gap-2 p-2 sm:p-3 bg-card/50 backdrop-blur-sm rounded-lg hover:bg-muted/70 transition-all border border-border"
+              class="w-full flex items-center gap-2 p-2 sm:p-3 bg-secondary/50 rounded-lg hover:bg-secondary transition-all border border-border"
             >
               <div class="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xs sm:text-sm">
                 🎒
@@ -115,7 +115,7 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
             </button>
 
             <Show when={props.showProfileSelector}>
-              <div class="absolute top-full left-0 right-0 mt-2 bg-popover/95 backdrop-blur-xl border border-border rounded-xl shadow-xl z-10 max-h-60 overflow-y-auto">
+              <div class="absolute top-full left-0 right-0 mt-2 z-10 loci-card max-h-60 overflow-y-auto">
                 <For each={props.profiles}>
                   {(profile) => (
                     <button

@@ -21,6 +21,7 @@ import {
 import { create } from "@bufbuild/protobuf";
 import { transport } from "~/lib/connect-transport";
 import { authAPI, getAuthToken } from "~/lib/api";
+import { useAppQuery } from "~/lib/api/authed-query";
 
 const listClient = createClient(ListService, transport);
 
@@ -48,7 +49,7 @@ export default function BookmarksPage() {
   const [_selectedList, _setSelectedList] = createSignal<string | null>(null);
 
   // Query for saved lists
-  const savedListsQuery = useQuery(() => ({
+  const savedListsQuery = useAppQuery(() => ({
     queryKey: ["savedLists"],
     queryFn: fetchSavedLists,
     staleTime: 5 * 60 * 1000,
@@ -124,10 +125,7 @@ export default function BookmarksPage() {
                     </p>
                   </div>
                 </div>
-                <A
-                  href="/lists"
-                  class="loci-hero__action--strong"
-                >
+                <A href="/lists" class="loci-hero__action--strong">
                   <Plus class="w-4 h-4" />
                   Create List
                 </A>
@@ -184,7 +182,7 @@ export default function BookmarksPage() {
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <For each={lists()}>
                 {(list: any) => (
-                  <div class="glass-panel rounded-2xl p-5 hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer group">
+                  <div class="loci-card loci-card-interactive p-5 cursor-pointer group">
                     <div class="flex items-start justify-between mb-4">
                       <div class="flex-1">
                         <h3 class="text-lg font-semibold text-foreground line-clamp-1">
