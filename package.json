@@ -16,7 +16,7 @@
     "lighthouse:collect": "lhci collect --config=./lighthouserc.cjs",
     "format": "oxfmt .",
     "format:check": "oxfmt . --check",
-    "buf-update": "pnpm remove @buf/loci_loci-proto.bufbuild_es && pnpm add @buf/loci_loci-proto.bufbuild_es@latest",
+    "buf-update": "node scripts/buf-update.mjs",
     "proto-bridge": "node scripts/sync-compare-proto.mjs",
     "prepare": "husky"
   },
