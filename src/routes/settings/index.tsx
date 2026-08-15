@@ -17,6 +17,7 @@ import {
   Phone,
   Upload,
   KeyRound,
+  Brain,
   ShieldCheck,
   CreditCard,
   Sparkles,
@@ -181,6 +182,7 @@ export default function SettingsPage() {
     // MCP lives inside the API-keys panel (endpoint + setup guide), so name the
     // tab after both rather than duplicating the panel.
     { id: "apikeys", label: "MCP & API Keys", icon: KeyRound },
+    { id: "memory", label: "What Loci remembers", icon: Brain },
     { id: "security", label: "Security", icon: ShieldCheck },
     { id: "billing", label: "Plan & Billing", icon: CreditCard },
   ];
@@ -744,6 +746,27 @@ export default function SettingsPage() {
     </div>
   );
 
+  // The memory page is a route of its own rather than a panel: it is long,
+  // deep-linkable, and the thing you send someone when they ask what the app
+  // knows about them.
+  const renderMemoryLink = () => (
+    <div class="loci-card rounded-3xl p-6 sm:p-8">
+      <h3 class="text-lg font-semibold text-foreground mb-2">What Loci remembers about you</h3>
+      <p class="text-sm text-muted-foreground mb-5">
+        Everything Loci has learned about your travel taste, the actions that taught it, and a
+        delete button on each one.
+      </p>
+      <A
+        href="/settings/memory"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+      >
+        <Brain class="w-4 h-4" />
+        Open
+        <ChevronRight class="w-4 h-4" />
+      </A>
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab()) {
       case "settings":
@@ -756,6 +779,8 @@ export default function SettingsPage() {
         return renderProfiles();
       case "apikeys":
         return <ApiKeys onNotification={(message, type) => setNotification({ message, type })} />;
+      case "memory":
+        return renderMemoryLink();
       case "security":
         return <TwoFactor onNotification={(message, type) => setNotification({ message, type })} />;
       case "billing":

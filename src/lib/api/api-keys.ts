@@ -26,7 +26,33 @@ export interface ApiKeyView {
   lastUsedAt?: number;
   expiresAt?: number;
   revokedAt?: number;
+  // What this key may do. A key authenticates as its owning user, so scopes are
+  // the only thing narrowing it from full account access.
+  scopes: ApiKeyScope[];
 }
+
+// Capabilities a key can hold. No scope implies another: a key that must read
+// and write is minted with both.
+export type ApiKeyScope = "read" | "write" | "write:generate";
+
+export const API_KEY_SCOPES: { value: ApiKeyScope; label: string; description: string }[] = [
+  {
+    value: "read",
+    label: "Read",
+    description: "Search places and read your saved lists, favourites and itineraries.",
+  },
+  {
+    value: "write",
+    label: "Write",
+    description: "Add favourites, edit lists and change your saved itineraries.",
+  },
+  {
+    value: "write:generate",
+    label: "Generate",
+    description:
+      "Run AI generation, which spends your daily quota. Separate from Write because it costs money per call.",
+  },
+];
 
 function tsToMillis(ts?: Timestamp): number | undefined {
   if (!ts) return undefined;
@@ -42,6 +68,7 @@ function toView(k: ApiKey): ApiKeyView {
     lastUsedAt: tsToMillis(k.lastUsedAt),
     expiresAt: tsToMillis(k.expiresAt),
     revokedAt: tsToMillis(k.revokedAt),
+    scopes: (k.scopes ?? []) as ApiKeyScope[],
   };
 }
 
@@ -62,11 +89,22 @@ export interface CreatedApiKey {
   plaintext: string;
 }
 
+export interface CreateApiKeyInput {
+  name: string;
+  // Omitted means read-only — the safe default, and what the server applies
+  // when no scopes are sent.
+  scopes?: ApiKeyScope[];
+}
+
 export function useCreateApiKey() {
   const queryClient = useQueryClient();
   return useMutation(() => ({
-    mutationFn: async (name: string): Promise<CreatedApiKey> => {
-      const resp = await apiKeyClient.createApiKey(create(CreateApiKeyRequestSchema, { name }));
+    mutationFn: async (input: CreateApiKeyInput | string): Promise<CreatedApiKey> => {
+      const { name, scopes } =
+        typeof input === "string" ? { name: input, scopes: undefined } : input;
+      const resp = await apiKeyClient.createApiKey(
+        create(CreateApiKeyRequestSchema, { name, scopes: scopes ?? [] }),
+      );
       if (!resp.apiKey) throw new Error("server did not return the created key");
       return { key: toView(resp.apiKey), plaintext: resp.plaintextKey };
     },
