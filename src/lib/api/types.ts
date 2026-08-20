@@ -116,6 +116,13 @@ export interface POI {
   recommendation_rationale?: string;
   uncertainty_score?: number;
   missing_data?: string[];
+  /**
+   * Whether Loci cited this place from a row it actually retrieved, rather than
+   * the model recalling it. `false` does not mean the place is fake — it means
+   * Loci did not verify it against its own data. `undefined` means the response
+   * predates grounding and nothing was checked either way.
+   */
+  grounded?: boolean;
 }
 
 export interface ChatMessage {
@@ -625,6 +632,13 @@ export interface POIDetailedInfo {
   uncertainty_score?: number;
   missing_data?: string[];
   recommendation_trace?: RecommendationTrace;
+  /**
+   * Whether Loci cited this place from a row it actually retrieved, rather than
+   * the model recalling it. `false` does not mean the place is fake — it means
+   * Loci did not verify it against its own data. `undefined` means the response
+   * predates grounding and nothing was checked either way.
+   */
+  grounded?: boolean;
 }
 
 // Domain-specific response types

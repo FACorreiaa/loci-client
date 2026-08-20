@@ -1,3 +1,4 @@
+import { GroundedBadge } from "./ui/GroundedBadge";
 import { Show, createSignal, createEffect, For, lazy } from "solid-js";
 import {
   X,
@@ -25,6 +26,7 @@ type DetailedItem = {
   longitude?: number;
   category?: string;
   description_poi?: string;
+  grounded?: boolean;
   address?: string;
   website?: string;
   opening_hours?: string;
@@ -129,16 +131,15 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                   <h2 class="text-xl sm:text-2xl font-bold text-foreground truncate">
                     {props.item!.name}
                   </h2>
-                  <div class="flex items-center gap-2 mt-1">
+                  <div class="flex items-center gap-2 mt-1 flex-wrap">
                     <span
                       class={`text-sm font-medium ${getTypeColor(props.item!.type)} capitalize`}
                     >
                       {props.item!.type}
                     </span>
+                    <GroundedBadge grounded={props.item!.grounded} />
                     <Show when={props.item!.category}>
-                      <span class="text-sm text-muted-foreground">
-                        • {props.item!.category}
-                      </span>
+                      <span class="text-sm text-muted-foreground">• {props.item!.category}</span>
                     </Show>
                   </div>
                 </div>
@@ -245,9 +246,7 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                       <MapPin class="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                       <div>
                         <p class="font-medium text-foreground">Address</p>
-                        <p class="text-sm text-muted-foreground">
-                          {props.item!.address}
-                        </p>
+                        <p class="text-sm text-muted-foreground">{props.item!.address}</p>
                       </div>
                     </div>
                   </Show>
@@ -286,9 +285,7 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                       <Clock class="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                       <div>
                         <p class="font-medium text-foreground">Hours</p>
-                        <p class="text-sm text-muted-foreground">
-                          {props.item!.opening_hours}
-                        </p>
+                        <p class="text-sm text-muted-foreground">{props.item!.opening_hours}</p>
                       </div>
                     </div>
                   </Show>
@@ -318,11 +315,7 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                     <h3 class="font-semibold text-foreground mb-3">Tags</h3>
                     <div class="flex flex-wrap gap-2">
                       <For each={props.item!.tags}>
-                        {(tag: string) => (
-                          <span class="loci-chip loci-chip--muted">
-                            {tag}
-                          </span>
-                        )}
+                        {(tag: string) => <span class="loci-chip loci-chip--muted">{tag}</span>}
                       </For>
                     </div>
                   </div>

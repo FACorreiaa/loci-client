@@ -1,3 +1,4 @@
+import { GroundedBadge } from "../ui/GroundedBadge";
 import { For, Show, createSignal } from "solid-js";
 import { Star, MapPin, Clock, DollarSign, Calendar, ChevronDown, ChevronUp } from "lucide-solid";
 
@@ -82,9 +83,7 @@ export default function ActivityResults(props: ActivityResultsProps) {
         <div class="w-6 h-6 rounded-full bg-accent flex items-center justify-center text-accent-foreground text-xs">
           🎯
         </div>
-        <h3 class="font-semibold text-foreground">
-          Activities ({displayActivities().length})
-        </h3>
+        <h3 class="font-semibold text-foreground">Activities ({displayActivities().length})</h3>
       </div>
 
       <div class={props.compact ? "space-y-2" : "space-y-4"}>
@@ -143,6 +142,12 @@ export default function ActivityResults(props: ActivityResultsProps) {
                   </Show>
                 </div>
               </div>
+
+              <Show when={!props.compact}>
+                <div class="mb-2">
+                  <GroundedBadge grounded={activity.grounded} />
+                </div>
+              </Show>
 
               <Show when={activity.description_poi && !props.compact}>
                 <p class="text-sm text-muted-foreground mb-3 line-clamp-2">

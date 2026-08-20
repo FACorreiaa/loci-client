@@ -1,3 +1,4 @@
+import { GroundedBadge } from "../ui/GroundedBadge";
 import { For, Show, createSignal } from "solid-js";
 import {
   Star,
@@ -193,6 +194,12 @@ export default function ItineraryResults(props: ItineraryResultsProps) {
                       </div>
                     </Show>
                   </div>
+
+                  <Show when={!props.compact}>
+                    <div class="mb-2">
+                      <GroundedBadge grounded={poi.grounded} />
+                    </div>
+                  </Show>
 
                   <Show when={poi.description_poi && !props.compact}>
                     <p class="text-sm text-muted-foreground mb-3 line-clamp-2">
