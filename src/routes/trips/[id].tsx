@@ -28,6 +28,9 @@ import {
   type RecommendationEventName,
 } from "~/lib/api/recommendations";
 import PlacePicker from "~/components/trip/PlacePicker";
+import TripMoney from "@/components/TripMoney";
+import LocalWeather from "@/components/LocalWeather";
+import TripGlobe from "~/components/features/Globe/TripGlobe";
 import type { POI } from "~/lib/api/types";
 
 const minutesToHHMM = (m?: number) => {
@@ -72,6 +75,21 @@ export default function TripEditor() {
 
   const trip = () => tripQuery.data as Trip | undefined;
   const version = () => trip()?.version ?? 0n;
+
+  /**
+   * The trip's primary city, for weather and currency.
+   *
+   * Taken from the first day that carries coordinates rather than from the
+   * trip's city *name*: a multi-city trip's days each know where they are, and
+   * a name would have to be geocoded to be useful.
+   */
+  const primaryCityCoords = () => {
+    const day = trip()?.days?.find((d) => d.cityLat != null && d.cityLon != null);
+    return day ? { lat: day.cityLat!, lon: day.cityLon! } : undefined;
+  };
+
+  /** Total driving distance across the trip's legs. Zero hides the fuel line. */
+  const totalDriveKm = () => (trip()?.legs ?? []).reduce((sum, l) => sum + (l.distanceKm ?? 0), 0);
 
   createEffect(() => {
     const t = trip();
@@ -256,6 +274,34 @@ export default function TripEditor() {
                   {shareUrl()}
                 </a>
               </div>
+            </Show>
+
+            {/* This trip's own cities and legs. Only rendered when the trip
+                actually carries coordinates — a single-city trip with no legs
+                has no geometry worth a globe. */}
+            {/* Trip-time context for the primary city, and what the driving
+                costs. driveKm is the sum of the legs the trip actually
+                carries — the fuel estimate is meaningless without it, and this
+                is the only page that knows the real distances. */}
+            <Show when={primaryCityCoords()}>
+              {(c) => (
+                <section aria-label="Trip context" class="mb-6 space-y-3">
+                  <LocalWeather latitude={c().lat} longitude={c().lon} />
+                  <TripMoney latitude={c().lat} longitude={c().lon} driveKm={totalDriveKm()} />
+                </section>
+              )}
+            </Show>
+
+            <Show when={t.legs && t.legs.length > 0}>
+              <section aria-labelledby="trip-globe-heading" class="mb-6">
+                <h2
+                  id="trip-globe-heading"
+                  class="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  Route
+                </h2>
+                <TripGlobe trips={[t]} class="h-[320px]" />
+              </section>
             </Show>
 
             <section class="loci-card mb-6 rounded-xl p-4">

@@ -74,4 +74,16 @@
     transition: none !important;
     transform: none !important;
   }
+
+  /* Kobalte's accordion animates its own height via keyframes driven by
+     --kb-accordion-content-height (see tailwind.config.cjs). Those are declared
+     on the component, not through the utilities above, so they need an explicit
+     override — otherwise the globe's Activities drawer still slides open under
+     reduced motion. */
+  [data-kb-accordion-content],
+  [data-expanded][data-kb-accordion-content],
+  [data-closed][data-kb-accordion-content] {
+    animation: none !important;
+    transition: none !important;
+  }
 }

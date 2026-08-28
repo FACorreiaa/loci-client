@@ -12,6 +12,7 @@ import {
 } from "lucide-solid";
 import type { Component } from "solid-js";
 import { useLocalContext } from "~/lib/api/localContext";
+import { colorForSeverity } from "~/lib/theme-colors";
 
 const conditionIcon = (c: string): Component<{ class?: string }> => {
   const k = c.toLowerCase();
@@ -75,15 +76,29 @@ export default function LocalWeather(props: {
             </For>
           </div>
 
+          {/* Alerts arrive most-severe first from the server, so the list needs
+              no sorting — only the colour that makes the ranking visible. */}
           <Show when={data().alerts.length > 0}>
-            <ul class="mt-3 space-y-1">
+            <ul class="mt-3 space-y-1.5">
               <For each={data().alerts}>
                 {(a) => (
-                  <li class="flex items-start gap-1.5 text-xs text-amber-700">
-                    <TriangleAlert class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    <span>
-                      <span class="font-medium">{a.title}</span>
+                  <li class="flex items-start gap-1.5 text-xs">
+                    <TriangleAlert
+                      class="mt-0.5 h-3.5 w-3.5 shrink-0"
+                      style={{ color: colorForSeverity(a.severity) }}
+                      aria-hidden="true"
+                    />
+                    <span class="text-muted-foreground">
+                      <span class="font-medium text-foreground">{a.title}</span>
                       <Show when={a.detail}> — {a.detail}</Show>
+                      {/* Naming the provider matters: these range from a measured
+                          earthquake to an unverified headline, and the user should
+                          be able to weigh them differently. */}
+                      <Show when={a.source}>
+                        <span class="ml-1 text-[0.65rem] uppercase tracking-wide opacity-60">
+                          {a.source}
+                        </span>
+                      </Show>
                     </span>
                   </li>
                 )}

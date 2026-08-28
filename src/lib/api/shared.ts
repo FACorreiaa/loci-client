@@ -65,6 +65,13 @@ export const queryKeys = {
   recents: ["recents"] as const,
   recentInteractions: (limit: number) => ["recents", "interactions", limit] as const,
   cityDetails: (cityName: string) => ["recents", "city", cityName] as const,
+
+  // Travel history — where the user has actually been. Backs the globe.
+  travelHistory: ["travel-history"] as const,
+  globeData: (limit: number, periodDays: number) =>
+    ["travel-history", "globe", limit, periodDays] as const,
+  visitedCities: (page: number) => ["travel-history", "cities", page] as const,
+  travelSummary: (periodDays: number) => ["travel-history", "summary", periodDays] as const,
 };
 
 // Utility hooks

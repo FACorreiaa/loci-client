@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@buf/loci_loci-proto.bufbuild_es':
-        specifier: 2.14.0-20260815142348-4d298930f16e.1
-        version: 2.14.0-20260815142348-4d298930f16e.1(@bufbuild/protobuf@2.13.0)
+        specifier: 2.14.0-20260828113206-531b9daf9de2.1
+        version: 2.14.0-20260828113206-531b9daf9de2.1(@bufbuild/protobuf@2.13.0)
       '@bufbuild/protobuf':
         specifier: ^2.13.0
         version: 2.13.0
@@ -685,8 +685,8 @@ packages:
     peerDependencies:
       '@bufbuild/protobuf': ^2.14.0
 
-  '@buf/loci_loci-proto.bufbuild_es@2.14.0-20260815142348-4d298930f16e.1':
-    resolution: {integrity: sha512-Ys74QHUjoEfzXeU53s0JGEz3LXlJvl7y2zVUek/eqmQsHtoR7EwKcQAZq4t2bXlXDA8q0+U/VsumrK/eEwTEjA==}
+  '@buf/loci_loci-proto.bufbuild_es@2.14.0-20260828113206-531b9daf9de2.1':
+    resolution: {integrity: sha512-X47L5OYTO+kNKqAYfClU9MQwri/bm5okXR+YhyJHDahusgl2f6cAPMmeDOLpAqTt/qwirYVHspaBIXdVz6bFIw==}
     peerDependencies:
       '@bufbuild/protobuf': ^2.14.0
 
@@ -3329,6 +3329,7 @@ packages:
   eslint@9.39.5:
     resolution: {integrity: sha512-DgZS62aPLXKlnxILS/AYCoRvHaZeXceIzlXPkkGGzJWSow1aEk0lbTlxUSlyjC8jcaKxAdOnTDz+o1JFSBsyjw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -6839,7 +6840,7 @@ snapshots:
     dependencies:
       '@bufbuild/protobuf': 2.13.0
 
-  '@buf/loci_loci-proto.bufbuild_es@2.14.0-20260815142348-4d298930f16e.1(@bufbuild/protobuf@2.13.0)':
+  '@buf/loci_loci-proto.bufbuild_es@2.14.0-20260828113206-531b9daf9de2.1(@bufbuild/protobuf@2.13.0)':
     dependencies:
       '@buf/bufbuild_protovalidate.bufbuild_es': 2.14.0-20251209175733-2a1774d88802.1(@bufbuild/protobuf@2.13.0)
       '@buf/protocolbuffers_wellknowntypes.bufbuild_es': 2.14.0-20230331140314-f17e05fe4a76.1(@bufbuild/protobuf@2.13.0)

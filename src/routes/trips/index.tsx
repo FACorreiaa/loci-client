@@ -3,6 +3,7 @@ import { A } from "@solidjs/router";
 import { ArrowRight, CalendarDays, Compass, MapPin, Plus } from "lucide-solid";
 import { useTrips } from "~/lib/api/trips";
 import { Button } from "~/ui/button";
+import TripGlobe from "~/components/features/Globe/TripGlobe";
 
 export default function TripsList() {
   const trips = useTrips();
@@ -31,6 +32,18 @@ export default function TripsList() {
           </A>
         </div>
       </section>
+
+      {/* Globe above the grid, not instead of it. The cards answer "which
+          trip?"; the globe answers "how far apart are these actually?", which
+          a flat card grid cannot express. */}
+      <Show when={trips.data && trips.data.length > 0}>
+        <section aria-labelledby="trips-globe-heading" class="mb-8">
+          <h2 id="trips-globe-heading" class="sr-only">
+            Your trips on a globe
+          </h2>
+          <TripGlobe trips={trips.data!} class="h-[380px]" />
+        </section>
+      </Show>
 
       <Show when={trips.isLoading}>
         <div class="grid gap-4 md:grid-cols-2">

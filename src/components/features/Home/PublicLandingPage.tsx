@@ -6,6 +6,7 @@ import { prefersReducedMotion } from "~/lib/hooks/useInView";
 import { detectDomain } from "~/lib/api/llm";
 import { createStreamingSession, getDomainRoute, streamingService } from "~/lib/chat-stream";
 import HeroPlot from "./landing/HeroPlot";
+import SvgGlobe from "./landing/SvgGlobe";
 import HowItWorks from "./landing/HowItWorks";
 import WhatItFinds from "./landing/WhatItFinds";
 import AgentSection from "./landing/AgentSection";
@@ -209,6 +210,30 @@ export default function PublicLandingPage() {
 
             <HowItWorks />
             <WhatItFinds />
+
+            {/* Reach. Pure SVG, no WebGL and no Mapbox chunk — `/` is audited
+                at performance >= 0.95 as a hard error, and the map bundle is
+                ~1.9 MB raw. HeroPlot above stays the signature graphic; this
+                is a second, wider statement further down the page. */}
+            <section
+              aria-labelledby="landing-globe-heading"
+              class="mx-auto flex w-full max-w-5xl flex-col items-center gap-8 px-4 py-16 md:flex-row md:justify-between md:py-24"
+            >
+              <div class="max-w-sm">
+                <p class="font-coord text-[0.66rem] uppercase tracking-[0.12em] text-muted-foreground">
+                  Anywhere you're going
+                </p>
+                <h2 id="landing-globe-heading" class="mt-3 text-3xl leading-tight sm:text-4xl">
+                  One city or six, across a weekend or a month.
+                </h2>
+                <p class="mt-4 text-sm leading-6 text-muted-foreground">
+                  Loci plans routes between real places, works out the legs between them, and keeps
+                  the whole thing editable.
+                </p>
+              </div>
+              <SvgGlobe />
+            </section>
+
             <AgentSection />
             <FinalCta />
           </div>

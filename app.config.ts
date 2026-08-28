@@ -39,9 +39,50 @@ export default defineConfig({
         registerType: "autoUpdate",
         workbox: {
           globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+          // The mapbox-gl bundle is ~1.9 MB raw (520 KB gz) and is only
+          // reachable from a handful of routes. Precaching it made the service
+          // worker download the whole map stack on a first visit to *any* page,
+          // including the landing page.
+          //
+          // Filtered by SIZE rather than by name, because Rollup moves chunks:
+          // splitting Map.tsx gave Map.tsx and Globe.tsx a shared dependency, so
+          // mapbox-gl was rehomed from `Map-*.js` into `useMapLifecycle-*.js`
+          // and a name-based ignore silently stopped matching it.
+          //
+          // manifestTransforms rather than maximumFileSizeToCacheInBytes:
+          // the latter works, but vite-plugin-pwa treats "asset excluded by the
+          // size limit" as a build-breaking error rather than a warning.
+          //
+          // Anything dropped here is still cached on first *use* — see the
+          // map-chunks runtimeCaching entry below.
+          manifestTransforms: [
+            (entries) => {
+              const LIMIT = 900_000;
+              const manifest = entries.filter((e) => (e.size ?? 0) <= LIMIT);
+              return { manifest, warnings: [] };
+            },
+          ],
+          globIgnores: ["**/mapbox-gl*"],
           navigateFallback: "/offline",
           navigateFallbackDenylist: [/^\/api\//],
           runtimeCaching: [
+            {
+              // Cache the map/globe bundles on first use, not up front. Content
+              // hashes make these immutable, so CacheFirst is safe.
+              urlPattern:
+                /\/_build\/assets\/(Map|Globe|TripGlobe|useMapLifecycle|mapbox-gl)[-.][\w-]*\.js$/i,
+              handler: "CacheFirst",
+              options: {
+                cacheName: "map-chunks-cache",
+                expiration: {
+                  maxEntries: 8,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
             {
               urlPattern: /^https:\/\/api\.*/i,
               handler: "NetworkFirst",

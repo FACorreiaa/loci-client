@@ -25,6 +25,9 @@ const toNum = (v: unknown): number =>
 import SplitView from "@/components/layout/SplitView";
 import { CityInfoHeader } from "@/components/ui/CityInfoHeader";
 import LocalWeather from "@/components/LocalWeather";
+import TripMoney from "@/components/TripMoney";
+import LayerLegend, { type LayerVisibility } from "@/components/features/Map/LayerLegend";
+import { isLocatedAlert, useLocalContext } from "@/lib/api/localContext";
 import { ActionToolbar } from "@/components/ui/ActionToolbar";
 import FloatingChat from "@/components/features/Chat/FloatingChat";
 import { useSaveItineraryMutation } from "@/lib/api/itineraries";
@@ -36,6 +39,11 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function ItineraryPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [layers, setLayers] = createSignal<LayerVisibility>({
+    stops: true,
+    routes: true,
+    alerts: true,
+  });
   const [message] = createSignal((searchParams.message as string) || "Show me an itinerary");
   const [cityName] = createSignal((searchParams.cityName as string) || "London");
   const [profileId] = createSignal((searchParams.profileId as string) || "");
@@ -230,6 +238,18 @@ export default function ItineraryPage() {
 
   // Map POIs in itinerary order, with day bucket + sequence number attached.
   // Itinerary stops first (numbered + day-coloured), then any extra POIs.
+  // Live alerts for the destination.
+  //
+  // The same query LocalWeather runs, and TanStack dedupes on the key, so this
+  // shares one fetch rather than making a second. It lives at route level
+  // because the map needs the located alerts and the list needs all of them.
+  const localContext = useLocalContext(
+    () => cityData()?.center_latitude,
+    () => cityData()?.center_longitude,
+  );
+  const alerts = () => localContext.data?.alerts ?? [];
+  const locatedAlertCount = () => alerts().filter(isLocatedAlert).length;
+
   const mapPois = createMemo<POI[]>(() => {
     const byName = allByName();
     const out: POI[] = [];
@@ -396,10 +416,21 @@ export default function ItineraryPage() {
           selectedId={selectedId()}
           onSelect={(poi) => setSelectedId(poi.name)}
           onActivate={(poi) => openDetail(poi)}
+          alerts={alerts()}
+          showAlerts={layers().alerts}
+          showStops={layers().stops}
+          showRoutes={layers().routes}
           cinematic
           fullBleed
         />
       </Show>
+
+      {/* Bottom-left so it clears the ActionToolbar top-left and Mapbox's own
+          controls top-right. pointer-events-none on the wrapper keeps the map
+          pannable everywhere the panel is not. */}
+      <div class="pointer-events-none absolute bottom-4 left-4 z-10">
+        <LayerLegend value={layers()} onChange={setLayers} alertCount={locatedAlertCount()} />
+      </div>
 
       {/* Floating Action Toolbar on Map (Desktop only maybe? No, let's put it on top of map) */}
       <div class="absolute top-4 left-4 z-10">
@@ -434,8 +465,15 @@ export default function ItineraryPage() {
           <CityInfoHeader cityData={cityData()} isLoading={store.isLoading && !cityData()} />
 
           <Show when={cityData()?.center_latitude}>
-            <div class="mt-3">
+            <div class="mt-3 space-y-3">
               <LocalWeather
+                latitude={cityData()?.center_latitude}
+                longitude={cityData()?.center_longitude}
+              />
+              {/* Coordinates, not cityData().country — that field is
+                  LLM-generated prose, and the server resolves a currency from
+                  a position far more reliably than from a name. */}
+              <TripMoney
                 latitude={cityData()?.center_latitude}
                 longitude={cityData()?.center_longitude}
               />

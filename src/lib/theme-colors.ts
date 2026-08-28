@@ -24,6 +24,30 @@ export const LOCI_DAY_COLORS = [
   "#d4845c", // warm clay
 ] as const;
 
+/**
+ * Alert severity scale, for hazards drawn on the map and severity-coloured
+ * rows in the alert list.
+ *
+ * Deliberately drawn from the same earthy language as the day colours rather
+ * than a generic amber/red warning palette — a wildfire pin has to read as part
+ * of this map, not as a browser error. It stays distinguishable from the day
+ * scale because it climbs in saturation towards rust, which the day colours
+ * never reach.
+ */
+export const LOCI_ALERT_COLORS = {
+  minor: "#8a6e2f", // field amber
+  moderate: "#c76b4a", // terracotta
+  major: "#8c2f1f", // deep rust
+} as const;
+
+/** Severity is 0..1 from the server; 0 means unspecified and reads as full. */
+export const colorForSeverity = (severity?: number): string => {
+  const s = severity == null || severity <= 0 ? 1 : severity;
+  if (s >= 0.75) return LOCI_ALERT_COLORS.major;
+  if (s >= 0.4) return LOCI_ALERT_COLORS.moderate;
+  return LOCI_ALERT_COLORS.minor;
+};
+
 export const LOCI_MAP_CLUSTER_COLOR = "#294d3c";
 export const LOCI_MAP_UNGROUPED_COLOR = "#6b7c72";
 
