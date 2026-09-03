@@ -9,6 +9,7 @@
     "preview": "pnpm run build && npx wrangler dev",
     "deploy": "pnpm run build && wrangler deploy",
     "cf-typegen": "wrangler types",
+    "test": "vitest run",
     "lint": "oxlint .",
     "lint:legacy": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "typecheck": "tsgo --noEmit",
