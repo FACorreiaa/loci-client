@@ -96,6 +96,7 @@ export default function ReviewCard(props: ReviewProps) {
               <img
                 src={review().userAvatar}
                 alt={review().userName}
+                loading="lazy"
                 class="w-full h-full rounded-full object-cover"
               />
             ) : (

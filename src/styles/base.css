@@ -15,43 +15,6 @@
     letter-spacing: -0.02em;
   }
 
-  /* CLASSIC Theme (The "Editorial" Look) */
-  [data-theme="classic"] body {
-    font-family: "Lato", sans-serif;
-    font-weight: 400;
-  }
-
-  [data-theme="classic"] h1,
-  [data-theme="classic"] h2,
-  [data-theme="classic"] h3,
-  [data-theme="classic"] h4 {
-    font-family: "Playfair Display", serif;
-    font-weight: 700;
-  }
-
-  [data-theme="classic"] h3,
-  [data-theme="classic"] h4 {
-    font-style: italic;
-    /* Design Tip: Italics for subheadings */
-  }
-
-  /* MODERN Theme (The "Super-App" Look) */
-  [data-theme="modern"] body {
-    font-family: "Inter", sans-serif;
-    font-weight: 500;
-    /* Medium for UI (Inter 500 is close to Medium) */
-  }
-
-  [data-theme="modern"] h1,
-  [data-theme="modern"] h2,
-  [data-theme="modern"] h3,
-  [data-theme="modern"] h4 {
-    font-family: "Plus Jakarta Sans", sans-serif;
-    font-weight: 800;
-    /* ExtraBold for titles */
-    letter-spacing: -0.03em;
-  }
-
   /* LOCI Theme (The "Bold / Distinctive" Look) */
   [data-theme="loci"] body {
     font-family: "DM Sans", sans-serif;
@@ -338,9 +301,7 @@
 
 @layer base {
   body,
-  [data-theme="loci"] body,
-  [data-theme="classic"] body,
-  [data-theme="modern"] body {
+  [data-theme="loci"] body {
     font-family: "DM Sans", "Segoe UI", sans-serif;
     font-weight: 400;
     background-color: hsl(var(--background));
@@ -354,15 +315,7 @@
   [data-theme="loci"] h1,
   [data-theme="loci"] h2,
   [data-theme="loci"] h3,
-  [data-theme="loci"] h4,
-  [data-theme="classic"] h1,
-  [data-theme="classic"] h2,
-  [data-theme="classic"] h3,
-  [data-theme="classic"] h4,
-  [data-theme="modern"] h1,
-  [data-theme="modern"] h2,
-  [data-theme="modern"] h3,
-  [data-theme="modern"] h4 {
+  [data-theme="loci"] h4 {
     font-family: "Fraunces", Georgia, serif;
     font-style: normal;
     font-weight: 600;

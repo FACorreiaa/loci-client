@@ -246,6 +246,7 @@ export default function Roadmap() {
                   src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
                   class="h-12"
                   alt="Play Store"
+                  loading="lazy"
                 />
               </div>
             </div>

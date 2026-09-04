@@ -1,8 +1,6 @@
 @layer base {
   :root,
-  [data-theme="loci"],
-  [data-theme="classic"],
-  [data-theme="modern"] {
+  [data-theme="loci"] {
     --background: 43 38% 94%;
     --foreground: 157 28% 14%;
     --card: 42 44% 98%;
@@ -33,9 +31,7 @@
 
   .dark,
   [data-kb-theme="dark"],
-  [data-theme="loci"].dark,
-  [data-theme="classic"].dark,
-  [data-theme="modern"].dark {
+  [data-theme="loci"].dark {
     --background: 157 22% 8%;
     --foreground: 42 30% 91%;
     --card: 157 20% 11%;

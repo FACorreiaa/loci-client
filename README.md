@@ -1,39 +1,27 @@
-# SolidStart
+# Loci — the plan that knows what changed today
 
-Everything you need to build a Solid project, powered by [`solid-start`](https://start.solidjs.com);
+Every AI can write you an itinerary. Loci is the one that knows the museum is
+shut for a public holiday, the transit strike is on, and what the trip actually
+costs today — and then keeps the plan when the chat is gone.
 
-## Creating a project
+Web client for the Loci API. SolidStart on Vinxi, deployed to Cloudflare
+Workers. See `DESIGN.md` for the design system, `docs/UI_AUDIT_2026-09.md` for
+the current state of the interface, and the workspace `README.md` for how the
+repositories fit together.
 
-```bash
-# create a new project in the current directory
-npm init solid@latest
-
-# create a new project in my-app
-npm init solid@latest my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Getting started
 
 ```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+pnpm install
+pnpm dev          # dev server
+pnpm test         # unit tests
+pnpm typecheck    # tsgo --noEmit
+pnpm run lint     # oxlint
+pnpm build        # production build
 ```
 
-## Building
-
-Solid apps are built with _presets_, which optimise your project for deployment to different environments.
-
-By default, `npm run build` will generate a Node app that you can run with `npm start`. To use a different preset, add it to the `devDependencies` in `package.json` and specify in your `app.config.js`.
-
-## This project was created with the [Solid CLI](https://github.com/solidjs-community/solid-cli)
-
-# Loci
-
-Okay, here's a more concise version of your README, aiming to reduce repetition while retaining the essential information for Loci.
+Copy `.env.example` to `.env` and point `VITE_CONNECT_BASE_URL` at a running
+API. Analytics stays off until `VITE_POSTHOG_KEY` is set.
 
 ---
 

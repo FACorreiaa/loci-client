@@ -301,6 +301,7 @@ export default function ReviewForm(props: ReviewFormProps) {
                         <img
                           src={photo.url}
                           alt="Review photo"
+                          loading="lazy"
                           class="w-full aspect-square object-cover rounded-lg"
                         />
                         <Button

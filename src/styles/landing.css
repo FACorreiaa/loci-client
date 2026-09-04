@@ -1,5 +1,5 @@
 /* Landing redesign — "Cartographer's Copilot".
-   Token-driven so it adapts across the loci/classic/modern theme families.
+   Token-driven so it follows the loci theme in light and dark.
    Colors come from the app's HSL custom properties; motion is guarded by
    prefers-reduced-motion. */
 

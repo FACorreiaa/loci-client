@@ -56,7 +56,10 @@ export default [
           caughtErrorsIgnorePattern: "^_",
         },
       ],
-      "solid/reactivity": "off",
+      // Catches the most common Solid bug: destructuring props or signals and
+      // losing reactivity. Left as a warning while the long stateful files are
+      // split (docs/UI_AUDIT_2026-09.md phase 2); raise to "error" after.
+      "solid/reactivity": "warn",
     },
   },
   prettier,
