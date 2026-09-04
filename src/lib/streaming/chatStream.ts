@@ -25,6 +25,7 @@ import { refreshSession } from "@/lib/connect-transport";
 import { parseStreamError } from "@/lib/errors";
 import { mapAiCityResponse, mapGeneralCityData, mapPoi } from "@/lib/api/llm";
 import type { AiCityResponse, GeneralCityData, POIDetailedInfo } from "@/lib/api/types";
+import { capture } from "~/lib/analytics";
 
 export interface NavigationInfo {
   url: string;
@@ -326,6 +327,12 @@ export async function consumeChatStream(
         handlers.onError?.(e);
         break;
       case "complete":
+        // Metric: finished itinerary. Fired here rather than in each caller
+        // because this is the one place every stream completion passes through.
+        capture("itinerary_finished", {
+          city: e.result?.general_city_data?.city,
+          hasTrip: Boolean(e.tripId),
+        });
         handlers.onComplete?.(e);
         break;
     }

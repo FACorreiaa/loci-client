@@ -12,6 +12,7 @@ import { getAuthToken, setAuthToken, clearAuthToken, isPersistentSession } from 
 import { isDeadSession } from "~/lib/auth/session-failure";
 import { onAuthExpired } from "~/lib/auth/auth-events";
 import { authAPI } from "~/lib/api";
+import { capture, identify, resetIdentity } from "~/lib/analytics";
 
 interface User {
   id: string;
@@ -251,6 +252,9 @@ export const AuthProvider = (props: AuthProviderProps) => {
     const { access_token, refresh_token, user_id, username, email: userEmail } = response;
     setAuthToken(access_token, rememberMe, refresh_token);
 
+    // Tie subsequent funnel events to this user.
+    if (user_id) identify(user_id);
+
     // Build display name with proper fallbacks
     const displayName = username || userEmail?.split("@")[0] || fallbackEmail.split("@")[0];
 
@@ -330,6 +334,9 @@ export const AuthProvider = (props: AuthProviderProps) => {
       await authAPI.register(username, email, password);
       // After successful registration, automatically log in the user
       await login(email, password);
+      // Metric: stranger signups. Fired after login so the event carries the
+      // identity established above rather than an anonymous id.
+      capture("signup_completed", { method: "password" });
     } catch (error) {
       setIsLoading(false);
       throw error;
@@ -346,6 +353,9 @@ export const AuthProvider = (props: AuthProviderProps) => {
     } finally {
       // Clear local authentication state
       clearAuthToken();
+      // Stop attributing events to someone who has left, so the next user on
+      // this browser is not merged into their session.
+      resetIdentity();
       setUser(null);
       setIsLoading(false);
       setAuthError(null);

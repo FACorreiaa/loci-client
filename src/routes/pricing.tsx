@@ -6,6 +6,7 @@ import PromoCodeSection from "~/components/PromoCodeSection";
 import { useAuth } from "~/contexts/AuthContext";
 import { useCreateCheckoutSession, useUserSubscription } from "~/lib/api/billing";
 import { hasCheckoutConfigured, isProPlan, stripePriceIds } from "~/lib/subscription";
+import { capture } from "~/lib/analytics";
 
 type BillingInterval = "monthly" | "annual";
 
@@ -107,6 +108,10 @@ export default function Pricing() {
 
   const startCheckout = async () => {
     setCheckoutError(null);
+    // Metric: upgrade intent. Fired on the click, before the auth and config
+    // guards below, so an upgrade attempt that never reaches Stripe still
+    // counts as intent.
+    capture("upgrade_clicked", { interval: interval() });
 
     if (!isAuthenticated()) {
       navigate("/auth/signup?next=/pricing");

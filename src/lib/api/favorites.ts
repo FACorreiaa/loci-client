@@ -15,6 +15,7 @@ import { transport } from "../connect-transport";
 import { getAuthToken } from "../api";
 import { handleEntitlementError } from "../entitlement-error";
 import { useAppQuery } from "./authed-query";
+import { capture } from "~/lib/analytics";
 
 // Create authenticated favorites client
 const favoritesClient = createClient(FavoritesService, transport);
@@ -238,6 +239,7 @@ export function useAddToFavorites() {
   return useMutation(() => ({
     mutationFn: addToFavorites,
     onSuccess: () => {
+      capture("poi_saved", { surface: "favorites" });
       queryClient.invalidateQueries({ queryKey: ["favorites"] });
     },
   }));
