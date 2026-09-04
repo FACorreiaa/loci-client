@@ -34,7 +34,7 @@ jobs:
         run: pnpm exec tsc --noEmit
 
       - name: Run Oxlint
-        run: pnpm run lint # warnings are reported, errors fail the job
+        run: pnpm run lint --deny-warnings
 
   build:
     name: Build

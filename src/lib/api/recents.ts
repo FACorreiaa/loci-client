@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
 import {
   RecentsService,

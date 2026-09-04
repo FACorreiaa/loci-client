@@ -1,5 +1,5 @@
 // Connect RPC authentication using plain Connect client with Solid Query
-import { useQuery, useMutation, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { AuthService } from "@buf/loci_loci-proto.bufbuild_es/loci/auth/auth_pb.js";

@@ -1,6 +1,6 @@
 // POI and favorites queries and mutations - Using RPC (REST removed)
 import { createResource } from "solid-js";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
 import { FavoritesService } from "@buf/loci_loci-proto.bufbuild_es/loci/favorites/v1/favorites_pb.js";
 import { POIService } from "@buf/loci_loci-proto.bufbuild_es/loci/poi/poi_pb.js";

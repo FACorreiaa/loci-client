@@ -47,7 +47,6 @@ export interface ItineraryStreamViewProps {
 export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
   const total = () => props.stops.length;
   const hasStops = () => total() > 0;
-  const isEnriching = () => props.phase === "enriching";
   const progress = createMemo(() =>
     total() === 0 ? 0 : Math.round((props.enrichedCount / total()) * 100),
   );

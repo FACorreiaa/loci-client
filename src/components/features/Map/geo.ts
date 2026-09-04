@@ -122,7 +122,7 @@ export const bearingBetween = (from: LngLat, to: LngLat): number => {
  * by vertex would make the marker visibly stall there.
  */
 export const cumulativeDistances = (points: LngLat[]): number[] => {
-  const out = new Array<number>(points.length);
+  const out: number[] = Array.from({ length: points.length });
   out[0] = 0;
   for (let i = 1; i < points.length; i++) {
     const [lon1, lat1] = points[i - 1];

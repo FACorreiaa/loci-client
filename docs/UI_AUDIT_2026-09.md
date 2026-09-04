@@ -12,7 +12,7 @@ Scope: `loci-client` at `21bc7d4` (SolidStart 1.3 / Vinxi 0.5 / Solid 1.9 / Tail
 
 | # | Sev | Where | Finding | Status |
 |---|---|---|---|---|
-| 1 | High | `.github/workflows/ci.yml` | Lint ran with `\|\| true`; no test job although 11 vitest suites (177 tests) exist. Nothing could fail CI. | **Fixed 2026-09-03** — lint errors fail, `pnpm test` job added, `"test": "vitest run"` script added. 44 lint *warnings* remain (unused `useQuery` imports in `src/lib/api/*.ts`, unassigned refs). Clear them, then set `--deny-warnings`. |
+| 1 | High | `.github/workflows/ci.yml` | Lint ran with `\|\| true`; no test job although 11 vitest suites existed. Nothing could fail CI. | **Closed 2026-09-04.** A test job runs the suite, and lint runs `--deny-warnings` against a clean tree: 24 unused `useQuery` imports removed, five redundant duplicate property reads in `src/lib/api/llm.ts` simplified, one dead variable and one `new Array(n)` fixed, and the rest configured as the Solid idioms they are. |
 | 2 | High | `src/routes/index.tsx` | JSON-LD `SoftwareApplication` carried a fabricated `aggregateRating` 4.8 / 1250. | **Fixed 2026-09-03** — removed. Re-add only with real review data. |
 | 3 | High | `eslint.config.js` | `solid/reactivity` was `off`. This is the rule that catches destructured props/signals losing reactivity, the most common Solid bug class. | **Enabled as `warn` 2026-09-04.** It reports **56 findings across ~25 files**, listed by running `pnpm run lint:legacy`. Fix them during phase 2, then raise to `error`. Note `lint:legacy` also carries 36 pre-existing errors and is not in CI; oxlint is. |
 | 4 | Med | `src/lib/hooks/useChatSession.ts` (1212 lines), `components/features/Settings/TravelProfiles.tsx` (1202), `routes/discover.tsx` (986), `routes/settings/index.tsx` (874), `routes/profiles/index.tsx` (751), `routes/recents/[city].tsx` (707), `routes/profile.tsx` (671), `components/features/Dashboard/LoggedInDashboard.tsx` (632) | Too large to review or restyle safely; 63 `createEffect` sites concentrated here. | Open — phase 2 below. |
@@ -24,7 +24,7 @@ Scope: `loci-client` at `21bc7d4` (SolidStart 1.3 / Vinxi 0.5 / Solid 1.9 / Tail
 | 10 | — | `ReviewCard.tsx`, `ReviewForm.tsx`, `Settings/TwoFactor.tsx`, `itinerary/ProgressiveImage.tsx`, `routes/roadmap.tsx`, `routes/settings/index.tsx` | **Finding withdrawn 2026-09-04.** All six already have `alt`; the original grep matched only the same line and missed attributes on the following line. `loading="lazy"` was added to the three below-the-fold images that lacked it. |
 | 11 | Low | `public/images/logo.png` (302 KB) | Unused legacy asset beside the 30 KB `loci.png` actually referenced. | **Deleted 2026-09-04**, after confirming the only reference in the repo was this audit. |
 | 12 | Low | `src/routes/_archive/near.tsx.bak`, `README.md` | Dead route file in `routes/`; README carried an AI-generation preamble line and `create-solid` boilerplate above the real content. | **Both removed 2026-09-04.** README now opens with the live-signals positioning and the real commands. |
-| 13 | Low | `.oxlintrc.json` = `{}` | Primary linter runs with defaults only. | Open — add the Solid plugin rules once #3 is done. |
+| 13 | Low | `.oxlintrc.json` was `{}` | Primary linter ran with defaults only, so idiomatic Solid code produced noise nobody could act on. | **Configured 2026-09-04.** Underscore-prefixed catch parameters are honoured, and `no-unassigned-vars` is off because Solid assigns `let el` bindings through `ref={el}`, which the rule cannot see. Warnings are now zero and CI runs `--deny-warnings`. |
 | 14 | Low | `src/routes/discover.tsx:57` | `localResultCache` `Map` created inside the component body; recreated per mount. | Open — hoist to module scope or `createMemo` once #4 splits the file. |
 | 15 | Info | `src/lib/connect-transport.ts` | Positive: single-flight refresh on `Unauthenticated`, retry-once, documented past bugs. Reuse this exact pattern in the iOS client. | — |
 
@@ -66,7 +66,7 @@ Kit clean-up that unblocks all rows: `components.json` → `neutral`; delete `cl
 
 ## Follow-up implementation plan (separate approval)
 
-**Phase 1 — cleanup. Done 2026-09-04.** Findings 6, 7, 9, 11 and 12 closed, 10 withdrawn, 3 enabled as a warning. Still open from this phase: finding 13 (`.oxlintrc.json` is still `{}`) and the 44 oxlint warnings, which want clearing before `--deny-warnings` goes on.
+**Phase 1 — cleanup. Complete 2026-09-04.** Findings 1, 6, 7, 9, 11, 12 and 13 closed, 10 withdrawn, 3 enabled as a warning pending phase 2. The tree lints clean and CI enforces it.
 
 **Phase 2 — split the giants (1–2 days).** `useChatSession.ts` → session state / stream adapter / message reducers; `TravelProfiles.tsx` → list, editor, preference groups; `discover.tsx` → query state, results list, map panel; `settings/index.tsx` → one file per section. Snapshot the rendered DOM of each route before/after with vitest + `@solidjs/testing-library` so the split is behaviour-preserving.
 

@@ -1,5 +1,5 @@
 // API key hooks using ApiKeyService RPC (programmatic / MCP access).
-import { useQuery, useMutation, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
 import {
   ApiKeyService,

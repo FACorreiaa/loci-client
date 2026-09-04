@@ -1,5 +1,5 @@
 // Tags queries and mutations - RPC version
-import { useQuery, useMutation, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { TagsService } from "@buf/loci_loci-proto.bufbuild_es/loci/tags/tags_pb.js";

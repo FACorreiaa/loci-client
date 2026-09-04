@@ -1,5 +1,5 @@
 import { createSignal, createMemo, onMount } from "solid-js";
-import { useQuery, useQueryClient } from "@tanstack/solid-query";
+import { useQueryClient } from "@tanstack/solid-query";
 import { detectDomain, useGetChatSessionsQuery } from "~/lib/api/llm";
 import { createStreamingSession, streamingService } from "~/lib/chat-stream";
 import type { DomainType } from "~/lib/api/types";

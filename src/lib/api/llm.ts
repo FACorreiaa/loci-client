@@ -180,35 +180,22 @@ const mapRestaurant = (
   category: restaurant.category,
   description:
     (restaurant as ProtoRestaurantDetailedInfo).description ||
-    (restaurant as ProtoPOIDetailedInfo).description ||
     (restaurant as ProtoPOIDetailedInfo).descriptionPoi ||
     "",
   address: restaurant.address || "",
   website: restaurant.website || "",
-  phone_number:
-    (restaurant as ProtoRestaurantDetailedInfo).phoneNumber ||
-    (restaurant as ProtoPOIDetailedInfo).phoneNumber ||
-    "",
+  phone_number: (restaurant as ProtoRestaurantDetailedInfo).phoneNumber || "",
   opening_hours: (typeof (restaurant as ProtoRestaurantDetailedInfo).openingHours === "object"
     ? JSON.stringify((restaurant as ProtoRestaurantDetailedInfo).openingHours)
     : typeof (restaurant as ProtoRestaurantDetailedInfo).openingHours === "string"
       ? (restaurant as ProtoRestaurantDetailedInfo).openingHours
       : (restaurant as ProtoPOIDetailedInfo).openingHours || "") as string,
-  price_level:
-    (restaurant as ProtoRestaurantDetailedInfo).priceLevel ||
-    (restaurant as ProtoPOIDetailedInfo).priceLevel ||
-    "",
-  cuisine_type:
-    (restaurant as ProtoRestaurantDetailedInfo).cuisineType ||
-    (restaurant as ProtoPOIDetailedInfo).cuisineType ||
-    "",
+  price_level: (restaurant as ProtoRestaurantDetailedInfo).priceLevel || "",
+  cuisine_type: (restaurant as ProtoRestaurantDetailedInfo).cuisineType || "",
   tags: restaurant.tags || [],
   images: restaurant.images || [],
   rating: restaurant.rating ?? 0,
-  llm_interaction_id:
-    (restaurant as ProtoRestaurantDetailedInfo).llmInteractionId ||
-    (restaurant as ProtoPOIDetailedInfo).llmInteractionId ||
-    "",
+  llm_interaction_id: (restaurant as ProtoRestaurantDetailedInfo).llmInteractionId || "",
   recommendation_trace: fromProtoRecommendationTrace(restaurant.recommendationTrace),
 });
 

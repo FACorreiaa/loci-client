@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/solid-query";
 import { getAuthToken, authAPI } from "../api";
 import { createClient } from "@connectrpc/connect";
 import { StatisticsService } from "@buf/loci_loci-proto.bufbuild_es/loci/statistics/statistics_pb.js";

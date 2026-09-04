@@ -11,7 +11,7 @@ import {
   Calendar,
 } from "lucide-solid";
 import { A } from "@solidjs/router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
 import {
   ListService,

@@ -1,7 +1,6 @@
 // Freemium entitlement counters via EntitlementService.GetEntitlements.
 // Uses Connect JSON over the shared transport base URL until the BSR package
 // ships EntitlementService (then switch to createClient like billing.ts).
-import { useQuery } from "@tanstack/solid-query";
 import { getAuthToken } from "../auth/tokens";
 import { useAppQuery } from "./authed-query";
 

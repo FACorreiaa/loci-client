@@ -1,5 +1,4 @@
 // Hotels queries - Using RPC
-import { useQuery } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import {

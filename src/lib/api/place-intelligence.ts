@@ -8,7 +8,7 @@ import {
   SubmitPlaceClaimRequestSchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/place/place_intelligence_pb.js";
 import { createClient } from "@connectrpc/connect";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { transport } from "~/lib/connect-transport";
 import { useAppQuery } from "./authed-query";
 

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { queryKeys } from "./shared";
 import { fetchPreferenceProfilesRPC, useUpdateSearchProfileMutation } from "./profiles";
 import { useUserProfileQuery, useUpdateProfileMutation } from "./user";

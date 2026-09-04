@@ -17,7 +17,7 @@ import {
   UpdatePersonalizationSettingsRequestSchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/recommendation/recommendation_pb.js";
 import { createClient } from "@connectrpc/connect";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { getAuthToken } from "../auth/tokens";
 import { transport } from "../connect-transport";
 import { useAppQuery } from "./authed-query";
