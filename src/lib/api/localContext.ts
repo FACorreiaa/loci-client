@@ -62,10 +62,12 @@ export interface LocalContextData {
 export const useLocalContext = (
   lat: () => number | undefined,
   lon: () => number | undefined,
-  days = 5,
+  // An accessor, not a number: read once, a changing days prop would never
+  // reach the query key and the panel would keep showing the old span.
+  days: () => number = () => 5,
 ) =>
   useAppQuery(() => ({
-    queryKey: ["localContext", lat(), lon(), days],
+    queryKey: ["localContext", lat(), lon(), days()],
     enabled: lat() != null && lon() != null,
     staleTime: 30 * 60 * 1000,
     queryFn: async (): Promise<LocalContextData> => {
@@ -73,7 +75,7 @@ export const useLocalContext = (
         create(GetLocalContextRequestSchema, {
           latitude: lat()!,
           longitude: lon()!,
-          days,
+          days: days(),
         }),
       );
       return {

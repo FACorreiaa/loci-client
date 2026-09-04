@@ -456,8 +456,6 @@ export default function DiscoverPage() {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
-  console.log("search results", searchResults());
-
   return (
     <>
       <Title>Discover - Trending Cities & AI-Curated Travel Experiences | Loci</Title>

@@ -37,7 +37,7 @@ export default function LocalWeather(props: {
   const ctx = useLocalContext(
     () => props.latitude,
     () => props.longitude,
-    props.days ?? 5,
+    () => props.days ?? 5,
   );
 
   return (

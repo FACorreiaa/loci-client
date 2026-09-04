@@ -14,7 +14,7 @@ Scope: `loci-client` at `21bc7d4` (SolidStart 1.3 / Vinxi 0.5 / Solid 1.9 / Tail
 |---|---|---|---|---|
 | 1 | High | `.github/workflows/ci.yml` | Lint ran with `\|\| true`; no test job although 11 vitest suites existed. Nothing could fail CI. | **Closed 2026-09-04.** A test job runs the suite, and lint runs `--deny-warnings` against a clean tree: 24 unused `useQuery` imports removed, five redundant duplicate property reads in `src/lib/api/llm.ts` simplified, one dead variable and one `new Array(n)` fixed, and the rest configured as the Solid idioms they are. |
 | 2 | High | `src/routes/index.tsx` | JSON-LD `SoftwareApplication` carried a fabricated `aggregateRating` 4.8 / 1250. | **Fixed 2026-09-03** — removed. Re-add only with real review data. |
-| 3 | High | `eslint.config.js` | `solid/reactivity` was `off`. This is the rule that catches destructured props/signals losing reactivity, the most common Solid bug class. | **Enabled as `warn` 2026-09-04.** It reports **56 findings across ~25 files**, listed by running `pnpm run lint:legacy`. Fix them during phase 2, then raise to `error`. Note `lint:legacy` also carries 36 pre-existing errors and is not in CI; oxlint is. |
+| 3 | High | `eslint.config.js` | `solid/reactivity` was `off`. This is the rule that catches props and signals read once and never again. | **Enabled as `warn`, and all 56 findings triaged 2026-09-04.** 15 were real and are fixed (see below). The remaining 41 are the rule being conservative about JSX event binding, and are safe under Solid's execution model. Left as warnings rather than silenced, since each new one still deserves a look. |
 | 4 | Med | `src/lib/hooks/useChatSession.ts` (1212 lines), `components/features/Settings/TravelProfiles.tsx` (1202), `routes/discover.tsx` (986), `routes/settings/index.tsx` (874), `routes/profiles/index.tsx` (751), `routes/recents/[city].tsx` (707), `routes/profile.tsx` (671), `components/features/Dashboard/LoggedInDashboard.tsx` (632) | Too large to review or restyle safely; 63 `createEffect` sites concentrated here. | Open — phase 2 below. |
 | 5 | Med | `src/lib/streaming/chatStream.ts` vs Connect server-streaming everywhere else | Two real-time transports (SSE `EventSource` for chat, Connect streams elsewhere) → two error models, two reconnect paths. | Open. Server `StreamChat` is already a Connect server-stream with resume tokens; migrate the client to it and delete the SSE path. |
 | 6 | Med | `src/components/features/Home/{Hero,ContentGrid,CTA,MobileAppAnnouncement,RealTimeStats,Statistics,Stats,Trending}.tsx` | Eight orphaned components (~35 KB), never imported. | **Deleted 2026-09-04.** Correction: the claim that they were the only consumer of `solid-icons` was wrong. Seven live files import it, including `Onboarding.tsx` and the whole `features/Auth/*` set, so the dependency stays. |
@@ -68,7 +68,25 @@ Kit clean-up that unblocks all rows: `components.json` → `neutral`; delete `cl
 
 **Phase 1 — cleanup. Complete 2026-09-04.** Findings 1, 6, 7, 9, 11, 12 and 13 closed, 10 withdrawn, 3 enabled as a warning pending phase 2. The tree lints clean and CI enforces it.
 
-**Phase 2 — split the giants (1–2 days).** `useChatSession.ts` → session state / stream adapter / message reducers; `TravelProfiles.tsx` → list, editor, preference groups; `discover.tsx` → query state, results list, map panel; `settings/index.tsx` → one file per section. Snapshot the rendered DOM of each route before/after with vitest + `@solidjs/testing-library` so the split is behaviour-preserving.
+**Phase 2 — reactivity first, splitting deferred. Reactivity done 2026-09-04.**
+
+The original phase 2 conflated two unrelated jobs and justified the split with a number that was wrong. It claimed 63 `createEffect` sites concentrated in the four large files; the real count across all four is **four**, and the two largest have none. Effect misuse is not what is wrong with those files. They are simply long.
+
+It also assumed the reactivity warnings lived in those files. They do not: only 2 of 56 did. The heaviest were the chat sidebar, memory settings, the action toolbar, tags and interests.
+
+*Fixed (15 findings, all genuine):*
+
+- **`Settings/Interests.tsx`, `Settings/Tags.tsx`** — both returned early on `props.isLoading` and `props.isError`. A Solid component body runs once, so these panels froze on their spinner the moment the request settled and never recovered. Now nested `Show` with fallbacks. This was a live bug, not a lint nicety.
+- **`lib/api/localContext.ts` + `LocalWeather.tsx`** — `days` was a plain number read once, so it never reached the query key. A changing `days` prop silently kept the old forecast span. Now an accessor.
+- **`lib/hooks/useStreamingText.ts` + `TypingAnimation.tsx`** — same shape for `speed`.
+- **`ui/RegisterBanner.tsx`, `ui/ChatInterface.tsx`** — icons picked once from props. Now resolved through `Dynamic`, which is how Solid renders a component chosen at runtime.
+- **Three skeleton grids** — `count` read once.
+- **`Paginator.tsx`** — `const { currentPage, totalPages } = props` inside a tracked function. Reactive as written, but one hoist away from breaking silently. Now reads props directly.
+- **`routes/discover.tsx`** — a stray `console.log` reading a signal in the component body, shipping to production. Deleted.
+
+*Not changed (41 findings).* They are almost all `onClick={props.onX}` and props read inside callbacks registered once, such as the Mapbox `map.on(...)` handlers. The rule flags these because the access is outside a tracked scope, but a Solid component body runs once, so the prop value is stable and the callback reads the current value when it fires. Wrapping 40 sites in `(e) => props.onX?.(e)` would add indirection everywhere to prevent a staleness that Solid's execution model already rules out.
+
+*Splitting the four large files is deferred to phase 3*, when the restyle actually has to touch them. Splitting untested 1200-line files ahead of need is risk without a payoff, and none of the four carries a behavioural test today.
 
 **Phase 3 — restyle per page group (2–3 days).** Work the table top to bottom, one PR per row, each verified in the browser in light and dark mode and at 375 px width. Finish with Lighthouse on the five routes.
 

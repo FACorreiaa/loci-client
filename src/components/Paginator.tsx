@@ -17,38 +17,36 @@ export default function Paginator(props: PaginatorProps) {
   // Generate page numbers to display
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
-    const { currentPage, totalPages } = props;
-
-    if (totalPages <= 7) {
+    if (props.totalPages <= 7) {
       // Show all pages if total is 7 or less
-      for (let i = 1; i <= totalPages; i++) {
+      for (let i = 1; i <= props.totalPages; i++) {
         pages.push(i);
       }
     } else {
       // Always show first page
       pages.push(1);
 
-      if (currentPage <= 4) {
+      if (props.currentPage <= 4) {
         // Show first 5 pages, then ellipsis, then last page
         for (let i = 2; i <= 5; i++) {
           pages.push(i);
         }
         pages.push("...");
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 3) {
+        pages.push(props.totalPages);
+      } else if (props.currentPage >= props.totalPages - 3) {
         // Show first page, ellipsis, then last 5 pages
         pages.push("...");
-        for (let i = totalPages - 4; i <= totalPages; i++) {
+        for (let i = props.totalPages - 4; i <= props.totalPages; i++) {
           pages.push(i);
         }
       } else {
         // Show first page, ellipsis, current page area, ellipsis, last page
         pages.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+        for (let i = props.currentPage - 1; i <= props.currentPage + 1; i++) {
           pages.push(i);
         }
         pages.push("...");
-        pages.push(totalPages);
+        pages.push(props.totalPages);
       }
     }
 

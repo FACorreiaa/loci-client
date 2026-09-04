@@ -1,5 +1,6 @@
 import { A } from "@solidjs/router";
 import type { Component, JSX } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { ArrowRight, Lock } from "lucide-solid";
 
 interface RegisterBannerProps {
@@ -13,13 +14,13 @@ interface RegisterBannerProps {
 }
 
 export default function RegisterBanner(props: RegisterBannerProps): JSX.Element {
-  const Icon = props.icon || Lock;
+  const icon = () => props.icon || Lock;
 
   return (
     <div class="loci-card flex flex-col gap-3 p-5 sm:p-6">
       <div class="flex items-center gap-3">
         <div class="rounded-2xl border border-border bg-secondary p-3 text-primary">
-          <Icon class="w-5 h-5" />
+          <Dynamic component={icon()} class="w-5 h-5" />
         </div>
         <div>
           {/* Was text-blue-700/80 with a dark:slate override — a hardcoded pair that

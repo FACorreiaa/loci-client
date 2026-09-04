@@ -33,6 +33,6 @@ export const SkeletonActivityCard: Component = () => {
 };
 
 export const SkeletonActivityGrid: Component<{ count?: number }> = (props) => {
-  const count = props.count || 6;
-  return <For each={Array.from({ length: count })}>{() => <SkeletonActivityCard />}</For>;
+  const count = () => props.count || 6;
+  return <For each={Array.from({ length: count() })}>{() => <SkeletonActivityCard />}</For>;
 };

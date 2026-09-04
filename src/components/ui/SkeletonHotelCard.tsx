@@ -45,10 +45,10 @@ export const SkeletonHotelCard: Component = () => {
 };
 
 export const SkeletonHotelGrid: Component<{ count?: number }> = (props) => {
-  const count = props.count || 6;
+  const count = () => props.count || 6;
   return (
     <div class="space-y-4">
-      <For each={Array.from({ length: count })}>{() => <SkeletonHotelCard />}</For>
+      <For each={Array.from({ length: count() })}>{() => <SkeletonHotelCard />}</For>
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { For, Show, Component } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { Bot, Loader2, MessageCircle, Send, User, X } from "lucide-solid";
 import type { ChatMessage } from "~/lib/hooks/useChatSession";
 
@@ -27,7 +28,7 @@ export default function ChatInterface(props: ChatInterfaceProps) {
     props.emptyStateSubtitle || "Ask for places, routes, or a day plan.";
   const loadingMessage = () => props.loadingMessage || "Thinking…";
 
-  const EmptyIcon = props.emptyStateIcon || MessageCircle;
+  const emptyIcon = () => props.emptyStateIcon || MessageCircle;
 
   return (
     <>
@@ -73,7 +74,8 @@ export default function ChatInterface(props: ChatInterfaceProps) {
           <div class="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite">
             <Show when={props.chatHistory.length === 0}>
               <div class="py-8 text-center text-muted-foreground">
-                <EmptyIcon
+                <Dynamic
+                  component={emptyIcon()}
                   class="mx-auto mb-4 h-10 w-10 text-muted-foreground/50"
                   aria-hidden="true"
                 />

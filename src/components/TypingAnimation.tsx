@@ -7,7 +7,7 @@ interface TypingAnimationProps {
 }
 
 export function TypingAnimation(props: TypingAnimationProps): JSX.Element {
-  const [text, startStreaming] = useStreamingText("", props.speed || 50);
+  const [text, startStreaming] = useStreamingText("", () => props.speed || 50);
 
   createEffect(() => {
     if (props.text) {
