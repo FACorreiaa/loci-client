@@ -1,6 +1,6 @@
 import { A, useNavigate } from "@solidjs/router";
 import { Title, Meta } from "@solidjs/meta";
-import { Check, Star, Zap, Crown, Heart, Plug } from "lucide-solid";
+import { Check, Clock, Star, Zap, Crown, Heart, Plug } from "lucide-solid";
 import { createSignal, Show, For } from "solid-js";
 import PromoCodeSection from "~/components/PromoCodeSection";
 import { useAuth } from "~/contexts/AuthContext";
@@ -55,8 +55,17 @@ export default function Pricing() {
     "Full multi-day Trip Kit — Maps, calendar, PDF",
     "MCP plan_itinerary in Claude, Codex & more",
     "Priority feature access as we ship",
-    "Ad-free experience",
     "30-day money-back guarantee",
+  ];
+
+  // On the roadmap and included in Pro at no extra cost once they ship.
+  // These are rendered under an explicit "Planned" heading and must never be
+  // moved into proFeatures before they work end to end in production —
+  // see PRICING.md, "Shipping status".
+  const proPlanned = [
+    "Offline trips — download a trip and its places",
+    "Speech-to-text itinerary input",
+    "24/7 personal agent",
   ];
 
   const comparison = [
@@ -389,6 +398,25 @@ export default function Pricing() {
                   )}
                 </For>
               </ul>
+
+              <div class="mt-6 pt-5 border-t border-border">
+                <p class="text-xs font-mono uppercase tracking-wide text-muted-foreground mb-3">
+                  Planned — included in Pro when they ship, at no extra cost
+                </p>
+                <ul class="space-y-2">
+                  <For each={proPlanned}>
+                    {(f) => (
+                      <li class="flex items-start gap-2 text-sm text-muted-foreground/80">
+                        <Clock class="w-5 h-5 text-muted-foreground shrink-0" />
+                        {f}
+                      </li>
+                    )}
+                  </For>
+                </ul>
+                <p class="mt-3 text-xs text-muted-foreground/80">
+                  Not available yet. Everything above the line works today.
+                </p>
+              </div>
             </article>
           </section>
 
