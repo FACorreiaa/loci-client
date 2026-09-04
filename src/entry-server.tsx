@@ -1,7 +1,32 @@
 // @refresh reload
 import { createHandler, StartServer } from "@solidjs/start/server";
+import { PostHog } from "posthog-node";
 
-export default createHandler(() => (
+const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
+const posthogHost = import.meta.env.VITE_POSTHOG_HOST;
+
+if (import.meta.env.DEV && !posthogKey) {
+  throw new Error(
+    "VITE_POSTHOG_KEY variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once VITE_POSTHOG_KEY is configured",
+  );
+}
+
+if (import.meta.env.DEV && !posthogHost) {
+  throw new Error(
+    "VITE_POSTHOG_HOST variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once VITE_POSTHOG_HOST is configured",
+  );
+}
+
+export const posthog =
+  posthogKey && posthogHost
+    ? new PostHog(posthogKey, {
+        host: posthogHost,
+        enableExceptionAutocapture: true,
+        metrics: { serviceName: "loci-client" },
+      })
+    : undefined;
+
+const requestHandler = createHandler(() => (
   <StartServer
     document={({ assets, children, scripts }) => (
       <html lang="en">
@@ -133,3 +158,28 @@ export default createHandler(() => (
     )}
   />
 ));
+
+export default async function instrumentedRequestHandler(
+  event: Parameters<typeof requestHandler>[0],
+) {
+  const startedAt = performance.now();
+  let outcome = "success";
+
+  try {
+    return await requestHandler(event);
+  } catch (error) {
+    outcome = "error";
+    throw error;
+  } finally {
+    posthog?.metrics.count("http.server.requests", 1, {
+      attributes: { outcome },
+    });
+    posthog?.metrics.histogram("http.server.duration", performance.now() - startedAt, {
+      unit: "ms",
+      attributes: { outcome },
+    });
+    if (posthog) {
+      await posthog.metrics.flush().catch(() => {});
+    }
+  }
+}

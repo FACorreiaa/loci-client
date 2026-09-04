@@ -22,6 +22,7 @@ import {
   type RecommendationTrace,
 } from "./recommendations";
 import { useAppQuery } from "./authed-query";
+import { capture } from "../analytics";
 
 const listClient = createClient(ListService, transport);
 
@@ -270,6 +271,7 @@ export const useAddToListMutation = () => {
         return response;
       }),
     onSuccess: (_, { listId, itemData }) => {
+      capture("poi_saved", { surface: "list", content_type: itemData.contentType });
       queryClient.invalidateQueries({ queryKey: ["list", listId] });
       queryClient.invalidateQueries({ queryKey: ["lists"] });
       if (itemData.recommendationTrace) {

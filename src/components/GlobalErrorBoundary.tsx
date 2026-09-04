@@ -1,5 +1,6 @@
 // Global Error Boundary component for catching unhandled errors
 import { ErrorBoundary as SolidErrorBoundary, Component, JSX, createSignal } from "solid-js";
+import { captureException } from "~/lib/analytics";
 
 interface ErrorBoundaryProps {
   children: JSX.Element;
@@ -111,10 +112,7 @@ export const GlobalErrorBoundary: Component<ErrorBoundaryProps> = (props) => {
         // Log error for debugging
         console.error("GlobalErrorBoundary caught error:", error);
 
-        // Report to error tracking service (e.g., Sentry) here
-        // if (typeof window !== 'undefined' && window.Sentry) {
-        //   window.Sentry.captureException(error);
-        // }
+        captureException(error);
 
         return <ErrorFallback error={error} reset={reset} />;
       }}

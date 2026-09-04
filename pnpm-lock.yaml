@@ -56,6 +56,9 @@ importers:
       posthog-js:
         specifier: ^1.425.1
         version: 1.425.1
+      posthog-node:
+        specifier: ^5.51.6
+        version: 5.51.6
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -4767,6 +4770,15 @@ packages:
       '@types/react':
         optional: true
       react:
+        optional: true
+
+  posthog-node@5.51.6:
+    resolution: {integrity: sha512-r+Ge3p0OnOcOWeTnvKZmAtDwECeIoyNTyxBxuZc8wM6RHCQ9j2Xrhogrf39HSq1Y2gIOpWLqIDRmWDcu7xmqcA==}
+    engines: {node: ^20.20.0 || >=22.22.0}
+    peerDependencies:
+      rxjs: ^7.0.0
+    peerDependenciesMeta:
+      rxjs:
         optional: true
 
   powershell-utils@0.1.0:
@@ -11034,6 +11046,10 @@ snapshots:
       web-vitals-soft-navs: web-vitals@6.2.1
     transitivePeerDependencies:
       - preact-render-to-string
+
+  posthog-node@5.51.6:
+    dependencies:
+      '@posthog/core': 1.50.2
 
   powershell-utils@0.1.0: {}
 

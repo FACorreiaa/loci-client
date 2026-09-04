@@ -13,12 +13,24 @@ import {
 import { setAuthToken } from "../auth/tokens";
 import { queryKeys } from "./shared";
 import { transport } from "../connect-transport";
+import { identify } from "../analytics";
 
 // Create the custom auth service client
 const customAuthClient = createClient(CustomAuthService, transport);
 
 // OAuth state storage for CSRF protection
 let oauthStateStore: Record<string, string> = {};
+
+// OAuth and phone providers return the server-issued user id. Keep PII on the
+// person profile rather than adding it to authentication events.
+function identifyAuthenticatedUser(user: { userId?: string; email?: string; username?: string }) {
+  if (!user.userId) return;
+
+  identify(user.userId, {
+    ...(user.email ? { email: user.email } : {}),
+    ...(user.username ? { name: user.username } : {}),
+  });
+}
 
 /**
  * Opens a popup window for OAuth authentication
@@ -108,8 +120,9 @@ export const useGoogleLoginMutation = () => {
 
       const response = await customAuthClient.oAuthCallback(callbackRequest);
 
-      // Store tokens
+      // Store tokens, then link the anonymous browser session to the stable id.
       setAuthToken(response.accessToken, true, response.refreshToken);
+      identifyAuthenticatedUser(response);
 
       return {
         userId: response.userId,
@@ -155,6 +168,7 @@ export const useAppleLoginMutation = () => {
       const response = await customAuthClient.oAuthCallback(callbackRequest);
 
       setAuthToken(response.accessToken, true, response.refreshToken);
+      identifyAuthenticatedUser(response);
 
       return {
         userId: response.userId,
@@ -208,8 +222,9 @@ export const useVerifyPhoneMutation = () => {
 
       const response = await customAuthClient.verifyPhone(request);
 
-      // Store tokens
+      // Store tokens, then identify with the server-issued stable user id.
       setAuthToken(response.accessToken, true, response.refreshToken);
+      identifyAuthenticatedUser(response);
 
       return {
         userId: response.userId,

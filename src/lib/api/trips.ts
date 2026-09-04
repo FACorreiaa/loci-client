@@ -35,6 +35,7 @@ import {
   type RecommendationTrace,
 } from "./recommendations";
 import { useAppQuery } from "./authed-query";
+import { capture } from "../analytics";
 
 const tripClient = createClient(TripService, transport);
 
@@ -285,6 +286,10 @@ export const useSaveTrip = () => {
       return mapTrip(res);
     },
     onSuccess: (t) => {
+      capture("trip_saved", {
+        day_count: t.days.length,
+        stop_count: t.days.reduce((count, day) => count + day.stops.length, 0),
+      });
       qc.invalidateQueries({ queryKey: tripKeys.list() });
       qc.setQueryData(tripKeys.detail(t.id), t);
     },
@@ -464,6 +469,10 @@ async function exportTrip(tripId: string, format: ExportFormat, trip?: Trip) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+  capture("trip_exported", {
+    format: ExportFormat[format]?.toLowerCase() || String(format),
+    day_count: trip?.days.length,
+  });
   if (trip) {
     void recordRecommendationEvents(
       trip.days.flatMap((day) =>

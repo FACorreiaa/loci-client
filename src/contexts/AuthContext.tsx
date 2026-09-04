@@ -96,6 +96,18 @@ export const AuthProvider = (props: AuthProviderProps) => {
   const [authReady, setAuthReady] = createSignal(false);
   const [authError, setAuthError] = createSignal<string | null>(null);
 
+  // The server-provided user id is the stable analytics distinct id. Email and
+  // display name are person properties, never event properties.
+  const identifyUser = (profile: Pick<User, "id" | "email" | "username" | "display_name">) => {
+    if (!profile.id) return;
+
+    const name = profile.display_name || profile.username;
+    identify(profile.id, {
+      ...(profile.email ? { email: profile.email } : {}),
+      ...(name ? { name } : {}),
+    });
+  };
+
   // Add a retry function for auth restoration
   const retryAuth = async () => {
     const token = getAuthToken();
@@ -104,11 +116,13 @@ export const AuthProvider = (props: AuthProviderProps) => {
     try {
       const userProfile = await authAPI.getCurrentUser();
       setUser(userProfile);
+      identifyUser(userProfile);
       setAuthError(null);
     } catch (error) {
       console.error("Auth retry failed:", error);
       if (isDeadSession(error)) {
         clearAuthToken();
+        resetIdentity();
         setAuthError(null);
       } else {
         setAuthError("Could not reach the server. Retrying when the connection is back.");
@@ -144,6 +158,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
       const userProfile = await authAPI.getCurrentUser();
       console.log("AuthProvider: User profile fetched:", userProfile);
       setUser(userProfile);
+      identifyUser(userProfile);
     };
 
     try {
@@ -164,6 +179,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
       console.error("AuthProvider: Session restoration failed:", error);
       if (isDeadSession(error)) {
         clearAuthToken();
+        resetIdentity();
         setUser(null);
       } else {
         setUser(null);
@@ -200,6 +216,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
         const token = getAuthToken();
         if (!token && user()) {
           // Token was cleared in another tab
+          resetIdentity();
           setUser(null);
           navigate("/auth/signin");
         } else if (token && !user()) {
@@ -207,6 +224,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
           try {
             const userProfile = await authAPI.getCurrentUser();
             setUser(userProfile);
+            identifyUser(userProfile);
           } catch (error) {
             console.error("Cross-tab session validation failed:", error);
           }
@@ -224,6 +242,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
   createEffect(() => {
     const off = onAuthExpired(() => {
       clearAuthToken();
+      resetIdentity();
       setUser(null);
       setIsLoading(false);
       if (typeof window !== "undefined" && !window.location.pathname.includes("/auth/")) {
@@ -252,11 +271,16 @@ export const AuthProvider = (props: AuthProviderProps) => {
     const { access_token, refresh_token, user_id, username, email: userEmail } = response;
     setAuthToken(access_token, rememberMe, refresh_token);
 
-    // Tie subsequent funnel events to this user.
-    if (user_id) identify(user_id);
-
     // Build display name with proper fallbacks
     const displayName = username || userEmail?.split("@")[0] || fallbackEmail.split("@")[0];
+
+    // Tie subsequent events and errors to the server-issued stable user id.
+    identifyUser({
+      id: user_id,
+      email: userEmail || fallbackEmail,
+      username,
+      display_name: displayName,
+    });
 
     setUser({
       id: user_id || "",

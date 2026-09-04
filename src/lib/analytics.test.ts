@@ -12,6 +12,7 @@ function fakeClient() {
   return {
     init: vi.fn(),
     capture: vi.fn(),
+    captureException: vi.fn(),
     identify: vi.fn(),
     reset: vi.fn(),
   };

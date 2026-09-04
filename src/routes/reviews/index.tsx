@@ -12,6 +12,7 @@ import {
   type ReviewItem,
 } from "~/lib/api/reviews";
 import { ErrorView } from "~/components/ErrorView";
+import { capture } from "~/lib/analytics";
 
 interface Place {
   id: string;
@@ -329,6 +330,11 @@ export default function ReviewsPage() {
         content: reviewData.content,
         photoUrls: reviewData.photos,
       });
+      capture("review_submitted", {
+        rating: reviewData.rating,
+        has_photos: reviewData.photos.length > 0,
+        travel_type: reviewData.travelType || undefined,
+      });
     } catch (err) {
       console.error("Failed to submit review:", err);
     }
@@ -368,7 +374,9 @@ export default function ReviewsPage() {
 
     return (
       <div class="space-y-4">
-        <p class="text-muted-foreground mb-6">Help other travelers by reviewing places you've visited</p>
+        <p class="text-muted-foreground mb-6">
+          Help other travelers by reviewing places you've visited
+        </p>
         <For each={places}>
           {(place) => (
             <div class="cb-card hover:shadow-md transition-all duration-200">

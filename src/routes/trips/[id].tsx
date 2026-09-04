@@ -32,6 +32,8 @@ import TripMoney from "@/components/TripMoney";
 import LocalWeather from "@/components/LocalWeather";
 import TripGlobe from "~/components/features/Globe/TripGlobe";
 import type { POI } from "~/lib/api/types";
+import { copyShareLink } from "~/lib/api/share";
+import { capture } from "~/lib/analytics";
 
 const minutesToHHMM = (m?: number) => {
   if (m == null) return "";
@@ -148,8 +150,20 @@ export default function TripEditor() {
   const doShare = () =>
     share.mutate(
       { tripId: params.id!, isPublic: true },
-      { onSuccess: (r) => setShareUrl(r.shareUrl) },
+      {
+        onSuccess: (r) => {
+          setShareUrl(r.shareUrl);
+          capture("share_link_created", { content_type: "trip" });
+        },
+      },
     );
+
+  const copySharedTrip = async () => {
+    const url = shareUrl();
+    if (url && (await copyShareLink(url))) {
+      capture("share_link_copied", { content_type: "trip" });
+    }
+  };
 
   const addStop = (day: TripDay, poi: POI) => {
     add.mutate(
@@ -272,7 +286,10 @@ export default function TripEditor() {
                 Share link:{" "}
                 <a class="underline" href={shareUrl()!} target="_blank" rel="noreferrer">
                   {shareUrl()}
-                </a>
+                </a>{" "}
+                <button class="underline" onClick={() => void copySharedTrip()}>
+                  Copy
+                </button>
               </div>
             </Show>
 
