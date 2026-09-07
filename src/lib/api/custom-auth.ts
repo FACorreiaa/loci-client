@@ -96,9 +96,15 @@ export const useGoogleLoginMutation = () => {
 
   return useMutation(() => ({
     mutationFn: async () => {
-      const redirectUri = `${window.location.origin}/auth/oauth-callback`;
+      // Step 1: Get OAuth URL from server.
+      //
+      // redirectUri does NOT choose where the provider sends the browser: goth
+      // fixes that per provider from the server's OAUTH_CALLBACK_URL, and the
+      // provider only honours a URI registered with it. The server passes this
+      // value through as the OAuth `state` instead. Kept in sync with the real
+      // callback route anyway, so it is not a lie in a request log.
+      const redirectUri = `${window.location.origin}/auth/oauth/google/callback`;
 
-      // Step 1: Get OAuth URL from server
       const request = create(GetOAuthURLRequestSchema, {
         provider: OAuthProvider.OAUTH_PROVIDER_GOOGLE,
         redirectUri,
@@ -146,7 +152,8 @@ export const useAppleLoginMutation = () => {
 
   return useMutation(() => ({
     mutationFn: async () => {
-      const redirectUri = `${window.location.origin}/auth/oauth-callback`;
+      // See the note on the Google flow: this does not pick the redirect.
+      const redirectUri = `${window.location.origin}/auth/oauth/apple/callback`;
 
       const request = create(GetOAuthURLRequestSchema, {
         provider: OAuthProvider.OAUTH_PROVIDER_APPLE,
