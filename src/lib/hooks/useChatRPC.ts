@@ -192,8 +192,21 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
     }
   };
 
+  // setError lets a route report a problem it found for itself — no query to
+  // run, or a session id that restores nothing — through the same channel a
+  // stream failure uses. The routes previously had no way to do this, so those
+  // cases fell through to a bare `return` and rendered an empty panel.
+  const setError = (message: string) => {
+    setState({
+      error: message,
+      isStreaming: false,
+      isConnected: false,
+    });
+  };
+
   return {
     state,
     startStream,
+    setError,
   };
 }
