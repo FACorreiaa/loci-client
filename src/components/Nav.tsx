@@ -11,6 +11,7 @@ import {
   Menu,
   MessageCircle,
   GitCompare,
+  Plug,
   Settings,
   Sparkles,
   User,
@@ -27,7 +28,6 @@ import { handleLinkPreload } from "~/lib/preload";
 const publicItems = [
   { name: "How it works", href: "/features" },
   { name: "About", href: "/about" },
-  { name: "MCP", href: "/mcp" },
   { name: "Pricing", href: "/pricing" },
 ];
 
@@ -47,6 +47,23 @@ const accountItems = [
   { name: "Travel profiles", href: "/profiles", icon: User },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
+
+function ConnectAgentCta(props: { onClick?: () => void; class?: string }) {
+  return (
+    <A
+      href="/mcp"
+      onClick={props.onClick}
+      onMouseEnter={() => handleLinkPreload("/mcp")}
+      class={`flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-2.5 py-1.5 text-sm font-semibold text-foreground transition-colors hover:border-accent hover:bg-accent/20 ${props.class ?? ""}`}
+    >
+      <span class="rounded-full bg-accent px-1.5 py-0.5 font-coord text-[9px] font-bold uppercase tracking-[0.12em] text-accent-foreground">
+        New
+      </span>
+      <Plug class="h-4 w-4 text-accent" />
+      Connect your agent
+    </A>
+  );
+}
 
 export default function Nav() {
   const { isAuthenticated, user, logout, isLoading } = useAuth();
@@ -101,6 +118,7 @@ export default function Nav() {
             </div>
 
             <div class="ml-auto hidden items-center gap-2 md:flex">
+              <ConnectAgentCta />
               <ThemeSelector />
               <Show
                 when={isAuthenticated()}
@@ -196,6 +214,10 @@ export default function Nav() {
                   );
                 }}
               </For>
+              <ConnectAgentCta
+                onClick={() => setMobileOpen(false)}
+                class="mt-1 justify-center px-3 py-3"
+              />
               <div class="mt-3 flex items-center justify-between border-t border-border pt-3">
                 <ThemeSelector />
                 <Show when={!isAuthenticated()}>

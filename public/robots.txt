@@ -1,5 +1,5 @@
 # Loci AI Travel Companion - Robots.txt
-# https://loci.app
+# https://lociai.fyi
 
 User-agent: *
 Allow: /
@@ -20,4 +20,4 @@ Disallow: /recents
 Allow: /auth/signup
 
 # Sitemap location
-Sitemap: https://loci.app/sitemap.xml
+Sitemap: https://lociai.fyi/sitemap.xml

@@ -5,27 +5,32 @@ import { FiCheck } from "solid-icons/fi";
 import { Component, createSignal, Show } from "solid-js";
 import AuthLayout from "../../layout/Auth";
 import { useForgotPasswordMutation } from "~/lib/api/auth-connect";
+import { describeAuthError, neverReachedServer } from "~/lib/auth/auth-errors";
 
 const inputClass =
-  "w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-transparent transition-all";
-const inputErrorClass = "!border-destructive !ring-destructive focus:!ring-destructive focus:!border-destructive";
+  "w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-transparent transition-all";
+const inputErrorClass =
+  "!border-destructive !ring-destructive focus:!ring-destructive focus:!border-destructive";
 
 const ForgotPassword: Component = () => {
   const navigate = useNavigate();
   const [email, setEmail] = createSignal("");
   const [emailSent, setEmailSent] = createSignal(false);
   const [emailError, setEmailError] = createSignal("");
+  // Separate from emailError: this one is about the request, not the address,
+  // so it renders as a banner rather than under the input.
+  const [formError, setFormError] = createSignal("");
 
   const forgotPasswordMutation = useForgotPasswordMutation();
 
   const validateEmail = (email: string): boolean => {
     if (!email.trim()) {
-      setEmailError("Email is required");
+      setEmailError("Enter your email address.");
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setEmailError("Please enter a valid email address");
+      setEmailError("That doesn't look like an email address.");
       return false;
     }
     setEmailError("");
@@ -34,6 +39,7 @@ const ForgotPassword: Component = () => {
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
+    setFormError("");
 
     if (!validateEmail(email())) {
       return;
@@ -42,8 +48,17 @@ const ForgotPassword: Component = () => {
     try {
       await forgotPasswordMutation.mutateAsync({ email: email() });
       setEmailSent(true);
-    } catch (error) {
-      console.error("Forgot password request failed:", error);
+    } catch (err: unknown) {
+      console.error("Forgot password request failed:", err);
+
+      // Whatever the server answered, claim success: a different outcome for
+      // an address with no account would let anyone test who has one. But if
+      // the request never landed at all, say so — promising an email that was
+      // never sent just leaves the user waiting for it.
+      if (neverReachedServer(err)) {
+        setFormError(describeAuthError(err, "reset-request").message);
+        return;
+      }
       setEmailSent(true);
     }
   };
@@ -88,10 +103,18 @@ const ForgotPassword: Component = () => {
         <div class="text-left mb-6 space-y-2">
           <p class="text-xs uppercase tracking-[0.2em] text-primary">Reset access</p>
           <h1 class="text-2xl font-bold text-foreground tracking-tight">Send a reset link</h1>
-          <p class="text-muted-foreground">We only use your email to deliver the reset instructions.</p>
+          <p class="text-muted-foreground">
+            We only use your email to deliver the reset instructions.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} class="space-y-4">
+          <Show when={formError()}>
+            <div class="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive">
+              <p class="text-sm">{formError()}</p>
+            </div>
+          </Show>
+
           <div>
             <label class="block text-sm font-semibold mb-2 text-foreground">Email address</label>
             <TextFieldRoot>
@@ -102,6 +125,7 @@ const ForgotPassword: Component = () => {
                 onInput={(e) => {
                   setEmail(e.currentTarget.value);
                   if (emailError()) setEmailError("");
+                  if (formError()) setFormError("");
                 }}
                 class={`${inputClass} ${emailError() ? inputErrorClass : ""}`}
               />

@@ -160,13 +160,13 @@ export default function Features() {
         property="og:description"
         content="Explore Loci's advanced features: AI personalization, semantic search, smart memory, and time-aware recommendations for intelligent travel planning."
       />
-      <Meta property="og:url" content="https://loci.app/features" />
+      <Meta property="og:url" content="https://lociai.fyi/features" />
       <Meta name="twitter:title" content="Features - AI-Powered Travel Discovery | Loci" />
       <Meta
         name="twitter:description"
         content="AI personalization, semantic search, smart memory, and contextual understanding for your perfect travel experience."
       />
-      <link rel="canonical" href="https://loci.app/features" />
+      <link rel="canonical" href="https://lociai.fyi/features" />
 
       <div class="min-h-screen bg-background text-foreground transition-colors">
         <div class="max-w-6xl mx-auto px-4 py-12 space-y-12">
