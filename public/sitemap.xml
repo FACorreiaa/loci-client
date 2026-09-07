@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Homepage -->
   <url>
-    <loc>https://loci.app</loc>
+    <loc>https://lociai.fyi</loc>
     <lastmod>2025-12-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
@@ -10,7 +10,7 @@
 
   <!-- Discover Page -->
   <url>
-    <loc>https://loci.app/discover</loc>
+    <loc>https://lociai.fyi/discover</loc>
     <lastmod>2025-12-02</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
@@ -18,7 +18,7 @@
 
   <!-- Features Page -->
   <url>
-    <loc>https://loci.app/features</loc>
+    <loc>https://lociai.fyi/features</loc>
     <lastmod>2025-12-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -26,7 +26,7 @@
 
   <!-- About Page -->
   <url>
-    <loc>https://loci.app/about</loc>
+    <loc>https://lociai.fyi/about</loc>
     <lastmod>2025-12-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -34,7 +34,7 @@
 
   <!-- Pricing Page -->
   <url>
-    <loc>https://loci.app/pricing</loc>
+    <loc>https://lociai.fyi/pricing</loc>
     <lastmod>2025-12-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -42,7 +42,7 @@
 
   <!-- Roadmap Page -->
   <url>
-    <loc>https://loci.app/roadmap</loc>
+    <loc>https://lociai.fyi/roadmap</loc>
     <lastmod>2025-12-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -50,7 +50,7 @@
 
   <!-- Signup Page -->
   <url>
-    <loc>https://loci.app/auth/signup</loc>
+    <loc>https://lociai.fyi/auth/signup</loc>
     <lastmod>2025-12-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>

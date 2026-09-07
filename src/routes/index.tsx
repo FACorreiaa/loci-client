@@ -23,13 +23,13 @@ export default function Index() {
         property="og:description"
         content="Discover your perfect travel experiences with AI-powered, personalized recommendations for itineraries, restaurants, and activities."
       />
-      <Meta property="og:url" content="https://loci.app" />
+      <Meta property="og:url" content="https://lociai.fyi" />
       <Meta name="twitter:title" content="Loci - AI-Powered Travel Discovery" />
       <Meta
         name="twitter:description"
         content="Discover your perfect travel experiences with AI-powered, personalized recommendations."
       />
-      <link rel="canonical" href="https://loci.app" />
+      <link rel="canonical" href="https://lociai.fyi" />
 
       {/* Structured Data - Organization */}
       <script type="application/ld+json">
@@ -37,8 +37,8 @@ export default function Index() {
           "@context": "https://schema.org",
           "@type": "Organization",
           name: "Loci",
-          url: "https://loci.app",
-          logo: "https://loci.app/images/loci.png",
+          url: "https://lociai.fyi",
+          logo: "https://lociai.fyi/images/brand/icon-512.png",
           description:
             "AI-powered travel discovery platform delivering hyper-personalized city exploration recommendations",
           sameAs: ["https://twitter.com/loci"],
@@ -51,13 +51,13 @@ export default function Index() {
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: "Loci",
-          url: "https://loci.app",
+          url: "https://lociai.fyi",
           description: "AI-Powered Travel Discovery & Personalized Recommendations",
           potentialAction: {
             "@type": "SearchAction",
             target: {
               "@type": "EntryPoint",
-              urlTemplate: "https://loci.app/discover?q={search_term_string}",
+              urlTemplate: "https://lociai.fyi/discover?q={search_term_string}",
             },
             "query-input": "required name=search_term_string",
           },

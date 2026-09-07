@@ -188,8 +188,8 @@ export default function Pricing() {
         property="og:description"
         content="Free plan for casual explorers. Pro at $9.99/mo for full Trip Kit, unlimited AI, and agent planning."
       />
-      <Meta property="og:url" content="https://loci.app/pricing" />
-      <link rel="canonical" href="https://loci.app/pricing" />
+      <Meta property="og:url" content="https://lociai.fyi/pricing" />
+      <link rel="canonical" href="https://lociai.fyi/pricing" />
 
       <script type="application/ld+json">
         {JSON.stringify({

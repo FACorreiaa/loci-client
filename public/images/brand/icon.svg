@@ -1,0 +1,21 @@
+<!--
+  Source of truth for every square app icon: the store PNGs, the PWA icons and
+  the maskable icon are all rendered from this file, so they cannot drift apart.
+
+  Rendered rather than cropped out of the approved icon JPEG on purpose — that
+  art has its rounded corners and a soft drop shadow baked into the pixels, and
+  both iOS and Android apply their own mask on top. A cropped copy would show a
+  shadow inside the rounded corner and a corner inside a corner.
+
+  Full-bleed cream with no corner radius, which is what both stores ask for. The
+  mark is 63.8% of the canvas height and centred, matching the proportion
+  measured in the approved art (mark 496 tall inside a 777 tall tile). That also
+  keeps it inside Android's 66% adaptive-icon safe zone.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Loci">
+  <rect width="1024" height="1024" fill="#FDF5EA"/>
+  <g fill="#FA7862" transform="translate(273.6 185.4) scale(1.31714)">
+    <circle cx="97" cy="97" r="97"/>
+    <path d="M194 97 L193 116 L188 134 L182 147 L160 181 L149 210 L113 390 L360 392 L362 394 L360 400 L297 486 L289 493 L271 495 L78 495 L59 494 L49 487 L46 478 L45 219 L41 200 L34 182 L13 149 L5 132 L0 112 L0 97 Z"/>
+  </g>
+</svg>

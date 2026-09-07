@@ -472,13 +472,13 @@ export default function DiscoverPage() {
         property="og:description"
         content="Explore trending destinations and AI-curated travel collections. Search for the perfect restaurants, hotels, and activities."
       />
-      <Meta property="og:url" content="https://loci.app/discover" />
+      <Meta property="og:url" content="https://lociai.fyi/discover" />
       <Meta name="twitter:title" content="Discover - Trending Travel Experiences | Loci" />
       <Meta
         name="twitter:description"
         content="Explore trending cities and AI-curated collections for restaurants, hotels, and activities."
       />
-      <link rel="canonical" href="https://loci.app/discover" />
+      <link rel="canonical" href="https://lociai.fyi/discover" />
 
       <div class="min-h-screen relative transition-colors">
         {/* Header */}

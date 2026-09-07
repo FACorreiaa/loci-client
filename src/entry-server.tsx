@@ -69,25 +69,25 @@ const requestHandler = createHandler(() => (
           />
           <meta name="format-detection" content="telephone=no" />
           <meta name="mobile-web-app-capable" content="yes" />
-          <meta name="theme-color" content="#1a1a1a" />
+          <meta name="theme-color" content="#FDF5EA" />
 
-          {/* Apple Touch Icons */}
-          <link rel="apple-touch-icon" href="/images/loci.png" />
-          <link rel="apple-touch-icon" sizes="152x152" href="/images/loci.png" />
-          <link rel="apple-touch-icon" sizes="180x180" href="/images/loci.png" />
-          <link rel="apple-touch-icon" sizes="167x167" href="/images/loci.png" />
+          {/* Apple Touch Icons. iOS ignores transparency here and composites onto
+              black, so these are the opaque cream-tiled icon, not the favicon. */}
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/brand/icon-180.png" />
 
-          {/* Icons */}
-          <link rel="icon" type="image/png" sizes="32x32" href="/images/loci.png" />
-          <link rel="icon" type="image/png" sizes="16x16" href="/images/loci.png" />
-          <link rel="icon" href="/favicon.ico" />
+          {/* Icons. The SVG is what a modern browser picks; the .ico is the
+              fallback for the ones that still only look for /favicon.ico. */}
+          <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+          <link rel="icon" type="image/png" sizes="32x32" href="/images/brand/icon-32.png" />
+          <link rel="icon" type="image/png" sizes="16x16" href="/images/brand/icon-16.png" />
+          <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
 
           {/* Manifest */}
           <link rel="manifest" href="/manifest.json" />
 
           {/* Microsoft */}
-          <meta name="msapplication-TileColor" content="#1a1a1a" />
-          <meta name="msapplication-TileImage" content="/images/loci.png" />
+          <meta name="msapplication-TileColor" content="#FDF5EA" />
+          <meta name="msapplication-TileImage" content="/images/brand/icon-144.png" />
           <meta name="msapplication-config" content="/browserconfig.xml" />
 
           {/* Open Graph - Using absolute URLs for better sharing */}
@@ -98,10 +98,15 @@ const requestHandler = createHandler(() => (
             content="Discover, plan, and explore your next adventure with AI-powered travel recommendations"
           />
           <meta property="og:site_name" content="Loci" />
-          <meta property="og:url" content="https://loci.app" />
-          <meta property="og:image" content="https://loci.app/images/loci.png" />
+          <meta property="og:url" content="https://lociai.fyi" />
+          <meta property="og:image" content="https://lociai.fyi/images/brand/og-image.png" />
           <meta property="og:image:width" content="1200" />
           <meta property="og:image:height" content="630" />
+          <meta property="og:image:type" content="image/png" />
+          <meta
+            property="og:image:alt"
+            content="The Loci wordmark beside the Loci mascot holding a map"
+          />
 
           {/* Twitter - Using absolute URLs */}
           <meta name="twitter:card" content="summary_large_image" />
@@ -110,7 +115,7 @@ const requestHandler = createHandler(() => (
             name="twitter:description"
             content="Discover, plan, and explore your next adventure with AI-powered travel recommendations"
           />
-          <meta name="twitter:image" content="https://loci.app/images/loci.png" />
+          <meta name="twitter:image" content="https://lociai.fyi/images/brand/og-image.png" />
           <meta name="twitter:site" content="@loci" />
           <meta name="twitter:creator" content="@loci" />
 
@@ -138,7 +143,7 @@ const requestHandler = createHandler(() => (
                   
                   document.documentElement.setAttribute('data-theme', 'loci');
                   localStorage.setItem('designTheme', 'loci');
-                  var themeColor = useDark ? '#14251e' : '#294d3c';
+                  var themeColor = useDark ? '#323B42' : '#FDF5EA';
                   var themeMeta = document.querySelector('meta[name="theme-color"]');
                   if (themeMeta) themeMeta.setAttribute('content', themeColor);
                 } catch (e) {

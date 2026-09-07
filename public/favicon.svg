@@ -1,17 +1,15 @@
-<svg width="32" height="32" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="symbolGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00d4aa"/>
-      <stop offset="50%" stop-color="#0ea5e9"/>
-      <stop offset="100%" stop-color="#3b82f6"/>
-    </linearGradient>
-  </defs>
-  
-  <!-- Abstract L shape inspired by location pin -->
-  <path d="M70 50 L70 130 L150 130 L150 150 L50 150 L50 50 Z" 
-        fill="url(#symbolGradient)" 
-        rx="8"/>
-  
-  <!-- Modern dot accent -->
-  <circle cx="130" cy="70" r="8" fill="white" opacity="0.9"/>
+<!--
+  Favicon: the coral mark on transparent, so it sits on light and dark browser
+  chrome without a plate behind it. The app icons keep the cream tile; a tab
+  strip is not a home screen.
+
+  The mark is 92% of the canvas height rather than the app icon's 63.8% — a
+  favicon has no tile to sit inside, so the padding an icon needs only makes
+  this smaller at the one size that matters.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Loci">
+  <g fill="#FA7862" transform="translate(83.7 20) scale(0.951613)">
+    <circle cx="97" cy="97" r="97"/>
+    <path d="M194 97 L193 116 L188 134 L182 147 L160 181 L149 210 L113 390 L360 392 L362 394 L360 400 L297 486 L289 493 L271 495 L78 495 L59 494 L49 487 L46 478 L45 219 L41 200 L34 182 L13 149 L5 132 L0 112 L0 97 Z"/>
+  </g>
 </svg>

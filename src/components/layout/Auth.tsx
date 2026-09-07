@@ -1,5 +1,6 @@
 import { Component, Show, For } from "solid-js";
 import { FiArrowLeft, FiCheck } from "solid-icons/fi";
+import { LociLogo } from "~/components/brand/Logo";
 
 // Auth Layout Component
 const AuthLayout: Component<{ children: any; showBackButton?: boolean; onBack?: () => void }> = (
@@ -68,10 +69,9 @@ const AuthLayout: Component<{ children: any; showBackButton?: boolean; onBack?: 
 
             <div class="rounded-3xl p-5 sm:p-6 lg:p-7 bg-card border border-border text-card-foreground shadow-lg dark:shadow-[0_30px_100px_rgba(3,7,18,0.65)]">
               <div class="flex items-center gap-2 mb-6">
-                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 border border-primary/30 text-primary backdrop-blur flex items-center justify-center font-bold shadow-md">
-                  L
-                </div>
-                <span class="text-lg sm:text-xl font-bold tracking-tight">Loci</span>
+                {/* The lockup already reads "Loci", so the tile and the text
+                    label it stood in for are both gone rather than doubled. */}
+                <LociLogo class="h-7 sm:h-8 w-auto" />
                 <span class="text-xs px-2 py-1 rounded-full ml-auto bg-primary/10 border border-primary/30 text-primary">
                   Private beta
                 </span>

@@ -20,13 +20,13 @@ export default function About() {
         property="og:description"
         content="Discover how Loci uses AI, geospatial intelligence, and semantic search to deliver hyper-personalized city exploration experiences."
       />
-      <Meta property="og:url" content="https://loci.app/about" />
+      <Meta property="og:url" content="https://lociai.fyi/about" />
       <Meta name="twitter:title" content="About Loci - AI-Powered City Discovery" />
       <Meta
         name="twitter:description"
         content="The intelligent travel companion powered by Google Gemini AI and advanced geospatial technology."
       />
-      <link rel="canonical" href="https://loci.app/about" />
+      <link rel="canonical" href="https://lociai.fyi/about" />
 
       {/* Structured Data - AboutPage */}
       <script type="application/ld+json">
@@ -39,7 +39,7 @@ export default function About() {
           mainEntity: {
             "@type": "Organization",
             name: "Loci",
-            url: "https://loci.app",
+            url: "https://lociai.fyi",
             description:
               "AI-powered travel discovery platform delivering hyper-personalized city exploration recommendations based on user interests, time, location, and an evolving AI engine",
             foundingDate: "2024",

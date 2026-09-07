@@ -49,8 +49,8 @@ export default function McpPage() {
         property="og:description"
         content="Use Loci's travel data and itinerary planning directly inside Claude, Codex, Gemini, and other MCP clients."
       />
-      <Meta property="og:url" content="https://loci.app/mcp" />
-      <link rel="canonical" href="https://loci.app/mcp" />
+      <Meta property="og:url" content="https://lociai.fyi/mcp" />
+      <link rel="canonical" href="https://lociai.fyi/mcp" />
 
       <div class="min-h-screen bg-background text-foreground transition-colors">
         <div class="max-w-5xl mx-auto px-4 py-12 space-y-12">
