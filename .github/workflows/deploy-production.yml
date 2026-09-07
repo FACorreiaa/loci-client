@@ -47,7 +47,7 @@ jobs:
     needs: ci-check
     environment:
       name: production
-      url: https://loci.dev # Update with actual production URL
+      url: https://lociai.fyi
 
     steps:
       - name: Checkout
