@@ -1,8 +1,24 @@
 import { Component, onMount } from "solid-js";
 
 /**
- * OAuth callback page that handles redirects from OAuth providers.
- * This page receives the authorization code and passes it back to the parent window.
+ * Where Google and Apple send the browser back to, after the person has agreed.
+ *
+ * The path matters and is not ours to choose freely. goth builds each provider
+ * with a fixed redirect URI of `OAUTH_CALLBACK_URL + "/<provider>/callback"`,
+ * and the provider will only redirect to a URI registered with it — so this
+ * route has to sit at exactly that shape, which is why it is
+ * /auth/oauth/[provider]/callback rather than the flat /auth/oauth-callback it
+ * used to be. With the flat path the popup landed on a URL nothing served and
+ * the sign-in never completed.
+ *
+ * It also has to be on the app's own origin: the code is handed back by
+ * postMessage to `window.location.origin`, which the opener checks against its
+ * own. A callback hosted on the API domain could not talk to the page that
+ * opened it.
+ *
+ * This page does not exchange the code itself. It passes it to the opener,
+ * which calls OAuthCallback over RPC — the exchange needs the client secret,
+ * which lives on the server.
  */
 const OAuthCallback: Component = () => {
   onMount(() => {
