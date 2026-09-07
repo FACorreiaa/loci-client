@@ -11,6 +11,7 @@ import HowItWorks from "./landing/HowItWorks";
 import WhatItFinds from "./landing/WhatItFinds";
 import AgentSection from "./landing/AgentSection";
 import FinalCta from "./landing/FinalCta";
+import MascotScene from "~/components/brand/MascotScene";
 import "~/styles/landing.css";
 
 const examplePrompts = [
@@ -210,6 +211,33 @@ export default function PublicLandingPage() {
 
             <HowItWorks />
             <WhatItFinds />
+
+            {/* The mascot, below the fold on purpose.
+                HeroPlot stays the signature graphic above — it is the LCP
+                element and the thing the page is actually about — and putting a
+                WebGL canvas there would put a dependency on the critical path
+                of the one route audited at performance >= 0.95. Here it costs
+                nothing until someone scrolls to it, and it is the moment the
+                page stops explaining and just says hello. */}
+            <section
+              aria-labelledby="landing-mascot-heading"
+              class="route-stop mx-auto flex w-full max-w-4xl flex-col-reverse items-center gap-8 px-4 py-14 sm:flex-row sm:gap-12 sm:py-20"
+            >
+              <span class="route-stop-mark" aria-hidden="true" />
+              <MascotScene class="h-56 w-44 flex-none sm:h-72 sm:w-56" />
+              <div class="max-w-sm">
+                <p class="font-coord text-[0.66rem] uppercase tracking-[0.12em] text-muted-foreground">
+                  Your guide
+                </p>
+                <h2 id="landing-mascot-heading" class="mt-3 text-3xl leading-tight sm:text-4xl">
+                  Someone who has already read the map.
+                </h2>
+                <p class="mt-4 text-sm leading-6 text-muted-foreground">
+                  Loci reads the reviews, the opening hours, and the walk between one place and the
+                  next, so the plan you get is one you can actually follow.
+                </p>
+              </div>
+            </section>
 
             {/* Reach. Pure SVG, no WebGL and no Mapbox chunk — `/` is audited
                 at performance >= 0.95 as a hard error, and the map bundle is
