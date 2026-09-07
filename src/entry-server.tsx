@@ -138,7 +138,7 @@ const requestHandler = createHandler(() => (
                   
                   document.documentElement.setAttribute('data-theme', 'loci');
                   localStorage.setItem('designTheme', 'loci');
-                  var themeColor = useDark ? '#14251e' : '#294d3c';
+                  var themeColor = useDark ? '#323B42' : '#FDF5EA';
                   var themeMeta = document.querySelector('meta[name="theme-color"]');
                   if (themeMeta) themeMeta.setAttribute('content', themeColor);
                 } catch (e) {

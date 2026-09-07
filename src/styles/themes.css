@@ -1,61 +1,109 @@
+/*
+ * The Loci palette: cream ground, slate ink, coral mark.
+ *
+ * Sampled from the approved brand art rather than chosen — cream #FDF5EA,
+ * ink #323B42, coral #FA7862 — and expressed as the nearest integer HSL, which
+ * is what these variables take. Each is within ΔE 0.6 of its hex.
+ *
+ * The one number that shapes everything below: **coral on cream measures
+ * 2.45:1**. That fails WCAG AA for text at every size, and fails 1.4.11 for a
+ * control's boundary. So the brand colour cannot be `--primary`, which fills
+ * buttons that carry small labels. It is `--accent`, and `--primary` is a
+ * deeper coral (#C63C24) that clears 4.5:1 both as a label ground and against
+ * the page. The two read as one family — ΔE 18 apart, the same hue — while only
+ * one of them is asked to carry text.
+ *
+ * `--accent` is deliberately left at the brand coral even though its fill is
+ * 2.43:1 against the page. Accent is not the sole indicator of any control:
+ * where it fills a badge, the badge is identified by its ink label (5.3:1), and
+ * where an interactive element needs a perceivable boundary that is `--primary`
+ * (4.7:1) or `--ring` (3.9:1). Darkening the accent to satisfy a rule it is not
+ * subject to would mean the brand colour never actually appears.
+ *
+ * Every ratio quoted here was measured, not estimated.
+ */
 @layer base {
   :root,
   [data-theme="loci"] {
-    --background: 43 38% 94%;
-    --foreground: 157 28% 14%;
-    --card: 42 44% 98%;
-    --card-foreground: 157 28% 14%;
-    --popover: 42 44% 98%;
-    --popover-foreground: 157 28% 14%;
-    --primary: 157 35% 20%;
-    --primary-foreground: 42 44% 98%;
-    --secondary: 91 18% 84%;
-    --secondary-foreground: 157 28% 16%;
-    --muted: 40 23% 88%;
-    --muted-foreground: 151 10% 39%;
-    --accent: 16 52% 48%;
-    --accent-foreground: 42 44% 98%;
-    --destructive: 2 58% 44%;
-    --destructive-foreground: 42 44% 98%;
-    --border: 42 18% 75%;
-    --input: 42 18% 75%;
-    --ring: 16 52% 48%;
+    --background: 34 80% 95%; /* #FDF5EA — the brand ground */
+    --foreground: 207 13% 23%; /* #323B42 — brand ink, 10.4:1 on the ground */
+    --card: 36 100% 99%; /* warm near-white, lifted off the cream page */
+    --card-foreground: 207 13% 23%;
+    --popover: 36 100% 99%;
+    --popover-foreground: 207 13% 23%;
+
+    /* Deep coral. Fills buttons, so it carries small labels: cream on it is
+       4.7:1, and it is 4.7:1 against the page for its own boundary. */
+    --primary: 9 69% 46%; /* #C63C24 */
+    --primary-foreground: 34 80% 95%;
+
+    --secondary: 33 35% 88%;
+    --secondary-foreground: 207 13% 23%;
+    --muted: 33 40% 91%;
+    --muted-foreground: 210 5% 39%; /* 5.6:1 on the page, 5.1:1 on muted */
+
+    /* The brand coral itself. See the note above on why it stays here. */
+    --accent: 9 93% 68%; /* #FA7862 */
+    --accent-foreground: 208 15% 17%; /* 5.3:1 on coral, so small labels pass */
+
+    /* Far enough from coral to never be mistaken for it: ΔE 29, and much
+       darker. A destructive red that reads as "brand colour" is worse than an
+       ugly one. */
+    --destructive: 3 71% 37%; /* #A3231C, 7.0:1 on the page */
+    --destructive-foreground: 34 80% 95%;
+
+    --border: 35 25% 82%; /* decorative separators */
+    --input: 30 12% 54%; /* an input's edge identifies it: 3.3:1 on card */
+    --ring: 9 68% 52%; /* #D8482F — coral, dark enough to be a visible focus */
     --radius: 0.8rem;
-    --theme-color: #294d3c;
-    --hero-foreground: 43 38% 94%;
-    --hero-gradient: hsl(157 35% 20%);
+
+    --theme-color: #fdf5ea;
+    --hero-foreground: 34 80% 95%;
+    --hero-gradient: hsl(206 20% 15%);
     --hero-glow: none;
-    --map-line: 153 15% 54%;
+    --map-line: 206 12% 52%;
     color-scheme: light;
   }
 
   .dark,
   [data-kb-theme="dark"],
   [data-theme="loci"].dark {
-    --background: 157 22% 8%;
-    --foreground: 42 30% 91%;
-    --card: 157 20% 11%;
-    --card-foreground: 42 30% 91%;
-    --popover: 157 20% 10%;
-    --popover-foreground: 42 30% 91%;
-    --primary: 88 21% 68%;
-    --primary-foreground: 157 25% 10%;
-    --secondary: 156 15% 18%;
-    --secondary-foreground: 42 30% 91%;
-    --muted: 156 14% 16%;
-    --muted-foreground: 45 12% 66%;
-    --accent: 20 60% 61%;
-    --accent-foreground: 157 25% 9%;
-    --destructive: 2 54% 58%;
-    --destructive-foreground: 42 30% 94%;
-    --border: 154 12% 25%;
-    --input: 154 12% 25%;
-    --ring: 20 60% 61%;
-    --theme-color: #14251e;
-    --hero-foreground: 42 30% 93%;
-    --hero-gradient: hsl(157 29% 14%);
+    --background: 210 18% 9%;
+    --foreground: 35 47% 92%;
+    --card: 210 16% 12%;
+    --card-foreground: 35 47% 92%;
+    --popover: 210 17% 11%;
+    --popover-foreground: 35 47% 92%;
+
+    /* On a dark ground the brand coral needs no darkening — it is 6.8:1 both
+       as a fill against the page and as a ground under dark labels. So dark
+       mode gets the actual brand colour as its primary, where light mode
+       cannot. */
+    --primary: 9 93% 68%; /* #FA7862 */
+    --primary-foreground: 210 17% 9%;
+
+    --secondary: 207 14% 18%;
+    --secondary-foreground: 35 47% 92%;
+    --muted: 207 14% 16%;
+    --muted-foreground: 35 14% 68%;
+
+    /* A shade lighter than primary, which here is the brand coral: adjacent
+       accent and primary surfaces have to be told apart. */
+    --accent: 14 88% 74%;
+    --accent-foreground: 210 17% 9%;
+
+    --destructive: 2 65% 58%;
+    --destructive-foreground: 210 17% 9%;
+
+    --border: 207 12% 24%;
+    --input: 207 12% 46%; /* 3.6:1 on card */
+    --ring: 9 93% 68%;
+
+    --theme-color: #323b42;
+    --hero-foreground: 35 47% 93%;
+    --hero-gradient: hsl(207 18% 14%);
     --hero-glow: none;
-    --map-line: 87 12% 40%;
+    --map-line: 206 10% 46%;
     color-scheme: dark;
   }
 }
