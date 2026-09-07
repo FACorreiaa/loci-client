@@ -56,24 +56,28 @@ export interface GlobeComponentProps {
   fitWorld?: boolean;
 }
 
+// Re-hued from the retired forest palette onto coral and slate. Arcs and
+// markers are the brand colour; nodes are its complement so a city dot is not
+// mistaken for the leg passing through it. All measured against the globe's own
+// ground rather than the page: the ocean is what these actually sit on.
 const darkPalette: GlobePalette = {
-  arc: "#c76b4a", // terracotta — the action/map-mark colour
-  node: "#a8c09a", // sage
-  nodeStroke: "#0b1a14",
-  pillFill: "#14251e",
-  pillStroke: "#3d5a4a",
-  pillText: "#e8efe9",
-  marker: "#d4845c",
+  arc: "#FA7862", // brand coral, 7.2:1 on the dark ocean
+  node: "#8FA6B5", // slate blue, 7.5:1 — distinct from the arcs crossing it
+  nodeStroke: "#0E1114",
+  pillFill: "#1B2126",
+  pillStroke: "#3A444C",
+  pillText: "#F5EDE1", // 14.0:1 on the pill
+  marker: "#F09A7E", // lighter coral, so the marker leads the arc
 };
 
 const lightPalette: GlobePalette = {
-  arc: "#a85a3a",
-  node: "#294d3c",
-  nodeStroke: "#ffffff",
-  pillFill: "#fbfaf6",
-  pillStroke: "#c6c0ac",
-  pillText: "#1b2b22",
-  marker: "#c76b4a",
+  arc: "#C63C24", // deep coral, 4.1:1 on a light ocean
+  node: "#2F7D6E", // pine teal, 3.9:1
+  nodeStroke: "#FFFFFF",
+  pillFill: "#FFFDFA",
+  pillStroke: "#D6C7B0",
+  pillText: "#323B42", // 11.2:1 on the pill
+  marker: "#AE3722", // 4.9:1 — the darkest of the three, so it reads first
 };
 
 const GlobeComponent = (_props: GlobeComponentProps) => {
