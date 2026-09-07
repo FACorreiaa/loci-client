@@ -8,7 +8,7 @@ import { useForgotPasswordMutation } from "~/lib/api/auth-connect";
 import { describeAuthError, neverReachedServer } from "~/lib/auth/auth-errors";
 
 const inputClass =
-  "w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-transparent transition-all";
+  "w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-transparent transition-all";
 const inputErrorClass =
   "!border-destructive !ring-destructive focus:!ring-destructive focus:!border-destructive";
 

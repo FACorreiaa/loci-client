@@ -18,7 +18,7 @@ interface FormData {
 }
 
 const inputBase =
-  "w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all text-sm sm:text-base border border-input bg-background text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all text-sm sm:text-base border bg-background text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 const SignIn: Component = () => {
   const { login, completeMFALogin } = useAuth();
@@ -164,10 +164,15 @@ const SignIn: Component = () => {
     }
   };
 
+  // border-input, not border-border. They are the same value today, which is why
+  // nobody noticed, but --input is the token meant to give a text field a
+  // boundary a person can see, and --border is for decorative hairlines. The
+  // moment the palette makes them differ, an input drawn with --border loses
+  // the contrast that identifies it as something you can type into.
   const getInputClass = (field: Exclude<AuthErrorField, null>) =>
     fieldError() === field
       ? `${inputBase} border-2 border-destructive focus:ring-2 focus:ring-destructive`
-      : `${inputBase} border-border focus:ring-2 focus:ring-ring focus:border-transparent`;
+      : `${inputBase} border-input focus:ring-2 focus:ring-ring focus:border-transparent`;
 
   // The second-factor step replaces the form entirely: at this point the
   // password is already accepted and re-showing it invites people to retype it.

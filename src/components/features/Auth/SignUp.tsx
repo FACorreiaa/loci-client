@@ -46,10 +46,15 @@ const SignUp: Component = () => {
     setFieldError(field);
   };
 
+  // border-input, not border-border. They are the same value today, which is why
+  // nobody noticed, but --input is the token meant to give a text field a
+  // boundary a person can see, and --border is for decorative hairlines. The
+  // moment the palette makes them differ, an input drawn with --border loses
+  // the contrast that identifies it as something you can type into.
   const getInputClass = (field: Exclude<AuthErrorField, null>) =>
     fieldError() === field
       ? `${inputBase} border-2 border-destructive focus:ring-2 focus:ring-destructive`
-      : `${inputBase} border-border focus:ring-2 focus:ring-ring focus:border-transparent`;
+      : `${inputBase} border-input focus:ring-2 focus:ring-ring focus:border-transparent`;
 
   const registerMutation = useRegisterMutation();
   const googleLoginMutation = useGoogleLoginMutation();
