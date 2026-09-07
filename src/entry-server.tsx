@@ -105,7 +105,7 @@ const requestHandler = createHandler(() => (
           <meta property="og:image:type" content="image/png" />
           <meta
             property="og:image:alt"
-            content="The Loci wordmark beside the Loci mascot holding a map"
+            content="Loci — turn a vibe into a route. Tell it a city and a mood and get a real itinerary of real places, mapped and ordered."
           />
 
           {/* Twitter - Using absolute URLs */}
@@ -116,6 +116,10 @@ const requestHandler = createHandler(() => (
             content="Discover, plan, and explore your next adventure with AI-powered travel recommendations"
           />
           <meta name="twitter:image" content="https://lociai.fyi/images/brand/og-image.png" />
+          <meta
+            name="twitter:image:alt"
+            content="Loci — turn a vibe into a route. Tell it a city and a mood and get a real itinerary of real places, mapped and ordered."
+          />
           <meta name="twitter:site" content="@loci" />
           <meta name="twitter:creator" content="@loci" />
 
