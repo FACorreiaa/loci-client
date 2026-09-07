@@ -6,11 +6,16 @@ import { Label } from "~/ui/label";
 import { Checkbox, CheckboxControl } from "~/ui/checkbox";
 import {
   API_KEY_SCOPES,
+  CLIENT_KINDS,
+  clientKindLabel,
   useApiKeys,
   useCreateApiKey,
   useRevokeApiKey,
+  useSetupInstructions,
   type ApiKeyScope,
+  type ClientKind,
   type CreatedApiKey,
+  type SetupInstructionsView,
 } from "~/lib/api/api-keys";
 
 interface ApiKeysProps {
@@ -28,6 +33,96 @@ function formatDate(ms?: number): string {
   });
 }
 
+/**
+ * A snippet with a copy button.
+ *
+ * Setup is copied, not read: an agent config is punctuation-exact and retyping
+ * it from the screen is how a bad quote or a lost backslash becomes "MCP
+ * doesn't work".
+ */
+function CopyBlock(props: { label: string; lang?: string; value: string; onFail: () => void }) {
+  const [copied, setCopied] = createSignal(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(props.value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      props.onFail();
+    }
+  };
+  return (
+    <div class="rounded-lg border border-border bg-muted/40">
+      <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-border">
+        <span class="text-xs font-medium text-foreground">
+          {props.label}
+          <Show when={props.lang}>
+            <span class="text-muted-foreground font-normal"> · {props.lang}</span>
+          </Show>
+        </span>
+        <Button variant="ghost" size="sm" class="gap-1 h-7" onClick={copy}>
+          <Show when={copied()} fallback={<Copy class="w-3.5 h-3.5" />}>
+            <Check class="w-3.5 h-3.5 text-accent" />
+          </Show>
+          {copied() ? "Copied" : "Copy"}
+        </Button>
+      </div>
+      <pre class="overflow-x-auto p-3 text-xs leading-relaxed text-foreground">
+        <code>{props.value}</code>
+      </pre>
+    </div>
+  );
+}
+
+/**
+ * Setup for one client, rendered by the server.
+ *
+ * The literal form is not the only one on offer: `.mcp.json` lives in a project
+ * root and is routinely committed, so a card that shows only the token-in-file
+ * version is how a key reaches a public repository.
+ */
+function SetupBlocks(props: { setup: SetupInstructionsView; onFail: () => void }) {
+  return (
+    <div class="space-y-3">
+      <Show when={props.setup.config}>
+        <CopyBlock
+          label={props.setup.configLabel || "Configuration"}
+          lang={props.setup.configLang}
+          value={props.setup.config}
+          onFail={props.onFail}
+        />
+      </Show>
+
+      <Show when={props.setup.safe}>
+        <div class="space-y-2">
+          <CopyBlock
+            label={props.setup.safeLabel || "Token from the environment"}
+            lang={props.setup.safeLang}
+            value={props.setup.safe}
+            onFail={props.onFail}
+          />
+          <Show when={props.setup.exportLine}>
+            <CopyBlock
+              label="Set the variable"
+              lang="bash"
+              value={props.setup.exportLine}
+              onFail={props.onFail}
+            />
+          </Show>
+          <Show when={props.setup.safeNote}>
+            <p class="text-xs text-muted-foreground">{props.setup.safeNote}</p>
+          </Show>
+        </div>
+      </Show>
+
+      {/* "It's connected" is otherwise unobservable until something fails. */}
+      <Show when={props.setup.prompt}>
+        <CopyBlock label="Ask it this first" value={props.setup.prompt} onFail={props.onFail} />
+      </Show>
+    </div>
+  );
+}
+
 export default function ApiKeys(props: ApiKeysProps) {
   const keysQuery = useApiKeys();
   const createMutation = useCreateApiKey();
@@ -39,10 +134,22 @@ export default function ApiKeys(props: ApiKeysProps) {
   // overload, so every key the product could mint held read alone — which made
   // plan_itinerary unreachable however good your plan was.
   const [scopes, setScopes] = createSignal<ApiKeyScope[]>(["read"]);
+  // Which agent this key is for. Presentation only — nothing about
+  // authentication varies by kind — but it decides which setup snippet is shown
+  // and is stored so the list can say what a key was made for.
+  const [clientKind, setClientKind] = createSignal<ClientKind>("claude_code");
   const [created, setCreated] = createSignal<CreatedApiKey | null>(null);
   const [copied, setCopied] = createSignal(false);
   const [revokingId, setRevokingId] = createSignal<string | null>(null);
   const [confirmRevoke, setConfirmRevoke] = createSignal<{ id: string; name: string } | null>(null);
+
+  // The setup for the selected kind with a placeholder where the token goes, so
+  // "what will I have to do?" is answerable without minting a live credential
+  // to find out.
+  const previewQuery = useSetupInstructions(clientKind);
+
+  const copyFailed = () =>
+    props.onNotification("Couldn't copy — select the text and copy it manually.", "error");
 
   const toggleScope = (scope: ApiKeyScope, on: boolean) =>
     setScopes((current) =>
@@ -63,7 +170,11 @@ export default function ApiKeys(props: ApiKeysProps) {
       return;
     }
     try {
-      const result = await createMutation.mutateAsync({ name, scopes: scopes() });
+      const result = await createMutation.mutateAsync({
+        name,
+        scopes: scopes(),
+        clientKind: clientKind(),
+      });
       setCreated(result);
       setNewName("");
       setScopes(["read"]);
@@ -155,6 +266,51 @@ export default function ApiKeys(props: ApiKeysProps) {
         </div>
 
         <fieldset>
+          <legend class="text-sm font-medium text-foreground">Which client</legend>
+          <p class="text-xs text-muted-foreground mt-0.5">
+            Only decides which setup instructions you get. A key works in any MCP client.
+          </p>
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <For each={CLIENT_KINDS}>
+              {(kind) => (
+                <button
+                  type="button"
+                  aria-pressed={clientKind() === kind.value}
+                  onClick={() => setClientKind(kind.value)}
+                  class={`rounded-lg border p-3 text-left transition-colors ${
+                    clientKind() === kind.value
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/50"
+                  }`}
+                >
+                  <span class="block text-sm font-medium text-foreground">{kind.label}</span>
+                  <span class="block text-xs text-muted-foreground">{kind.blurb}</span>
+                </button>
+              )}
+            </For>
+          </div>
+        </fieldset>
+
+        {/* What setup will look like, with a placeholder token. */}
+        <Show when={previewQuery.data}>
+          {(preview) => (
+            <details class="rounded-lg border border-border">
+              <summary class="cursor-pointer px-3 py-2 text-sm text-foreground">
+                What you'll paste into {clientKindLabel(clientKind())}
+              </summary>
+              <div class="border-t border-border p-3">
+                <p class="text-xs text-muted-foreground mb-3">
+                  This is a preview — <code class="text-foreground">{"<your-key>"}</code> is
+                  replaced with the real token once you create the key. No credential is issued by
+                  looking.
+                </p>
+                <SetupBlocks setup={preview()} onFail={copyFailed} />
+              </div>
+            </details>
+          )}
+        </Show>
+
+        <fieldset>
           <legend class="text-sm font-medium text-foreground">What this key may do</legend>
           <p class="text-xs text-muted-foreground mt-0.5">
             Chosen once. A key's permissions cannot be changed afterwards — to widen them, create a
@@ -222,6 +378,7 @@ export default function ApiKeys(props: ApiKeysProps) {
                         <span>
                           Last used {key.lastUsedAt ? formatDate(key.lastUsedAt) : "never"}
                         </span>
+                        <span>For {clientKindLabel(key.clientKind)}</span>
                       </div>
                       {/* Without this, a tool refusing a key for lacking a
                           scope could not be diagnosed from the product at
@@ -325,6 +482,20 @@ export default function ApiKeys(props: ApiKeysProps) {
                   {copied() ? "Copied" : "Copy"}
                 </Button>
               </div>
+
+              {/* Setup with the real token already in it, at the one moment
+                  the token exists. Sending somebody to a separate guide here
+                  means copying a secret between two pages. */}
+              <Show when={result().setup}>
+                {(setup) => (
+                  <div class="mt-4 max-h-[45vh] overflow-y-auto">
+                    <div class="text-sm font-medium text-foreground mb-2">
+                      Set up {clientKindLabel(setup().clientKind)}
+                    </div>
+                    <SetupBlocks setup={setup()} onFail={copyFailed} />
+                  </div>
+                )}
+              </Show>
 
               <div class="mt-6 flex justify-end">
                 <Button onClick={() => setCreated(null)}>Done</Button>

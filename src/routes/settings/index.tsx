@@ -1,5 +1,5 @@
 import { createEffect, createSignal, For, Show } from "solid-js";
-import { A } from "@solidjs/router";
+import { A, useSearchParams } from "@solidjs/router";
 import {
   User,
   Tag,
@@ -22,6 +22,7 @@ import {
   CreditCard,
   Sparkles,
   ExternalLink,
+  Plug,
 } from "lucide-solid";
 import {
   useUpdateProfileMutation,
@@ -49,10 +50,31 @@ import InterestsComponent from "~/components/features/Settings/Interests";
 import TravelProfiles from "~/components/features/Settings/TravelProfiles";
 import AppearanceSettings from "~/components/AppearanceSettings";
 import ApiKeys from "~/components/features/Settings/ApiKeys";
+import AiCredentials from "~/components/features/Settings/AiCredentials";
+import TelegramLink from "~/components/features/Settings/TelegramLink";
+import OutboundConnections from "~/components/features/Settings/OutboundConnections";
 import TwoFactor from "~/components/features/Settings/TwoFactor";
 import TasteAndPrivacy from "~/components/features/Settings/TasteAndPrivacy";
 import AccountData from "~/components/features/Settings/AccountData";
 import { Button } from "~/ui/button";
+
+const TABS = [
+  { id: "settings", label: "Settings", icon: User },
+  { id: "tags", label: "Tags", icon: Tag },
+  { id: "interests", label: "Interests", icon: Heart },
+  { id: "profiles", label: "Travel Profiles", icon: Users },
+  // MCP lives inside the API-keys panel (endpoint + setup guide), so name the
+  // tab after both rather than duplicating the panel.
+  { id: "apikeys", label: "MCP & API Keys", icon: KeyRound },
+  // Everything that talks to something outside Loci on your behalf: your own
+  // model key, your Telegram chat, MCP servers Loci calls.
+  { id: "connections", label: "Connections", icon: Plug },
+  { id: "memory", label: "What Loci remembers", icon: Brain },
+  { id: "security", label: "Security", icon: ShieldCheck },
+  { id: "billing", label: "Plan & Billing", icon: CreditCard },
+];
+
+const TAB_IDS = TABS.map((t) => t.id);
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -60,7 +82,18 @@ export default function SettingsPage() {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const [activeTab, setActiveTab] = createSignal("settings");
+  // The tab lives in the URL, not in a local signal. Held locally, nothing
+  // inside settings could be linked to: "your key is in Settings → MCP & API
+  // Keys" was the best a support answer could do, and a reload always dropped
+  // the reader back on the profile tab.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = () => {
+    const requested = searchParams.tab as string | undefined;
+    return requested && TAB_IDS.includes(requested) ? requested : "settings";
+  };
+  // replace: true so tabbing around does not fill the back button with
+  // settings panes.
+  const setActiveTab = (id: string) => setSearchParams({ tab: id }, { replace: true });
   const uploadAvatarMutation = useUploadAvatarMutation();
   const profileQuery = useUserProfileQuery();
   const updateProfileMutation = useUpdateProfileMutation();
@@ -174,18 +207,7 @@ export default function SettingsPage() {
   const [photoPreview, setPhotoPreview] = createSignal<string | null>(null);
   const [isUploading, setIsUploading] = createSignal(false);
 
-  const tabs = [
-    { id: "settings", label: "Settings", icon: User },
-    { id: "tags", label: "Tags", icon: Tag },
-    { id: "interests", label: "Interests", icon: Heart },
-    { id: "profiles", label: "Travel Profiles", icon: Users },
-    // MCP lives inside the API-keys panel (endpoint + setup guide), so name the
-    // tab after both rather than duplicating the panel.
-    { id: "apikeys", label: "MCP & API Keys", icon: KeyRound },
-    { id: "memory", label: "What Loci remembers", icon: Brain },
-    { id: "security", label: "Security", icon: ShieldCheck },
-    { id: "billing", label: "Plan & Billing", icon: CreditCard },
-  ];
+  const tabs = TABS;
 
   // Get tags from API
   const tags = () => tagsQuery.data || [];
@@ -767,6 +789,22 @@ export default function SettingsPage() {
     </div>
   );
 
+  // One card per concern, each saving on its own, which is the pattern the rest
+  // of settings still owes: a single giant Save cannot report which card failed.
+  const renderConnections = () => (
+    <div class="space-y-8">
+      <AiCredentials onNotification={(message, type) => setNotification({ message, type })} />
+      <div class="border-t border-border pt-8">
+        <TelegramLink onNotification={(message, type) => setNotification({ message, type })} />
+      </div>
+      <div class="border-t border-border pt-8">
+        <OutboundConnections
+          onNotification={(message, type) => setNotification({ message, type })}
+        />
+      </div>
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab()) {
       case "settings":
@@ -779,6 +817,8 @@ export default function SettingsPage() {
         return renderProfiles();
       case "apikeys":
         return <ApiKeys onNotification={(message, type) => setNotification({ message, type })} />;
+      case "connections":
+        return renderConnections();
       case "memory":
         return renderMemoryLink();
       case "security":
