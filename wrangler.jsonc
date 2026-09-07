@@ -16,6 +16,23 @@
     "enabled": true,
   },
   /**
+   * Custom domains. `custom_domain: true` is what makes Cloudflare create the
+   * DNS record and provision the certificate for each hostname — so the apex
+   * record appears on the first successful deploy and is not managed by hand.
+   *
+   * Do NOT add an apex A/AAAA record in the dashboard as well; it would fight
+   * this for ownership of the name.
+   *
+   * The API is deliberately absent: api.lociai.fyi points at the k3s node, is
+   * DNS-only in Cloudflare, and gets its certificate from cert-manager. Routing
+   * it through a Worker would put a buffering proxy in front of StreamChat,
+   * which is a server-streaming RPC.
+   */
+  "routes": [
+    { "pattern": "lociai.fyi", "custom_domain": true },
+    { "pattern": "www.lociai.fyi", "custom_domain": true },
+  ],
+  /**
    * NOTE: no top-level `env` block. Vinxi/Nitro copies this file into the
    * generated .output/server/wrangler.json ("redirected" config), and wrangler
    * rejects a redirected config that contains environments — it broke the
