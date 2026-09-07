@@ -9,6 +9,7 @@ import { VsEye, VsEyeClosed } from "solid-icons/vs";
 import AuthLayout from "~/components/layout/Auth";
 import { useAuth } from "~/contexts/AuthContext";
 import { useGoogleLoginMutation, useAppleLoginMutation } from "~/lib/api/custom-auth";
+import { type AuthErrorField, describeAuthError } from "~/lib/auth/auth-errors";
 
 interface FormData {
   email: string;
@@ -29,7 +30,11 @@ const SignIn: Component = () => {
     rememberMe: true,
   });
   const [error, setError] = createSignal<string>("");
-  const [hasAuthError, setHasAuthError] = createSignal(false);
+  // Two signals, not one flag. `error` is the sentence; `fieldError` names the
+  // single input at fault, or nothing. They used to be one boolean, so an
+  // "OAuth provider not configured" reply reddened the email AND password
+  // boxes — telling the user to go and fix two values that were correct.
+  const [fieldError, setFieldError] = createSignal<AuthErrorField>(null);
   const [showPassword, setShowPassword] = createSignal(false);
   const [isLoading, setIsLoading] = createSignal(false);
   const [socialLoading, setSocialLoading] = createSignal<string | null>(null);
@@ -41,6 +46,17 @@ const SignIn: Component = () => {
   const [mfaCode, setMfaCode] = createSignal("");
   const [useRecoveryCode, setUseRecoveryCode] = createSignal(false);
 
+  const clearErrors = () => {
+    setError("");
+    setFieldError(null);
+  };
+
+  const showAuthError = (err: unknown, action: Parameters<typeof describeAuthError>[1]) => {
+    const { message, field } = describeAuthError(err, action);
+    setError(message);
+    setFieldError(field);
+  };
+
   const handleMfaSubmit = async (e: Event) => {
     e.preventDefault();
     const challenge = mfaChallenge();
@@ -49,35 +65,20 @@ const SignIn: Component = () => {
     const entered = mfaCode().trim();
     if (!entered) {
       setError(useRecoveryCode() ? "Enter a recovery code" : "Enter your 6-digit code");
-      setHasAuthError(true);
+      setFieldError("code");
       return;
     }
 
     setIsLoading(true);
-    setError("");
-    setHasAuthError(false);
+    clearErrors();
 
     try {
       await completeMFALogin(challenge.token, useRecoveryCode() ? "" : entered, {
         recoveryCode: useRecoveryCode() ? entered : undefined,
         rememberMe: formData().rememberMe || false,
       });
-    } catch (err: any) {
-      const message = (err?.message || "").toLowerCase();
-
-      if (message.includes("too many")) {
-        setError("Too many incorrect codes. Wait 15 minutes and try again.");
-      } else if (message.includes("resource_exhausted")) {
-        setError("Too many incorrect codes. Wait 15 minutes and try again.");
-      } else if (message.includes("unauthenticated") || message.includes("not valid")) {
-        // The challenge token expires after a few minutes, and an expired one
-        // fails identically to a wrong code — say so, or the user retypes a
-        // correct code forever.
-        setError("That code was not accepted. If it has been a while, sign in again.");
-      } else {
-        setError(err?.message?.replace(/\[.*?\]\s*/, "") || "Could not verify that code.");
-      }
-      setHasAuthError(true);
+    } catch (err: unknown) {
+      showAuthError(err, "mfa");
       setMfaCode("");
     } finally {
       setIsLoading(false);
@@ -88,8 +89,7 @@ const SignIn: Component = () => {
     setMfaChallenge(null);
     setMfaCode("");
     setUseRecoveryCode(false);
-    setError("");
-    setHasAuthError(false);
+    clearErrors();
     setFormData((prev) => ({ ...prev, password: "" }));
   };
 
@@ -108,15 +108,12 @@ const SignIn: Component = () => {
 
   const handleGoogleLogin = async () => {
     setSocialLoading("google");
-    setError("");
-    setHasAuthError(false);
+    clearErrors();
     try {
       await googleLoginMutation.mutateAsync();
       afterAuthNavigate();
     } catch (err: unknown) {
-      const error = err as { message?: string };
-      setError(error?.message || "Google sign-in failed. Please try again.");
-      setHasAuthError(true);
+      showAuthError(err, "google");
     } finally {
       setSocialLoading(null);
     }
@@ -124,15 +121,12 @@ const SignIn: Component = () => {
 
   const handleAppleLogin = async () => {
     setSocialLoading("apple");
-    setError("");
-    setHasAuthError(false);
+    clearErrors();
     try {
       await appleLoginMutation.mutateAsync();
       afterAuthNavigate();
     } catch (err: unknown) {
-      const error = err as { message?: string };
-      setError(error?.message || "Apple sign-in failed. Please try again.");
-      setHasAuthError(true);
+      showAuthError(err, "apple");
     } finally {
       setSocialLoading(null);
     }
@@ -141,14 +135,15 @@ const SignIn: Component = () => {
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
-    setHasAuthError(false);
+    clearErrors();
 
     const data = formData();
 
+    // Which box is empty is knowable here, so say which rather than marking
+    // both and leaving the user to work it out.
     if (!data.email || !data.password) {
-      setError("Please fill in all required fields");
-      setHasAuthError(true);
+      setError(!data.email ? "Enter your email address." : "Enter your password.");
+      setFieldError(!data.email ? "email" : "password");
       setIsLoading(false);
       return;
     }
@@ -162,45 +157,15 @@ const SignIn: Component = () => {
       if (outcome.mfaRequired) {
         setMfaChallenge({ token: outcome.mfaToken, email: outcome.email });
       }
-    } catch (err: any) {
-      let errorMessage = "An unexpected error occurred. Please try again.";
-
-      if (err && err.message) {
-        const lowerCaseMessage = err.message.toLowerCase();
-
-        if (lowerCaseMessage.includes("failed to fetch")) {
-          errorMessage =
-            "Could not connect to the server. Please ensure it is running and accessible.";
-        } else if (
-          lowerCaseMessage.includes("invalid credentials") ||
-          lowerCaseMessage.includes("unauthenticated")
-        ) {
-          errorMessage = "Invalid email or password. Please check your details and try again.";
-        } else if (
-          lowerCaseMessage.includes("internal server error") ||
-          lowerCaseMessage.includes("nil pointer")
-        ) {
-          errorMessage =
-            "The server encountered an error. Please try again later or contact support.";
-        } else if (lowerCaseMessage.includes("user not found")) {
-          errorMessage = "No account found with this email address.";
-        } else if (lowerCaseMessage.includes("account is deactivated")) {
-          errorMessage = "Your account has been deactivated. Please contact support.";
-        } else {
-          errorMessage = err.message.replace(/\[.*?\]\s*/, "");
-          errorMessage = errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1);
-        }
-      }
-
-      setError(errorMessage);
-      setHasAuthError(true);
+    } catch (err: unknown) {
+      showAuthError(err, "sign-in");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getInputClass = () =>
-    hasAuthError()
+  const getInputClass = (field: Exclude<AuthErrorField, null>) =>
+    fieldError() === field
       ? `${inputBase} border-2 border-destructive focus:ring-2 focus:ring-destructive`
       : `${inputBase} border-border focus:ring-2 focus:ring-ring focus:border-transparent`;
 
@@ -244,10 +209,7 @@ const SignIn: Component = () => {
               value={mfaCode()}
               onInput={(e) => {
                 setMfaCode(e.currentTarget.value);
-                if (hasAuthError()) {
-                  setHasAuthError(false);
-                  setError("");
-                }
+                clearErrors();
               }}
               placeholder={useRecoveryCode() ? "ABCDE-FGHJK" : "123456"}
               // inputmode numeric brings up the digit keypad on phones, which is
@@ -256,7 +218,7 @@ const SignIn: Component = () => {
               autocomplete="one-time-code"
               autocapitalize={useRecoveryCode() ? "characters" : "off"}
               maxlength={useRecoveryCode() ? 20 : 6}
-              class={`${getInputClass()} tracking-[0.3em] text-center text-lg`}
+              class={`${getInputClass("code")} tracking-[0.3em] text-center text-lg`}
               autofocus
               required
             />
@@ -278,8 +240,7 @@ const SignIn: Component = () => {
             onClick={() => {
               setUseRecoveryCode((v) => !v);
               setMfaCode("");
-              setError("");
-              setHasAuthError(false);
+              clearErrors();
             }}
           >
             {useRecoveryCode() ? "Use your authenticator app" : "Lost your phone?"}
@@ -326,12 +287,9 @@ const SignIn: Component = () => {
                 value={formData().email || ""}
                 onInput={(e) => {
                   setFormData((prev) => ({ ...prev, email: e.currentTarget.value }));
-                  if (hasAuthError()) {
-                    setHasAuthError(false);
-                    setError("");
-                  }
+                  clearErrors();
                 }}
-                class={getInputClass()}
+                class={getInputClass("email")}
                 required
               />
             </TextFieldRoot>
@@ -349,12 +307,9 @@ const SignIn: Component = () => {
                   value={formData().password || ""}
                   onInput={(e) => {
                     setFormData((prev) => ({ ...prev, password: e.currentTarget.value }));
-                    if (hasAuthError()) {
-                      setHasAuthError(false);
-                      setError("");
-                    }
+                    clearErrors();
                   }}
-                  class={`${getInputClass()} pr-10 sm:pr-12`}
+                  class={`${getInputClass("password")} pr-10 sm:pr-12`}
                   required
                 />
               </TextFieldRoot>

@@ -7,6 +7,7 @@ import { FiCheck, FiX } from "solid-icons/fi";
 import { VsEyeClosed, VsEye } from "solid-icons/vs";
 import { useRegisterMutation } from "~/lib/api/auth";
 import { useGoogleLoginMutation, useAppleLoginMutation } from "~/lib/api/custom-auth";
+import { type AuthErrorField, describeAuthError } from "~/lib/auth/auth-errors";
 
 interface FormData {
   email: string;
@@ -15,8 +16,8 @@ interface FormData {
   username: string;
 }
 
-const inputClass =
-  "w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-transparent transition-all text-sm sm:text-base backdrop-blur";
+const inputBase =
+  "w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground transition-all text-sm sm:text-base backdrop-blur";
 
 const SignUp: Component = () => {
   const navigate = useNavigate();
@@ -28,7 +29,27 @@ const SignUp: Component = () => {
   });
   const [showPassword, setShowPassword] = createSignal(false);
   const [error, setError] = createSignal<string>("");
+  // `error` is the sentence; `fieldError` names the one input at fault. This
+  // form had no field marking at all, so "Passwords do not match" left the user
+  // to guess which of the two boxes to look at.
+  const [fieldError, setFieldError] = createSignal<AuthErrorField>(null);
   const [socialLoading, setSocialLoading] = createSignal<string | null>(null);
+
+  const clearErrors = () => {
+    setError("");
+    setFieldError(null);
+  };
+
+  const showAuthError = (err: unknown, action: Parameters<typeof describeAuthError>[1]) => {
+    const { message, field } = describeAuthError(err, action);
+    setError(message);
+    setFieldError(field);
+  };
+
+  const getInputClass = (field: Exclude<AuthErrorField, null>) =>
+    fieldError() === field
+      ? `${inputBase} border-2 border-destructive focus:ring-2 focus:ring-destructive`
+      : `${inputBase} border-border focus:ring-2 focus:ring-ring focus:border-transparent`;
 
   const registerMutation = useRegisterMutation();
   const googleLoginMutation = useGoogleLoginMutation();
@@ -36,13 +57,12 @@ const SignUp: Component = () => {
 
   const handleGoogleLogin = async () => {
     setSocialLoading("google");
-    setError("");
+    clearErrors();
     try {
       await googleLoginMutation.mutateAsync();
       navigate("/");
     } catch (err: unknown) {
-      const error = err as { message?: string };
-      setError(error?.message || "Google sign-in failed. Please try again.");
+      showAuthError(err, "google");
     } finally {
       setSocialLoading(null);
     }
@@ -50,13 +70,12 @@ const SignUp: Component = () => {
 
   const handleAppleLogin = async () => {
     setSocialLoading("apple");
-    setError("");
+    clearErrors();
     try {
       await appleLoginMutation.mutateAsync();
       navigate("/");
     } catch (err: unknown) {
-      const error = err as { message?: string };
-      setError(error?.message || "Apple sign-in failed. Please try again.");
+      showAuthError(err, "apple");
     } finally {
       setSocialLoading(null);
     }
@@ -64,17 +83,33 @@ const SignUp: Component = () => {
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
-    setError("");
+    clearErrors();
 
     const data = formData();
 
-    if (!data.username || !data.email || !data.password) {
-      setError("Please fill in all required fields");
+    // Name the empty box rather than marking all of them, in the order they
+    // appear so the mark lands on the first one the user would reach. Written
+    // as separate guards rather than a loop because these also narrow
+    // formData's Partial fields for the request below.
+    if (!data.username) {
+      setError("Choose a username.");
+      setFieldError("username");
+      return;
+    }
+    if (!data.email) {
+      setError("Enter your email address.");
+      setFieldError("email");
+      return;
+    }
+    if (!data.password) {
+      setError("Create a password.");
+      setFieldError("password");
       return;
     }
 
     if (data.password !== data.confirmPassword) {
-      setError("Passwords do not match");
+      setError("Those passwords don't match.");
+      setFieldError("confirmPassword");
       return;
     }
 
@@ -87,30 +122,7 @@ const SignUp: Component = () => {
 
       navigate("/auth/signin");
     } catch (err: unknown) {
-      const error = err as { message?: string };
-      let errorMessage = "Registration failed. Please try again.";
-
-      if (error?.message) {
-        const lowerCaseMessage = error.message.toLowerCase();
-
-        if (lowerCaseMessage.includes("failed to fetch")) {
-          errorMessage = "Could not connect to the server. Please try again later.";
-        } else if (lowerCaseMessage.includes("already exists")) {
-          errorMessage = "An account with this email already exists. Please sign in instead.";
-        } else if (
-          lowerCaseMessage.includes("internal server error") ||
-          lowerCaseMessage.includes("nil pointer")
-        ) {
-          errorMessage = "The server encountered an error. Please try again later.";
-        } else if (lowerCaseMessage.includes("password")) {
-          errorMessage = error.message.replace(/\[.*?\]\s*/, "");
-          errorMessage = errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1);
-        } else {
-          errorMessage = error.message.replace(/\[.*?\]\s*/, "");
-          errorMessage = errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1);
-        }
-      }
-      setError(errorMessage);
+      showAuthError(err, "sign-up");
     }
   };
 
@@ -138,6 +150,12 @@ const SignUp: Component = () => {
       </div>
 
       <form onSubmit={handleSubmit} class="space-y-3 sm:space-y-4">
+        <Show when={error()}>
+          <div class="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive">
+            <p class="text-sm">{error()}</p>
+          </div>
+        </Show>
+
         <div>
           <label class="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2 text-foreground">
             Username
@@ -147,8 +165,11 @@ const SignUp: Component = () => {
               type="text"
               placeholder="John"
               value={formData().username || ""}
-              onInput={(e) => setFormData((prev) => ({ ...prev, username: e.currentTarget.value }))}
-              class={inputClass}
+              onInput={(e) => {
+                setFormData((prev) => ({ ...prev, username: e.currentTarget.value }));
+                clearErrors();
+              }}
+              class={getInputClass("username")}
               required
             />
           </TextFieldRoot>
@@ -163,8 +184,11 @@ const SignUp: Component = () => {
               type="email"
               placeholder="john@company.com"
               value={formData().email || ""}
-              onInput={(e) => setFormData((prev) => ({ ...prev, email: e.currentTarget.value }))}
-              class={inputClass}
+              onInput={(e) => {
+                setFormData((prev) => ({ ...prev, email: e.currentTarget.value }));
+                clearErrors();
+              }}
+              class={getInputClass("email")}
               required
             />
           </TextFieldRoot>
@@ -180,10 +204,11 @@ const SignUp: Component = () => {
                 type={showPassword() ? "text" : "password"}
                 placeholder="Create a strong password"
                 value={formData().password || ""}
-                onInput={(e) =>
-                  setFormData((prev) => ({ ...prev, password: e.currentTarget.value }))
-                }
-                class={`${inputClass} pr-10 sm:pr-12`}
+                onInput={(e) => {
+                  setFormData((prev) => ({ ...prev, password: e.currentTarget.value }));
+                  clearErrors();
+                }}
+                class={`${getInputClass("password")} pr-10 sm:pr-12`}
                 required
               />
             </TextFieldRoot>
@@ -210,10 +235,11 @@ const SignUp: Component = () => {
                 type={showPassword() ? "text" : "password"}
                 placeholder="Create a strong password"
                 value={formData().confirmPassword || ""}
-                onInput={(e) =>
-                  setFormData((prev) => ({ ...prev, confirmPassword: e.currentTarget.value }))
-                }
-                class={`${inputClass} pr-10 sm:pr-12`}
+                onInput={(e) => {
+                  setFormData((prev) => ({ ...prev, confirmPassword: e.currentTarget.value }));
+                  clearErrors();
+                }}
+                class={`${getInputClass("confirmPassword")} pr-10 sm:pr-12`}
                 required
               />
             </TextFieldRoot>
@@ -244,10 +270,7 @@ const SignUp: Component = () => {
                           : "bg-destructive/10 border border-destructive/30"
                       }`}
                     >
-                      <Show
-                        when={req.met}
-                        fallback={<FiX class="w-2.5 h-2.5 text-destructive" />}
-                      >
+                      <Show when={req.met} fallback={<FiX class="w-2.5 h-2.5 text-destructive" />}>
                         <FiCheck class="w-2.5 h-2.5 text-primary" />
                       </Show>
                     </div>
@@ -264,12 +287,6 @@ const SignUp: Component = () => {
             </div>
           </Show>
         </div>
-
-        <Show when={error()}>
-          <div class="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive">
-            <p class="text-sm">{error()}</p>
-          </div>
-        </Show>
 
         <Button
           type="submit"

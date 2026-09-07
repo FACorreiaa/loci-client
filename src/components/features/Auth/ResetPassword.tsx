@@ -5,10 +5,12 @@ import { FiCheck, FiLock } from "solid-icons/fi";
 import { Component, createSignal, Show, onMount } from "solid-js";
 import AuthLayout from "../../layout/Auth";
 import { useResetPasswordMutation } from "~/lib/api/auth-connect";
+import { type AuthErrorField, describeAuthError } from "~/lib/auth/auth-errors";
 
 const inputClass =
   "w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-transparent transition-all";
-const inputErrorClass = "!border-destructive !ring-destructive focus:!ring-destructive focus:!border-destructive";
+const inputErrorClass =
+  "!border-destructive !ring-destructive focus:!ring-destructive focus:!border-destructive";
 
 const ResetPassword: Component = () => {
   const navigate = useNavigate();
@@ -19,6 +21,8 @@ const ResetPassword: Component = () => {
   const [passwordError, setPasswordError] = createSignal("");
   const [confirmError, setConfirmError] = createSignal("");
   const [generalError, setGeneralError] = createSignal("");
+  // Set when the server, rather than our own validation, blamed a field.
+  const [serverField, setServerField] = createSignal<AuthErrorField>(null);
 
   const resetPasswordMutation = useResetPasswordMutation();
 
@@ -30,13 +34,13 @@ const ResetPassword: Component = () => {
 
   onMount(() => {
     if (!token()) {
-      setGeneralError("Invalid or missing reset token");
+      setGeneralError("This reset link is incomplete. Request a new one from the sign-in page.");
     }
   });
 
   const validatePassword = (pwd: string): boolean => {
     if (!pwd.trim()) {
-      setPasswordError("Password is required");
+      setPasswordError("Enter a new password.");
       return false;
     }
     if (pwd.length < 8) {
@@ -65,7 +69,7 @@ const ResetPassword: Component = () => {
 
   const validateConfirmPassword = (): boolean => {
     if (password() !== confirmPassword()) {
-      setConfirmError("Passwords do not match");
+      setConfirmError("Those passwords don't match.");
       return false;
     }
     setConfirmError("");
@@ -75,9 +79,10 @@ const ResetPassword: Component = () => {
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
     setGeneralError("");
+    setServerField(null);
 
     if (!token()) {
-      setGeneralError("Invalid or missing reset token");
+      setGeneralError("This reset link is incomplete. Request a new one from the sign-in page.");
       return;
     }
 
@@ -94,10 +99,12 @@ const ResetPassword: Component = () => {
         newPassword: password(),
       });
       setPasswordReset(true);
-    } catch (error: unknown) {
-      console.error("Reset password failed:", error);
-      const errorMsg = error instanceof Error ? error.message : "Failed to reset password";
-      setGeneralError(errorMsg);
+    } catch (err: unknown) {
+      // Was `err.message` verbatim, which put the server's own wording — and the
+      // Connect code in front of it — on the page.
+      const { message, field } = describeAuthError(err, "reset-password");
+      setGeneralError(message);
+      setServerField(field);
     }
   };
 
@@ -155,8 +162,10 @@ const ResetPassword: Component = () => {
                 onInput={(e) => {
                   setPassword(e.currentTarget.value);
                   if (passwordError()) setPasswordError("");
+                  if (generalError()) setGeneralError("");
+                  setServerField(null);
                 }}
-                class={`${inputClass} ${passwordError() ? inputErrorClass : ""}`}
+                class={`${inputClass} ${passwordError() || serverField() === "password" ? inputErrorClass : ""}`}
               />
             </TextFieldRoot>
             <Show when={passwordError()}>
@@ -174,6 +183,8 @@ const ResetPassword: Component = () => {
                 onInput={(e) => {
                   setConfirmPassword(e.currentTarget.value);
                   if (confirmError()) setConfirmError("");
+                  if (generalError()) setGeneralError("");
+                  setServerField(null);
                 }}
                 class={`${inputClass} ${confirmError() ? inputErrorClass : ""}`}
               />
