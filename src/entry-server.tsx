@@ -63,10 +63,6 @@ const requestHandler = createHandler(() => (
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="default" />
           <meta name="apple-mobile-web-app-title" content="Loci" />
-          <meta
-            name="description"
-            content="Discover, plan, and explore your next adventure with AI-powered travel recommendations"
-          />
           <meta name="format-detection" content="telephone=no" />
           <meta name="mobile-web-app-capable" content="yes" />
           <meta name="theme-color" content="#FDF5EA" />
@@ -90,34 +86,14 @@ const requestHandler = createHandler(() => (
           <meta name="msapplication-TileImage" content="/images/brand/icon-144.png" />
           <meta name="msapplication-config" content="/browserconfig.xml" />
 
-          {/* Open Graph - Using absolute URLs for better sharing */}
-          <meta property="og:type" content="website" />
-          <meta property="og:title" content="Loci - AI Travel Companion" />
-          <meta
-            property="og:description"
-            content="Discover, plan, and explore your next adventure with AI-powered travel recommendations"
-          />
-          <meta property="og:site_name" content="Loci" />
-          <meta property="og:url" content="https://lociai.fyi" />
-          <meta property="og:image" content="https://lociai.fyi/images/brand/og-image.png" />
-          <meta property="og:image:width" content="1200" />
-          <meta property="og:image:height" content="630" />
-          <meta property="og:image:type" content="image/png" />
-          <meta
-            property="og:image:alt"
-            content="The Loci wordmark beside the Loci mascot holding a map"
-          />
-
-          {/* Twitter - Using absolute URLs */}
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content="Loci - AI Travel Companion" />
-          <meta
-            name="twitter:description"
-            content="Discover, plan, and explore your next adventure with AI-powered travel recommendations"
-          />
-          <meta name="twitter:image" content="https://lociai.fyi/images/brand/og-image.png" />
-          <meta name="twitter:site" content="@loci" />
-          <meta name="twitter:creator" content="@loci" />
+          {/* Open Graph and Twitter live in app.tsx, not here.
+              Tags written into this raw document bypass MetaProvider, so a
+              route's own <Meta property="og:title"> could not replace them —
+              it appended a second one, and every page shipped duplicate
+              og:title, og:description and og:url. Crawlers pick between
+              duplicates inconsistently, so which title an unfurl showed was a
+              coin flip. Declared through @solidjs/meta they are deduped by
+              property, and a route overriding one actually overrides it. */}
 
           {/* Theme Initialization Script (Blocking) */}
           {/* eslint-disable-next-line solid/no-innerhtml */}

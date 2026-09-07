@@ -29,7 +29,7 @@ is coral.
 | Browser tab PNG fallback | `icon-32.png`, `icon-16.png` |
 | In-app header, buttons, avatars | `src/components/brand/Logo.tsx` |
 | Marketing page, README, docs | `logo.svg`, `mark.svg` |
-| Social card (Open Graph / Twitter) | `og-image.png` (1200×630) |
+| Social card (Open Graph / Twitter) | `og-image.png` (1200×630) — built by `tools/brand/make-og-card.py` |
 | Empty states, onboarding | `mascot.webp` / `mascot-sm.webp` |
 | Native empty states | `mascot.png` |
 | Marketing surfaces wanting the 3D treatment | `icon-tile.webp`, `icon-wordmark.webp`, `wordmark.webp` |
@@ -130,7 +130,28 @@ python3 -c "from PIL import Image; [Image.open(f'/tmp/icon-{s}.png').convert('RG
 # mascot
 python3 tools/brand/matte-mascot.py <mascot-render>.jpg public/images/brand/mascot.png
 cwebp -q 90 -m 6 -alpha_q 100 public/images/brand/mascot.png -o public/images/brand/mascot.webp
+
+# social card — composes logo.svg + mascot.webp + the tagline
+python3 tools/brand/make-og-card.py
 ```
+
+### The social card
+
+`og-image.png` is what a link to Loci looks like in a chat window, and it has to
+answer "what is this" to somebody who has never heard of it. So it carries the
+promise, not just the logo — an earlier version was the wordmark and the mascot
+alone, which is decoration.
+
+The wordmark is rendered from `logo.svg`, so the mark is identical to every
+other surface. Only the tagline needs type, and it is set in **Charter**: the
+brand's Fraunces is loaded from Google Fonts at runtime and is not installed
+locally, and this card is baked once rather than rendered per view. Charter is a
+transitional serif with the same warmth, ships with macOS, and holds up at the
+size an unfurl is actually viewed at. On a machine without it the script says so
+and falls back rather than silently substituting.
+
+Content stays inside a 72px margin: several platforms crop toward a squarer
+ratio for small previews.
 
 Tools used: `rsvg-convert`, `cwebp`, `potrace`, Pillow, SciPy.
 
