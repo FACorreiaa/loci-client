@@ -30,7 +30,6 @@ interface FavoriteDisplay {
   website?: string;
   latitude?: number;
   longitude?: number;
-  distance?: number;
   opening_hours?: string;
 }
 
@@ -38,7 +37,7 @@ export default function FavoritesPage() {
   const [viewMode, setViewMode] = createSignal("grid"); // 'grid', 'list'
   const [searchQuery, setSearchQuery] = createSignal("");
   const [selectedCategory, setSelectedCategory] = createSignal("all");
-  const [sortBy, setSortBy] = createSignal("name"); // 'name', 'category', 'distance'
+  const [sortBy, setSortBy] = createSignal("name"); // 'name' or 'category'
   const [sortOrder, setSortOrder] = createSignal("asc"); // 'asc', 'desc'
   const [selectedPOIs, setSelectedPOIs] = createSignal<string[]>([]);
 
@@ -80,7 +79,6 @@ export default function FavoritesPage() {
   const sortOptions = [
     { id: "name", label: "Name" },
     { id: "category", label: "Category" },
-    { id: "distance", label: "Distance" },
   ];
 
   // Filter and sort favorites
@@ -115,10 +113,6 @@ export default function FavoritesPage() {
         case "category":
           aVal = a.category?.toLowerCase() || "";
           bVal = b.category?.toLowerCase() || "";
-          break;
-        case "distance":
-          aVal = a.distance || 0;
-          bVal = b.distance || 0;
           break;
         default:
           aVal = a.name?.toLowerCase() || "";
@@ -191,12 +185,6 @@ export default function FavoritesPage() {
     }
   };
 
-  const formatDistance = (distance?: number) => {
-    if (!distance || distance === 0) return "";
-    if (distance < 1000) return `${Math.round(distance)}m`;
-    return `${(distance / 1000).toFixed(1)}km`;
-  };
-
   console.log("favorites", favorites);
 
   const renderGridCard = (favorite: FavoriteDisplay) => (
@@ -246,9 +234,6 @@ export default function FavoritesPage() {
       <div class="p-4">
         <div class="mb-3">
           <h3 class="font-semibold text-foreground text-base mb-1 line-clamp-2">{favorite.name}</h3>
-          <Show when={formatDistance(favorite.distance)}>
-            <p class="text-sm text-muted-foreground">{formatDistance(favorite.distance)} away</p>
-          </Show>
         </div>
 
         <p class="text-sm text-muted-foreground mb-4 line-clamp-3">
@@ -320,11 +305,6 @@ export default function FavoritesPage() {
                   >
                     {favorite.category}
                   </span>
-                  <Show when={formatDistance(favorite.distance)}>
-                    <span class="text-sm text-muted-foreground">
-                      {formatDistance(favorite.distance)} away
-                    </span>
-                  </Show>
                 </div>
               </div>
 

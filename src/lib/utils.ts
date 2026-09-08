@@ -64,22 +64,14 @@ const toRadians = (degrees: number): number => {
   return degrees * (Math.PI / 180);
 };
 
-export const formatDistance = (distanceInKm: number): string => {
-  if (distanceInKm < 1) {
-    return `${Math.round(distanceInKm * 1000)}m`;
-  }
-  return `${distanceInKm.toFixed(1)}km`;
-};
-
-// Price and budget utilities
-export const formatPrice = (price: number, currency: string = "EUR"): string => {
-  return new Intl.NumberFormat("en-EU", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(price);
-};
+// Both of these live in ~/lib/locale now, where the unit and currency choices
+// are made once and tested. Re-exported rather than moved so existing imports
+// keep working.
+//
+// formatPrice used to hardcode EUR *and* the locale "en-EU", which is not a
+// locale: Intl falls back to the browser default when it cannot parse one, so
+// grouping and symbol placement were whatever the browser felt like.
+export { formatDistance, formatPrice } from "./locale";
 
 export const getBudgetLevel = (priceRange: string): { min: number; max: number } => {
   const ranges = {
