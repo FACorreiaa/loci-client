@@ -479,42 +479,58 @@ export const useContinueChatMutation = () => {
 // };
 
 // Domain detection utility (client-side)
+//
+// This decides which page a search lands on, so a wrong answer sends an
+// itinerary request to /activities and the user sees an empty panel.
+//
+// Two rules, both learned from the previous version getting them wrong.
+//
+// EVERY pattern is word-boundaried. The old alternations were unanchored
+// substrings, so `do` matched "Lon-do-n", `bar` matched "Bar-celona" and `eat`
+// matched "S-eat-tle" — a place name decided the domain.
+//
+// ORDER IS SIGNIFICANT and itinerary comes first. A request that spans days is
+// an itinerary even when it says what the days should contain: "three chill
+// days in Lisbon for food and views" — the landing page's own placeholder —
+// used to route to /restaurants on the word "food". Itinerary markers are
+// specific enough to lead safely (a day count, a week, an explicit itinerary or
+// route or plan), so a bare "restaurants in Lisbon" still reaches dining.
+//
+// A count of NIGHTS is deliberately not a trip-length marker. "2 nights" is how
+// people describe a stay, so "Book a room for 2 nights" is accommodation; days
+// and weeks are how they describe a trip.
+const DOMAIN_PATTERNS: {
+  domain: import("./types").DomainType;
+  pattern: RegExp;
+}[] = [
+  {
+    domain: "itinerary",
+    pattern:
+      /\b(itinerar(?:y|ies)|schedule|journey|route|organi[sz]e|arrange|plan|trip)\b|\b(?:\d+|one|two|three|four|five|six|seven)\s+(?:\w+\s+){0,2}(?:days?|weeks?)\b|\ba\s+(?:week|weekend)\b/i,
+  },
+  {
+    domain: "accommodation",
+    pattern:
+      /\b(hotels?|hostels?|accommodations?|stay|staying|sleep|rooms?|booking|airbnb|lodges?|resorts?|guesthouses?)\b/i,
+  },
+  {
+    domain: "dining",
+    pattern:
+      /\b(restaurants?|food|eat|eating|dine|dining|meals?|cuisines?|drinks?|caf[eé]s?|bars?|lunch|dinner|breakfast|brunch|wine)\b/i,
+  },
+  {
+    domain: "activities",
+    pattern:
+      /\b(activit(?:y|ies)|museums?|parks?|attractions?|tours?|visit|see|do|experiences?|adventures?|shopping|nightlife|walks?|levadas?|hikes?|hiking|beach(?:es)?|viewpoints?)\b/i,
+  },
+];
+
 export const detectDomain = (message: string): import("./types").DomainType => {
-  const lowerMessage = message.toLowerCase();
-
-  // Accommodation domain keywords
-  if (
-    /hotel|hostel|accommodation|stay|sleep|room|booking|airbnb|lodge|resort|guesthouse/.test(
-      lowerMessage,
-    )
-  ) {
-    return "accommodation";
+  for (const { domain, pattern } of DOMAIN_PATTERNS) {
+    if (pattern.test(message)) return domain;
   }
-
-  // Dining domain keywords
-  if (
-    /restaurant|food|eat|dine|meal|cuisine|drink|cafe|bar|lunch|dinner|breakfast|brunch/.test(
-      lowerMessage,
-    )
-  ) {
-    return "dining";
-  }
-
-  // Activity domain keywords
-  if (
-    /activity|museum|park|attraction|tour|visit|see|do|experience|adventure|shopping|nightlife/.test(
-      lowerMessage,
-    )
-  ) {
-    return "activities";
-  }
-
-  // Itinerary domain keywords
-  if (/itinerary|plan|schedule|trip|day|week|journey|route|organize|arrange/.test(lowerMessage)) {
-    return "itinerary";
-  }
-
-  // Default to general domain
+  // Nothing recognisable. "general" is the honest answer — guessing a domain
+  // here is how a search for a bare city name ends up on the wrong page.
   return "general";
 };
 

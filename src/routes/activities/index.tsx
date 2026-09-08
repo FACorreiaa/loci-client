@@ -1,6 +1,7 @@
 import { createSignal, createMemo, Show, onMount, For, lazy } from "solid-js";
 import { useSearchParams } from "@solidjs/router";
 import { useChatRPC } from "~/lib/hooks/useChatRPC";
+import { hasListContent, readCompletedSession } from "~/lib/streaming/restore-session";
 import { POIDetailedInfo } from "~/lib/api/types";
 const MapComponent = lazy(() => import("~/components/features/Map/Map"));
 import SplitView from "@/components/layout/SplitView";
@@ -15,16 +16,23 @@ import { StreamErrorCard } from "~/components/ui/StreamErrorCard";
 
 export default function ActivitiesPage() {
   const [searchParams] = useSearchParams();
-  const [message] = createSignal((searchParams.message as string) || "Show me activities");
-  const [cityName] = createSignal((searchParams.cityName as string) || "London");
+  // No defaults. These used to fall back to a generic query and "London", so a
+  // lost session id — which happens whenever a payload-less COMPLETE frame maps
+  // sessionId to "" — silently streamed London to somebody who had asked about
+  // somewhere else. An absent query is an error, not a different city.
+  const [message] = createSignal((searchParams.message as string) || "");
+  const [cityName] = createSignal((searchParams.cityName as string) || "");
 
-  const { state, startStream } = useChatRPC();
+  const { state, startStream, setError } = useChatRPC();
 
   const [restoredData, setRestoredData] = createSignal<any>(null);
 
   // Local favorites state
   const [favorites, setFavorites] = createSignal<string[]>([]);
 
+  // A payload with neither results nor city data is not a restore. The guard
+  // used to be `if (!data)`, and `{}` is truthy, so an empty stream counted as
+  // success and the panel shimmered forever with nothing in flight.
   const normalizeStoredData = (data: any): any => {
     if (!data) return null;
     const normalized: any = { ...data };
@@ -38,36 +46,37 @@ export default function ActivitiesPage() {
       }
     }
 
+    if (!hasListContent(normalized, "activities")) return null;
     return normalized;
+  };
+
+  // startOrExplain is both the mount path and the retry path, so Retry does
+  // the same thing arriving on the page does.
+  const startOrExplain = () => {
+    if (!message().trim() || !cityName().trim()) {
+      setError("Tell Loci what you're looking for and where. Try a search to start.");
+      return;
+    }
+    startStream(message(), cityName());
   };
 
   onMount(() => {
     const sessionIdFromUrl = searchParams.sessionId as string;
 
     if (sessionIdFromUrl) {
-      const completedSession = sessionStorage.getItem("completedStreamingSession");
-      if (completedSession) {
-        try {
-          const parsed = JSON.parse(completedSession);
-          const parsedData = parsed.data || parsed;
-
-          if (
-            parsedData &&
-            (parsed.sessionId === sessionIdFromUrl || parsedData.session_id === sessionIdFromUrl)
-          ) {
-            const normalizedData = normalizeStoredData(parsedData);
-            setRestoredData(normalizedData);
-            return;
-          }
-        } catch (e) {
-          console.warn("Failed to parse completed streaming session:", e);
-        }
+      const restored = normalizeStoredData(readCompletedSession(sessionIdFromUrl));
+      if (restored) {
+        setRestoredData(restored);
+        return;
       }
-      return;
+      // The session id restores nothing — a different search, an empty
+      // payload, or storage cleared. This used to be a bare `return`: no
+      // fetch, no error, no loading flag, and a permanently empty panel. Re-run
+      // the search when we still know what was asked, and say so when we don't.
     }
 
     if (!state.isConnected) {
-      startStream(message(), cityName());
+      startOrExplain();
     }
   });
 
@@ -165,7 +174,7 @@ export default function ActivitiesPage() {
           <StreamErrorCard
             error={state.error!}
             title="Unable to load activities"
-            onRetry={() => startStream(message(), cityName())}
+            onRetry={startOrExplain}
           />
         </Show>
 
@@ -219,7 +228,7 @@ export default function ActivitiesPage() {
 
   return (
     <>
-      <SplitView listContent={ListContent} mapContent={MapContent} initialMode="map" />
+      <SplitView listContent={ListContent} mapContent={MapContent} initialMode="split" />
       <FloatingChat
         getStreamingData={() => effectiveData()}
         setStreamingData={(fn) => {

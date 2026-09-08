@@ -44,8 +44,14 @@ export default function ItineraryPage() {
     routes: true,
     alerts: true,
   });
-  const [message] = createSignal((searchParams.message as string) || "Show me an itinerary");
-  const [cityName] = createSignal((searchParams.cityName as string) || "London");
+  // No defaults. These used to fall back to "Show me an itinerary" and
+  // "London", so a lost session id — which happens whenever a payload-less
+  // COMPLETE frame maps sessionId to "" — silently streamed a generic London
+  // itinerary to somebody who had asked about Funchal. Streaming the wrong city
+  // is worse than showing nothing, so an absent query renders the empty state
+  // instead.
+  const [message] = createSignal((searchParams.message as string) || "");
+  const [cityName] = createSignal((searchParams.cityName as string) || "");
   const [profileId] = createSignal((searchParams.profileId as string) || "");
   const { isAuthenticated } = useAuth();
 
@@ -56,9 +62,29 @@ export default function ItineraryPage() {
   const subscriptionQuery = useUserSubscription(() => isAuthenticated());
   const isPro = createMemo(() => isProPlan(subscriptionQuery.data?.plan));
 
+  // hasItineraryContent decides whether a payload is worth restoring.
+  //
+  // The guard used to be `if (!data)`, and createStreamingSession seeds
+  // `data: {}`. An empty object is truthy, so a stream that produced no
+  // structured result still counted as a successful restore: hydrateFromServer
+  // and connect() were both skipped, and the page shimmered forever with
+  // nothing in flight and no error. That was the blank page.
+  const hasItineraryContent = (data: any): boolean => {
+    if (!data || typeof data !== "object") return false;
+    const inner = data.itinerary_response ?? data;
+    return Boolean(
+      inner?.general_city_data ||
+      (Array.isArray(inner?.points_of_interest) && inner.points_of_interest.length > 0) ||
+      inner?.itinerary_response ||
+      (Array.isArray(data?.hotels) && data.hotels.length > 0) ||
+      (Array.isArray(data?.restaurants) && data.restaurants.length > 0) ||
+      (Array.isArray(data?.activities) && data.activities.length > 0),
+    );
+  };
+
   // Helper to normalize stored data - flattens nested itinerary_response structure
   const normalizeStoredData = (data: any): any => {
-    if (!data) return null;
+    if (!hasItineraryContent(data)) return null;
 
     // Check if data is wrapped in itinerary_response that contains the actual payload
     // Server sometimes returns: { itinerary_response: { general_city_data, points_of_interest, itinerary_response, session_id } }
@@ -88,11 +114,15 @@ export default function ItineraryPage() {
       try {
         const parsed = JSON.parse(completedSession);
         const parsedData = parsed.data || parsed;
+        const normalized = normalizeStoredData(parsedData);
+        // Both conditions, and content is one of them: a session id that
+        // matches but carries nothing must fall through to hydration rather
+        // than being treated as restored.
         if (
-          parsedData &&
-          (parsed.sessionId === sessionIdFromUrl || parsedData.session_id === sessionIdFromUrl)
+          normalized &&
+          (parsed.sessionId === sessionIdFromUrl || parsedData?.session_id === sessionIdFromUrl)
         ) {
-          setStore("data", normalizeStoredData(parsedData));
+          setStore("data", normalized);
           return true;
         }
       } catch (e) {
@@ -105,17 +135,20 @@ export default function ItineraryPage() {
       try {
         const parsed = JSON.parse(activeSession);
         if (parsed.sessionId === sessionIdFromUrl && parsed.data) {
-          setStore("data", normalizeStoredData(parsed.data));
-          return true;
+          const normalizedActive = normalizeStoredData(parsed.data);
+          if (normalizedActive) {
+            setStore("data", normalizedActive);
+            return true;
+          }
         }
       } catch (e) {
         console.warn("Failed to parse active streaming session:", e);
       }
     }
 
-    const storedSession = getStoredSession(sessionIdFromUrl);
+    const storedSession = normalizeStoredData(getStoredSession(sessionIdFromUrl));
     if (storedSession) {
-      setStore("data", normalizeStoredData(storedSession));
+      setStore("data", storedSession);
       return true;
     }
 
@@ -157,6 +190,18 @@ export default function ItineraryPage() {
 
     if (sessionIdFromUrl) {
       void restoreOrHydrateSession(sessionIdFromUrl);
+      return;
+    }
+
+    // No session and no query. Previously message/cityName defaulted to
+    // "Show me an itinerary"/"London" and this streamed a generic London
+    // itinerary — spending a request and showing the wrong city to somebody
+    // who asked about somewhere else. Say what is missing instead.
+    if (!message().trim() || !cityName().trim()) {
+      setStore(
+        "error",
+        new Error("Tell Loci where you're going and we'll plot it. Try a search to start."),
+      );
       return;
     }
 
@@ -543,7 +588,7 @@ export default function ItineraryPage() {
 
   return (
     <>
-      <SplitView listContent={ListContent} mapContent={MapContent} initialMode="map" />
+      <SplitView listContent={ListContent} mapContent={MapContent} initialMode="split" />
       <Show when={detailOpen()}>
         <DetailedItemModal
           item={detailItem()}

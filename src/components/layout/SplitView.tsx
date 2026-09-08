@@ -10,8 +10,32 @@ interface SplitViewProps {
 const toggleActive = "bg-primary text-primary-foreground shadow-sm";
 const toggleIdle = "text-muted-foreground hover:bg-muted hover:text-foreground";
 
+// Below this width the two panels would be half a phone each, so "split" is
+// resolved to "list" instead. Matches the `md:` breakpoint the panels use.
+const SPLIT_MIN_WIDTH = 768;
+
+// resolveInitialMode keeps "split" honest on a narrow screen.
+//
+// It also exists because every results route used to pass initialMode="map",
+// which gives the list panel `hidden w-0` — so the whole itinerary column was
+// invisible on arrival and the only rendered pane said "No items to display on
+// map". A page with content looked completely blank. Whatever the default is,
+// it must not be the pane that has nothing in it.
+function resolveInitialMode(requested: SplitViewProps["initialMode"]): "split" | "list" | "map" {
+  const mode = requested || "split";
+  if (mode !== "split") return mode;
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    // SSR renders the list, which is the content. The client corrects to split
+    // on its first render if the viewport is wide enough.
+    return "list";
+  }
+  return window.matchMedia(`(min-width: ${SPLIT_MIN_WIDTH}px)`).matches ? "split" : "list";
+}
+
 export default function SplitView(props: SplitViewProps) {
-  const [mode, setMode] = createSignal<"split" | "list" | "map">(props.initialMode || "split");
+  const [mode, setMode] = createSignal<"split" | "list" | "map">(
+    resolveInitialMode(props.initialMode),
+  );
 
   return (
     <div class="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-background">
