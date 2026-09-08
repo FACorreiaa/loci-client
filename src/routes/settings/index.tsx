@@ -56,6 +56,7 @@ import TelegramLink from "~/components/features/Settings/TelegramLink";
 import OutboundConnections from "~/components/features/Settings/OutboundConnections";
 import TwoFactor from "~/components/features/Settings/TwoFactor";
 import ChangePassword from "~/components/features/Settings/ChangePassword";
+import LocaleSettings from "~/components/features/Settings/LocaleSettings";
 import TasteAndPrivacy from "~/components/features/Settings/TasteAndPrivacy";
 import AccountData from "~/components/features/Settings/AccountData";
 import { Button } from "~/ui/button";
@@ -169,7 +170,10 @@ export default function SettingsPage() {
       await profileQuery.refetch(); // Sync UI with backend
 
       // Show success notification
-      setNotification({ message: "Settings saved successfully!", type: "success" });
+      setNotification({
+        message: "Settings saved successfully!",
+        type: "success",
+      });
       setTimeout(() => setNotification(null), 3000);
     } catch (error: any) {
       console.error("Failed to update profile:", error);
@@ -245,7 +249,11 @@ export default function SettingsPage() {
       { label: "a photo", done: Boolean(p.avatar?.trim()), weight: 1 },
       { label: "some interests", done: interests().length > 0, weight: 3 },
       { label: "a few tags", done: tags().length > 0, weight: 2 },
-      { label: "a travel profile", done: savedProfiles().length > 0, weight: 2 },
+      {
+        label: "a travel profile",
+        done: savedProfiles().length > 0,
+        weight: 2,
+      },
     ];
     const total = fields.reduce((sum, f) => sum + f.weight, 0);
     const earned = fields.reduce((sum, f) => (f.done ? sum + f.weight : sum), 0);
@@ -284,7 +292,10 @@ export default function SettingsPage() {
       reader.readAsDataURL(file);
       uploadPhoto(file);
     } else {
-      setNotification({ message: "Please select a valid image file", type: "error" });
+      setNotification({
+        message: "Please select a valid image file",
+        type: "error",
+      });
       setTimeout(() => setNotification(null), 3000);
     }
   };
@@ -292,13 +303,18 @@ export default function SettingsPage() {
   const uploadPhoto = async (file: File) => {
     setIsUploading(true);
     try {
-      const result = (await uploadAvatarMutation.mutateAsync(file)) as { avatar_url: string };
+      const result = (await uploadAvatarMutation.mutateAsync(file)) as {
+        avatar_url: string;
+      };
       //updateProfile('avatar', result.avatar_url);
       setUserProfile((prev) => ({ ...prev, avatar: result.avatar_url }));
       await profileQuery.refetch();
 
       // Show success notification
-      setNotification({ message: "Profile photo updated successfully!", type: "success" });
+      setNotification({
+        message: "Profile photo updated successfully!",
+        type: "success",
+      });
       setTimeout(() => setNotification(null), 3000);
     } catch (error: any) {
       console.error("Photo upload failed:", error);
@@ -601,9 +617,15 @@ export default function SettingsPage() {
             </div>
 
             <div class="loci-card rounded-3xl p-6 sm:p-8">
+              <LocaleSettings
+                onNotification={(message, type) => setNotification({ message, type })}
+              />
+            </div>
+
+            <div class="loci-card rounded-3xl p-6 sm:p-8">
               <h4 class="text-lg font-semibold text-foreground mb-1">Appearance</h4>
               <p class="text-sm text-muted-foreground mb-4">
-                Theme and language are kept in this browser.
+                Theme and language sync across your devices when signed in.
               </p>
               <AppearanceSettings />
             </div>
@@ -680,7 +702,10 @@ export default function SettingsPage() {
 
     if (confirm(`Are you sure you want to delete the tag "${tag.name}"?`)) {
       await deleteTagMutation.mutateAsync(tag.id);
-      setNotification({ message: "Tag deleted successfully!", type: "success" });
+      setNotification({
+        message: "Tag deleted successfully!",
+        type: "success",
+      });
       setTimeout(() => setNotification(null), 3000);
     }
   };
@@ -719,13 +744,19 @@ export default function SettingsPage() {
 
   const handleCreateInterest = async (data: any) => {
     await createInterestMutation.mutateAsync(data);
-    setNotification({ message: "Interest created successfully!", type: "success" });
+    setNotification({
+      message: "Interest created successfully!",
+      type: "success",
+    });
     setTimeout(() => setNotification(null), 3000);
   };
 
   const handleUpdateInterest = async (data: any) => {
     await updateInterestMutation.mutateAsync(data);
-    setNotification({ message: "Interest updated successfully!", type: "success" });
+    setNotification({
+      message: "Interest updated successfully!",
+      type: "success",
+    });
     setTimeout(() => setNotification(null), 3000);
   };
 
@@ -741,7 +772,10 @@ export default function SettingsPage() {
 
     if (confirm(`Are you sure you want to delete the interest "${interest.name}"?`)) {
       await deleteInterestMutation.mutateAsync(interest.id);
-      setNotification({ message: "Interest deleted successfully!", type: "success" });
+      setNotification({
+        message: "Interest deleted successfully!",
+        type: "success",
+      });
       setTimeout(() => setNotification(null), 3000);
     }
   };
