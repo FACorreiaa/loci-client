@@ -1,3 +1,4 @@
+import { useLocale } from "~/contexts/LocaleContext";
 import { GroundedBadge } from "./ui/GroundedBadge";
 import { Show, createSignal, createEffect, For, lazy } from "solid-js";
 import {
@@ -50,6 +51,7 @@ interface DetailedItemModalProps {
 }
 
 export default function DetailedItemModal(props: DetailedItemModalProps) {
+  const locale = useLocale();
   const [activeTab, setActiveTab] = createSignal<"details" | "map">("details");
   const [isFavorited, setIsFavorited] = createSignal(false);
 
@@ -211,7 +213,9 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                     <div class="text-center">
                       <div class="flex items-center justify-center gap-1 text-muted-foreground">
                         <MapPin class="w-4 h-4" />
-                        <span class="font-semibold">{props.item!.distance}km</span>
+                        <span class="font-semibold">
+                          {locale.formatDistance(props.item!.distance!)}
+                        </span>
                       </div>
                       <p class="text-xs text-muted-foreground mt-1">Distance</p>
                     </div>

@@ -1,3 +1,4 @@
+import { useLocale } from "~/contexts/LocaleContext";
 import { For, Show, createSignal } from "solid-js";
 import {
   Star,
@@ -26,6 +27,7 @@ interface HotelResultsProps {
 }
 
 export default function HotelResults(props: HotelResultsProps) {
+  const locale = useLocale();
   const [showAll, setShowAll] = createSignal(false);
 
   const displayHotels = () => {
@@ -143,7 +145,7 @@ export default function HotelResults(props: HotelResultsProps) {
                 <Show when={(hotel as any).distance}>
                   <div class="flex items-center gap-1">
                     <MapPin class="w-3 h-3" />
-                    <span>{(hotel as any).distance}km away</span>
+                    <span>{locale.formatDistance((hotel as any).distance)} away</span>
                   </div>
                 </Show>
 

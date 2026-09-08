@@ -1,3 +1,4 @@
+import { useLocale } from "~/contexts/LocaleContext";
 import { GroundedBadge } from "../ui/GroundedBadge";
 import { For, Show, createSignal } from "solid-js";
 import { Star, MapPin, Clock, DollarSign, Calendar, ChevronDown, ChevronUp } from "lucide-solid";
@@ -14,6 +15,7 @@ interface ActivityResultsProps {
 }
 
 export default function ActivityResults(props: ActivityResultsProps) {
+  const locale = useLocale();
   const [showAll, setShowAll] = createSignal(false);
 
   const displayActivities = () => {
@@ -159,7 +161,7 @@ export default function ActivityResults(props: ActivityResultsProps) {
                 <Show when={activity.distance}>
                   <div class="flex items-center gap-1">
                     <MapPin class="w-3 h-3" />
-                    <span>{activity.distance}km away</span>
+                    <span>{locale.formatDistance(activity.distance!)} away</span>
                   </div>
                 </Show>
 

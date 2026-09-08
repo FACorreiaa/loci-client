@@ -41,6 +41,12 @@ export interface UserProfileResponse {
   badges?: string[];
   theme?: string;
   language?: string;
+  // Locale. Undefined means never chosen, which is not the same as choosing
+  // the default: the browser's guess may fill an unset timezone, but must
+  // never overwrite one somebody set deliberately.
+  timezone?: string;
+  units?: string;
+  currency?: string;
   social_links?: Record<string, string>;
   preferences?: Record<string, unknown>;
   settings?: Record<string, unknown>;

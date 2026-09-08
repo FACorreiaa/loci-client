@@ -42,6 +42,9 @@ export interface UpdateUserProfileParams {
   badges?: string[];
   theme?: string;
   language?: string;
+  timezone?: string;
+  units?: string;
+  currency?: string;
 }
 
 // ===================
@@ -141,6 +144,9 @@ export const useUserProfileQuery = () => {
         is_active: profile.isActive,
         theme: profile.theme ?? undefined,
         language: profile.language ?? undefined,
+        timezone: profile.timezone ?? undefined,
+        units: profile.units ?? undefined,
+        currency: profile.currency ?? undefined,
         interests: profile.interests.length > 0 ? [...profile.interests] : [],
         badges: profile.badges.length > 0 ? [...profile.badges] : [],
         created_at: profile.createdAt
@@ -217,6 +223,20 @@ export const useUpdateProfileMutation = () => {
       }
       if (params.language !== undefined && params.language !== "") {
         updateParamsData.language = params.language;
+      }
+      // Same empty-means-absent rule as every field above, and for these three
+      // it is also the only correct one: units and currency carry CHECK
+      // constraints that an empty string violates, so "" is never a value to
+      // send. Clearing a locale field back to NULL is therefore not something
+      // this API can express — the card offers changing them, not unsetting.
+      if (params.timezone !== undefined && params.timezone !== "") {
+        updateParamsData.timezone = params.timezone;
+      }
+      if (params.units !== undefined && params.units !== "") {
+        updateParamsData.units = params.units;
+      }
+      if (params.currency !== undefined && params.currency !== "") {
+        updateParamsData.currency = params.currency;
       }
 
       const updateParams = create(UpdateProfileParamsSchema, updateParamsData);
