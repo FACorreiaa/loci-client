@@ -3,10 +3,13 @@ import { Plus, Copy, Check, Trash2, KeyRound, X, Terminal } from "lucide-solid";
 import { Button } from "~/ui/button";
 import { TextField, TextFieldRoot } from "~/ui/textfield";
 import { Label } from "~/ui/label";
+import { Checkbox, CheckboxControl } from "~/ui/checkbox";
 import {
+  API_KEY_SCOPES,
   useApiKeys,
   useCreateApiKey,
   useRevokeApiKey,
+  type ApiKeyScope,
   type CreatedApiKey,
 } from "~/lib/api/api-keys";
 
@@ -31,9 +34,20 @@ export default function ApiKeys(props: ApiKeysProps) {
   const revokeMutation = useRevokeApiKey();
 
   const [newName, setNewName] = createSignal("");
+  // Read is preselected because it is the safe default and what most agents
+  // need. Nothing was selectable before: the form called the name-only
+  // overload, so every key the product could mint held read alone — which made
+  // plan_itinerary unreachable however good your plan was.
+  const [scopes, setScopes] = createSignal<ApiKeyScope[]>(["read"]);
   const [created, setCreated] = createSignal<CreatedApiKey | null>(null);
   const [copied, setCopied] = createSignal(false);
   const [revokingId, setRevokingId] = createSignal<string | null>(null);
+  const [confirmRevoke, setConfirmRevoke] = createSignal<{ id: string; name: string } | null>(null);
+
+  const toggleScope = (scope: ApiKeyScope, on: boolean) =>
+    setScopes((current) =>
+      on ? [...current.filter((s) => s !== scope), scope] : current.filter((s) => s !== scope),
+    );
 
   const handleCreate = async (e: Event) => {
     e.preventDefault();
@@ -42,10 +56,17 @@ export default function ApiKeys(props: ApiKeysProps) {
       props.onNotification("Give the key a name so you can recognize it later.", "error");
       return;
     }
+    // No scope means the server applies its default, which is read. Saying so
+    // is better than minting something the caller did not intend.
+    if (scopes().length === 0) {
+      props.onNotification("Choose at least one thing this key may do.", "error");
+      return;
+    }
     try {
-      const result = await createMutation.mutateAsync(name);
+      const result = await createMutation.mutateAsync({ name, scopes: scopes() });
       setCreated(result);
       setNewName("");
+      setScopes(["read"]);
     } catch (err) {
       props.onNotification(
         err instanceof Error ? err.message : "Failed to create API key.",
@@ -55,6 +76,7 @@ export default function ApiKeys(props: ApiKeysProps) {
   };
 
   const handleRevoke = async (id: string) => {
+    setConfirmRevoke(null);
     setRevokingId(id);
     try {
       await revokeMutation.mutateAsync(id);
@@ -116,8 +138,8 @@ export default function ApiKeys(props: ApiKeysProps) {
       </div>
 
       {/* Create form */}
-      <form onSubmit={handleCreate} class="flex flex-col sm:flex-row gap-3 sm:items-end">
-        <div class="flex-1">
+      <form onSubmit={handleCreate} class="space-y-4 rounded-lg border border-border p-4">
+        <div>
           <Label for="new-key-name" class="text-sm">
             New key name
           </Label>
@@ -131,6 +153,32 @@ export default function ApiKeys(props: ApiKeysProps) {
             />
           </TextFieldRoot>
         </div>
+
+        <fieldset>
+          <legend class="text-sm font-medium text-foreground">What this key may do</legend>
+          <p class="text-xs text-muted-foreground mt-0.5">
+            Chosen once. A key's permissions cannot be changed afterwards — to widen them, create a
+            new key and revoke this one.
+          </p>
+          <div class="mt-3 space-y-2.5">
+            <For each={API_KEY_SCOPES}>
+              {(scope) => (
+                <Checkbox
+                  checked={scopes().includes(scope.value)}
+                  onChange={(on) => toggleScope(scope.value, on)}
+                  class="flex items-start gap-2.5"
+                >
+                  <CheckboxControl class="mt-0.5" />
+                  <span class="min-w-0">
+                    <span class="block text-sm font-medium text-foreground">{scope.label}</span>
+                    <span class="block text-xs text-muted-foreground">{scope.description}</span>
+                  </span>
+                </Checkbox>
+              )}
+            </For>
+          </div>
+        </fieldset>
+
         <Button type="submit" disabled={createMutation.isPending} class="gap-2">
           <Plus class="w-4 h-4" />
           {createMutation.isPending ? "Creating…" : "Create key"}
@@ -175,13 +223,25 @@ export default function ApiKeys(props: ApiKeysProps) {
                           Last used {key.lastUsedAt ? formatDate(key.lastUsedAt) : "never"}
                         </span>
                       </div>
+                      {/* Without this, a tool refusing a key for lacking a
+                          scope could not be diagnosed from the product at
+                          all — the holder had no way to see what it holds. */}
+                      <div class="mt-1.5 flex flex-wrap gap-1">
+                        <For each={key.scopes}>
+                          {(scope) => (
+                            <span class="rounded-full border border-border px-2 py-0.5 text-[0.68rem] text-muted-foreground">
+                              {API_KEY_SCOPES.find((s) => s.value === scope)?.label ?? scope}
+                            </span>
+                          )}
+                        </For>
+                      </div>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       class="text-destructive hover:text-destructive gap-1 shrink-0"
                       disabled={revokingId() === key.id}
-                      onClick={() => handleRevoke(key.id)}
+                      onClick={() => setConfirmRevoke({ id: key.id, name: key.name })}
                     >
                       <Trash2 class="w-4 h-4" />
                       {revokingId() === key.id ? "Revoking…" : "Revoke"}
@@ -194,6 +254,34 @@ export default function ApiKeys(props: ApiKeysProps) {
         </Show>
       </div>
 
+      {/* Revoking is immediate and irreversible: anything using the key stops
+          working the moment this completes. That deserves a sentence and a
+          second click, not a single button in a list. */}
+      <Show when={confirmRevoke()}>
+        {(target) => (
+          <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+              <h3 class="text-lg font-semibold text-foreground">Revoke “{target().name}”?</h3>
+              <p class="mt-2 text-sm text-muted-foreground">
+                Any agent using this key stops working immediately, and the key cannot be restored.
+                You will need to create a new one and paste it into that client again.
+              </p>
+              <div class="mt-6 flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setConfirmRevoke(null)}>
+                  Keep it
+                </Button>
+                <Button
+                  class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => handleRevoke(target().id)}
+                >
+                  Revoke key
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Show>
+
       {/* Show-once secret overlay */}
       <Show when={created()}>
         {(result) => (
@@ -204,6 +292,17 @@ export default function ApiKeys(props: ApiKeysProps) {
                   <h3 class="text-lg font-semibold text-foreground">Copy your API key now</h3>
                   <p class="text-sm text-muted-foreground mt-1">
                     This is the only time it will be shown. Store it somewhere safe.
+                  </p>
+                  {/* Restate the permissions at the one moment the key is in
+                      the reader's hands. A tool refusing it later for a
+                      missing scope is otherwise a mystery. */}
+                  <p class="text-xs text-muted-foreground mt-2">
+                    This key can:{" "}
+                    {result()
+                      .key.scopes.map(
+                        (scope) => API_KEY_SCOPES.find((s) => s.value === scope)?.label ?? scope,
+                      )
+                      .join(", ")}
                   </p>
                 </div>
                 <button
