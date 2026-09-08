@@ -23,6 +23,24 @@ let oauthStateStore: Record<string, string> = {};
 
 // OAuth and phone providers return the server-issued user id. Keep PII on the
 // person profile rather than adding it to authentication events.
+// Count a signup at the moment one actually happens.
+//
+// signup_completed had exactly one call site — AuthContext.register — and
+// nothing called that. So no signup was being counted on any path: password
+// registration goes through useRegisterMutation, and OAuth through these
+// mutations, and neither fired it. The strangers count that gates release
+// decisions was measuring zero because nothing reported.
+//
+// isNewUser comes from the server, which is the only thing that can tell a
+// first sign-in from a returning one, and it was already on the response and
+// ignored.
+import { capture } from "~/lib/analytics";
+
+function captureIfNewUser(method: "google" | "apple", isNewUser: boolean) {
+  if (!isNewUser) return;
+  capture("signup_completed", { method });
+}
+
 function identifyAuthenticatedUser(user: { userId?: string; email?: string; username?: string }) {
   if (!user.userId) return;
 
@@ -127,8 +145,11 @@ export const useGoogleLoginMutation = () => {
       const response = await customAuthClient.oAuthCallback(callbackRequest);
 
       // Store tokens, then link the anonymous browser session to the stable id.
+      // setAuthToken also announces the new session, which is what makes the UI
+      // reflect it without a refresh.
       setAuthToken(response.accessToken, true, response.refreshToken);
       identifyAuthenticatedUser(response);
+      captureIfNewUser("google", response.isNewUser);
 
       return {
         userId: response.userId,
@@ -176,6 +197,7 @@ export const useAppleLoginMutation = () => {
 
       setAuthToken(response.accessToken, true, response.refreshToken);
       identifyAuthenticatedUser(response);
+      captureIfNewUser("apple", response.isNewUser);
 
       return {
         userId: response.userId,
@@ -232,6 +254,9 @@ export const useVerifyPhoneMutation = () => {
       // Store tokens, then identify with the server-issued stable user id.
       setAuthToken(response.accessToken, true, response.refreshToken);
       identifyAuthenticatedUser(response);
+      if (response.isNewUser) {
+        capture("signup_completed", { method: "phone" });
+      }
 
       return {
         userId: response.userId,

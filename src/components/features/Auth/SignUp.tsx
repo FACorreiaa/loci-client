@@ -8,6 +8,7 @@ import { VsEyeClosed, VsEye } from "solid-icons/vs";
 import { useRegisterMutation } from "~/lib/api/auth";
 import { useGoogleLoginMutation, useAppleLoginMutation } from "~/lib/api/custom-auth";
 import { type AuthErrorField, describeAuthError } from "~/lib/auth/auth-errors";
+import { capture } from "~/lib/analytics";
 
 interface FormData {
   email: string;
@@ -124,6 +125,11 @@ const SignUp: Component = () => {
         email: data.email,
         password: data.password,
       });
+
+      // The strangers count is measured from this event, and until now nothing
+      // fired it: its only call site was AuthContext.register, which no
+      // component uses. Registration succeeded and went uncounted.
+      capture("signup_completed", { method: "password" });
 
       navigate("/auth/signin");
     } catch (err: unknown) {

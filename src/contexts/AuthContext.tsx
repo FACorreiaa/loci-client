@@ -10,9 +10,9 @@ import {
 import { useNavigate } from "@solidjs/router";
 import { getAuthToken, setAuthToken, clearAuthToken, isPersistentSession } from "~/lib/auth/tokens";
 import { isDeadSession } from "~/lib/auth/session-failure";
-import { onAuthExpired } from "~/lib/auth/auth-events";
+import { onAuthEstablished, onAuthExpired } from "~/lib/auth/auth-events";
 import { authAPI } from "~/lib/api";
-import { capture, identify, resetIdentity } from "~/lib/analytics";
+import { identify, resetIdentity } from "~/lib/analytics";
 
 interface User {
   id: string;
@@ -69,7 +69,6 @@ interface AuthContextType {
     code: string,
     options?: { recoveryCode?: string; rememberMe?: boolean },
   ) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updatePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   retryAuth: () => Promise<void>;
@@ -236,6 +235,40 @@ export const AuthProvider = (props: AuthProviderProps) => {
     return () => window.removeEventListener("storage", handleStorageChange);
   });
 
+  // The other half of the session lifecycle. A token can appear without this
+  // provider being told: the OAuth mutations call setAuthToken directly and
+  // never touch this context, so `user` stayed null, isAuthenticated() stayed
+  // false, and routes/index.tsx rendered the landing page to somebody who had
+  // just signed up. Only a refresh recovered it, because onMount is the one
+  // other path that reads the token and loads the profile.
+  //
+  // Guarded on `!user()` so it is idempotent: establishSession also calls
+  // setAuthToken, and it sets the user itself. The event is delivered a
+  // microtask later precisely so that guard is true only when nobody else has
+  // claimed the session.
+  createEffect(() => {
+    const off = onAuthEstablished(() => {
+      if (user() || !getAuthToken()) return;
+      void (async () => {
+        try {
+          const userProfile = await authAPI.getCurrentUser();
+          setUser(userProfile);
+          identifyUser(userProfile);
+          setAuthError(null);
+          setAuthReady(true);
+        } catch (error) {
+          // Not fatal and not a reason to clear the token: the token was just
+          // issued, so a failure here is the profile call, not the session.
+          // retryAuth() and the focus/online listeners recover it.
+          console.error("AuthProvider: profile load after sign-in failed:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+    });
+    onCleanup(off);
+  });
+
   // Soft logout: the Connect transport signals this when a token refresh has
   // genuinely failed. Clear in-memory state and navigate via the router (no
   // full page reload) so we don't drop session/streaming state mid-flow.
@@ -351,22 +384,6 @@ export const AuthProvider = (props: AuthProviderProps) => {
     }
   };
 
-  const register = async (username: string, email: string, password: string): Promise<void> => {
-    setIsLoading(true);
-    try {
-      // Register new user with server
-      await authAPI.register(username, email, password);
-      // After successful registration, automatically log in the user
-      await login(email, password);
-      // Metric: stranger signups. Fired after login so the event carries the
-      // identity established above rather than an anonymous id.
-      capture("signup_completed", { method: "password" });
-    } catch (error) {
-      setIsLoading(false);
-      throw error;
-    }
-  };
-
   const logout = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -402,7 +419,6 @@ export const AuthProvider = (props: AuthProviderProps) => {
     authError,
     login,
     completeMFALogin,
-    register,
     logout,
     updatePassword,
     retryAuth,

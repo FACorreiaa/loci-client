@@ -1,5 +1,7 @@
 // Client-side token helpers used across the app
 
+import { notifyAuthEstablished } from "./auth-events";
+
 /**
  * Get the persisted access token from localStorage or sessionStorage.
  */
@@ -36,6 +38,13 @@ export const setAuthToken = (
 
   secondaryStorage.removeItem("access_token");
   secondaryStorage.removeItem("refresh_token");
+
+  // Storing a token IS the moment a session begins, so this is the one place
+  // that has to announce it. Announcing from each caller instead is what left
+  // the OAuth paths silent: they wrote tokens and never told AuthContext, so
+  // `user` stayed null and the route gate showed the landing page until a
+  // manual refresh. See notifyAuthEstablished for why delivery is deferred.
+  notifyAuthEstablished();
 };
 
 /**
