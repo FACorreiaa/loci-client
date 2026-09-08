@@ -1,5 +1,5 @@
 import { createEffect, createSignal, For, Show } from "solid-js";
-import { A } from "@solidjs/router";
+import { A, useSearchParams } from "@solidjs/router";
 import {
   User,
   Tag,
@@ -22,6 +22,7 @@ import {
   CreditCard,
   Sparkles,
   ExternalLink,
+  Plug,
 } from "lucide-solid";
 import {
   useUpdateProfileMutation,
@@ -42,6 +43,7 @@ import {
   useDeleteInterestMutation,
   useToggleInterestActiveMutation,
 } from "../../lib/api/interests";
+import { useSearchProfiles } from "~/lib/api/profiles";
 import { ProcessedProfileData, UserProfileResponse } from "~/lib/api/types";
 import { useAuth } from "~/contexts/AuthContext";
 import TagsComponent from "~/components/features/Settings/Tags";
@@ -49,10 +51,32 @@ import InterestsComponent from "~/components/features/Settings/Interests";
 import TravelProfiles from "~/components/features/Settings/TravelProfiles";
 import AppearanceSettings from "~/components/AppearanceSettings";
 import ApiKeys from "~/components/features/Settings/ApiKeys";
+import AiCredentials from "~/components/features/Settings/AiCredentials";
+import TelegramLink from "~/components/features/Settings/TelegramLink";
+import OutboundConnections from "~/components/features/Settings/OutboundConnections";
 import TwoFactor from "~/components/features/Settings/TwoFactor";
+import ChangePassword from "~/components/features/Settings/ChangePassword";
 import TasteAndPrivacy from "~/components/features/Settings/TasteAndPrivacy";
 import AccountData from "~/components/features/Settings/AccountData";
 import { Button } from "~/ui/button";
+
+const TABS = [
+  { id: "settings", label: "Settings", icon: User },
+  { id: "tags", label: "Tags", icon: Tag },
+  { id: "interests", label: "Interests", icon: Heart },
+  { id: "profiles", label: "Travel Profiles", icon: Users },
+  // MCP lives inside the API-keys panel (endpoint + setup guide), so name the
+  // tab after both rather than duplicating the panel.
+  { id: "apikeys", label: "MCP & API Keys", icon: KeyRound },
+  // Everything that talks to something outside Loci on your behalf: your own
+  // model key, your Telegram chat, MCP servers Loci calls.
+  { id: "connections", label: "Connections", icon: Plug },
+  { id: "memory", label: "What Loci remembers", icon: Brain },
+  { id: "security", label: "Security", icon: ShieldCheck },
+  { id: "billing", label: "Plan & Billing", icon: CreditCard },
+];
+
+const TAB_IDS = TABS.map((t) => t.id);
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -60,7 +84,18 @@ export default function SettingsPage() {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const [activeTab, setActiveTab] = createSignal("settings");
+  // The tab lives in the URL, not in a local signal. Held locally, nothing
+  // inside settings could be linked to: "your key is in Settings → MCP & API
+  // Keys" was the best a support answer could do, and a reload always dropped
+  // the reader back on the profile tab.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = () => {
+    const requested = searchParams.tab as string | undefined;
+    return requested && TAB_IDS.includes(requested) ? requested : "settings";
+  };
+  // replace: true so tabbing around does not fill the back button with
+  // settings panes.
+  const setActiveTab = (id: string) => setSearchParams({ tab: id }, { replace: true });
   const uploadAvatarMutation = useUploadAvatarMutation();
   const profileQuery = useUserProfileQuery();
   const updateProfileMutation = useUpdateProfileMutation();
@@ -117,6 +152,9 @@ export default function SettingsPage() {
     try {
       const profileData = userProfile();
       const profileUpdateData = {
+        // The form has had a Username field all along and this payload omitted
+        // it, so every edit to it was silently discarded on save.
+        username: profileData.username,
         firstname: profileData.firstname,
         lastname: profileData.lastname,
         email: profileData.email,
@@ -144,7 +182,20 @@ export default function SettingsPage() {
     }
   };
 
-  const profileData = (): ProcessedProfileData | null => {
+  /**
+   * The subset of the profile this page's header renders.
+   *
+   * Deliberately not ProcessedProfileData: that type carries badges and stats,
+   * which the profile page computes from real activity and this page does not
+   * show at all. Claiming to return it is what let a block of invented counts
+   * sit here unnoticed.
+   */
+  type SettingsHeaderProfile = Pick<
+    ProcessedProfileData,
+    "id" | "username" | "email" | "bio" | "location" | "joinedDate" | "avatar" | "interests"
+  >;
+
+  const profileData = (): SettingsHeaderProfile | null => {
     const apiData: UserProfileResponse | undefined = profileQuery.data;
     const userData = user();
 
@@ -158,34 +209,60 @@ export default function SettingsPage() {
       location: apiData?.location || (userData as any)?.location,
       joinedDate: apiData?.created_at || userData?.created_at,
       avatar: apiData?.profile_image_url || userData?.profile_image_url,
-      interests: apiData?.interests || ["Architecture", "Food & Dining", "Museums", "Photography"],
-      // Temporary hardcoded data for UI purposes
-      badges: ["Early Adopter", "Review Writer", "Local Guide"],
-      stats: {
-        places_visited: 47,
-        reviews_written: 23,
-        lists_created: 8,
-        followers: 156,
-        following: 89,
+      // Nothing invented. These used to fall back to a fixed list of interests
+      // and a block of made-up counts — 47 places visited, 156 followers — for
+      // an account that had none of it. A new user was shown somebody else's
+      // profile and had no way to tell which numbers were theirs.
+      interests: apiData?.interests || [],
+    };
+  };
+
+  // Trip styles saved, from the same query the Travel Profiles tab reads. The
+  // hero stat used to show a hardcoded 8 (or 1 when that fell through), which
+  // is one of the numbers that made the whole panel untrustworthy.
+  const savedProfilesQuery = useSearchProfiles();
+  const savedProfiles = () => savedProfilesQuery.data ?? [];
+
+  /**
+   * How much of the profile is actually filled in, and what is missing.
+   *
+   * Weighted by what changes a recommendation: the free-text fields and the
+   * signal lists matter more than a phone number. The bar is measured so the
+   * sentence under it can name the next thing to do — a fixed percentage can
+   * only be decoration.
+   */
+  const completion = () => {
+    const p = userProfile();
+    const fields: { label: string; done: boolean; weight: number }[] = [
+      { label: "a first name", done: Boolean(p.firstname?.trim()), weight: 1 },
+      { label: "a last name", done: Boolean(p.lastname?.trim()), weight: 1 },
+      {
+        label: "where you're based",
+        done: Boolean(p.city?.trim() || p.country?.trim()),
+        weight: 2,
       },
+      { label: "a short bio", done: Boolean(p.bio?.trim()), weight: 2 },
+      { label: "a photo", done: Boolean(p.avatar?.trim()), weight: 1 },
+      { label: "some interests", done: interests().length > 0, weight: 3 },
+      { label: "a few tags", done: tags().length > 0, weight: 2 },
+      { label: "a travel profile", done: savedProfiles().length > 0, weight: 2 },
+    ];
+    const total = fields.reduce((sum, f) => sum + f.weight, 0);
+    const earned = fields.reduce((sum, f) => (f.done ? sum + f.weight : sum), 0);
+    return {
+      percent: Math.round((earned / total) * 100),
+      // Only the next few, so the sentence stays a sentence.
+      missing: fields
+        .filter((f) => !f.done)
+        .map((f) => f.label)
+        .slice(0, 3),
     };
   };
 
   const [photoPreview, setPhotoPreview] = createSignal<string | null>(null);
   const [isUploading, setIsUploading] = createSignal(false);
 
-  const tabs = [
-    { id: "settings", label: "Settings", icon: User },
-    { id: "tags", label: "Tags", icon: Tag },
-    { id: "interests", label: "Interests", icon: Heart },
-    { id: "profiles", label: "Travel Profiles", icon: Users },
-    // MCP lives inside the API-keys panel (endpoint + setup guide), so name the
-    // tab after both rather than duplicating the panel.
-    { id: "apikeys", label: "MCP & API Keys", icon: KeyRound },
-    { id: "memory", label: "What Loci remembers", icon: Brain },
-    { id: "security", label: "Security", icon: ShieldCheck },
-    { id: "billing", label: "Plan & Billing", icon: CreditCard },
-  ];
+  const tabs = TABS;
 
   // Get tags from API
   const tags = () => tagsQuery.data || [];
@@ -336,7 +413,7 @@ export default function SettingsPage() {
               </div>
               <div class="loci-hero__stat col-span-2 sm:col-span-1">
                 <div class="loci-hero__stat-label">Profiles</div>
-                <div class="text-2xl font-bold">{profile?.stats?.lists_created ?? 1}</div>
+                <div class="text-2xl font-bold">{savedProfiles().length}</div>
                 <div class="loci-hero__stat-detail">Trip styles saved</div>
               </div>
             </div>
@@ -500,21 +577,33 @@ export default function SettingsPage() {
                   Smart Fill
                 </div>
               </div>
+              {/* Measured, not decorative. A fixed 78% told everybody the same
+                  thing however empty their profile was, which makes the bar
+                  worse than no bar: it says "nearly done" to somebody who has
+                  filled in nothing. */}
               <div class="w-full h-2.5 rounded-full bg-muted overflow-hidden">
                 <div
-                  class="h-full rounded-full bg-gradient-to-r from-primary via-primary to-accent"
-                  style={{ width: "78%" }}
+                  class="h-full rounded-full bg-gradient-to-r from-primary via-primary to-accent transition-[width] duration-500"
+                  style={{ width: `${completion().percent}%` }}
                 />
               </div>
               <p class="text-xs text-muted-foreground mt-2">
-                Complete your details and tune interests/tags for sharper recommendations.
+                <Show
+                  when={completion().missing.length > 0}
+                  fallback={
+                    <>Everything's filled in. Recommendations have all the signal they can get.</>
+                  }
+                >
+                  {completion().percent}% — add {completion().missing.join(", ")} for sharper
+                  recommendations.
+                </Show>
               </p>
             </div>
 
             <div class="loci-card rounded-3xl p-6 sm:p-8">
               <h4 class="text-lg font-semibold text-foreground mb-1">Appearance</h4>
               <p class="text-sm text-muted-foreground mb-4">
-                Theme and language sync across your devices when signed in.
+                Theme and language are kept in this browser.
               </p>
               <AppearanceSettings />
             </div>
@@ -767,6 +856,31 @@ export default function SettingsPage() {
     </div>
   );
 
+  // One card per concern, each saving on its own, which is the pattern the rest
+  // of settings still owes: a single giant Save cannot report which card failed.
+  const renderConnections = () => (
+    <div class="space-y-8">
+      <AiCredentials onNotification={(message, type) => setNotification({ message, type })} />
+      <div class="border-t border-border pt-8">
+        <TelegramLink onNotification={(message, type) => setNotification({ message, type })} />
+      </div>
+      <div class="border-t border-border pt-8">
+        <OutboundConnections
+          onNotification={(message, type) => setNotification({ message, type })}
+        />
+      </div>
+    </div>
+  );
+
+  const renderSecurity = () => (
+    <div class="space-y-8">
+      <ChangePassword onNotification={(message, type) => setNotification({ message, type })} />
+      <div class="border-t border-border pt-8">
+        <TwoFactor onNotification={(message, type) => setNotification({ message, type })} />
+      </div>
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab()) {
       case "settings":
@@ -779,10 +893,12 @@ export default function SettingsPage() {
         return renderProfiles();
       case "apikeys":
         return <ApiKeys onNotification={(message, type) => setNotification({ message, type })} />;
+      case "connections":
+        return renderConnections();
       case "memory":
         return renderMemoryLink();
       case "security":
-        return <TwoFactor onNotification={(message, type) => setNotification({ message, type })} />;
+        return renderSecurity();
       case "billing":
         return renderBilling();
       default:
