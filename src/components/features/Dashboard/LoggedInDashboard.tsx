@@ -221,6 +221,13 @@ export default function LoggedInDashboard() {
         },
         {
           session,
+          // Navigate as soon as the session exists; see PublicLandingPage.
+          onStart: (started) => {
+            setIsLoading(false);
+            setStreamProgress("");
+            setCurrentMessage("");
+            navigate(getDomainRoute(started.domain, started.sessionId, started.city));
+          },
           onProgress: (updatedSession) => {
             setStreamingSession(updatedSession);
             const domain = updatedSession.domain;
@@ -241,33 +248,10 @@ export default function LoggedInDashboard() {
             }
             sessionStorage.setItem("currentStreamingSession", JSON.stringify(updatedSession));
           },
-          onComplete: (completedSession) => {
-            console.log("🎊 onComplete callback triggered in LoggedInDashboard", completedSession);
+          onComplete: () => {
+            // Recorded by the service; the results page is already showing it.
             setIsLoading(false);
             setStreamProgress("");
-            setCurrentMessage("");
-
-            // Store completed session
-            sessionStorage.setItem("completedStreamingSession", JSON.stringify(completedSession));
-
-            // Navigate to appropriate page
-            const route = getDomainRoute(
-              completedSession.domain,
-              completedSession.sessionId,
-              completedSession.city,
-            );
-            console.log("🧭 Navigation route:", route, {
-              domain: completedSession.domain,
-              sessionId: completedSession.sessionId,
-              city: completedSession.city,
-            });
-
-            if (route) {
-              console.log("✈️  Navigating to:", route);
-              navigate(route);
-            } else {
-              console.error("❌ No route returned from getDomainRoute");
-            }
           },
           onError: (error) => {
             console.error("Streaming error:", error);

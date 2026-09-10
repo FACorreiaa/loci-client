@@ -1,4 +1,4 @@
-import { createEffect, mergeProps, onCleanup } from "solid-js";
+import { Show, createEffect, mergeProps, onCleanup } from "solid-js";
 import type { Point } from "geojson";
 import mapboxgl from "mapbox-gl";
 import { useTheme } from "~/contexts/ThemeContext";
@@ -25,6 +25,7 @@ import { animateRoutes, ensurePoiLayers } from "./layers/poiLayers";
 import { buildSignalData, ensureSignalLayers } from "./layers/signalLayers";
 import { buildPopupContent } from "./popup";
 import type { MapComponentProps, POI } from "./types";
+import { MapErrorBoundary, MapUnavailable } from "./MapErrorBoundary";
 import { useMapLifecycle } from "./useMapLifecycle";
 
 const MapComponent = (_props: MapComponentProps) => {
@@ -317,14 +318,32 @@ const MapComponent = (_props: MapComponentProps) => {
   });
 
   return (
-    <div
-      ref={mapContainer}
-      role="application"
-      aria-label="Itinerary map"
-      class={`w-full h-full min-h-[300px] overflow-hidden ${props.fullBleed ? "" : "rounded-lg"}`}
-    />
+    <div class="relative w-full h-full min-h-[300px]">
+      <div
+        ref={mapContainer}
+        role="application"
+        aria-label="Itinerary map"
+        class={`w-full h-full min-h-[300px] overflow-hidden ${props.fullBleed ? "" : "rounded-lg"}`}
+      />
+      <Show when={lifecycle.unavailable()}>
+        <MapUnavailable
+          reason={lifecycle.unavailable()}
+          class={`absolute inset-0 ${props.fullBleed ? "rounded-none" : ""}`}
+        />
+      </Show>
+    </div>
   );
 };
 
+/**
+ * The default export every route lazy-loads. Wrapped here, once, so a Mapbox
+ * failure is contained at all twelve call sites without each remembering to.
+ */
+const MapComponentGuarded = (props: MapComponentProps) => (
+  <MapErrorBoundary>
+    <MapComponent {...props} />
+  </MapErrorBoundary>
+);
+
 export type { POI } from "./types";
-export default MapComponent;
+export default MapComponentGuarded;

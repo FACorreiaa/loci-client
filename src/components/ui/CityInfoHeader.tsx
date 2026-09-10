@@ -15,6 +15,8 @@ interface CityData {
 interface CityInfoHeaderProps {
   cityData?: CityData;
   isLoading?: boolean;
+  /** Overrides cityData.description — the typed-out copy while streaming. */
+  description?: string;
 }
 
 export const CityInfoHeader: Component<CityInfoHeaderProps> = (props) => {
@@ -29,7 +31,7 @@ export const CityInfoHeader: Component<CityInfoHeaderProps> = (props) => {
         <div class="loci-hero absolute inset-0 z-0 rounded-none border-0 shadow-none" />
 
         {/* Accents/Noise for texture */}
-        <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-0 mix-blend-overlay" />
+        <div class="absolute inset-0 domain-noise opacity-40 z-0" />
         <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/20 transition-colors duration-500" />
 
         <div class="relative z-10">
@@ -46,7 +48,7 @@ export const CityInfoHeader: Component<CityInfoHeaderProps> = (props) => {
                   </span>
                 </h1>
                 <p class="text-blue-50/90 text-sm md:text-base leading-relaxed max-w-3xl font-medium">
-                  {props.cityData?.description}
+                  {props.description ?? props.cityData?.description}
                 </p>
               </div>
 

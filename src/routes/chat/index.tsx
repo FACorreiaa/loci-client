@@ -1,5 +1,6 @@
 import { For, Show, lazy, createSignal, createEffect } from "solid-js";
-import { Bot, Loader2, MapPin } from "lucide-solid";
+import { Loader2, MapPin } from "lucide-solid";
+import { LociMark } from "~/components/brand/Logo";
 import {
   ChatHeader,
   ChatInput,
@@ -153,8 +154,8 @@ export default function ChatPage() {
             {/* Loading indicator with streaming progress */}
             <Show when={chat.isLoading()}>
               <div class="flex gap-2 sm:gap-3 justify-start" aria-live="polite">
-                <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                  <Bot class="w-3 h-3 sm:w-4 sm:h-4 text-primary-foreground" />
+                <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center flex-shrink-0">
+                  <LociMark class="w-3 h-3 sm:w-4 sm:h-4" label="Loci" />
                 </div>
                 <div class="bg-card/80 backdrop-blur-sm border border-border rounded-2xl px-3 py-2 sm:px-4 sm:py-3 max-w-xs sm:max-w-md shadow-sm">
                   <div class="flex items-center gap-1 sm:gap-2 text-muted-foreground mb-2">

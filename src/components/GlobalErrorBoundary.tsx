@@ -1,5 +1,5 @@
 // Global Error Boundary component for catching unhandled errors
-import { ErrorBoundary as SolidErrorBoundary, Component, JSX, createSignal } from "solid-js";
+import { ErrorBoundary as SolidErrorBoundary, Component, JSX, Show, createSignal } from "solid-js";
 import { captureException } from "~/lib/analytics";
 
 interface ErrorBoundaryProps {
@@ -68,26 +68,29 @@ const ErrorFallback: Component<ErrorFallbackProps> = (props) => {
           </button>
         </div>
 
-        {/* Error Details Toggle */}
-        <button
-          onClick={() => setShowDetails(!showDetails())}
-          class="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
-        >
-          {showDetails() ? "Hide" : "Show"} technical details
-        </button>
+        {/* Error Details Toggle — dev only. Stack traces never ship to users;
+            production errors are reported via captureException instead. */}
+        <Show when={import.meta.env.DEV}>
+          <button
+            onClick={() => setShowDetails(!showDetails())}
+            class="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          >
+            {showDetails() ? "Hide" : "Show"} technical details
+          </button>
 
-        {showDetails() && (
-          <div class="mt-4 p-4 bg-black/30 rounded-lg text-left overflow-auto max-h-48">
-            <p class="font-mono text-xs text-destructive break-all">
-              {props.error.name}: {props.error.message}
-            </p>
-            {props.error.stack && (
-              <pre class="mt-2 font-mono text-xs text-muted-foreground whitespace-pre-wrap break-all">
-                {props.error.stack}
-              </pre>
-            )}
-          </div>
-        )}
+          {showDetails() && (
+            <div class="mt-4 p-4 bg-black/30 rounded-lg text-left overflow-auto max-h-48">
+              <p class="font-mono text-xs text-destructive break-all">
+                {props.error.name}: {props.error.message}
+              </p>
+              {props.error.stack && (
+                <pre class="mt-2 font-mono text-xs text-muted-foreground whitespace-pre-wrap break-all">
+                  {props.error.stack}
+                </pre>
+              )}
+            </div>
+          )}
+        </Show>
 
         {/* Support Link */}
         <p class="mt-6 text-sm text-muted-foreground">

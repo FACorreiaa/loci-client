@@ -2,6 +2,8 @@ import { createSignal, createMemo, Show, onMount, lazy } from "solid-js";
 import { useSearchParams } from "@solidjs/router";
 import { useChatRPC } from "~/lib/hooks/useChatRPC";
 import { hasListContent, readCompletedSession } from "~/lib/streaming/restore-session";
+import { useLiveSession } from "~/lib/streaming/live-stream-store";
+import { resumeLiveSession } from "~/lib/streaming/resume-live";
 import { POIDetailedInfo } from "~/lib/api/types";
 import HotelResults from "~/components/results/HotelResults";
 const MapComponent = lazy(() => import("~/components/features/Map/Map"));
@@ -26,6 +28,10 @@ export default function HotelsPage() {
 
   // Local state for restored data from session storage
   const [restoredData, setRestoredData] = createSignal<any>(null);
+  // A search started on `/` streams on the service singleton; when its
+  // session is the one in the URL, read it live (see live-stream-store.ts).
+  const live = useLiveSession(() => searchParams.sessionId as string | undefined);
+  const [boundLive, setBoundLive] = createSignal(false);
 
   // Local favorites state
   const [favorites, setFavorites] = createSignal<string[]>([]);
@@ -65,6 +71,10 @@ export default function HotelsPage() {
     const sessionIdFromUrl = searchParams.sessionId as string;
 
     if (sessionIdFromUrl) {
+      if (resumeLiveSession(sessionIdFromUrl)) {
+        setBoundLive(true);
+        return;
+      }
       const restored = normalizeStoredData(readCompletedSession(sessionIdFromUrl));
       if (restored) {
         setRestoredData(restored);
@@ -81,7 +91,10 @@ export default function HotelsPage() {
     }
   });
 
-  const effectiveData = createMemo(() => restoredData() || state.streamedData);
+  const liveData = createMemo(() => (boundLive() ? live.data() : null));
+  const effectiveData = createMemo(() => restoredData() || liveData() || state.streamedData);
+  const isStreaming = () => (boundLive() ? live.isStreaming() : state.isStreaming);
+  const streamError = () => (boundLive() ? live.error() : state.error);
   const cityData = createMemo(() => effectiveData()?.general_city_data);
 
   const hotels = createMemo(() => {
@@ -143,7 +156,7 @@ export default function HotelsPage() {
         when={allPois().length > 0}
         fallback={
           <div class="h-full w-full flex items-center justify-center text-muted-foreground p-4 text-center">
-            {state.isStreaming ? "Loading map data..." : "No items to display on map"}
+            {isStreaming() ? "Loading map data..." : "No items to display on map"}
           </div>
         }
       >
@@ -172,17 +185,17 @@ export default function HotelsPage() {
   const ListContent = (
     <div class="h-full overflow-y-auto p-4 md:p-6 bg-background/50 backdrop-blur-sm">
       <div class="max-w-3xl mx-auto pb-20">
-        <CityInfoHeader cityData={cityData()} isLoading={state.isStreaming && !cityData()} />
+        <CityInfoHeader cityData={cityData()} isLoading={isStreaming() && !cityData()} />
 
-        <Show when={state.error}>
+        <Show when={streamError()}>
           <StreamErrorCard
-            error={state.error!}
+            error={streamError()!}
             title="Unable to load hotels"
             onRetry={startOrExplain}
           />
         </Show>
 
-        <Show when={state.isStreaming && !hotels().length}>
+        <Show when={isStreaming() && !hotels().length}>
           <HotelsSkeleton />
         </Show>
 

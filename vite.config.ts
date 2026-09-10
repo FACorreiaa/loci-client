@@ -116,7 +116,7 @@ const pwa = VitePWA({
   applyToEnvironment: (env: { name: string }) => env.name === "client",
 }));
 
-export default defineConfig({
+export default defineConfig(({ command, mode }) => ({
   plugins: [
     solidStart({ middleware: "./src/middleware/index.ts" }),
     nitro(),
@@ -133,4 +133,23 @@ export default defineConfig({
       "~": path.resolve(__dirname, "./src"),
     },
   },
-});
+  // The production client bundle shipped ~140 console.log calls and every
+  // console.error, straight into visitors' devtools. Dropped here, for the
+  // browser bundle only: the ssr/nitro environments keep their logs, which is
+  // where operators read them. Error reporting goes through captureException
+  // (~/lib/analytics), not console, so nothing observable is lost.
+  environments:
+    command === "build" && mode === "production"
+      ? {
+          client: {
+            build: {
+              rolldownOptions: {
+                output: {
+                  minify: { compress: { dropConsole: true, dropDebugger: true } },
+                },
+              },
+            },
+          },
+        }
+      : undefined,
+}));
