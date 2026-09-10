@@ -40,13 +40,23 @@ export interface ApiKeyView {
 }
 
 // Mirrors apikey.ClientKinds on the server, in the order it offers them.
-export type ClientKind = "claude_code" | "codex" | "hermes" | "other";
+export type ClientKind = "claude_code" | "claude_desktop" | "cursor" | "codex" | "hermes" | "other";
 
 export const CLIENT_KINDS: { value: ClientKind; label: string; blurb: string }[] = [
   {
     value: "claude_code",
     label: "Claude Code",
     blurb: "One command, no file to edit.",
+  },
+  {
+    value: "claude_desktop",
+    label: "Claude Desktop",
+    blurb: "claude_desktop_config.json, via mcp-remote.",
+  },
+  {
+    value: "cursor",
+    label: "Cursor",
+    blurb: "A server entry in ~/.cursor/mcp.json.",
   },
   {
     value: "codex",

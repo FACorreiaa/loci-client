@@ -17,12 +17,11 @@ import {
   type CreatedApiKey,
   type SetupInstructionsView,
 } from "~/lib/api/api-keys";
+import { MCP_ENDPOINT } from "~/lib/mcp-endpoint";
 
 interface ApiKeysProps {
   onNotification: (message: string, type: "success" | "error") => void;
 }
-
-const MCP_ENDPOINT = `${import.meta.env.VITE_CONNECT_BASE_URL ?? "http://localhost:8000"}/mcp`;
 
 function formatDate(ms?: number): string {
   if (!ms) return "—";

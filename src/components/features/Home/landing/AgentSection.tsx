@@ -2,6 +2,7 @@ import { For } from "solid-js";
 import { A } from "@solidjs/router";
 import { ArrowRight } from "lucide-solid";
 import RouteStop from "./RouteStop";
+import { MCP_ENDPOINT } from "~/lib/mcp-endpoint";
 
 const clients = ["Claude", "Codex", "Gemini", "Grok", "+ any MCP client"];
 
@@ -25,7 +26,7 @@ export default function AgentSection() {
           <pre class="font-coord overflow-x-auto rounded-xl border border-border bg-background p-4 text-[0.82rem] leading-relaxed text-muted-foreground">
             <code>
               <span class="text-accent">claude mcp add</span>
-              {` --transport http loci \\\n  https://api.lociai.fyi/mcp \\\n  --header "Authorization: Bearer `}
+              {` --transport http loci \\\n  ${MCP_ENDPOINT} \\\n  --header "Authorization: Bearer `}
               <span class="text-accent">loci_sk_…</span>
               {`"`}
             </code>
