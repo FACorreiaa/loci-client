@@ -284,8 +284,7 @@ export function ModelProviderCard(props: ModelProviderCardProps) {
                     <p class="font-medium">
                       The last call with your key failed
                       <Show when={credential()?.lastErrorAt}>
-                        {" "}
-                        ({formatDateTime(credential()?.lastErrorAt)})
+                        {(errorAt) => <> ({formatDateTime(errorAt())})</>}
                       </Show>
                       . Loci's own model is answering in the meantime.
                     </p>

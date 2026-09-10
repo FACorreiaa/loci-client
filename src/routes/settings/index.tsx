@@ -128,10 +128,10 @@ export default function SettingsPage() {
   const userData = user();
 
   createEffect(() => {
-    const apiData = profileQuery.data;
+    // isSuccess first: reading `.data` on a pending query suspends the
+    // root boundary and blanks the whole route (see ConnectionsPage).
+    const apiData = profileQuery.isSuccess ? profileQuery.data : undefined;
     if (!apiData && !userData) return null;
-    console.log("userData", userData);
-    console.log("apiData", apiData);
 
     if (apiData) {
       setUserProfile({
@@ -199,7 +199,9 @@ export default function SettingsPage() {
   >;
 
   const profileData = (): SettingsHeaderProfile | null => {
-    const apiData: UserProfileResponse | undefined = profileQuery.data;
+    const apiData: UserProfileResponse | undefined = profileQuery.isSuccess
+      ? profileQuery.data
+      : undefined;
     const userData = user();
 
     if (!apiData && !userData) return null;
@@ -224,7 +226,8 @@ export default function SettingsPage() {
   // hero stat used to show a hardcoded 8 (or 1 when that fell through), which
   // is one of the numbers that made the whole panel untrustworthy.
   const savedProfilesQuery = useSearchProfiles();
-  const savedProfiles = () => savedProfilesQuery.data ?? [];
+  const savedProfiles = () =>
+    (savedProfilesQuery.isSuccess ? savedProfilesQuery.data : undefined) ?? [];
 
   /**
    * How much of the profile is actually filled in, and what is missing.
