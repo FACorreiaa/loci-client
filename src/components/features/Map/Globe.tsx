@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, mergeProps, onCleanup } from "solid-js";
+import { Show, createEffect, createMemo, createSignal, mergeProps, onCleanup } from "solid-js";
 import mapboxgl from "mapbox-gl";
 import { useTheme } from "~/contexts/ThemeContext";
 import { applyGlobeAtmosphere, clearGlobeAtmosphere, globeFitZoom } from "./atmosphere";
@@ -18,6 +18,7 @@ import {
 } from "./layers/globeLayers";
 import { ensurePillImage } from "./layers/pillImage";
 import { formatLegLabel, useArcPlayhead } from "./useArcPlayhead";
+import { MapErrorBoundary, MapUnavailable } from "./MapErrorBoundary";
 import { useMapLifecycle } from "./useMapLifecycle";
 
 /** A place the traveller has been, ready to plot. */
@@ -240,13 +241,25 @@ const GlobeComponent = (_props: GlobeComponentProps) => {
   onCleanup(() => setReady(false));
 
   return (
-    <div
-      ref={container}
-      role="img"
-      aria-label="Globe showing cities you have visited"
-      class="w-full h-full min-h-[320px] overflow-hidden"
-    />
+    <div class="relative w-full h-full min-h-[320px]">
+      <div
+        ref={container}
+        role="img"
+        aria-label="Globe showing cities you have visited"
+        class="w-full h-full min-h-[320px] overflow-hidden"
+      />
+      <Show when={lifecycle.unavailable()}>
+        <MapUnavailable reason={lifecycle.unavailable()} class="absolute inset-0 rounded-none" />
+      </Show>
+    </div>
   );
 };
 
-export default GlobeComponent;
+/** Guarded default export; see Map.tsx for why the boundary lives here. */
+const GlobeComponentGuarded = (props: Parameters<typeof GlobeComponent>[0]) => (
+  <MapErrorBoundary>
+    <GlobeComponent {...props} />
+  </MapErrorBoundary>
+);
+
+export default GlobeComponentGuarded;

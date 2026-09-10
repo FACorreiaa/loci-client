@@ -1,5 +1,7 @@
 import { Component, Show, createMemo } from "solid-js";
-import { Bot, User, Heart, Share2, ChevronDown, ChevronUp } from "lucide-solid";
+import { User, Heart, Share2, ChevronDown, ChevronUp } from "lucide-solid";
+import { LociMark } from "~/components/brand/Logo";
+import { formatMessageContent } from "./format-message-content";
 import HotelResults from "~/components/results/HotelResults";
 import RestaurantResults from "~/components/results/RestaurantResults";
 import ActivityResults from "~/components/results/ActivityResults";
@@ -25,58 +27,9 @@ const formatTimestamp = (timestamp: any) =>
     minute: "2-digit",
   });
 
-const PREFIX_PATTERNS = [
-  /^\[city_data\]\s*/i,
-  /^\[itinerary\]\s*/i,
-  /^\[restaurants\]\s*/i,
-  /^\[hotels\]\s*/i,
-  /^\[activities\]\s*/i,
-  /^\[pois\]\s*/i,
-  /^\[general_pois\]\s*/i,
-  /^\[personalized_pois\]\s*/i,
-];
-
-/** Strip LLM response prefixes / json fences and turn raw JSON payloads into a
- *  short human sentence. (Full markdown rendering is a later step.) */
-const formatMessageContent = (content: string): string => {
-  let cleaned = content.trim();
-  for (const pattern of PREFIX_PATTERNS) cleaned = cleaned.replace(pattern, "");
-  cleaned = cleaned.replace(/```json\s*(.*?)\s*```/s, "$1").trim();
-
-  if (!cleaned.startsWith("{") && !cleaned.startsWith("[")) return content;
-
-  try {
-    const parsed = JSON.parse(cleaned);
-    if (parsed.city && parsed.country) {
-      const details = [];
-      if (parsed.description) details.push(parsed.description);
-      if (parsed.population) details.push(`Population: ${parsed.population}`);
-      if (parsed.weather) details.push(`Weather: ${parsed.weather}`);
-      let result = `Let me tell you about ${parsed.city}, ${parsed.country}!`;
-      if (details.length) result += ` ${details.join(". ")}.`;
-      return result;
-    }
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const first = parsed[0];
-      if (first.name && first.category) {
-        const type = first.cuisine_type ? "restaurants" : first.poi_type ? "attractions" : "places";
-        return `I found ${parsed.length} great ${type} for you! Including ${first.name} and ${parsed.length - 1} more options.`;
-      }
-    }
-    if (Array.isArray(parsed.points_of_interest)) {
-      const count = parsed.points_of_interest.length;
-      const first = parsed.points_of_interest[0]?.name || "some amazing places";
-      return `I created a personalized itinerary with ${count} places to visit, including ${first} and more!`;
-    }
-    if (parsed.general_city_data) {
-      const c = parsed.general_city_data;
-      return `I found information about ${c.city}, ${c.country}. ${c.description || "Let me share the details with you!"}`;
-    }
-    return "I've prepared some personalized recommendations for you! Check out the details below.";
-  } catch {
-    return content;
-  }
-};
+// The tagged-payload-to-sentence logic lives in ./format-message-content so it
+// can be unit tested without a DOM; re-exported here for callers that had it.
+export { formatMessageContent };
 
 const StreamingResults: Component<{
   streamingData: any;
@@ -170,12 +123,15 @@ const ChatMessage: Component<ChatMessageProps> = (props) => {
   return (
     <div class={`flex gap-2 sm:gap-3 ${isUser() ? "justify-end" : "justify-start"}`}>
       <Show when={!isUser()}>
-        <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-          <Bot class="w-3 h-3 sm:w-4 sm:h-4 text-primary-foreground" />
+        <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center flex-shrink-0">
+          <LociMark class="w-3 h-3 sm:w-4 sm:h-4" />
         </div>
       </Show>
 
       <div class={`max-w-[85%] sm:max-w-[70%] ${isUser() ? "order-1" : ""}`}>
+        <Show when={!isUser()}>
+          <p class="text-[11px] font-medium text-muted-foreground mb-1">Loci</p>
+        </Show>
         <Show when={props.message.content.trim().length > 0 || !props.message.streaming}>
           <div
             class={`rounded-2xl px-3 py-2 sm:px-4 sm:py-3 shadow-sm ${

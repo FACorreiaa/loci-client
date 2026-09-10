@@ -1,5 +1,6 @@
-import { onCleanup, onMount } from "solid-js";
+import { createSignal, onCleanup, onMount } from "solid-js";
 import mapboxgl from "mapbox-gl";
+import { logger } from "~/lib/logger";
 
 export interface MapLifecycleOptions {
   /** The div the map mounts into. Read once, inside onMount. */
@@ -30,7 +31,19 @@ export interface MapLifecycleOptions {
   onStyleReady?: (map: mapboxgl.Map) => void;
   /** After a re-attach: re-push data but do NOT move the camera. */
   onReattach?: (map: mapboxgl.Map) => void;
+  /**
+   * The map could not be created: no access token in this build, or Mapbox
+   * threw while constructing. The hook never throws — a missing token used to
+   * escape `onMount` and unmount the whole route through the app-level error
+   * boundary, nav and all. Callers render a fallback instead.
+   */
+  onUnavailable?: (reason: MapUnavailableReason, error?: unknown) => void;
 }
+
+export type MapUnavailableReason = "missing_token" | "init_failed";
+
+/** Read once per module: Vite inlines this at build time. */
+const MAPBOX_TOKEN: string | undefined = (import.meta as any).env.VITE_MAPBOX_API_KEY;
 
 /**
  * Owns the Mapbox instance lifecycle.
@@ -43,17 +56,36 @@ export interface MapLifecycleOptions {
  */
 export function useMapLifecycle(o: MapLifecycleOptions): {
   map: () => mapboxgl.Map | undefined;
+  /** True once creation failed; the container is empty and stays empty. */
+  unavailable: () => MapUnavailableReason | null;
 } {
   let map: mapboxgl.Map | undefined;
+  const [unavailable, setUnavailable] = createSignal<MapUnavailableReason | null>(null);
+
+  const fail = (reason: MapUnavailableReason, error?: unknown) => {
+    logger.warn(`[map] unavailable: ${reason}`, error);
+    setUnavailable(reason);
+    o.onUnavailable?.(reason, error);
+  };
 
   onMount(() => {
     const container = o.container();
     if (!container) return;
 
-    mapboxgl.accessToken = (import.meta as any).env.VITE_MAPBOX_API_KEY;
+    if (!MAPBOX_TOKEN) {
+      fail("missing_token");
+      return;
+    }
+    mapboxgl.accessToken = MAPBOX_TOKEN;
 
-    map = new mapboxgl.Map({ container, ...o.mapOptions() });
-    o.onCreated?.(map);
+    try {
+      map = new mapboxgl.Map({ container, ...o.mapOptions() });
+      o.onCreated?.(map);
+    } catch (error) {
+      map = undefined;
+      fail("init_failed", error);
+      return;
+    }
 
     // style.load fires once the style (including Standard's imported fragments)
     // is ready — `load` alone is too early on Standard and left layers empty.
@@ -84,5 +116,5 @@ export function useMapLifecycle(o: MapLifecycleOptions): {
     map = undefined;
   });
 
-  return { map: () => map };
+  return { map: () => map, unavailable };
 }

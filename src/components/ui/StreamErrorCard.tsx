@@ -2,6 +2,7 @@ import { Show } from "solid-js";
 import { AlertCircle, RefreshCw, Sparkles } from "lucide-solid";
 import { A } from "@solidjs/router";
 import { parseStreamError } from "~/lib/errors";
+import { readsAsProse } from "~/lib/stream-error-prose";
 
 interface StreamErrorCardProps {
   /** The user-facing error string already on the hook's state. */
@@ -21,7 +22,13 @@ interface StreamErrorCardProps {
  * pointless — the counter resets at midnight UTC, so we route to pricing.
  */
 export function StreamErrorCard(props: StreamErrorCardProps) {
-  const parsed = () => parseStreamError(props.error);
+  const parsed = () => {
+    const p = parseStreamError(props.error);
+    if (p.type === "unknown" && readsAsProse(props.error)) {
+      return { ...p, userMessage: props.error.trim() };
+    }
+    return p;
+  };
   const isQuota = () => parsed().type === "quota_exhausted";
 
   return (

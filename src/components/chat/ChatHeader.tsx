@@ -1,5 +1,6 @@
 import { Component, Show } from "solid-js";
-import { Bot, Menu } from "lucide-solid";
+import { Menu } from "lucide-solid";
+import { LociMark } from "~/components/brand/Logo";
 
 export interface ChatHeaderProps {
   activeProfile: string;
@@ -22,13 +23,11 @@ const ChatHeader: Component<ChatHeaderProps> = (props) => {
           >
             <Menu class="w-5 h-5" />
           </button>
-          <div class="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-            <Bot class="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-accent/15 text-accent flex items-center justify-center flex-shrink-0">
+            <LociMark class="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div class="min-w-0 flex-1">
-            <h1 class="text-base sm:text-lg font-semibold text-foreground truncate">
-              AI Travel Assistant
-            </h1>
+            <h1 class="text-base sm:text-lg font-semibold text-foreground truncate">Loci</h1>
             <p class="text-xs sm:text-sm text-muted-foreground hidden sm:block">
               Get personalized travel recommendations
             </p>

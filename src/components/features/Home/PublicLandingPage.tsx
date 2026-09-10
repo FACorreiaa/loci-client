@@ -84,21 +84,21 @@ export default function PublicLandingPage() {
         },
         {
           session,
+          // Leave for the results page the moment the server names the
+          // session. The stream keeps running on the service singleton; the
+          // destination binds to it through the live store and fills in as
+          // events land. Waiting for `complete` here meant a blank search bar
+          // for the whole generation.
+          onStart: (started) => {
+            setIsLoading(false);
+            navigate(getDomainRoute(started.domain, started.sessionId, started.city));
+          },
           onProgress: (updated) =>
             sessionStorage.setItem("currentStreamingSession", JSON.stringify(updated)),
-          onComplete: (completed) => {
+          onComplete: () => {
+            // The service records the finished session; nothing left to do
+            // here — this component has usually unmounted by now.
             setIsLoading(false);
-            sessionStorage.setItem("completedStreamingSession", JSON.stringify(completed));
-            const route = getDomainRoute(completed.domain, completed.sessionId, completed.city);
-            if (route) {
-              navigate(route, {
-                state: {
-                  streamingData: completed.data,
-                  sessionId: completed.sessionId,
-                  originalMessage: query,
-                },
-              });
-            }
           },
           onError: (error) => {
             console.error("Free streaming error:", error);

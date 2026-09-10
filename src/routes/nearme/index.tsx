@@ -36,7 +36,10 @@ export default function NearmePage() {
   const [userLocation, setUserLocation] = createSignal<UserLocation | null>(null);
   const [locationError, setLocationError] = createSignal<string | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = createSignal(false);
-  const [selectedDistance, setSelectedDistance] = createSignal(10); // Default 10km
+  // 50 km by default — the same radius the server assumes when none is given
+  // (chat_process_stream.go handleNearbyDomain), so what the dropdown shows is
+  // what actually ran.
+  const [selectedDistance, setSelectedDistance] = createSignal(50);
   const [showDistanceDropdown, setShowDistanceDropdown] = createSignal(false);
 
   // Selection state for POIs

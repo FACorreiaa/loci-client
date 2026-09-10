@@ -8,6 +8,7 @@ import { transport } from "../connect-transport";
 import { getAuthToken, authAPI } from "../api";
 import type { RecentInteractionsResponse, CityInteractions } from "./types";
 import { useAppQuery } from "./authed-query";
+import { stripPromptWrapper } from "./prompt-wrapper";
 
 // Create authenticated recents client
 const recentsClient = createClient(RecentsService, transport);
@@ -78,10 +79,9 @@ async function fetchRecentInteractions(limit: number = 10): Promise<RecentIntera
     const extractMessage = (description: string, cityName: string): string => {
       if (!description) return cityName;
 
-      // Try to extract "Message: ..." part
-      const messageMatch = description.match(/Message:\s*(.+?)$/i);
-      if (messageMatch?.[1]) {
-        const message = messageMatch[1].trim();
+      // Unwrap the prompt the server built around the user's message
+      const message = stripPromptWrapper(description);
+      if (message !== description) {
         // If message ends with just the city name, include it
         if (message && message !== cityName) {
           return message.endsWith(cityName) ? message : `${message} ${cityName}`;

@@ -44,7 +44,13 @@ jobs:
         run: pnpm run build
         env:
           VITE_CONNECT_BASE_URL: ${{ secrets.STAGING_API_URL }}
-          NODE_ENV: staging
+          VITE_MAPBOX_API_KEY: ${{ secrets.VITE_MAPBOX_API_KEY }}
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: ${{ vars.VITE_POSTHOG_HOST }}
+          VITE_STRIPE_PRICE_ID_MONTHLY: ${{ vars.VITE_STRIPE_PRICE_ID_MONTHLY }}
+          VITE_STRIPE_PRICE_ID_ANNUAL: ${{ vars.VITE_STRIPE_PRICE_ID_ANNUAL }}
+          # vinxi build forces NODE_ENV=production regardless; keep it explicit and consistent.
+          NODE_ENV: production
 
       - name: Deploy to Cloudflare (Staging)
         uses: cloudflare/wrangler-action@v3

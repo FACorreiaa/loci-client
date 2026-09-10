@@ -78,7 +78,7 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
         {/* Sidebar Header */}
         <div class="p-3 sm:p-4 border-b border-border">
           <div class="flex items-center justify-between mb-3 sm:mb-4">
-            <h2 class="text-base sm:text-lg font-semibold text-foreground">AI Assistant</h2>
+            <h2 class="text-base sm:text-lg font-semibold text-foreground">Loci</h2>
             <div class="flex items-center gap-1">
               <button
                 onClick={props.onNewChat}

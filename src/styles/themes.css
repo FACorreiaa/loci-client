@@ -25,6 +25,7 @@
 @layer base {
   :root,
   [data-theme="loci"] {
+    --brand-coral: #fa7862; /* the mark's colour, read by Logo.tsx */
     --background: 34 80% 95%; /* #FDF5EA — the brand ground */
     --foreground: 207 13% 23%; /* #323B42 — brand ink, 10.4:1 on the ground */
     --card: 36 100% 99%; /* warm near-white, lifted off the cream page */
@@ -68,6 +69,7 @@
   .dark,
   [data-kb-theme="dark"],
   [data-theme="loci"].dark {
+    --brand-coral: #fa7862;
     --background: 210 18% 9%;
     --foreground: 35 47% 92%;
     --card: 210 16% 12%;

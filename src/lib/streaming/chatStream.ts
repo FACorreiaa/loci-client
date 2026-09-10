@@ -34,7 +34,9 @@ export interface NavigationInfo {
 }
 
 // Normalized, UI-facing stream event. One shape per proto oneof case.
-export type LociStreamEvent =
+// `eventId` is the server's frame id when it sent one — the resume token a
+// reconnect hands back so the server replays from there.
+export type LociStreamEvent = { eventId?: string } & (
   | { kind: "start"; sessionId: string; domain: string; city?: string }
   | { kind: "token"; text: string }
   | { kind: "partial"; text: string }
@@ -58,7 +60,8 @@ export type LociStreamEvent =
       result?: AiCityResponse;
       navigation?: NavigationInfo;
       tripId?: string;
-    };
+    }
+);
 
 export interface ChatStreamParams {
   message: string;
@@ -246,6 +249,7 @@ export async function* streamChatEvents(
       const mapped = mapProtoEvent(ev);
       if (mapped) {
         emitted = true;
+        if (ev.eventId) mapped.eventId = ev.eventId;
         yield mapped;
       }
     }

@@ -1,6 +1,9 @@
-import { createSignal, createMemo, Show, For, onMount, lazy } from "solid-js";
+import { createSignal, createMemo, createEffect, Show, For, onMount, lazy } from "solid-js";
 import { useSearchParams, useNavigate } from "@solidjs/router";
 import { useStreamedRpc } from "@/lib/hooks/useStreamedRpc";
+import { useTypedText } from "@/lib/hooks/useTypedText";
+import { useLiveSession } from "@/lib/streaming/live-stream-store";
+import { resumeLiveSession } from "@/lib/streaming/resume-live";
 import ItineraryStreamView from "@/components/itinerary/ItineraryStreamView";
 import StopCard from "@/components/itinerary/StopCard";
 import TripKit from "@/components/itinerary/TripKit";
@@ -56,6 +59,12 @@ export default function ItineraryPage() {
   const { isAuthenticated } = useAuth();
 
   const { store, connect, setStore } = useStreamedRpc(message, cityName, profileId);
+
+  // The stream that a search on `/` started is still running on the service
+  // singleton; if its session id is the one in the URL, render it as it
+  // arrives instead of waiting for sessionStorage or the server.
+  const live = useLiveSession(() => searchParams.sessionId as string | undefined);
+  const [boundLive, setBoundLive] = createSignal(false);
 
   // Mutation hook for bookmarking
   const saveItineraryMutation = useSaveItineraryMutation();
@@ -185,10 +194,33 @@ export default function ItineraryPage() {
   };
 
   // Connect on mount - but only if we don't already have data from navigation
+  // Mirror the live stream into the page store. Partial payloads are the
+  // point here — city data before stops, stops before photos — so the content
+  // guard only applies once the stream has finished.
+  createEffect(() => {
+    if (!boundLive()) return;
+    const data = live.data();
+    const phase = live.phase();
+    if (data) setStore("data", normalizeStoredData(data) ?? (data as any));
+    setStore("isLoading", phase === "connecting" || phase === "streaming");
+    const err = live.error();
+    if (err) setStore("error", new Error(err));
+    if (phase === "complete" && !hasItineraryContent(store.data)) {
+      setStore("error", new Error("This search finished without an itinerary. Try a new search."));
+    }
+  });
+
   onMount(() => {
     const sessionIdFromUrl = searchParams.sessionId as string;
 
     if (sessionIdFromUrl) {
+      // Live (or resumable after a reload) → bind; otherwise the stored /
+      // server copies as before.
+      if (resumeLiveSession(sessionIdFromUrl)) {
+        setBoundLive(true);
+        setStore("isLoading", true);
+        return;
+      }
       void restoreOrHydrateSession(sessionIdFromUrl);
       return;
     }
@@ -210,6 +242,17 @@ export default function ItineraryPage() {
 
   const itineraryData = createMemo(() => store.data?.itinerary_response);
   const cityData = createMemo(() => store.data?.general_city_data);
+
+  // Structured text types out while the stream is live; restored sessions
+  // show it whole. Nothing token-level is ever rendered.
+  const typedDescription = useTypedText(
+    () => cityData()?.description,
+    () => boundLive() && live.isStreaming(),
+  );
+  const typedSummary = useTypedText(
+    () => store.data?.itinerary_response?.overall_description,
+    () => boundLive() && live.isStreaming(),
+  );
   const pointsOfInterest = createMemo(() => store.data?.points_of_interest || []);
 
   // --- Editorial streaming model -------------------------------------
@@ -507,7 +550,11 @@ export default function ItineraryPage() {
             </div>
           }
         >
-          <CityInfoHeader cityData={cityData()} isLoading={store.isLoading && !cityData()} />
+          <CityInfoHeader
+            cityData={cityData()}
+            isLoading={store.isLoading && !cityData()}
+            description={typedDescription()}
+          />
 
           <Show when={cityData()?.center_latitude}>
             <div class="mt-3 space-y-3">
@@ -528,7 +575,7 @@ export default function ItineraryPage() {
           <ItineraryStreamView
             phase={streamPhase()}
             title={itineraryModel().title}
-            summary={itineraryModel().summary}
+            summary={typedSummary() || itineraryModel().summary}
             stops={itineraryModel().stops}
             enrichedCount={itineraryModel().enrichedCount}
             error={store.error?.message}

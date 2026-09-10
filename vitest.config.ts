@@ -12,13 +12,28 @@ import { defineConfig } from "vitest/config";
  * config, not a plain Vite one.
  */
 export default defineConfig({
+  // solid-js ships a server build selected by the "node" condition, whose
+  // createEffect/onMount are inert and whose isServer is true. Tests of hooks
+  // and stores need the browser build, the one the app actually runs. Pinned
+  // by alias rather than `resolve.conditions`: vitest externalizes some solid
+  // entry points to Node's resolver and inlines others, and a dev `store` on
+  // top of a prod core throws at import ("registerGraph" of undefined).
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "~": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: /^solid-js$/, replacement: "solid-js/dist/solid.js" },
+      { find: /^solid-js\/store$/, replacement: "solid-js/store/dist/store.js" },
+      { find: /^solid-js\/web$/, replacement: "solid-js/web/dist/web.js" },
+      { find: /^@\//, replacement: `${path.resolve(__dirname, "./src")}/` },
+      { find: /^~\//, replacement: `${path.resolve(__dirname, "./src")}/` },
+    ],
   },
   test: {
     environment: "node",
+    exclude: ["**/node_modules/**", "**/.claude/**", "**/.output/**"],
+    server: {
+      deps: {
+        inline: [/solid-js/],
+      },
+    },
   },
 });

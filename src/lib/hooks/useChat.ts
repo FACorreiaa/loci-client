@@ -1,13 +1,14 @@
 import { createSignal, createMemo, onMount } from "solid-js";
 import { useQueryClient } from "@tanstack/solid-query";
 import { detectDomain, useGetChatSessionsQuery } from "~/lib/api/llm";
+import { stripPromptWrapper } from "~/lib/api/prompt-wrapper";
 import { createStreamingSession, streamingService } from "~/lib/chat-stream";
-import type { DomainType } from "~/lib/api/types";
 import type { TravelProfile } from "~/components/chat";
 import { useUserLocation } from "~/contexts/LocationContext";
 import { useDefaultSearchProfile, useSearchProfiles } from "~/lib/api/profiles";
 import { useSaveItineraryMutation } from "~/lib/api/itineraries";
 import { logger } from "~/lib/logger";
+import { getCompletionMessage } from "~/lib/chat/completion-message";
 import { useAppQuery } from "../api/authed-query";
 
 export interface ChatMessage {
@@ -25,19 +26,7 @@ export interface ChatMessage {
 const MAX_LOCAL_SESSIONS = 10;
 const PROFILE_ICONS = ["🎒", "🍽️", "👨‍👩‍👧‍👦", "🎨", "📸", "🏔️", "🌴", "🏛️"];
 
-const getCompletionMessage = (domain: DomainType, city?: string) => {
-  const cityText = city ? `for ${city}` : "";
-  switch (domain) {
-    case "accommodation":
-      return `Great! I've found some excellent hotel options ${cityText}. Click below to view all recommendations and book your stay.`;
-    case "dining":
-      return `Perfect! I've discovered amazing restaurants ${cityText} that match your preferences. Explore the full list to find your next dining experience.`;
-    case "activities":
-      return `Wonderful! I've curated exciting activities and attractions ${cityText}. Check out all the options to plan your perfect day.`;
-    default:
-      return `Excellent! I've created a personalized itinerary ${cityText} based on your preferences. View the complete plan with all the details, maps, and recommendations.`;
-  }
-};
+export { getCompletionMessage };
 
 const welcomeMessage = (profile: string): ChatMessage => ({
   id: "welcome",
@@ -379,7 +368,13 @@ export function useChat() {
         conversationMessages = history.map((msg: any, index: number) => ({
           id: `session-${session.id}-msg-${index}`,
           type: msg.role === "user" ? "user" : "assistant",
-          content: msg.content || msg.message || "No content available",
+          // The server stores the user turn as the prompt it built around
+          // it ("Unified Chat Stream - Domain: …, Message: …"); show the
+          // message the user actually typed.
+          content:
+            (msg.role === "user"
+              ? stripPromptWrapper(msg.content || msg.message || "")
+              : msg.content || msg.message) || "No content available",
           timestamp: new Date(msg.timestamp || msg.created_at || full.timestamp),
           hasItinerary: msg.role === "assistant" && !!(msg.data || msg.streaming_data),
           streamingData: msg.data || msg.streaming_data || null,
