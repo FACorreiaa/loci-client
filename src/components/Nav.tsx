@@ -1,4 +1,5 @@
 import { A, useLocation } from "@solidjs/router";
+import ProPlanBadge from "~/components/ProPlanBadge";
 import {
   Bookmark,
   ChevronDown,
@@ -136,6 +137,7 @@ export default function Nav() {
                   </>
                 }
               >
+                <ProPlanBadge size="sm" />
                 <div class="relative">
                   <button
                     type="button"
