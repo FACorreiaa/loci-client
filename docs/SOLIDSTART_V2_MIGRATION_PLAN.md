@@ -276,6 +276,24 @@ Gotchas found on the way:
 - Nitro warns `Wrangler config main/assets is overridden and will be ignored` — expected; it rewrites those two keys relative to `.output/server`. The `env`-block prohibition documented in `wrangler.jsonc` still applies.
 - No SSR-only code (`renderToString`, `ssrElement`) in the client bundle, so the `isServer` export-condition bug noted in `src/lib/api/authed-query.ts` is not reproduced by this preset. The runtime `typeof window` guard stays anyway.
 
-Not verified in this pass (no browser extension available): hydration in a real browser,
-service-worker registration, signed-in `/trips`, streaming itinerary. Do those on the
-staging worker before merging.
+Two more found by driving headless Chrome (DevTools protocol) against `wrangler dev`:
+
+- **Duplicate `solid-js` broke hydration.** `@solidjs/start@2` depends on `solid-js ^1.9.15`
+  while the app pinned `^1.9.14`, so pnpm installed both. SSR rendered fine, but the client
+  threw `Cannot read properties of null (reading 'push')` inside `solid-js/web`, then every
+  context lookup failed (`useAuth must be used within an AuthProvider`, `<MetaProvider />
+should be in the tree`, `No QueryClient set`) and links did full reloads. Fix: `solid-js`
+  → `^1.9.15` so the lockfile holds one copy. Check `grep '^  solid-js@' pnpm-lock.yaml`
+  after any future `@solidjs/start` bump.
+- **`posthog-node` autocapture 500s on workerd.** `enableExceptionAutocapture: true` calls
+  `process.on`, which does not exist in the Workers runtime, so constructing the client
+  threw and every SSR request 500'd. CI never sets `VITE_POSTHOG_*`, so production never
+  hit it; local builds with `.env` did. Now `false`, with `posthog.captureException(error)`
+  in the middleware's catch.
+
+Browser-verified (headless Chrome, production build under `wrangler dev`): `/`, `/about`,
+`/trips` hydrate with zero console errors, `<title>` set via MetaProvider, service worker
+registered and `activated`, in-app link clicks are client-side navigations (no reload).
+
+Still not verified: signed-in `/trips` and the streaming itinerary (need the backend). Do
+those on the staging worker before merging.

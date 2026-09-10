@@ -20,7 +20,11 @@ export const posthog =
   posthogKey && posthogHost
     ? new PostHog(posthogKey, {
         host: posthogHost,
-        enableExceptionAutocapture: true,
+        // Autocapture registers process.on("uncaughtException") listeners, and
+        // `process.on` does not exist in the Cloudflare Workers runtime, so
+        // constructing the client threw and every request 500'd. Request
+        // failures are reported from the middleware below instead.
+        enableExceptionAutocapture: false,
         metrics: { serviceName: "loci-client" },
       })
     : undefined;
@@ -39,6 +43,7 @@ export default createMiddleware([
       return await next();
     } catch (error) {
       outcome = "error";
+      posthog?.captureException(error);
       throw error;
     } finally {
       posthog?.metrics.count("http.server.requests", 1, {
