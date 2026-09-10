@@ -9,6 +9,7 @@ import {
 import { ProcessedProfileData, UserProfileResponse } from "~/lib/api/types";
 import { ProtectedRoute } from "~/contexts/AuthContext";
 import { Button } from "~/ui/button";
+import ProPlanBadge from "~/components/ProPlanBadge";
 import { useRecentInteractions } from "~/lib/api/recents";
 import { useLists } from "~/lib/api/lists";
 import { useFavorites } from "~/lib/api/pois";
@@ -582,9 +583,12 @@ function ProfilePageContent() {
                   >
                     <div class="flex items-start justify-between">
                       <div class="flex-1">
-                        <h1 class="text-2xl font-bold text-foreground">
-                          {profileData()?.username || "User"}
-                        </h1>
+                        <div class="flex items-center gap-3">
+                          <h1 class="text-2xl font-bold text-foreground">
+                            {profileData()?.username || "User"}
+                          </h1>
+                          <ProPlanBadge />
+                        </div>
                         <div class="flex items-center gap-4 mt-2 text-muted-foreground">
                           <Show when={profileData()?.email}>
                             <div class="flex items-center gap-1">
