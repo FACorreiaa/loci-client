@@ -16,7 +16,7 @@
       "./src/types/global.d.ts",
       "node",
       "geojson",
-      "vinxi/types/client"
+      "@solidjs/start/env"
     ],
     "isolatedModules": true,
     "paths": {

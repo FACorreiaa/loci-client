@@ -1,0 +1,3 @@
+# Read by oxfmt (and prettier). Nitro v3 parses wrangler.jsonc with a strict JSONC
+# parser that rejects trailing commas, and the formatter would add them back.
+wrangler.jsonc

@@ -1,10 +1,10 @@
 # SolidStart v1 → v2 Migration Plan (loci-client)
 
-Source of truth: <https://docs.solidjs.com/solid-start/migrating-from-v1>
-Target: `@solidjs/start@2.0.0-alpha.2`, Vite 7, Nitro v2 plugin (DeVinxi — Vinxi removed).
+Source of truth: <https://docs.solidjs.com/solid-start/v2/migrating-from-v1>
 
-> Status of v2: **alpha** (2.0.0-alpha.x, Feb 2026). Some third-party packages may
-> not be v2-compatible yet. Treat this as a **branch + spike**, not a same-day cutover.
+> **Status (2026-09-10): MIGRATED.** See §7. Sections 0–6 are the original plan and the
+> June spike against `2.0.0-alpha.2`; kept for history. The alpha-era blocker was in the
+> since-removed `@solidjs/vite-plugin-nitro-2` shim, not in SolidStart or Nitro v3.
 
 > Not applicable here: the standing Loci rule (LLM resilience + monster-file splits
 > mandatory in scope) targets the **server/llm-sdk** improvement plan. This is a
@@ -14,18 +14,18 @@ Target: `@solidjs/start@2.0.0-alpha.2`, Vite 7, Nitro v2 plugin (DeVinxi — Vin
 
 ## 0. Current state (what we're migrating from)
 
-| Thing | Now |
-|---|---|
-| Framework | `@solidjs/start ^1.2.0` on **Vinxi ^0.5.9** |
-| Config | `app.config.ts` (`defineConfig` from `@solidjs/start/config`) |
-| Server preset | `server.preset: "cloudflare_module"` + `compatibilityDate: 2025-06-12` |
-| Vite plugins | `ensureHtmlShell` (custom), `@tailwindcss/vite`, `vite-plugin-pwa` |
-| Aliases | `vite.resolve.alias` `@`→`./src`, `~`→`./src` |
-| Scripts | `vinxi dev` / `tsgo --noEmit && vinxi build` / `vinxi start`; deploy via `wrangler` |
-| tsconfig `types` | includes `vinxi/types/client` |
-| `vinxi/http` imports in `src` | **none** (verified — zero runtime code changes) |
-| Middleware file | **none** |
-| Deploy | Cloudflare (`wrangler.jsonc`), `build && wrangler deploy` |
+| Thing                         | Now                                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| Framework                     | `@solidjs/start ^1.2.0` on **Vinxi ^0.5.9**                                         |
+| Config                        | `app.config.ts` (`defineConfig` from `@solidjs/start/config`)                       |
+| Server preset                 | `server.preset: "cloudflare_module"` + `compatibilityDate: 2025-06-12`              |
+| Vite plugins                  | `ensureHtmlShell` (custom), `@tailwindcss/vite`, `vite-plugin-pwa`                  |
+| Aliases                       | `vite.resolve.alias` `@`→`./src`, `~`→`./src`                                       |
+| Scripts                       | `vinxi dev` / `tsgo --noEmit && vinxi build` / `vinxi start`; deploy via `wrangler` |
+| tsconfig `types`              | includes `vinxi/types/client`                                                       |
+| `vinxi/http` imports in `src` | **none** (verified — zero runtime code changes)                                     |
+| Middleware file               | **none**                                                                            |
+| Deploy                        | Cloudflare (`wrangler.jsonc`), `build && wrangler deploy`                           |
 
 **Good news:** no `vinxi/http` usage and no middleware → the app code is untouched.
 The migration is almost entirely **config + dependencies + the Cloudflare/Nitro preset**.
@@ -64,6 +64,7 @@ serves it, PWA SW registers, app boots, auth + a streamed itinerary work.
 Do on a branch `chore/solidstart-v2`.
 
 ### 2.1 Dependencies
+
 ```bash
 pnpm remove vinxi
 pnpm add @solidjs/start@2.0.0-alpha.2 @solidjs/vite-plugin-nitro-2 vite@7
@@ -71,6 +72,7 @@ pnpm add @solidjs/start@2.0.0-alpha.2 @solidjs/vite-plugin-nitro-2 vite@7
 ```
 
 ### 2.2 Replace `app.config.ts` → `vite.config.ts`
+
 Delete `app.config.ts`. Create `vite.config.ts`, **porting every plugin + the aliases**:
 
 ```ts title="vite.config.ts"
@@ -109,9 +111,11 @@ export default defineConfig(({ mode }) => {
   };
 });
 ```
+
 > Keep `ssr: true` behavior — v2 is SSR by default; no explicit flag needed. Confirm.
 
 ### 2.3 Scripts (`package.json`)
+
 ```jsonc
 "scripts": {
   "dev": "vite dev",
@@ -124,22 +128,27 @@ export default defineConfig(({ mode }) => {
 ```
 
 ### 2.4 `tsconfig.json` — `types`
+
 Replace `vinxi/types/client` with `@solidjs/start/env`. Leave `paths` (`@/*`,`~/*`) as-is.
+
 ```jsonc
 "types": ["./src/types/global.d.ts", "@solidjs/start/env"]
 ```
 
 ### 2.5 Server runtime helpers
+
 - `vinxi/http` imports → `@solidjs/start/http`. **None exist in this repo** → no-op (re-grep to confirm post-merge).
 - Middleware: none today. If one is added later, use the new H3 middleware syntax.
 
 ### 2.6 Cloudflare wiring
+
 - Update `wrangler.jsonc` `main` + assets/output paths to Nitro v2's output dir (from spike).
 - Re-test `globPatterns` and SW scope against the new build layout.
 
 ---
 
 ## 3. Validation gates (must all pass before merge)
+
 1. `pnpm dev` — app boots, hot reload works.
 2. `pnpm build` — `tsgo --noEmit` clean + Vite build succeeds.
 3. Cloudflare: `wrangler dev` serves the built output; SSR responds.
@@ -150,11 +159,13 @@ Replace `vinxi/types/client` with `@solidjs/start/env`. Leave `paths` (`@/*`,`~/
 8. `oxlint .` clean.
 
 ## 4. Rollback
+
 - All work on `chore/solidstart-v2`; `main` stays on Vinxi v1.
 - Tag pre-migration commit. If alpha blocks deploy, abandon branch — zero prod impact.
 - Keep `app.config.ts` in git history for fast revert of config.
 
 ## 5. Recommendation
+
 Proceed **only through the spike first** (Section 1). v2 is alpha and the Cloudflare-preset-under-Nitro-v2
 path is undocumented in the guide — that single unknown decides feasibility. If the spike
 deploys to Workers, the rest is a ~1-file config port with no app-code changes.
@@ -207,6 +218,7 @@ not in SolidStart itself. (`/settings` hung on node — app-level SSR data-fetch
 backend, unrelated to the framework.)
 
 Things to try when revisiting (do NOT rabbit-hole on alpha now):
+
 - This is a Cloudflare-adapter bug → watch `@solidjs/vite-plugin-nitro-2` + nitro + `unenv`
   releases specifically; pin `unenv`/`@cloudflare/unenv-preset`/`workerd`/`wrangler` to a
   combination the nitro-2 alpha was tested against.
@@ -226,6 +238,44 @@ gating check. Until then, stay on v1 (Vinxi).
 ---
 
 ### Sources
+
 - [Migrating from v1 — SolidStart docs](https://docs.solidjs.com/solid-start/migrating-from-v1)
 - [Roadmap: Start v2 & Ecosystem (discussion #2119)](https://github.com/solidjs/solid-start/discussions/2119)
 - [DeVinxi roadmap (discussion #1960)](https://github.com/solidjs/solid-start/discussions/1960)
+
+---
+
+## 7. MIGRATION (2026-09-10, branch `chore/solidstart-v2`)
+
+Versions: `@solidjs/start@2.0.4` (stable, GA 2026-08-04), `vite@8.3.0`,
+`nitro@3.0.260903-beta` (Nitro v3 is still a beta tag — the only non-stable piece),
+`@solidjs/router@1.0.0` (declared non-breaking realignment of 0.16), Node `>=24`.
+
+**✅ Gate passed — the June blocker is gone.** `pnpm build` then plain `npx wrangler dev`
+(not `wrangler dev <script>`; see below): `GET /` → 200 with full SSR HTML in workerd,
+plus `/about`, `/trips`, `/offline`, `/sw.js`, `/manifest.webmanifest`, `/_build/assets/*`
+all 200. No `Illegal invocation`. `wrangler deploy --dry-run` accepts the build
+(6.4 MB / 1.4 MB gz, 189 modules + 263 assets). `vite dev` boots and SSRs. `tsgo`,
+`oxlint`, `vitest` unchanged versus `main` (the 6 `auth-events.test.ts` failures are
+pre-existing: `localStorage` is undefined under the `node` test environment).
+
+What actually changed (six files + one new):
+
+- `package.json` — drop `vinxi`, `nitropack`; add `vite`, `nitro`; scripts `vite dev|build|preview`; `engines.node >=24`.
+- `app.config.ts` → `vite.config.ts` — `solidStart({ middleware })` + `nitro()`; `nitro: { preset: "cloudflare_module", compatibilityDate }` at top level. The `ensureHtmlShell` hack was **not** needed.
+- `src/entry-server.tsx` — v2 `createHandler` returns an H3 app (`StartHandler`), and the dev server calls `serverEntry.default.fetch(req)`, so the v1 `instrumentedRequestHandler(event)` wrapper cannot exist. PostHog request metrics moved to **`src/middleware/index.ts`** (`createMiddleware([async (event, next) => …])`).
+- `tsconfig.json` — `vinxi/types/client` → `@solidjs/start/env`.
+- `wrangler.jsonc` — **trailing commas removed.** Nitro v3 reads it with a strict JSONC parser (comments OK, trailing commas fatal) to generate `.output/server/wrangler.json`.
+- `.github/workflows/*.yml` — `NODE_VERSION` 22 → 24.
+
+Gotchas found on the way:
+
+- **PWA under the multi-environment build.** `vite-plugin-pwa` reads the root `build.outDir` (`dist`) and runs once per environment (client, ssr, nitro) — the June "no `sw.js`" symptom. Fix in `vite.config.ts`: `outDir: ".output/public"` (Nitro sets the client env's outDir there) and wrap the returned plugins with `applyToEnvironment: env => env.name === "client"`. Result: 224 precache entries, `sw.js` in `.output/public`.
+- **Client assets still live under `/_build/assets/`**, so the map-chunk `runtimeCaching` pattern is unchanged.
+- **Wrangler invocation.** `wrangler dev .output/server/index.mjs --assets …` now errors ("Found both a user configuration file … and a deploy configuration file … do not share the same base path") because Nitro writes `.wrangler/deploy/config.json` redirecting to `.output/server/wrangler.json`. Use plain `wrangler dev` / `wrangler deploy` from the project root, which is what the `preview`/`deploy` scripts already do.
+- Nitro warns `Wrangler config main/assets is overridden and will be ignored` — expected; it rewrites those two keys relative to `.output/server`. The `env`-block prohibition documented in `wrangler.jsonc` still applies.
+- No SSR-only code (`renderToString`, `ssrElement`) in the client bundle, so the `isServer` export-condition bug noted in `src/lib/api/authed-query.ts` is not reproduced by this preset. The runtime `typeof window` guard stays anyway.
+
+Not verified in this pass (no browser extension available): hydration in a real browser,
+service-worker registration, signed-in `/trips`, streaming itinerary. Do those on the
+staging worker before merging.
