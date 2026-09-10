@@ -7,8 +7,8 @@ import { defineConfig } from "vitest/config";
  * uses the `@`/`~` aliases, so testing a component failed at import time with
  * "Cannot find module '~/lib/theme-colors'".
  *
- * These are the same two aliases app.config.ts defines for the app build; they
- * are duplicated rather than imported because app.config.ts is a SolidStart
+ * These are the same two aliases vite.config.ts defines for the app build; they
+ * are duplicated rather than imported because vite.config.ts also loads the SolidStart
  * config, not a plain Vite one.
  */
 export default defineConfig({

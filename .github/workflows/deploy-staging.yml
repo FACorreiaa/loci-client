@@ -11,7 +11,7 @@ on:
         default: "Manual deployment"
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "24"
 
 jobs:
   deploy-staging:

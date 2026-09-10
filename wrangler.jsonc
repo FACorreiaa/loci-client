@@ -1,6 +1,10 @@
 /**
  * For more details on how to configure Wrangler, refer to:
  * https://developers.cloudflare.com/workers/wrangler/configuration/
+ *
+ * No trailing commas: Nitro v3 reads this file with a strict JSONC parser
+ * (comments fine, trailing commas fatal) to generate .output/server/wrangler.json.
+ * The file is listed in .prettierignore so the formatter does not add them back.
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
@@ -10,10 +14,10 @@
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "binding": "ASSETS",
-    "directory": "./.output/public",
+    "directory": "./.output/public"
   },
   "observability": {
-    "enabled": true,
+    "enabled": true
   },
   /**
    * Custom domains. `custom_domain: true` is what makes Cloudflare create the
@@ -30,8 +34,8 @@
    */
   "routes": [
     { "pattern": "lociai.fyi", "custom_domain": true },
-    { "pattern": "www.lociai.fyi", "custom_domain": true },
-  ],
+    { "pattern": "www.lociai.fyi", "custom_domain": true }
+  ]
   /**
    * NOTE: no top-level `env` block. Vinxi/Nitro copies this file into the
    * generated .output/server/wrangler.json ("redirected" config), and wrangler
