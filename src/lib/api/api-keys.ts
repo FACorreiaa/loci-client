@@ -40,13 +40,23 @@ export interface ApiKeyView {
 }
 
 // Mirrors apikey.ClientKinds on the server, in the order it offers them.
-export type ClientKind = "claude_code" | "codex" | "hermes" | "other";
+export type ClientKind = "claude_code" | "claude_desktop" | "cursor" | "codex" | "hermes" | "other";
 
 export const CLIENT_KINDS: { value: ClientKind; label: string; blurb: string }[] = [
   {
     value: "claude_code",
     label: "Claude Code",
     blurb: "One command, no file to edit.",
+  },
+  {
+    value: "claude_desktop",
+    label: "Claude Desktop",
+    blurb: "claude_desktop_config.json, via mcp-remote.",
+  },
+  {
+    value: "cursor",
+    label: "Cursor",
+    blurb: "A server entry in ~/.cursor/mcp.json.",
   },
   {
     value: "codex",
@@ -113,7 +123,16 @@ function toView(k: ApiKey): ApiKeyView {
   };
 }
 
-export function useApiKeys() {
+export interface UseApiKeysOptions {
+  /**
+   * How often to refetch, given the keys as last seen. Returning false stops
+   * polling. The connections list uses this to watch a freshly made key for
+   * its first use without polling forever for everybody.
+   */
+  refetchInterval?: (keys: ApiKeyView[] | undefined) => number | false;
+}
+
+export function useApiKeys(options: UseApiKeysOptions = {}) {
   return useAppQuery(() => ({
     queryKey: apiKeysQueryKey,
     queryFn: async (): Promise<ApiKeyView[]> => {
@@ -121,6 +140,9 @@ export function useApiKeys() {
       return resp.apiKeys.map(toView);
     },
     staleTime: 30_000,
+    refetchInterval: options.refetchInterval
+      ? (query) => options.refetchInterval!(query.state.data)
+      : undefined,
   }));
 }
 

@@ -16,7 +16,6 @@ import {
   Mail,
   Phone,
   Upload,
-  KeyRound,
   Brain,
   ShieldCheck,
   CreditCard,
@@ -50,10 +49,7 @@ import TagsComponent from "~/components/features/Settings/Tags";
 import InterestsComponent from "~/components/features/Settings/Interests";
 import TravelProfiles from "~/components/features/Settings/TravelProfiles";
 import AppearanceSettings from "~/components/AppearanceSettings";
-import ApiKeys from "~/components/features/Settings/ApiKeys";
-import AiCredentials from "~/components/features/Settings/AiCredentials";
-import TelegramLink from "~/components/features/Settings/TelegramLink";
-import OutboundConnections from "~/components/features/Settings/OutboundConnections";
+import { ConnectionsPage } from "~/components/features/Settings/connections/ConnectionsPage";
 import TwoFactor from "~/components/features/Settings/TwoFactor";
 import ChangePassword from "~/components/features/Settings/ChangePassword";
 import LocaleSettings from "~/components/features/Settings/LocaleSettings";
@@ -66,11 +62,8 @@ const TABS = [
   { id: "tags", label: "Tags", icon: Tag },
   { id: "interests", label: "Interests", icon: Heart },
   { id: "profiles", label: "Travel Profiles", icon: Users },
-  // MCP lives inside the API-keys panel (endpoint + setup guide), so name the
-  // tab after both rather than duplicating the panel.
-  { id: "apikeys", label: "MCP & API Keys", icon: KeyRound },
-  // Everything that talks to something outside Loci on your behalf: your own
-  // model key, your Telegram chat, MCP servers Loci calls.
+  // Everything that talks to something outside Loci on your behalf: agents
+  // over MCP, your Telegram chat, your own model key, MCP servers Loci calls.
   { id: "connections", label: "Connections", icon: Plug },
   { id: "memory", label: "What Loci remembers", icon: Brain },
   { id: "security", label: "Security", icon: ShieldCheck },
@@ -78,6 +71,10 @@ const TABS = [
 ];
 
 const TAB_IDS = TABS.map((t) => t.id);
+
+// Tabs that used to exist and now live inside another. Links to them are out
+// there — support answers, the /mcp guide — and should land somewhere useful.
+const LEGACY_TABS: Record<string, string> = { apikeys: "connections" };
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -92,7 +89,9 @@ export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = () => {
     const requested = searchParams.tab as string | undefined;
-    return requested && TAB_IDS.includes(requested) ? requested : "settings";
+    if (!requested) return "settings";
+    const resolved = LEGACY_TABS[requested] ?? requested;
+    return TAB_IDS.includes(resolved) ? resolved : "settings";
   };
   // replace: true so tabbing around does not fill the back button with
   // settings panes.
@@ -129,10 +128,10 @@ export default function SettingsPage() {
   const userData = user();
 
   createEffect(() => {
-    const apiData = profileQuery.data;
+    // isSuccess first: reading `.data` on a pending query suspends the
+    // root boundary and blanks the whole route (see ConnectionsPage).
+    const apiData = profileQuery.isSuccess ? profileQuery.data : undefined;
     if (!apiData && !userData) return null;
-    console.log("userData", userData);
-    console.log("apiData", apiData);
 
     if (apiData) {
       setUserProfile({
@@ -200,7 +199,9 @@ export default function SettingsPage() {
   >;
 
   const profileData = (): SettingsHeaderProfile | null => {
-    const apiData: UserProfileResponse | undefined = profileQuery.data;
+    const apiData: UserProfileResponse | undefined = profileQuery.isSuccess
+      ? profileQuery.data
+      : undefined;
     const userData = user();
 
     if (!apiData && !userData) return null;
@@ -225,7 +226,8 @@ export default function SettingsPage() {
   // hero stat used to show a hardcoded 8 (or 1 when that fell through), which
   // is one of the numbers that made the whole panel untrustworthy.
   const savedProfilesQuery = useSearchProfiles();
-  const savedProfiles = () => savedProfilesQuery.data ?? [];
+  const savedProfiles = () =>
+    (savedProfilesQuery.isSuccess ? savedProfilesQuery.data : undefined) ?? [];
 
   /**
    * How much of the profile is actually filled in, and what is missing.
@@ -890,22 +892,6 @@ export default function SettingsPage() {
     </div>
   );
 
-  // One card per concern, each saving on its own, which is the pattern the rest
-  // of settings still owes: a single giant Save cannot report which card failed.
-  const renderConnections = () => (
-    <div class="space-y-8">
-      <AiCredentials onNotification={(message, type) => setNotification({ message, type })} />
-      <div class="border-t border-border pt-8">
-        <TelegramLink onNotification={(message, type) => setNotification({ message, type })} />
-      </div>
-      <div class="border-t border-border pt-8">
-        <OutboundConnections
-          onNotification={(message, type) => setNotification({ message, type })}
-        />
-      </div>
-    </div>
-  );
-
   const renderSecurity = () => (
     <div class="space-y-8">
       <ChangePassword onNotification={(message, type) => setNotification({ message, type })} />
@@ -925,10 +911,10 @@ export default function SettingsPage() {
         return renderInterests();
       case "profiles":
         return renderProfiles();
-      case "apikeys":
-        return <ApiKeys onNotification={(message, type) => setNotification({ message, type })} />;
       case "connections":
-        return renderConnections();
+        return (
+          <ConnectionsPage onNotification={(message, type) => setNotification({ message, type })} />
+        );
       case "memory":
         return renderMemoryLink();
       case "security":

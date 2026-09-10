@@ -3,8 +3,7 @@ import { A } from "@solidjs/router";
 import { Title, Meta } from "@solidjs/meta";
 import { Plug, KeyRound, Terminal, Sparkles, ArrowRight } from "lucide-solid";
 import { useAuth } from "~/contexts/AuthContext";
-
-const MCP_ENDPOINT = `${import.meta.env.VITE_CONNECT_BASE_URL ?? "http://localhost:8000"}/mcp`;
+import { MCP_ENDPOINT } from "~/lib/mcp-endpoint";
 
 export default function McpPage() {
   const { isAuthenticated } = useAuth();

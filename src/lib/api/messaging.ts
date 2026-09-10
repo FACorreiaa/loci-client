@@ -59,7 +59,20 @@ function toLinkView(l: Link): MessagingLinkView {
   };
 }
 
-export function useMessagingLink(platform: string = TELEGRAM) {
+export interface UseMessagingLinkOptions {
+  /**
+   * Read reactively: the card returns a few seconds while a link code is
+   * outstanding — the link appears only when the bot reports the chat, which
+   * this session cannot observe any other way — and false the rest of the
+   * time.
+   */
+  refetchInterval?: () => number | false;
+}
+
+export function useMessagingLink(
+  platform: string = TELEGRAM,
+  options: UseMessagingLinkOptions = {},
+) {
   return useAppQuery(() => ({
     queryKey: messagingLinkQueryKey(platform),
     queryFn: async (): Promise<MessagingLinkState> => {
@@ -70,6 +83,7 @@ export function useMessagingLink(platform: string = TELEGRAM) {
       };
     },
     staleTime: 30_000,
+    refetchInterval: options.refetchInterval?.() ?? false,
   }));
 }
 
