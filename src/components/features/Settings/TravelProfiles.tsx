@@ -109,9 +109,17 @@ export default function TravelProfiles(props: TravelProfilesProps) {
     },
   });
 
-  const profiles = () => profilesQuery.data || [];
-  const activeTags = () => (tagsQuery.data || []).filter((tag) => tag.active);
-  const activeInterests = () => (interestsQuery.data || []).filter((interest) => interest.active);
+  // `.data` on a solid-query result suspends while the query is pending, and
+  // the nearest <Suspense> is the one around the whole router outlet — so an
+  // unguarded read here swaps the entire settings route for the page spinner.
+  // Checking `isPending` first is what keeps that read from happening.
+  const profiles = () => (profilesQuery.isPending ? [] : profilesQuery.data || []);
+  const activeTags = () =>
+    (tagsQuery.isPending ? [] : tagsQuery.data || []).filter((tag) => tag.active);
+  const activeInterests = () =>
+    (interestsQuery.isPending ? [] : interestsQuery.data || []).filter(
+      (interest) => interest.active,
+    );
 
   const startCreating = () => {
     setFormData({
@@ -368,9 +376,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
     <div class="space-y-6">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-foreground mb-2">
-            Profile Name
-          </label>
+          <label class="block text-sm font-medium text-foreground mb-2">Profile Name</label>
           <input
             type="text"
             value={formData().profile_name}
@@ -390,9 +396,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
           </Show>
         </div>
         <div>
-          <label class="block text-sm font-medium text-foreground mb-2">
-            Search Radius (km)
-          </label>
+          <label class="block text-sm font-medium text-foreground mb-2">Search Radius (km)</label>
           <input
             type="number"
             value={formData().search_radius_km}
@@ -405,9 +409,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-foreground mb-2">
-            Preferred Time
-          </label>
+          <label class="block text-sm font-medium text-foreground mb-2">Preferred Time</label>
           <select
             value={formData().preferred_time}
             onChange={(e) => updateField("preferred_time", e.target.value)}
@@ -420,9 +422,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-foreground mb-2">
-            Budget Level (1-5)
-          </label>
+          <label class="block text-sm font-medium text-foreground mb-2">Budget Level (1-5)</label>
           <input
             type="range"
             min="1"
@@ -529,9 +529,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-foreground mb-2">
-          Interests
-        </label>
+        <label class="block text-sm font-medium text-foreground mb-2">Interests</label>
         <div class="flex flex-wrap gap-2">
           <For each={activeInterests()}>
             {(interest) => (

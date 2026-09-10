@@ -1,6 +1,50 @@
 // Query Client Configuration for @tanstack/solid-query
 import { QueryClient } from "@tanstack/solid-query";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { APIError } from "./api";
+
+/**
+ * Connect codes that mean "asking again gets the same answer".
+ *
+ * The retry guard used to check only `APIError`, the REST client's error type,
+ * while every Connect RPC throws `ConnectError`. So an Unimplemented or
+ * PermissionDenied RPC was retried three times with exponential backoff, and
+ * the route sat on its Suspense fallback for ~7 s before the error surfaced.
+ * These are all deterministic on the server's side: no amount of waiting turns
+ * a missing handler, a bad argument or a revoked session into a success.
+ */
+const CONNECT_CODES_NOT_WORTH_RETRYING: ReadonlySet<Code> = new Set([
+  Code.Unauthenticated,
+  Code.PermissionDenied,
+  Code.InvalidArgument,
+  Code.NotFound,
+  Code.Unimplemented,
+  Code.FailedPrecondition,
+]);
+
+function isDeterministicConnectFailure(error: unknown): boolean {
+  return error instanceof ConnectError && CONNECT_CODES_NOT_WORTH_RETRYING.has(error.code);
+}
+
+/** Retry predicate for queries: up to three attempts unless the failure is final. */
+export function shouldRetryQuery(failureCount: number, error: unknown): boolean {
+  if (isDeterministicConnectFailure(error)) return false;
+  // Don't retry on 401 (unauthorized) or 403 (forbidden)
+  if (error instanceof APIError && [401, 403].includes(error.status || 0)) {
+    return false;
+  }
+  // Retry up to 3 times for other errors
+  return failureCount < 3;
+}
+
+/** Retry predicate for mutations: one retry, and never for a client-side error. */
+export function shouldRetryMutation(failureCount: number, error: unknown): boolean {
+  if (isDeterministicConnectFailure(error)) return false;
+  if (error instanceof APIError && error.status && error.status >= 400 && error.status < 500) {
+    return false; // Don't retry client errors
+  }
+  return failureCount < 1;
+}
 
 // Default query options for better UX
 const defaultQueryOptions = {
@@ -12,14 +56,7 @@ const defaultQueryOptions = {
     gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime in v4)
 
     // Retry configuration
-    retry: (failureCount: number, error: any) => {
-      // Don't retry on 401 (unauthorized) or 403 (forbidden)
-      if (error instanceof APIError && [401, 403].includes(error.status || 0)) {
-        return false;
-      }
-      // Retry up to 3 times for other errors
-      return failureCount < 3;
-    },
+    retry: shouldRetryQuery,
 
     // Retry delay increases exponentially
     retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -35,12 +72,7 @@ const defaultQueryOptions = {
   },
   mutations: {
     // Retry mutations once on network error
-    retry: (failureCount: number, error: any) => {
-      if (error instanceof APIError && error.status && error.status >= 400 && error.status < 500) {
-        return false; // Don't retry client errors
-      }
-      return failureCount < 1;
-    },
+    retry: shouldRetryMutation,
 
     // Show error notifications by default
     onError: (error: any) => {

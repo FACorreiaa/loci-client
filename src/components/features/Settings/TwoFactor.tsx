@@ -47,7 +47,9 @@ export default function TwoFactor(props: TwoFactorProps) {
   const [regenerateCode, setRegenerateCode] = createSignal("");
   const [showRegenerate, setShowRegenerate] = createSignal(false);
 
-  const status = () => statusQuery.data;
+  // Guarded read: `.data` suspends while pending and the only <Suspense> is
+  // around the router outlet, so an unguarded read blanks the whole route.
+  const status = () => (statusQuery.isSuccess ? statusQuery.data : undefined);
 
   // The QR is rendered locally from the otpauth URI. Sending the URI to an
   // external chart service would hand the TOTP secret to a third party.
