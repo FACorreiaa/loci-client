@@ -123,7 +123,16 @@ function toView(k: ApiKey): ApiKeyView {
   };
 }
 
-export function useApiKeys() {
+export interface UseApiKeysOptions {
+  /**
+   * How often to refetch, given the keys as last seen. Returning false stops
+   * polling. The connections list uses this to watch a freshly made key for
+   * its first use without polling forever for everybody.
+   */
+  refetchInterval?: (keys: ApiKeyView[] | undefined) => number | false;
+}
+
+export function useApiKeys(options: UseApiKeysOptions = {}) {
   return useAppQuery(() => ({
     queryKey: apiKeysQueryKey,
     queryFn: async (): Promise<ApiKeyView[]> => {
@@ -131,6 +140,9 @@ export function useApiKeys() {
       return resp.apiKeys.map(toView);
     },
     staleTime: 30_000,
+    refetchInterval: options.refetchInterval
+      ? (query) => options.refetchInterval!(query.state.data)
+      : undefined,
   }));
 }
 
