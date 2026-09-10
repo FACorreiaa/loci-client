@@ -63,7 +63,7 @@ jobs:
           VITE_CONNECT_BASE_URL: ${{ secrets.VITE_API_URL }}
           VITE_MAPBOX_API_KEY: ${{ secrets.VITE_MAPBOX_API_KEY }}
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_POSTHOG_HOST: ${{ vars.VITE_POSTHOG_HOST }}
+          VITE_POSTHOG_HOST: ${{ vars.VITE_POSTHOG_HOST || secrets.VITE_POSTHOG_HOST }}
           VITE_STRIPE_PRICE_ID_MONTHLY: ${{ vars.VITE_STRIPE_PRICE_ID_MONTHLY }}
           VITE_STRIPE_PRICE_ID_ANNUAL: ${{ vars.VITE_STRIPE_PRICE_ID_ANNUAL }}
 
