@@ -1,4 +1,7 @@
 import { useLocale } from "~/contexts/LocaleContext";
+import { buildAppleMapsUrl, buildGoogleMapsUrl } from "~/lib/trip-kit";
+import type { POIImageCredit } from "~/lib/api/types";
+import ProgressiveImage from "./itinerary/ProgressiveImage";
 import { GroundedBadge } from "./ui/GroundedBadge";
 import { Show, createSignal, createEffect, For, lazy } from "solid-js";
 import {
@@ -40,6 +43,12 @@ type DetailedItem = {
   budget?: string;
   duration?: string;
   timeToSpend?: string;
+  /**
+   * Pictures with their credits. Never render a URL from here without the
+   * attribution and licence beside it — that is the condition the images are
+   * offered under, not a nicety.
+   */
+  image_credits?: POIImageCredit[];
   priority?: number;
   tags?: string[];
 };
@@ -113,11 +122,19 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
     }
   };
 
-  const handleGetDirections = () => {
-    if (props.item?.latitude && props.item?.longitude) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${props.item.latitude},${props.item.longitude}`;
-      window.open(url, "_blank");
-    }
+  // Null when the place has no usable coordinates, which is how an ungrounded
+  // suggestion is expressed: it still shows, it just cannot be pointed at.
+  const place = () => ({
+    latitude: props.item?.latitude,
+    longitude: props.item?.longitude,
+    name: props.item?.name,
+  });
+
+  const openMaps = (url: string | null) => {
+    if (!url) return;
+    // noopener,noreferrer to match every other external link in the app; the
+    // previous call omitted both and handed the opened tab window.opener.
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -232,6 +249,40 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                     </div>
                   </Show>
                 </div>
+
+                {/* Pictures, each with the credit its licence requires */}
+                <Show when={props.item!.image_credits?.length}>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <For each={props.item!.image_credits}>
+                      {(image) => (
+                        <figure class="m-0">
+                          <ProgressiveImage
+                            src={image.url}
+                            alt={props.item!.name}
+                            seed={image.url}
+                            class="w-full aspect-[4/3] rounded-lg overflow-hidden"
+                          />
+                          <figcaption class="text-xs text-muted-foreground mt-1">
+                            <Show
+                              when={image.source_page_url}
+                              fallback={`${image.attribution} · ${image.licence}`}
+                            >
+                              <a
+                                href={image.source_page_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="underline underline-offset-2"
+                              >
+                                {image.attribution}
+                              </a>
+                              {` · ${image.licence}`}
+                            </Show>
+                          </figcaption>
+                        </figure>
+                      )}
+                    </For>
+                  </div>
+                </Show>
 
                 {/* Description */}
                 <Show when={props.item!.description_poi}>
@@ -371,14 +422,23 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                   Share
                 </button>
               </div>
-              <Show when={props.item!.latitude && props.item!.longitude}>
-                <button
-                  onClick={handleGetDirections}
-                  class="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-colors"
-                >
-                  <Navigation class="w-4 h-4" />
-                  Get Directions
-                </button>
+              <Show when={buildGoogleMapsUrl(place())}>
+                <div class="flex gap-2">
+                  <button
+                    onClick={() => openMaps(buildGoogleMapsUrl(place()))}
+                    class="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Navigation class="w-4 h-4" />
+                    Google Maps
+                  </button>
+                  <button
+                    onClick={() => openMaps(buildAppleMapsUrl(place()))}
+                    class="flex items-center gap-2 px-4 py-2 bg-muted text-muted-foreground hover:bg-muted/80 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <MapPin class="w-4 h-4" />
+                    Apple Maps
+                  </button>
+                </div>
               </Show>
             </div>
           </div>

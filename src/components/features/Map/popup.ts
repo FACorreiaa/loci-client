@@ -1,3 +1,4 @@
+import { buildAppleMapsUrl, buildGoogleMapsUrl } from "~/lib/trip-kit";
 import type { POI } from "./types";
 
 export interface PopupOptions {
@@ -52,6 +53,34 @@ export const buildPopupContent = (poi: POI, index: number, opts: PopupOptions) =
     badge.className = `map-popup__badge ui-label mt-2 ${isMobile ? "text-xs" : "text-sm"} px-2 py-1 rounded-md inline-block`;
     badge.textContent = "Dog friendly";
     container.appendChild(badge);
+  }
+
+  // Coordinates arrive as numbers or strings depending on the source, and a
+  // place the server could not resolve has none. No coordinates, no links —
+  // the alternative is sending someone to a model's guess.
+  const lat = Number(poi.latitude);
+  const lng = Number(poi.longitude);
+  const google = buildGoogleMapsUrl({ latitude: lat, longitude: lng, name: poi.name });
+  const apple = buildAppleMapsUrl({ latitude: lat, longitude: lng, name: poi.name });
+
+  if (google && apple) {
+    const maps = document.createElement("div");
+    maps.className = "map-popup__maps mt-2 flex gap-3 text-xs";
+    for (const [label, href] of [
+      ["Google Maps", google],
+      ["Apple Maps", apple],
+    ] as const) {
+      const link = document.createElement("a");
+      link.href = href;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = label;
+      link.className = "map-popup__maplink underline underline-offset-2";
+      // The map swallows clicks for selection; this one belongs to the link.
+      link.addEventListener("click", (e) => e.stopPropagation());
+      maps.appendChild(link);
+    }
+    container.appendChild(maps);
   }
 
   if (onActivate) {

@@ -423,6 +423,7 @@ export default function ItineraryPage() {
       budget: full.budget,
       timeToSpend: full.time_to_spend || full.timeToSpend,
       priority: full.priority,
+      image_credits: full.image_credits,
     });
     setDetailOpen(true);
   };

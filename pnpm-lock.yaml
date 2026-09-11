@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@buf/loci_loci-proto.bufbuild_es':
-        specifier: 2.14.1-20260908084436-7017a9d7f3ef.3
-        version: 2.14.1-20260908084436-7017a9d7f3ef.3(@bufbuild/protobuf@2.13.0)
+        specifier: 2.14.1-20260911143417-d2389c489cf9.3
+        version: 2.14.1-20260911143417-d2389c489cf9.3(@bufbuild/protobuf@2.13.0)
       '@bufbuild/protobuf':
         specifier: ^2.13.0
         version: 2.13.0
@@ -690,8 +690,8 @@ packages:
     peerDependencies:
       '@bufbuild/protobuf': ^2.14.1
 
-  '@buf/loci_loci-proto.bufbuild_es@2.14.1-20260908084436-7017a9d7f3ef.3':
-    resolution: {integrity: sha512-43M0YTyofslKEqOrh5nfxY0woAE68okqx1rKwiIj1qHsJplwMwUcXiJKIbsAqB60zGwSDNLScvgICfM30anOlA==}
+  '@buf/loci_loci-proto.bufbuild_es@2.14.1-20260911143417-d2389c489cf9.3':
+    resolution: {integrity: sha512-jE15/e5PRC+cI3u856etfEtKpYrzW5Xib9lJVRDWSL0+uC5BNxDBUtnvi7T2Pey8+dWUiI7WlN0jukx5U68Y4A==}
     peerDependencies:
       '@bufbuild/protobuf': ^2.14.1
 
@@ -6107,7 +6107,7 @@ snapshots:
     dependencies:
       '@bufbuild/protobuf': 2.13.0
 
-  '@buf/loci_loci-proto.bufbuild_es@2.14.1-20260908084436-7017a9d7f3ef.3(@bufbuild/protobuf@2.13.0)':
+  '@buf/loci_loci-proto.bufbuild_es@2.14.1-20260911143417-d2389c489cf9.3(@bufbuild/protobuf@2.13.0)':
     dependencies:
       '@buf/bufbuild_protovalidate.bufbuild_es': 2.14.1-20251209175733-2a1774d88802.3(@bufbuild/protobuf@2.13.0)
       '@buf/protocolbuffers_wellknowntypes.bufbuild_es': 2.14.1-20230331140314-f17e05fe4a76.3(@bufbuild/protobuf@2.13.0)

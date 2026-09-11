@@ -97,6 +97,40 @@ export function lockedDayCount(input: TripKitInput): number {
  * Uses lat,lon when available; falls back to name + city as a place query.
  * Google caps intermediate waypoints; we keep origin + destination + up to 8 via.
  */
+/** A place a map link can point at. */
+export interface MapPlace {
+  latitude?: number;
+  longitude?: number;
+  name?: string;
+}
+
+/**
+ * Google Maps link for one place, or null when we do not know where it is.
+ *
+ * Null is the point: only coordinates the server resolved from a real database
+ * row are trustworthy. An ungrounded answer carries coordinates the model
+ * invented, and a link built on those opens the wrong street confidently. The
+ * caller renders nothing rather than lying.
+ */
+export function buildGoogleMapsUrl(place: MapPlace): string | null {
+  if (!validCoord(place.latitude, place.longitude)) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}`;
+}
+
+/**
+ * Apple Maps link for one place, or null when we do not know where it is.
+ *
+ * `maps.apple.com` opens the native app on Apple devices and falls back to the
+ * web elsewhere, so both links can be offered without sniffing the platform.
+ * The name rides along as `q` because Apple labels the dropped pin with it.
+ */
+export function buildAppleMapsUrl(place: MapPlace): string | null {
+  if (!validCoord(place.latitude, place.longitude)) return null;
+  const label = place.name?.trim();
+  const q = label ? `&q=${encodeURIComponent(label)}` : "";
+  return `https://maps.apple.com/?ll=${place.latitude},${place.longitude}${q}`;
+}
+
 export function buildGoogleMapsMultiStopUrl(stops: TripStop[], cityName: string): string | null {
   const usable = stops.filter(
     (s) => validCoord(s.latitude, s.longitude) || (s.name && s.name.trim().length > 0),
