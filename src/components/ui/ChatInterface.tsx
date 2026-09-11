@@ -1,7 +1,8 @@
 import { For, Show, Component } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { Bot, Loader2, MessageCircle, Send, User, X } from "lucide-solid";
+import { Bot, Loader2, MessageCircle, Mic, Send, User, X } from "lucide-solid";
 import type { ChatMessage } from "~/lib/hooks/useChatSession";
+import { useDictation } from "~/lib/hooks/useDictation";
 
 export interface ChatInterfaceProps {
   showChat: boolean;
@@ -29,6 +30,35 @@ export default function ChatInterface(props: ChatInterfaceProps) {
   const loadingMessage = () => props.loadingMessage || "Thinking…";
 
   const emptyIcon = () => props.emptyStateIcon || MessageCircle;
+
+  // The transcript is appended to the box rather than sent, so a mangled place
+  // name can be fixed before it becomes a plan for somewhere else.
+  const dictation = useDictation((text) => {
+    const existing = props.chatMessage.trim();
+    props.setChatMessage(existing === "" ? text : `${existing} ${text}`);
+  });
+
+  const micLabel = () => {
+    switch (dictation.state()) {
+      case "recording":
+        return "Stop recording";
+      case "transcribing":
+        return "Working out what you said";
+      default:
+        return "Dictate a message";
+    }
+  };
+
+  const dictationHint = () => {
+    switch (dictation.state()) {
+      case "recording":
+        return "Listening — tap the microphone when you are done.";
+      case "transcribing":
+        return "Working out what you said…";
+      default:
+        return null;
+    }
+  };
 
   return (
     <>
@@ -136,24 +166,66 @@ export default function ChatInterface(props: ChatInterfaceProps) {
 
           <div class="border-t border-border p-3">
             <div class="flex items-end gap-2">
+              <Show when={dictation.supported()}>
+                <button
+                  type="button"
+                  onClick={dictation.toggle}
+                  disabled={props.isLoading || dictation.state() === "transcribing"}
+                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-input bg-background motion-settle motion-press disabled:opacity-50"
+                  classList={{
+                    "text-destructive": dictation.state() === "recording",
+                    "text-muted-foreground": dictation.state() !== "recording",
+                  }}
+                  aria-label={micLabel()}
+                  title={micLabel()}
+                >
+                  <Show
+                    when={dictation.state() === "transcribing"}
+                    fallback={
+                      <Mic
+                        class="h-4 w-4"
+                        classList={{ "animate-pulse": dictation.state() === "recording" }}
+                      />
+                    }
+                  >
+                    <Loader2 class="h-4 w-4 animate-spin" />
+                  </Show>
+                </button>
+              </Show>
               <textarea
                 value={props.chatMessage}
                 onInput={(e) => props.setChatMessage(e.currentTarget.value)}
                 onKeyPress={props.handleKeyPress}
                 placeholder={placeholder()}
-                disabled={props.isLoading}
+                disabled={props.isLoading || dictation.state() !== "idle"}
                 rows={2}
                 class="min-h-[52px] max-h-32 flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <button
                 onClick={props.sendChatMessage}
-                disabled={!props.chatMessage.trim() || props.isLoading}
+                disabled={
+                  !props.chatMessage.trim() || props.isLoading || dictation.state() !== "idle"
+                }
                 class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground motion-settle motion-press disabled:opacity-50"
                 aria-label="Send message"
               >
                 <Send class="h-4 w-4" />
               </button>
             </div>
+            <Show when={dictation.error() ?? dictationHint()}>
+              {(note) => (
+                <p
+                  class="mt-2 text-xs"
+                  classList={{
+                    "text-destructive": !!dictation.error(),
+                    "text-muted-foreground": !dictation.error(),
+                  }}
+                  aria-live="polite"
+                >
+                  {note()}
+                </p>
+              )}
+            </Show>
           </div>
         </div>
       </Show>
