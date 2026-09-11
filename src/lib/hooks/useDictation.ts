@@ -27,10 +27,11 @@ export interface Dictation {
  * Dictation for a text box.
  *
  * The transcript is handed back rather than sent. Speech recognition mangles
- * place names — "Alfama" comes through as "alarm" often enough to matter — and
- * a wrong city produces a confident itinerary for somewhere nobody asked
- * about. Putting the words in the box lets that be fixed in the second it
- * takes, which is the part a chat platform cannot offer.
+ * place names — "Cais do Sodré" comes back as "Case 2 Soda" without help — and
+ * a wrong place produces a confident itinerary for somewhere that does not
+ * exist. The server sends the account's own place names as a hint, which fixes
+ * most of it; putting the words in the box fixes the rest, in the second it
+ * takes. That is the part a chat platform cannot offer.
  */
 export function useDictation(onTranscript: (text: string) => void): Dictation {
   const [state, setState] = createSignal<DictationState>("idle");

@@ -6,19 +6,23 @@
  * what the words mean lives on the server.
  */
 
-import { SAMPLE_RATE, toWav } from "./wav";
+/** How long a recording may run before it stops itself.
+ *
+ * Matches the server's own cap. Transcription runs on CPU at roughly two and a
+ * half times the length of the clip, on a service shared with other apps, so a
+ * long recording is not just a long upload — it is a long queue for everybody.
+ */
+export const MAX_RECORDING_MS = 45_000;
 
-/** How long a recording may run before it stops itself. */
-export const MAX_RECORDING_MS = 60_000;
+/** The sample rate asked of the microphone. Speech needs no more. */
+const SAMPLE_RATE = 16_000;
 
 /** Whether this browser can record at all. */
 export function canRecord(): boolean {
   return (
     typeof navigator !== "undefined" &&
     !!navigator.mediaDevices?.getUserMedia &&
-    typeof MediaRecorder !== "undefined" &&
-    typeof AudioContext !== "undefined" &&
-    typeof OfflineAudioContext !== "undefined"
+    typeof MediaRecorder !== "undefined"
   );
 }
 
@@ -41,9 +45,9 @@ export class RecorderError extends Error {
 }
 
 export interface Recording {
-  /** 16 kHz mono WAV. */
   audio: Uint8Array;
-  mimeType: "audio/wav";
+  /** Whatever this browser records in — Chrome gives WebM/Opus, Safari MP4. */
+  mimeType: string;
 }
 
 export interface Recorder {
@@ -106,8 +110,18 @@ export async function startRecording(): Promise<Recorder> {
         releaseAll(stream);
         void (async () => {
           try {
-            const audio = await toWav(new Blob(chunks, { type: recorder.mimeType }));
-            resolve({ audio, mimeType: "audio/wav" });
+            const recorded = new Blob(chunks, { type: recorder.mimeType });
+            if (recorded.size === 0) {
+              throw new RecorderError("failed", "The recording was empty.");
+            }
+            resolve({
+              audio: new Uint8Array(await recorded.arrayBuffer()),
+              // Sent as recorded. The transcription service takes WebM, MP4,
+              // Ogg, mp3 and wav as they are, so converting here would cost a
+              // decode, a resample and several times the upload size to arrive
+              // at something it was always going to accept anyway.
+              mimeType: recorder.mimeType || "audio/webm",
+            });
           } catch (error) {
             reject(asRecorderError(error));
           }

@@ -17,7 +17,7 @@ const client = createClient(SpeechService, transport);
  * deployment state rather than a fault, and the difference decides whether the
  * microphone should be offered at all.
  */
-export type TranscribeFailure = "unavailable" | "rejected" | "failed";
+export type TranscribeFailure = "unavailable" | "rejected" | "busy" | "failed";
 
 export class TranscribeError extends Error {
   readonly reason: TranscribeFailure;
@@ -52,8 +52,18 @@ function asTranscribeError(error: unknown): TranscribeError {
   switch (error.code) {
     case Code.FailedPrecondition:
       return new TranscribeError("unavailable", "Dictation is not available on this server.");
+    case Code.Unavailable:
+      // The server says which of these it was; its own wording is better than
+      // anything guessed here, because it knows whether the service is down or
+      // merely behind.
+      return new TranscribeError(
+        "unavailable",
+        error.rawMessage || "Dictation is unavailable right now.",
+      );
     case Code.InvalidArgument:
       return new TranscribeError("rejected", "That recording was not in a format Loci can read.");
+    case Code.ResourceExhausted:
+      return new TranscribeError("busy", "Loci is behind on voice notes. Try again in a moment.");
     default:
       return new TranscribeError("failed", "That recording could not be understood.");
   }
