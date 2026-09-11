@@ -1,3 +1,19 @@
+
+/**
+ * One picture of a place, with the credit it cannot be shown without.
+ *
+ * Wikimedia Commons images are CC BY-SA and similar: the licence requires
+ * naming the author and the licence wherever the picture appears. Any surface
+ * that renders `url` must render `attribution` and `licence` with it.
+ */
+export interface POIImageCredit {
+  url: string;
+  source?: string;
+  licence: string;
+  attribution: string;
+  source_page_url?: string;
+}
+
 // Type definitions for API responses
 import type { RecommendationTrace } from "./recommendations";
 
@@ -102,6 +118,9 @@ export interface POI {
   description_poi?: string;
   latitude: number;
   longitude: number;
+  images?: string[];
+  /** The same pictures, carrying the credit required to display them. */
+  image_credits?: POIImageCredit[];
   timeToSpend?: string;
   budget?: string;
   rating?: number;
@@ -624,6 +643,8 @@ export interface POIDetailedInfo {
   amenities?: string[];
   tags?: string[];
   images?: string[];
+  /** The same pictures, carrying the credit required to display them. */
+  image_credits?: POIImageCredit[];
   rating: number;
   time_to_spend?: string;
   budget?: string;

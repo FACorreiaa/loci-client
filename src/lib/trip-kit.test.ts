@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildAppleMapsUrl,
   buildGoogleMapsMultiStopUrl,
+  buildGoogleMapsUrl,
   buildItineraryIcs,
   groupStopsByDay,
   lockedDayCount,
@@ -73,5 +75,28 @@ describe("buildItineraryIcs", () => {
     expect(ics).toContain("BEGIN:VEVENT");
     expect(ics).toContain("SUMMARY:A");
     expect(ics).toContain("END:VCALENDAR");
+  });
+});
+
+describe("single-place map links", () => {
+  const place = { latitude: 32.6325, longitude: -17.0015, name: "Cabo Girão" };
+
+  it("builds a Google Maps search link from coordinates", () => {
+    const url = buildGoogleMapsUrl(place);
+    expect(url).toContain("google.com/maps/search/?api=1");
+    expect(url).toContain("query=32.6325,-17.0015");
+  });
+
+  it("builds an Apple Maps link carrying the name as the pin label", () => {
+    const url = buildAppleMapsUrl(place);
+    expect(url).toContain("maps.apple.com/?ll=32.6325,-17.0015");
+    expect(url).toContain("q=Cabo%20Gir%C3%A3o");
+  });
+
+  it("returns null without usable coordinates, so nothing is rendered", () => {
+    expect(buildGoogleMapsUrl({ name: "Somewhere" })).toBeNull();
+    expect(buildAppleMapsUrl({ name: "Somewhere" })).toBeNull();
+    expect(buildGoogleMapsUrl({ latitude: 0, longitude: 0 })).toBeNull();
+    expect(buildAppleMapsUrl({ latitude: 0, longitude: 0 })).toBeNull();
   });
 });

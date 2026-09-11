@@ -30,6 +30,17 @@ function mapProtoPOI(poi: ProtoPOI): POI {
     website: poi.website,
     phone_number: poi.phoneNumber,
     opening_hours: Object.keys(poi.openingHours).length ? JSON.stringify(poi.openingHours) : null,
+    // Both were dropped here: images silently, and the credits are new. A URL
+    // without its licence and author cannot legally be rendered, so they travel
+    // together or not at all.
+    images: poi.images ?? [],
+    image_credits: (poi.imageCredits ?? []).map((img) => ({
+      url: img.url,
+      source: img.source,
+      licence: img.licence,
+      attribution: img.attribution,
+      source_page_url: img.sourcePageUrl,
+    })),
     price_level: poi.priceLevel,
     price_range: poi.priceRange,
     distance: poi.distance,
