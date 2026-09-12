@@ -1,8 +1,9 @@
-import { createSignal, createMemo, Show, onMount, For, lazy } from "solid-js";
+import { createSignal, createMemo, Show, onMount, For } from "solid-js";
+import { lazyChunk } from "@/lib/lazyChunk";
 import { MapPin, Navigation, Loader2, AlertCircle, ChevronDown } from "lucide-solid";
 import { useChatRPC } from "~/lib/hooks/useChatRPC";
 import { POIDetailedInfo } from "~/lib/api/types";
-const MapComponent = lazy(() => import("~/components/features/Map/Map"));
+const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 import SplitView from "@/components/layout/SplitView";
 import { ActionToolbar } from "@/components/ui/ActionToolbar";
 import FloatingChat from "~/components/features/Chat/FloatingChat";

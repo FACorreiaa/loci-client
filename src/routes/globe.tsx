@@ -1,4 +1,5 @@
-import { createMemo, createSignal, lazy, Show } from "solid-js";
+import { createMemo, createSignal, Show } from "solid-js";
+import { lazyChunk } from "~/lib/lazyChunk";
 import { Title } from "@solidjs/meta";
 import type mapboxgl from "mapbox-gl";
 import { useGlobeData } from "~/lib/api/travel-history";
@@ -13,7 +14,7 @@ import ActivitiesDrawer from "~/components/features/Globe/ActivitiesDrawer";
 // Lazy + a data-gated <Show>, the established pattern at all 11 map call sites.
 // The Show is false during SSR because the query is skipped on the server, which
 // is what keeps mapbox-gl out of the server bundle.
-const GlobeComponent = lazy(() => import("~/components/features/Map/Globe"));
+const GlobeComponent = lazyChunk(() => import("~/components/features/Map/Globe"));
 
 const MIN_ZOOM = 0.6;
 const MAX_ZOOM = 16;

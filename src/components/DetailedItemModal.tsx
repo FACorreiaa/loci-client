@@ -3,7 +3,8 @@ import { buildAppleMapsUrl, buildGoogleMapsUrl } from "~/lib/trip-kit";
 import type { POIImageCredit } from "~/lib/api/types";
 import ProgressiveImage from "./itinerary/ProgressiveImage";
 import { GroundedBadge } from "./ui/GroundedBadge";
-import { Show, createSignal, createEffect, For, lazy } from "solid-js";
+import { Show, createSignal, createEffect, For } from "solid-js";
+import { lazyChunk } from "~/lib/lazyChunk";
 import {
   X,
   Star,
@@ -20,7 +21,7 @@ import {
   Coffee,
   Utensils,
 } from "lucide-solid";
-const MapComponent = lazy(() => import("~/components/features/Map/Map"));
+const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 
 // Union type for all possible item types
 type DetailedItem = {

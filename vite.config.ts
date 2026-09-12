@@ -8,6 +8,13 @@ import path from "node:path";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Identifies this build to the service worker's precache.
+//
+// /offline is precached by URL rather than by file (see additionalManifestEntries
+// below), so workbox has no file hash to revision it with and would keep the
+// copy it fetched on first install across every future deploy.
+const buildRevision = Date.now().toString(36);
+
 // Nitro sets the client environment's outDir to `.output/public`; the PWA
 // plugin only reads the root `build.outDir`, so point it there explicitly and
 // run it for the client environment only (otherwise it also fires for the
@@ -41,6 +48,25 @@ const pwa = VitePWA({
       },
     ],
     globIgnores: ["**/mapbox-gl*"],
+    // navigateFallback names a URL the service worker must ALREADY HOLD, and
+    // the manifest above is built by globbing the build output. This app is
+    // server-rendered and prerenders nothing, so that glob finds 235
+    // JavaScript chunks and not one HTML file — /offline was never in it, and
+    // naming it threw on every single page load:
+    //
+    //   Uncaught (in promise) non-precached-url: [{"url":"/offline"}]
+    //
+    // taking the rest of the worker's activation with it. Dropping the option
+    // does not help either: vite-plugin-pwa then falls back to its own default
+    // of "index.html", which this build does not emit, so the same error comes
+    // back under a different name.
+    //
+    // So the page has to be put in the precache by hand. A manifest entry for
+    // a URL rather than a file makes the worker FETCH it during install and
+    // store the response, which is how an SSR app precaches a rendered page at
+    // all. The revision is what makes it re-fetch on the next deploy instead
+    // of serving a stale copy forever.
+    additionalManifestEntries: [{ url: "/offline", revision: buildRevision }],
     navigateFallback: "/offline",
     navigateFallbackDenylist: [/^\/api\//],
     runtimeCaching: [
@@ -59,6 +85,24 @@ const pwa = VitePWA({
           cacheableResponse: {
             statuses: [0, 200],
           },
+          plugins: [
+            {
+              // Refuse to store anything that is not JavaScript.
+              //
+              // A chunk name carries a content hash, so after a deploy the
+              // previous build's URL is gone — and the asset host answers a
+              // missing asset with the SPA fallback: HTTP 200, `text/html`.
+              // That is a cacheable 200 as far as the status filter is
+              // concerned, so CacheFirst would write the HTML document into
+              // this cache under a `.js` key and then serve it, from disk,
+              // for thirty days. Every later visit would fail to parse a
+              // module that the network could have supplied correctly.
+              cacheWillUpdate: async ({ response }: { response: Response }) => {
+                const type = response.headers.get("content-type") ?? "";
+                return /javascript|ecmascript/i.test(type) ? response : null;
+              },
+            },
+          ],
         },
       },
       {

@@ -1,10 +1,11 @@
-import { createMemo, lazy, Show } from "solid-js";
+import { createMemo, Show } from "solid-js";
+import { lazyChunk } from "~/lib/lazyChunk";
 import type { GlobeLeg, GlobeNode } from "~/components/features/Map/Globe";
 import type { Trip } from "~/lib/api/trips";
 
 // Own lazy entry, so /trips only pays for the globe chunk and not for the POI
 // map's clustering and popup code.
-const GlobeComponent = lazy(() => import("~/components/features/Map/Globe"));
+const GlobeComponent = lazyChunk(() => import("~/components/features/Map/Globe"));
 
 interface TripGlobeProps {
   trips: Trip[];

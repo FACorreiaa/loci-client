@@ -1,7 +1,8 @@
-import { createMemo, Show, lazy } from "solid-js";
+import { createMemo, Show } from "solid-js";
+import { lazyChunk } from "~/lib/lazyChunk";
 import { TOKYO_RESTAURANTS, TOKYO_CITY_DATA } from "~/data/preview-data";
 import RestaurantResults from "~/components/results/RestaurantResults";
-const MapComponent = lazy(() => import("~/components/features/Map/Map"));
+const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 import SplitView from "~/components/layout/SplitView";
 import { CityInfoHeader } from "~/components/ui/CityInfoHeader";
 import { ActionToolbar } from "~/components/ui/ActionToolbar";
@@ -54,9 +55,7 @@ export default function PreviewRestaurantsPage() {
     <div class="h-full overflow-y-auto p-4 md:p-6 bg-background/50 backdrop-blur-sm">
       <div class="max-w-3xl mx-auto pb-20">
         <div class="mb-6">
-          <div class="loci-chip text-xs font-semibold mb-4">
-            Preview Mode
-          </div>
+          <div class="loci-chip text-xs font-semibold mb-4">Preview Mode</div>
           <CityInfoHeader cityData={cityData()} isLoading={false} />
         </div>
 
