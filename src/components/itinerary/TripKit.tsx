@@ -29,6 +29,15 @@ export interface TripKitProps {
   summary?: string;
   stops: TripStop[];
   isPro: boolean;
+  /**
+   * Whether the plan behind `isPro` is actually known yet.
+   *
+   * It matters because `isPro` is derived from a query, and an unresolved or
+   * failed query reads as `false` — indistinguishable from a genuine free
+   * account. A Pro user who exported before it settled silently got a Day-1
+   * file and no indication why. "unknown" keeps that from passing as "free".
+   */
+  planState?: "loading" | "known" | "unknown";
   /** Visible when stream is done (or has enough stops to be useful). */
   visible: boolean;
   stopsPerDay?: number;
@@ -37,6 +46,11 @@ export interface TripKitProps {
 export default function TripKit(props: TripKitProps) {
   const [busy, setBusy] = createSignal<"maps" | "cal" | "pdf" | null>(null);
   const [toast, setToast] = createSignal<string | null>(null);
+
+  const planState = () => props.planState ?? "known";
+  // Exporting while the plan is still being fetched is what silently truncated
+  // a Pro user's calendar, so the actions wait rather than guess.
+  const planPending = () => planState() === "loading";
 
   const perDay = () => props.stopsPerDay ?? FREE_STOPS_PER_DAY;
   const days = createMemo(() => groupStopsByDay(props.stops, perDay()));
@@ -104,7 +118,13 @@ export default function TripKit(props: TripKitProps) {
       if (!result.ok) {
         flash("Nothing to add to the calendar yet.");
       } else if (result.locked) {
-        flash("Downloaded Day 1 calendar. Pro unlocks every day.");
+        // An unconfirmed plan still exports, but it says so. Silently handing a
+        // Pro user Day 1 and calling it a free-tier limit is the bug.
+        flash(
+          planState() === "unknown"
+            ? "We couldn't confirm your plan, so this is Day 1 only. Reload and try again."
+            : "Downloaded Day 1 calendar. Pro unlocks every day.",
+        );
       } else {
         flash("Calendar file downloaded.");
       }
@@ -200,14 +220,18 @@ export default function TripKit(props: TripKitProps) {
             type="button"
             class="flex flex-col items-start gap-2 rounded-xl border border-border bg-background px-4 py-3 text-left hover:border-primary/40 hover:bg-muted/40 transition focus:outline-none focus:ring-2 focus:ring-ring"
             onClick={handleMaps}
-            disabled={busy() !== null}
+            disabled={busy() !== null || planPending()}
           >
             <MapPinned class="w-5 h-5 text-primary" />
             <span class="font-semibold text-foreground text-sm">
               {busy() === "maps" ? "Opening…" : "Open in Google Maps"}
             </span>
             <span class="text-xs text-muted-foreground">
-              {props.isPro ? "Full multi-stop walking route" : "Day 1 multi-stop route"}
+              {planPending()
+                ? "Checking your plan…"
+                : props.isPro
+                  ? "Full multi-stop walking route"
+                  : "Day 1 multi-stop route"}
             </span>
           </button>
 
@@ -215,14 +239,18 @@ export default function TripKit(props: TripKitProps) {
             type="button"
             class="flex flex-col items-start gap-2 rounded-xl border border-border bg-background px-4 py-3 text-left hover:border-primary/40 hover:bg-muted/40 transition focus:outline-none focus:ring-2 focus:ring-ring"
             onClick={handleCalendar}
-            disabled={busy() !== null}
+            disabled={busy() !== null || planPending()}
           >
             <CalendarPlus class="w-5 h-5 text-primary" />
             <span class="font-semibold text-foreground text-sm">
               {busy() === "cal" ? "Building…" : "Add to calendar"}
             </span>
             <span class="text-xs text-muted-foreground">
-              {props.isPro ? "All days as timed events (.ics)" : "Day 1 timed blocks (.ics)"}
+              {planPending()
+                ? "Checking your plan…"
+                : props.isPro
+                  ? "All days as timed events (.ics)"
+                  : "Day 1 timed blocks (.ics)"}
             </span>
           </button>
 
@@ -251,7 +279,7 @@ export default function TripKit(props: TripKitProps) {
             type="button"
             class="flex flex-col items-start gap-2 rounded-xl border border-border bg-background px-4 py-3 text-left hover:border-primary/40 hover:bg-muted/40 transition focus:outline-none focus:ring-2 focus:ring-ring"
             onClick={() => void handlePdf()}
-            disabled={busy() !== null}
+            disabled={busy() !== null || planPending()}
           >
             <Download class="w-5 h-5 text-primary" />
             <span class="font-semibold text-foreground text-sm">

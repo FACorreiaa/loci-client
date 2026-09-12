@@ -110,7 +110,10 @@ export function useUserSubscription(getEnabled?: () => boolean) {
       });
     },
     staleTime: 60000, // 1 minute
-    retry: false,
+    // One retry, not none: this answer decides whether Pro features are
+    // offered, and a single transient failure used to leave the page treating
+    // a Pro account as free for its whole lifetime.
+    retry: 1,
   }));
 }
 
