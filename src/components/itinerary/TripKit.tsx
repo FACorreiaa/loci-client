@@ -15,6 +15,8 @@ import {
   groupStopsByDay,
   lockedDayCount,
   openMapsForTrip,
+  parseLocalDate,
+  tripDateRange,
   type TripStop,
 } from "~/lib/trip-kit";
 import { exportItineraryToPDF } from "~/lib/api/export";
@@ -40,6 +42,26 @@ export default function TripKit(props: TripKitProps) {
   const days = createMemo(() => groupStopsByDay(props.stops, perDay()));
   const locked = createMemo(() => lockedDayCount({ ...props, stopsPerDay: perDay() }));
   const dayCount = createMemo(() => days().length);
+
+  // Day 1 starts here. The .ics has always been able to start on a given day;
+  // nothing ever told it which, so every download landed on tomorrow no matter
+  // when the trip actually was. Defaulting to tomorrow keeps that behaviour for
+  // anybody who ignores the field.
+  const DAY_START_HOUR = 9;
+  const tomorrowValue = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const [startValue, setStartValue] = createSignal(tomorrowValue());
+  const startDate = createMemo(() => parseLocalDate(startValue(), DAY_START_HOUR));
+  // Free downloads carry day 1 only, so the range has to describe what will
+  // actually be written rather than how long the trip is.
+  const exportedDayCount = createMemo(() => (props.isPro ? dayCount() : Math.min(1, dayCount())));
+  const rangeLabel = createMemo(() => {
+    const start = startDate();
+    return start ? tripDateRange(start, exportedDayCount()) : "";
+  });
 
   const flash = (msg: string) => {
     setToast(msg);
@@ -74,7 +96,11 @@ export default function TripKit(props: TripKitProps) {
   const handleCalendar = () => {
     setBusy("cal");
     try {
-      const result = downloadCalendarForTrip(kitInput());
+      const start = startDate();
+      const result = downloadCalendarForTrip(
+        kitInput(),
+        start ? { startDate: start, dayStartHour: DAY_START_HOUR } : {},
+      );
       if (!result.ok) {
         flash("Nothing to add to the calendar yet.");
       } else if (result.locked) {
@@ -199,6 +225,27 @@ export default function TripKit(props: TripKitProps) {
               {props.isPro ? "All days as timed events (.ics)" : "Day 1 timed blocks (.ics)"}
             </span>
           </button>
+
+          <div class="flex flex-col items-start gap-2 rounded-xl border border-border bg-background px-4 py-3">
+            <label
+              for="trip-start-date"
+              class="font-semibold text-foreground text-sm cursor-pointer"
+            >
+              Trip starts
+            </label>
+            {/* A native date input: src/ui has no calendar primitive, and one
+                field does not justify adding a picker dependency. */}
+            <input
+              id="trip-start-date"
+              type="date"
+              class="w-full rounded-lg border border-border bg-background px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              value={startValue()}
+              onInput={(e) => setStartValue(e.currentTarget.value)}
+            />
+            <span class="text-xs text-muted-foreground">
+              {rangeLabel() ? `Calendar covers ${rangeLabel()}` : "Pick the first day of the trip"}
+            </span>
+          </div>
 
           <button
             type="button"

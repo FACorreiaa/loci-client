@@ -195,6 +195,47 @@ function parseDurationMinutes(timeToSpend?: string): number {
   return 90;
 }
 
+/**
+ * Read a `yyyy-mm-dd` value from a date input as a local day.
+ *
+ * `new Date("2026-10-08")` is parsed as midnight UTC, which is the 7th
+ * anywhere west of Greenwich — so the obvious one-liner moves somebody's trip
+ * a day earlier depending on where they are sitting. Constructing from the
+ * parts keeps the day the one they picked.
+ *
+ * Returns null for anything that is not a real date, so a half-typed input
+ * cannot silently produce an Invalid Date and an .ics full of NaN.
+ */
+export function parseLocalDate(value: string, dayStartHour: number): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const [, y, m, d] = match;
+  const year = Number(y);
+  const month = Number(m);
+  const day = Number(d);
+  const date = new Date(year, month - 1, day, dayStartHour, 0, 0, 0);
+  // Rejects 2026-13-45: the Date constructor rolls those over rather than
+  // failing, so compare the parts back.
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null;
+  }
+  return date;
+}
+
+/**
+ * "Wed 8 – Sat 11 Oct", so the page can say what it is about to write into
+ * the calendar before anybody downloads it.
+ */
+export function tripDateRange(startDate: Date, dayCount: number): string {
+  if (dayCount <= 0) return "";
+  const fmt = (d: Date) =>
+    d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  if (dayCount === 1) return fmt(startDate);
+  const end = new Date(startDate);
+  end.setDate(startDate.getDate() + dayCount - 1);
+  return `${fmt(startDate)} \u2013 ${fmt(end)}`;
+}
+
 export interface CalendarOptions {
   /** Local start of day 1 (defaults to tomorrow 09:00 local). */
   startDate?: Date;
@@ -298,17 +339,30 @@ export function openMapsForTrip(input: TripKitInput): { ok: boolean; locked: boo
   return { ok: true, locked: lockedDayCount(input) > 0 };
 }
 
-/** Download calendar for unlocked stops. */
-export function downloadCalendarForTrip(input: TripKitInput): { ok: boolean; locked: boolean } {
+/**
+ * Download calendar for unlocked stops.
+ *
+ * `options` is forwarded to buildItineraryIcs, which is the whole point: the
+ * start date seam has existed on buildItineraryIcs since it was written, and
+ * this function had no parameter to carry one — so every download anybody has
+ * ever made started tomorrow at 09:00 regardless of when the trip was.
+ */
+export function downloadCalendarForTrip(
+  input: TripKitInput,
+  options: CalendarOptions = {},
+): { ok: boolean; locked: boolean } {
   const stops = unlockedStops(input);
   if (stops.length === 0) return { ok: false, locked: false };
-  const ics = buildItineraryIcs({
-    title: input.title,
-    cityName: input.cityName,
-    summary: input.summary,
-    stops,
-    stopsPerDay: input.stopsPerDay,
-  });
+  const ics = buildItineraryIcs(
+    {
+      title: input.title,
+      cityName: input.cityName,
+      summary: input.summary,
+      stops,
+      stopsPerDay: input.stopsPerDay,
+    },
+    options,
+  );
   const slugCity = slug(input.cityName) || "trip";
   downloadIcs(ics, `loci-${slugCity}${input.isPro ? "-full" : "-day1"}.ics`);
   return { ok: true, locked: lockedDayCount(input) > 0 };
