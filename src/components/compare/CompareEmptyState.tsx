@@ -70,7 +70,11 @@ export function CompareEmptyState(props: { onPick: (preset: ComparePreset) => vo
         <div class="flex flex-wrap gap-2">
           <For each={presets}>
             {(preset) => (
-              <button type="button" class="loci-chip text-sm" onClick={() => props.onPick(preset)}>
+              <button
+                type="button"
+                class="loci-chip loci-chip--surface text-sm"
+                onClick={() => props.onPick(preset)}
+              >
                 {preset.origin.name} → {preset.candidates.map((c) => c.name).join(" or ")}
               </button>
             )}

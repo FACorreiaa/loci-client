@@ -31,7 +31,7 @@ export function CandidateChips(props: CandidateChipsProps) {
         <ul class="flex flex-wrap gap-2">
           <For each={props.candidates}>
             {(city, i) => (
-              <li class="loci-chip inline-flex items-center gap-1.5 text-sm">
+              <li class="loci-chip loci-chip--surface inline-flex items-center gap-1.5 text-sm">
                 <span>{city.name}</span>
                 <Show when={city.country}>
                   <span class="text-muted-foreground text-xs">{city.country}</span>

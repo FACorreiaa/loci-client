@@ -264,7 +264,7 @@ export default function ComparePage() {
                   {(s) => (
                     <button
                       type="button"
-                      class="loci-chip text-sm"
+                      class="loci-chip loci-chip--surface text-sm"
                       onClick={() => applySuggestion(s)}
                     >
                       {s.name}
@@ -303,7 +303,7 @@ export default function ComparePage() {
                 <div class="flex items-center gap-2 mb-6">
                   <CloudSun class="w-5 h-5 text-primary" />
                   <p class="text-sm text-muted-foreground">{data().recommendationReason}</p>
-                  <span class="loci-chip text-xs">
+                  <span class="loci-chip loci-chip--surface text-xs">
                     {recommendationLabel(data().recommendation, columns())}
                   </span>
                 </div>

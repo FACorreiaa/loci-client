@@ -121,14 +121,20 @@ export function CompareForm(props: CompareFormProps) {
         </button>
 
         {/* The old form validated silently: fewer than two cities simply did
-            nothing when the button was pressed, which reads as a broken button. */}
+            nothing when the button was pressed, which reads as a broken button.
+            It has to be genuinely readable — muted text at the smallest size is
+            how the original dead end stayed invisible. */}
         <Show when={!props.pending && !canSubmit()}>
-          <p class="text-xs text-muted-foreground text-center">
+          <p class="text-sm text-foreground/80 text-center">
             <Show
               when={!origin()}
               fallback={
-                <Show when={!enoughCandidates()} fallback="Check the dates.">
-                  Add at least two cities to compare.
+                <Show
+                  when={!enoughCandidates()}
+                  fallback="Choose an end date after the start date."
+                >
+                  Add {2 - candidates().length} more {candidates().length === 1 ? "city" : "cities"}{" "}
+                  to compare.
                 </Show>
               }
             >

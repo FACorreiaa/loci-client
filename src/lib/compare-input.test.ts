@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildCompareInput, hasCoordinates } from "./compare-input";
+import { buildCompareInput, hasCoordinates, shouldCommitTyped } from "./compare-input";
 import type { DateWindow } from "./compare-defaults";
 
 const window: DateWindow = {
@@ -102,5 +102,34 @@ describe("hasCoordinates", () => {
     expect(hasCoordinates({ name: "x", lat: 1 })).toBe(false);
     expect(hasCoordinates({ name: "x", lon: 1 })).toBe(false);
     expect(hasCoordinates({ name: "x" })).toBe(false);
+  });
+});
+
+// The bug this guards: typed text used to be committed only on Enter, so
+// typing "Porto" and clicking the button left the origin unset, the submit
+// disabled, and the page looking dead.
+describe("shouldCommitTyped", () => {
+  it("commits text nobody picked from the list", () => {
+    expect(shouldCommitTyped("Porto", null)).toBe(true);
+    expect(shouldCommitTyped("  Madrid  ", null)).toBe(true);
+  });
+
+  it("ignores a stray keystroke", () => {
+    expect(shouldCommitTyped("", null)).toBe(false);
+    expect(shouldCommitTyped(" ", null)).toBe(false);
+    expect(shouldCommitTyped("P", null)).toBe(false);
+  });
+
+  // Re-emitting a list selection as a bare name would discard the coordinates
+  // and country it arrived with, and make the server resolve a name it did not
+  // need to.
+  it("does not overwrite a selection that is already this city", () => {
+    expect(shouldCommitTyped("Porto", porto)).toBe(false);
+    expect(shouldCommitTyped("porto", porto)).toBe(false);
+    expect(shouldCommitTyped("  Porto ", porto)).toBe(false);
+  });
+
+  it("commits when the text has moved on from the selection", () => {
+    expect(shouldCommitTyped("Lisbon", porto)).toBe(true);
   });
 });
