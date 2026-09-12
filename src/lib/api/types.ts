@@ -1,4 +1,3 @@
-
 /**
  * One picture of a place, with the credit it cannot be shown without.
  *
@@ -518,6 +517,11 @@ export interface AIItineraryResponse {
   points_of_interest: POIDetailedInfo[];
   restaurants?: RestaurantDetailedInfo[];
   bars?: RestaurantDetailedInfo[];
+  /**
+   * How many days this plan covers, as read from the traveller's request.
+   * Zero or absent on answers produced before the server started saying.
+   */
+  planned_days?: number;
 }
 
 export interface AiCityResponse {
@@ -629,6 +633,15 @@ export interface POIDetailedInfo {
   city: string;
   city_id?: string;
   name: string;
+  /**
+   * Which day of the plan this place belongs to, 1-based, assigned by the
+   * server. Absent for places that are not part of a plan — a search result,
+   * a nearby lookup — where the day headers fall back to chunking by index.
+   *
+   * Note the base: this is 1-based on the wire and 0-based everywhere in
+   * trip-kit, which converts once at stopsFromCityResponse.
+   */
+  day?: number;
   latitude: number;
   longitude: number;
   category: string;

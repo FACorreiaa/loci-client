@@ -49,14 +49,14 @@ function validCoord(lat?: number, lon?: number): boolean {
 }
 
 /** Group ordered stops into days. */
-export function groupStopsByDay(
-  stops: TripStop[],
+export function groupStopsByDay<T extends TripStop>(
+  stops: T[],
   stopsPerDay: number = FREE_STOPS_PER_DAY,
-): TripDay[] {
+): (Omit<TripDay, "stops"> & { stops: T[] })[] {
   if (stops.length === 0) return [];
   const hasExplicitDays = stops.some((s) => typeof s.day === "number");
   if (hasExplicitDays) {
-    const map = new Map<number, TripStop[]>();
+    const map = new Map<number, T[]>();
     for (const s of stops) {
       const d = s.day ?? 0;
       if (!map.has(d)) map.set(d, []);
@@ -70,7 +70,7 @@ export function groupStopsByDay(
         stops: dayStops,
       }));
   }
-  const groups: TripDay[] = [];
+  const groups: (Omit<TripDay, "stops"> & { stops: T[] })[] = [];
   stops.forEach((s, i) => {
     const day = Math.floor(i / Math.max(1, stopsPerDay));
     if (!groups[day]) groups[day] = { day, label: `Day ${day + 1}`, stops: [] };

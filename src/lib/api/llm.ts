@@ -157,6 +157,9 @@ export const mapPoi = (poi: ProtoPOIDetailedInfo): POIDetailedInfo => {
     star_rating:
       typeof poi.starRating === "string" ? parseFloat(poi.starRating) : poi.starRating || 0,
     distance: poi.distance || 0,
+    // Left undefined rather than defaulted to a day: absent is what tells the
+    // grouping to chunk by index instead, and zero is a real day.
+    day: poi.day,
     description_poi: poi.descriptionPoi || "",
     recommendation_rationale: poi.recommendationRationale || "",
     uncertainty_score: poi.uncertaintyScore,
