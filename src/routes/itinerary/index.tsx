@@ -20,9 +20,18 @@ import type { POI } from "@/components/features/Map/Map";
 import { getChatSession } from "@/lib/api/llm";
 import { getStoredSession, persistCompletedSession } from "@/lib/utils/chatUtils";
 
-// Stops per itinerary day — the live backend has no day field, so we bucket the
-// priority-ordered stops to colour the map by day and group the list.
+// Stops per itinerary day, used only when the server did not say.
+//
+// It used to be the rule rather than the fallback, which had the dependency
+// backwards: days were derived from how many places came back, so a four-day
+// trip with twenty-four places rendered as six. The server now assigns a day
+// per stop; this only covers answers produced before it did.
 const STOPS_PER_DAY = 4;
+
+// dayOf is which day a stop belongs to: the server's answer when there is one,
+// otherwise the old bucketing.
+const dayOf = (stop: { day?: number }, index: number): number =>
+  typeof stop.day === "number" ? stop.day : Math.floor(index / STOPS_PER_DAY);
 const toNum = (v: unknown): number =>
   typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : 0;
 import SplitView from "@/components/layout/SplitView";
@@ -353,7 +362,7 @@ export default function ItineraryPage() {
         category: s.category || geo.category || "",
         latitude: geo.latitude,
         longitude: geo.longitude,
-        day: Math.floor(i / STOPS_PER_DAY),
+        day: dayOf(s, i),
         seq: i + 1,
         rating: s.rating ?? geo.rating,
         timeToSpend: s.timeToSpend,
@@ -395,7 +404,7 @@ export default function ItineraryPage() {
         category: s.category || geo?.category,
         blurb: s.blurb,
         timeToSpend: s.timeToSpend,
-        day: Math.floor(i / STOPS_PER_DAY),
+        day: dayOf(s, i),
       };
     });
   });

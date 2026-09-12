@@ -3,6 +3,7 @@ import { Sparkles, Check, AlertTriangle } from "lucide-solid";
 import StopCard from "./StopCard";
 import StopCardSkeleton from "./StopCardSkeleton";
 import type { ItineraryStop, StreamPhase } from "@/lib/itinerary/createItineraryStream";
+import { groupStopsByDay } from "@/lib/trip-kit";
 import "@/styles/editorial.css";
 
 /**
@@ -52,20 +53,34 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
   );
   const everythingEnriched = () => hasStops() && props.enrichedCount >= total();
 
-  // Group stops into days when stopsPerDay is provided. Each group keeps the
-  // stop's absolute index so numbering stays continuous across days.
+  // The server says which day a stop belongs to; only when it has not does
+  // this fall back to chunking by index. Deriving days from the number of
+  // stops was the old behaviour and it had the dependency backwards — a
+  // four-day trip with twenty-four places rendered as six days.
+  //
+  // groupStopsByDay is the one grouping implementation in the client, shared
+  // with the trip kit, so a day here and a day in an export cannot disagree.
   const dayGroups = createMemo(() => {
     const per = props.stopsPerDay ?? 0;
-    if (per <= 0) return [{ day: 0, items: props.stops.map((stop, index) => ({ stop, index })) }];
-    const groups: { day: number; items: { stop: ItineraryStop; index: number }[] }[] = [];
-    props.stops.forEach((stop, index) => {
-      const day = Math.floor(index / per);
-      if (!groups[day]) groups[day] = { day, items: [] };
-      groups[day].items.push({ stop, index });
-    });
-    return groups;
+    const hasDays = props.stops.some((stop) => typeof stop.day === "number");
+
+    if (per <= 0 && !hasDays) {
+      return [{ day: 0, items: props.stops.map((stop, index) => ({ stop, index })) }];
+    }
+
+    // Numbering accumulates across groups rather than being looked up by
+    // identity: the chunking branch of groupStopsByDay spreads each stop into
+    // a new object to stamp its day, so identity does not survive it.
+    let index = 0;
+    return groupStopsByDay(props.stops, per > 0 ? per : undefined).map((group) => ({
+      day: group.day,
+      items: group.stops.map((stop) => ({ stop, index: index++ })),
+    }));
   });
-  const grouped = () => (props.stopsPerDay ?? 0) > 0 && total() > props.stopsPerDay!;
+
+  const grouped = () =>
+    props.stops.some((stop) => typeof stop.day === "number") ||
+    ((props.stopsPerDay ?? 0) > 0 && total() > props.stopsPerDay!);
 
   return (
     <div class="space-y-4">

@@ -27,6 +27,12 @@ export interface ItineraryStop {
   category?: string;
   blurb?: string;
   priority?: number;
+  /**
+   * Which day of the plan this stop belongs to, 0-based to match trip-kit.
+   * Undefined when the server did not say, which is the signal to group by
+   * chunking instead.
+   */
+  day?: number;
   timeToSpend?: string;
   budget?: string;
   distance?: number;
@@ -272,7 +278,14 @@ export function stopsFromCityResponse(data: AiCityResponse | null): {
   const itin = data?.itinerary_response;
   const pois: POIDetailedInfo[] = itin?.points_of_interest ?? data?.points_of_interest ?? [];
 
-  const sorted = [...pois].sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
+  // Day first, then priority within the day. Sorting on priority alone
+  // interleaves the day groups, so day two's best place lands above day one's
+  // second-best and the headers read as nonsense.
+  const sorted = [...pois].sort(
+    (a, b) =>
+      (a.day ?? Number.MAX_SAFE_INTEGER) - (b.day ?? Number.MAX_SAFE_INTEGER) ||
+      (a.priority ?? 999) - (b.priority ?? 999),
+  );
 
   let enrichedCount = 0;
   const stops: ItineraryStop[] = sorted.map((poi, i) => {
@@ -289,6 +302,10 @@ export function stopsFromCityResponse(data: AiCityResponse | null): {
       timeToSpend: poi.time_to_spend,
       budget: poi.budget,
       distance: typeof poi.distance === "number" ? poi.distance : undefined,
+      // 1-based on the wire, 0-based here: trip-kit labels `Day ${day + 1}`
+      // and its free-tier gate unlocks day 0. Converting once, here, is what
+      // keeps that gate working untouched.
+      day: typeof poi.day === "number" && poi.day > 0 ? poi.day - 1 : undefined,
       placeId,
       imageUrl,
       rating: poi.rating,
