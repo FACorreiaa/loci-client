@@ -120,7 +120,7 @@ export function ColumnCard(props: {
               href={t.url!}
               target="_blank"
               rel="noopener noreferrer"
-              class="loci-chip text-xs inline-flex items-center gap-1"
+              class="loci-chip loci-chip--surface text-xs inline-flex items-center gap-1"
             >
               <Car class="w-3 h-3" />
               {t.summary}

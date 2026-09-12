@@ -194,6 +194,21 @@
     background: hsl(var(--hero-foreground, 0 0% 100%) / 0.25);
   }
 
+  /* .loci-chip is scoped to the hero: it paints itself in --hero-foreground,
+     which is white. On a card or the page background that is white-on-white,
+     i.e. invisible. This variant is the same shape in theme tokens, for chips
+     that sit on an ordinary surface. */
+  .loci-chip--surface {
+    background: hsl(var(--muted));
+    border-color: hsl(var(--border));
+    color: hsl(var(--foreground));
+  }
+
+  .loci-chip--surface:hover {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
   .loci-chip--destructive {
     background: hsl(var(--destructive) / 0.3);
     border-color: hsl(var(--destructive) / 0.4);

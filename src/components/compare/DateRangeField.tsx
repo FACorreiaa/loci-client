@@ -46,14 +46,14 @@ export function DateRangeField(props: DateRangeFieldProps) {
         <div class="flex gap-1">
           <button
             type="button"
-            class="loci-chip text-xs"
+            class="loci-chip loci-chip--surface text-xs"
             onClick={() => props.onChange(defaultWeekend())}
           >
             This weekend
           </button>
           <button
             type="button"
-            class="loci-chip text-xs"
+            class="loci-chip loci-chip--surface text-xs"
             onClick={() => props.onChange(nextWeekend())}
           >
             Next weekend

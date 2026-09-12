@@ -1,6 +1,7 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
 import { Loader2, MapPin } from "lucide-solid";
 import { MIN_CITY_QUERY_LENGTH, useCitySearch, type City } from "~/lib/api/cities";
+import { shouldCommitTyped } from "~/lib/compare-input";
 
 /**
  * A city, as chosen in the form.
@@ -63,12 +64,14 @@ export function CityAutocomplete(props: CityAutocompleteProps) {
     setActive(0);
   };
 
-  // Text nobody picked from the list is still usable: the server resolves names.
-  // Without this, typing a city and pressing the button would silently do
-  // nothing, which is exactly the kind of dead end this field replaces.
+  // Text nobody picked from the list is still usable: the server resolves names,
+  // so a typed city is a valid answer. This has to fire on blur as well as on
+  // Enter — otherwise typing "Porto" and clicking the button leaves the origin
+  // unset, the button disabled, and the page looking dead, which is precisely
+  // the dead end this field was meant to remove.
   const commitTyped = () => {
     const typed = query().trim();
-    if (!typed) return;
+    if (!shouldCommitTyped(typed, props.value)) return;
     props.onSelect({ name: typed });
     if (props.clearOnSelect) setQuery("");
     setOpen(false);
@@ -129,8 +132,14 @@ export function CityAutocomplete(props: CityAutocompleteProps) {
             }}
             onFocus={() => setOpen(true)}
             // A frame's delay, so a click on an option is registered before the
-            // list is torn down by the blur.
-            onBlur={() => setTimeout(() => setOpen(false), 120)}
+            // list is torn down by the blur — and so a click that chose an
+            // option is not immediately overwritten by the raw text below.
+            onBlur={() => {
+              setTimeout(() => {
+                setOpen(false);
+                commitTyped();
+              }, 150);
+            }}
             onKeyDown={onKeyDown}
           />
           <Show when={search.isFetching}>

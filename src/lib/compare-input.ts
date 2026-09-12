@@ -55,3 +55,26 @@ export function hasCoordinates(city: SelectedCity): boolean {
     Number.isFinite(city.lon)
   );
 }
+
+/** Shortest query worth sending to city search, mirrored from the API module. */
+export const MIN_COMMITTABLE_LENGTH = 2;
+
+/**
+ * Whether text somebody typed should become a selection when the field loses
+ * focus.
+ *
+ * Extracted so it can be tested: the bug this replaces was that typed text was
+ * only ever committed on Enter, so typing "Porto" and clicking the button left
+ * the origin unset and the button disabled — the page simply looked dead.
+ *
+ * It must NOT fire when the text still matches a selection already made from
+ * the list, because re-emitting it as a bare name throws away the coordinates
+ * and country that came with it, and makes the server resolve a name it did
+ * not need to.
+ */
+export function shouldCommitTyped(typed: string, current?: SelectedCity | null): boolean {
+  const trimmed = typed.trim();
+  if (trimmed.length < MIN_COMMITTABLE_LENGTH) return false;
+  if (current && current.name.trim().toLowerCase() === trimmed.toLowerCase()) return false;
+  return true;
+}
