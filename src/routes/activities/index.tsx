@@ -1,11 +1,12 @@
-import { createSignal, createMemo, Show, onMount, For, lazy } from "solid-js";
+import { createSignal, createMemo, Show, onMount, For } from "solid-js";
+import { lazyChunk } from "@/lib/lazyChunk";
 import { useSearchParams } from "@solidjs/router";
 import { useChatRPC } from "~/lib/hooks/useChatRPC";
 import { hasListContent, readCompletedSession } from "~/lib/streaming/restore-session";
 import { useLiveSession } from "~/lib/streaming/live-stream-store";
 import { resumeLiveSession } from "~/lib/streaming/resume-live";
 import { POIDetailedInfo } from "~/lib/api/types";
-const MapComponent = lazy(() => import("~/components/features/Map/Map"));
+const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 import SplitView from "@/components/layout/SplitView";
 import { CityInfoHeader } from "@/components/ui/CityInfoHeader";
 import { ActionToolbar } from "@/components/ui/ActionToolbar";

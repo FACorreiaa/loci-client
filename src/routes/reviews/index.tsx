@@ -1,7 +1,8 @@
-import { createSignal, For, Show, lazy } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
+import { lazyChunk } from "~/lib/lazyChunk";
 import { Star, Search, MapPin, Plus, SortAsc, SortDesc } from "lucide-solid";
 import ReviewCard from "~/components/ReviewCard";
-const ReviewForm = lazy(() => import("~/components/ReviewForm"));
+const ReviewForm = lazyChunk(() => import("~/components/ReviewForm"));
 import { Button } from "~/ui/button";
 import { TextField, TextFieldRoot } from "~/ui/textfield";
 import {

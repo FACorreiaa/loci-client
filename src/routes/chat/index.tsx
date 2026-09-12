@@ -1,4 +1,5 @@
-import { For, Show, lazy, createSignal, createEffect } from "solid-js";
+import { For, Show, createSignal, createEffect } from "solid-js";
+import { lazyChunk } from "~/lib/lazyChunk";
 import { Loader2, MapPin } from "lucide-solid";
 import { LociMark } from "~/components/brand/Logo";
 import {
@@ -10,7 +11,7 @@ import {
 } from "~/components/chat";
 import ChatMessage from "~/components/chat/ChatMessage";
 import { useChat } from "~/lib/hooks/useChat";
-const DetailedItemModal = lazy(() => import("~/components/DetailedItemModal"));
+const DetailedItemModal = lazyChunk(() => import("~/components/DetailedItemModal"));
 
 const QUICK_PROMPTS: QuickPrompt[] = [
   {

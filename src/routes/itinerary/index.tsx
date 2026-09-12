@@ -1,4 +1,5 @@
-import { createSignal, createMemo, createEffect, Show, For, onMount, lazy } from "solid-js";
+import { createSignal, createMemo, createEffect, Show, For, onMount } from "solid-js";
+import { lazyChunk } from "@/lib/lazyChunk";
 import { useSearchParams, useNavigate } from "@solidjs/router";
 import { useStreamedRpc } from "@/lib/hooks/useStreamedRpc";
 import { useTypedText } from "@/lib/hooks/useTypedText";
@@ -14,8 +15,8 @@ import {
   type ItineraryStop,
   type StreamPhase,
 } from "@/lib/itinerary/createItineraryStream";
-const MapComponent = lazy(() => import("@/components/features/Map/Map"));
-const DetailedItemModal = lazy(() => import("@/components/DetailedItemModal"));
+const MapComponent = lazyChunk(() => import("@/components/features/Map/Map"));
+const DetailedItemModal = lazyChunk(() => import("@/components/DetailedItemModal"));
 import type { POI } from "@/components/features/Map/Map";
 import { getChatSession } from "@/lib/api/llm";
 import { getStoredSession, persistCompletedSession } from "@/lib/utils/chatUtils";
