@@ -28,6 +28,44 @@ describe("groupStopsByDay", () => {
     expect(days[0].stops).toHaveLength(4);
     expect(days[1].stops).toHaveLength(1);
   });
+
+  it("numbers chunked days from one", () => {
+    expect(groupStopsByDay(stops, 4).map((d) => d.label)).toEqual(["Day 1", "Day 2"]);
+  });
+
+  // The server numbers days from 1 (verified against a real Madeira itinerary:
+  // days 1-4). The label used to be `Day ${day + 1}` on the raw value, which
+  // rendered that trip as "Day 2" through "Day 5" with no Day 1 anywhere.
+  // Labelling by position is right whichever base the server uses.
+  it("numbers server-supplied one-based days from one", () => {
+    const withDays: TripStop[] = [
+      { name: "A", day: 1 },
+      { name: "B", day: 1 },
+      { name: "C", day: 2 },
+      { name: "D", day: 3 },
+      { name: "E", day: 4 },
+    ];
+    const days = groupStopsByDay(withDays, 4);
+    expect(days.map((d) => d.label)).toEqual(["Day 1", "Day 2", "Day 3", "Day 4"]);
+    expect(days[0].stops).toHaveLength(2);
+  });
+
+  it("numbers server-supplied zero-based days from one too", () => {
+    const withDays: TripStop[] = [
+      { name: "A", day: 0 },
+      { name: "B", day: 1 },
+    ];
+    expect(groupStopsByDay(withDays, 4).map((d) => d.label)).toEqual(["Day 1", "Day 2"]);
+  });
+
+  // Sparse or non-contiguous days must still read as consecutive.
+  it("labels sparse days consecutively", () => {
+    const withDays: TripStop[] = [
+      { name: "A", day: 1 },
+      { name: "B", day: 5 },
+    ];
+    expect(groupStopsByDay(withDays, 4).map((d) => d.label)).toEqual(["Day 1", "Day 2"]);
+  });
 });
 
 describe("unlockedStops / lockedDayCount", () => {

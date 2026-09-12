@@ -66,7 +66,9 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
     const hasDays = props.stops.some((stop) => typeof stop.day === "number");
 
     if (per <= 0 && !hasDays) {
-      return [{ day: 0, items: props.stops.map((stop, index) => ({ stop, index })) }];
+      return [
+        { day: 0, label: "Day 1", items: props.stops.map((stop, index) => ({ stop, index })) },
+      ];
     }
 
     // Numbering accumulates across groups rather than being looked up by
@@ -75,6 +77,10 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
     let index = 0;
     return groupStopsByDay(props.stops, per > 0 ? per : undefined).map((group) => ({
       day: group.day,
+      // The heading comes from the grouper rather than being recomputed here:
+      // the server numbers days from 1, so `day + 1` showed a four-day trip as
+      // "Day 2" through "Day 5". One place decides what a day is called.
+      label: group.label,
       items: group.stops.map((stop) => ({ stop, index: index++ })),
     }));
   });
@@ -214,7 +220,7 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
                       class="w-3 h-3 rounded-full shrink-0"
                       style={{ "background-color": DAY_COLORS[group.day % DAY_COLORS.length] }}
                     />
-                    <p class="kicker">Day {group.day + 1}</p>
+                    <p class="kicker">{group.label}</p>
                   </div>
                   <For each={group.items}>
                     {(item) => (

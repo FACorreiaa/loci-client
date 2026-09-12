@@ -64,9 +64,13 @@ export function groupStopsByDay<T extends TripStop>(
     }
     return [...map.entries()]
       .sort(([a], [b]) => a - b)
-      .map(([day, dayStops]) => ({
+      .map(([day, dayStops], position) => ({
         day,
-        label: `Day ${day + 1}`,
+        // Numbered by position, not by the value. The server numbers days from
+        // 1, so `day + 1` rendered a four-day trip as "Day 2" through "Day 5"
+        // with no Day 1 at all. Position is right whichever base the server
+        // uses, and keeps sparse or non-contiguous days reading consecutively.
+        label: `Day ${position + 1}`,
         stops: dayStops,
       }));
   }

@@ -81,6 +81,15 @@ export default function ItineraryPage() {
   const saveItineraryMutation = useSaveItineraryMutation();
   const subscriptionQuery = useUserSubscription(() => isAuthenticated());
   const isPro = createMemo(() => isProPlan(subscriptionQuery.data?.plan));
+  // isPro is derived from a query, so "not loaded yet" and "genuinely free"
+  // both read as false. The trip kit needs to tell them apart: exporting on the
+  // first reading silently handed a Pro account a Day-1 file.
+  const planState = createMemo<"loading" | "known" | "unknown">(() => {
+    if (!isAuthenticated()) return "known";
+    if (subscriptionQuery.isPending || subscriptionQuery.isLoading) return "loading";
+    if (subscriptionQuery.isError || subscriptionQuery.data === undefined) return "unknown";
+    return "known";
+  });
 
   const restoreFromSessionStorage = (sessionIdFromUrl: string): boolean => {
     const completedSession = sessionStorage.getItem("completedStreamingSession");
@@ -558,6 +567,7 @@ export default function ItineraryPage() {
             summary={itineraryModel().summary}
             stops={tripKitStops()}
             isPro={isPro()}
+            planState={planState()}
             visible={
               streamPhase() === "done" || (itineraryModel().stops.length > 0 && !store.isLoading)
             }
