@@ -10,6 +10,7 @@ import StopCard from "@/components/itinerary/StopCard";
 import TripKit from "@/components/itinerary/TripKit";
 import EditTripCTA from "@/components/trip/EditTripCTA";
 import SectionHeader from "@/components/ui/SectionHeader";
+import { hasItineraryContent, normalizeItineraryPayload } from "@/lib/itinerary/normalize-payload";
 import {
   stopsFromCityResponse,
   type ItineraryStop,
@@ -81,59 +82,13 @@ export default function ItineraryPage() {
   const subscriptionQuery = useUserSubscription(() => isAuthenticated());
   const isPro = createMemo(() => isProPlan(subscriptionQuery.data?.plan));
 
-  // hasItineraryContent decides whether a payload is worth restoring.
-  //
-  // The guard used to be `if (!data)`, and createStreamingSession seeds
-  // `data: {}`. An empty object is truthy, so a stream that produced no
-  // structured result still counted as a successful restore: hydrateFromServer
-  // and connect() were both skipped, and the page shimmered forever with
-  // nothing in flight and no error. That was the blank page.
-  const hasItineraryContent = (data: any): boolean => {
-    if (!data || typeof data !== "object") return false;
-    const inner = data.itinerary_response ?? data;
-    return Boolean(
-      inner?.general_city_data ||
-      (Array.isArray(inner?.points_of_interest) && inner.points_of_interest.length > 0) ||
-      inner?.itinerary_response ||
-      (Array.isArray(data?.hotels) && data.hotels.length > 0) ||
-      (Array.isArray(data?.restaurants) && data.restaurants.length > 0) ||
-      (Array.isArray(data?.activities) && data.activities.length > 0),
-    );
-  };
-
-  // Helper to normalize stored data - flattens nested itinerary_response structure
-  const normalizeStoredData = (data: any): any => {
-    if (!hasItineraryContent(data)) return null;
-
-    // Check if data is wrapped in itinerary_response that contains the actual payload
-    // Server sometimes returns: { itinerary_response: { general_city_data, points_of_interest, itinerary_response, session_id } }
-    if (
-      data.itinerary_response &&
-      (data.itinerary_response.general_city_data || data.itinerary_response.points_of_interest)
-    ) {
-      const inner = data.itinerary_response;
-      return {
-        general_city_data: inner.general_city_data,
-        points_of_interest: inner.points_of_interest,
-        itinerary_response: inner.itinerary_response,
-        session_id: inner.session_id || data.session_id,
-        // Preserve any other top-level fields
-        hotels: data.hotels || inner.hotels,
-        restaurants: data.restaurants || inner.restaurants,
-        activities: data.activities || inner.activities,
-      };
-    }
-
-    return data;
-  };
-
   const restoreFromSessionStorage = (sessionIdFromUrl: string): boolean => {
     const completedSession = sessionStorage.getItem("completedStreamingSession");
     if (completedSession) {
       try {
         const parsed = JSON.parse(completedSession);
         const parsedData = parsed.data || parsed;
-        const normalized = normalizeStoredData(parsedData);
+        const normalized = normalizeItineraryPayload(parsedData);
         // Both conditions, and content is one of them: a session id that
         // matches but carries nothing must fall through to hydration rather
         // than being treated as restored.
@@ -154,7 +109,7 @@ export default function ItineraryPage() {
       try {
         const parsed = JSON.parse(activeSession);
         if (parsed.sessionId === sessionIdFromUrl && parsed.data) {
-          const normalizedActive = normalizeStoredData(parsed.data);
+          const normalizedActive = normalizeItineraryPayload(parsed.data);
           if (normalizedActive) {
             setStore("data", normalizedActive);
             return true;
@@ -165,7 +120,7 @@ export default function ItineraryPage() {
       }
     }
 
-    const storedSession = normalizeStoredData(getStoredSession(sessionIdFromUrl));
+    const storedSession = normalizeItineraryPayload(getStoredSession(sessionIdFromUrl));
     if (storedSession) {
       setStore("data", storedSession);
       return true;
@@ -184,7 +139,7 @@ export default function ItineraryPage() {
         throw new Error("This session has no saved itinerary yet. Try starting a new search.");
       }
 
-      const normalizedData = normalizeStoredData(itinerary);
+      const normalizedData = normalizeItineraryPayload(itinerary);
       setStore("data", normalizedData);
       persistCompletedSession(sessionIdFromUrl, normalizedData);
     } catch (err) {
@@ -211,7 +166,7 @@ export default function ItineraryPage() {
     if (!boundLive()) return;
     const data = live.data();
     const phase = live.phase();
-    if (data) setStore("data", normalizeStoredData(data) ?? (data as any));
+    if (data) setStore("data", normalizeItineraryPayload(data) ?? (data as any));
     setStore("isLoading", phase === "connecting" || phase === "streaming");
     const err = live.error();
     if (err) setStore("error", new Error(err));
