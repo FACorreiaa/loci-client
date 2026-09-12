@@ -1,9 +1,10 @@
-import { For, Show, createMemo } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, on } from "solid-js";
 import { Sparkles, Check, AlertTriangle } from "lucide-solid";
 import StopCard from "./StopCard";
 import StopCardSkeleton from "./StopCardSkeleton";
 import type { ItineraryStop, StreamPhase } from "@/lib/itinerary/createItineraryStream";
 import { groupStopsByDay } from "@/lib/trip-kit";
+import { INITIAL_DAYS, windowDays } from "@/lib/itinerary/day-paging";
 import "@/styles/editorial.css";
 
 /**
@@ -81,6 +82,24 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
   const grouped = () =>
     props.stops.some((stop) => typeof stop.day === "number") ||
     ((props.stopsPerDay ?? 0) > 0 && total() > props.stopsPerDay!);
+
+  // How many days are on screen. Starts at INITIAL_DAYS so a long trip does
+  // not bury its first day under its last, and opens fully on request.
+  const [visibleDays, setVisibleDays] = createSignal(INITIAL_DAYS);
+
+  // A new search must not inherit the previous trip's expanded state. Keyed on
+  // the stop count rather than the array: enrichment patches rows in place and
+  // deliberately keeps the array reference, so watching the array itself would
+  // never fire, while watching its length fires exactly when the trip changes.
+  createEffect(
+    on(
+      () => props.stops.length,
+      () => setVisibleDays(INITIAL_DAYS),
+      { defer: true },
+    ),
+  );
+
+  const dayWindow = createMemo(() => windowDays(dayGroups(), visibleDays()));
 
   return (
     <div class="space-y-4">
@@ -187,7 +206,7 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
               </For>
             }
           >
-            <For each={dayGroups()}>
+            <For each={dayWindow().visible}>
               {(group) => (
                 <div class="space-y-3">
                   <div class="flex items-center gap-2 pt-2">
@@ -210,6 +229,21 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
                 </div>
               )}
             </For>
+
+            {/* Absent entirely for a trip that fits, so a short answer looks
+                no different from how it always has. */}
+            <Show when={dayWindow().remaining > 0}>
+              <button
+                type="button"
+                class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm font-semibold text-foreground hover:border-primary/40 hover:bg-muted/40 transition focus:outline-none focus:ring-2 focus:ring-ring"
+                onClick={() => setVisibleDays(dayGroups().length)}
+              >
+                Show the rest of the trip
+                <span class="ml-1 font-normal text-muted-foreground">
+                  ({dayWindow().remaining} more {dayWindow().remaining === 1 ? "day" : "days"})
+                </span>
+              </button>
+            </Show>
           </Show>
         </Show>
       </div>

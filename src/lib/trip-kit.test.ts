@@ -6,6 +6,8 @@ import {
   buildItineraryIcs,
   groupStopsByDay,
   lockedDayCount,
+  parseLocalDate,
+  tripDateRange,
   unlockedStops,
   type TripKitInput,
   type TripStop,
@@ -98,5 +100,100 @@ describe("single-place map links", () => {
     expect(buildAppleMapsUrl({ name: "Somewhere" })).toBeNull();
     expect(buildGoogleMapsUrl({ latitude: 0, longitude: 0 })).toBeNull();
     expect(buildAppleMapsUrl({ latitude: 0, longitude: 0 })).toBeNull();
+  });
+});
+
+/** The date line for a given day index, as it appears in the .ics. */
+const dtstarts = (ics: string): string[] =>
+  ics
+    .split("\n")
+    .filter((l) => l.startsWith("DTSTART:"))
+    .map((l) => l.slice("DTSTART:".length).trim());
+
+describe("parseLocalDate", () => {
+  // `new Date("2026-10-08")` is parsed as midnight UTC, which is the 7th
+  // anywhere west of Greenwich. The picker hands over a yyyy-mm-dd string, so
+  // this is the difference between the trip starting on the day somebody chose
+  // and the day before it.
+  it("reads a yyyy-mm-dd string as a local day, not a UTC instant", () => {
+    const d = parseLocalDate("2026-10-08", 9);
+    expect(d).not.toBeNull();
+    expect(d!.getFullYear()).toBe(2026);
+    expect(d!.getMonth()).toBe(9); // October, 0-based
+    expect(d!.getDate()).toBe(8);
+    expect(d!.getHours()).toBe(9);
+  });
+
+  it("rejects anything that is not a date", () => {
+    expect(parseLocalDate("", 9)).toBeNull();
+    expect(parseLocalDate("not-a-date", 9)).toBeNull();
+    expect(parseLocalDate("2026-13-45", 9)).toBeNull();
+  });
+});
+
+describe("tripDateRange", () => {
+  it("names both ends of the trip", () => {
+    const range = tripDateRange(new Date(2026, 9, 8, 9, 0, 0), 4);
+    expect(range).toContain("8");
+    expect(range).toContain("11");
+    expect(range).toContain("Oct");
+  });
+
+  it("names a single day once", () => {
+    const range = tripDateRange(new Date(2026, 9, 8, 9, 0, 0), 1);
+    expect(range).toContain("8");
+    expect(range).not.toContain("–");
+  });
+
+  it("says nothing when there are no days", () => {
+    expect(tripDateRange(new Date(2026, 9, 8), 0)).toBe("");
+  });
+});
+
+describe("buildItineraryIcs start date", () => {
+  // The reported bug: a trip on 8-11 October landed on today's week, because
+  // every download used the default and no caller could override it.
+  it("starts day 1 on the date it was given", () => {
+    const ics = buildItineraryIcs(
+      { title: "Funchal", cityName: "Funchal", stops: stops.slice(0, 2), stopsPerDay: 4 },
+      { startDate: new Date(2026, 9, 8, 9, 0, 0) },
+    );
+    expect(dtstarts(ics)[0]).toMatch(/^20261008T/);
+  });
+
+  it("puts each later day on the next date", () => {
+    const ics = buildItineraryIcs(
+      { title: "Funchal", cityName: "Funchal", stops, stopsPerDay: 2 },
+      { startDate: new Date(2026, 9, 8, 9, 0, 0) },
+    );
+    const days = [...new Set(dtstarts(ics).map((d) => d.slice(0, 8)))];
+    expect(days).toEqual(["20261008", "20261009", "20261010"]);
+  });
+
+  // Rolling over a month boundary is where naive date arithmetic breaks.
+  it("crosses the end of a month", () => {
+    const ics = buildItineraryIcs(
+      { title: "X", cityName: "X", stops: stops.slice(0, 4), stopsPerDay: 1 },
+      { startDate: new Date(2026, 9, 30, 9, 0, 0) },
+    );
+    const days = [...new Set(dtstarts(ics).map((d) => d.slice(0, 8)))];
+    expect(days).toEqual(["20261030", "20261031", "20261101", "20261102"]);
+  });
+
+  it("still defaults to tomorrow when given no date", () => {
+    const ics = buildItineraryIcs({
+      title: "X",
+      cityName: "X",
+      stops: stops.slice(0, 1),
+      stopsPerDay: 4,
+    });
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0);
+    const expected =
+      `${tomorrow.getUTCFullYear()}` +
+      `${String(tomorrow.getUTCMonth() + 1).padStart(2, "0")}` +
+      `${String(tomorrow.getUTCDate()).padStart(2, "0")}`;
+    expect(dtstarts(ics)[0].slice(0, 8)).toBe(expected);
   });
 });
