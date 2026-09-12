@@ -1,10 +1,11 @@
-import { createSignal, For, Show, createMemo } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import { Title, Meta } from "@solidjs/meta";
 import { useNavigate } from "@solidjs/router";
-import { MapPin, Loader2, ArrowRight, GitCompare, Car, CloudSun } from "lucide-solid";
+import { CloudSun, GitCompare } from "lucide-solid";
 import {
   useCompareWeekendMutation,
   recommendationLabel,
+  type CompareWeekendInput,
   type CityCompareColumn,
 } from "~/lib/api/compare";
 import type {
@@ -15,176 +16,69 @@ import type { TripLeg } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb
 import { useSaveTrip } from "~/lib/api/trips";
 import type { Trip } from "~/lib/api/trips";
 import { TripPace } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
-import { recordRecommendationEvents } from "~/lib/api/recommendations";
-import LocalWeather from "~/components/LocalWeather";
-import { GoScoreCard } from "~/components/ui/GoScoreCard";
 import { MultiCityPlanCard } from "~/components/ui/MultiCityPlanCard";
-import WhyThisStop from "~/components/poi/WhyThisStop";
-
-const defaultWeekend = () => {
-  const now = new Date();
-  const day = now.getDay();
-  const daysUntilSat = (6 - day + 7) % 7 || 7;
-  const start = new Date(now);
-  start.setDate(now.getDate() + daysUntilSat);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 1);
-  end.setHours(23, 59, 0, 0);
-  return { start, end };
-};
-
-function ColumnCard(props: { column: CityCompareColumn; onChoose: () => void; choosing: boolean }) {
-  const col = () => props.column;
-  return (
-    <article class="loci-card rounded-2xl p-5 flex flex-col gap-4">
-      <header>
-        <p class="kicker mb-1">{col().country || "Portugal"}</p>
-        <h2 class="font-display text-2xl text-foreground">{col().cityName}</h2>
-        <p class="text-sm text-muted-foreground mt-1">
-          {Math.round(col().distanceKm)} km · ~{col().travelMins} min drive
-        </p>
-      </header>
-
-      {/* The verdict goes above the detail: the whole point of /compare is to
-          answer "which one", so lead with the answer and let the weather, places
-          and pros/cons below justify it. */}
-      <Show when={col().goScore}>
-        <GoScoreCard score={col().goScore!} />
-      </Show>
-
-      <Show when={col().centerLat && col().centerLon}>
-        <LocalWeather latitude={col().centerLat} longitude={col().centerLon} days={2} />
-      </Show>
-
-      <div>
-        <h3 class="text-sm font-semibold mb-2">Top places</h3>
-        <ul class="space-y-2">
-          <For each={col().topPois.slice(0, 5)}>
-            {(poi) => (
-              <li class="text-sm">
-                <span class="font-medium">{poi.name}</span>
-                <Show when={poi.category}>
-                  <span class="text-muted-foreground"> · {poi.category}</span>
-                </Show>
-                <Show when={poi.descriptionPoi || poi.description}>
-                  <WhyThisStop reason={poi.descriptionPoi || poi.description || ""} class="mt-1" />
-                </Show>
-              </li>
-            )}
-          </For>
-        </ul>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <p class="font-semibold text-accent mb-1">Pros</p>
-          <ul class="space-y-1 text-muted-foreground">
-            <For each={col().pros}>{(p) => <li>{p}</li>}</For>
-          </ul>
-        </div>
-        <div>
-          <p class="font-semibold text-destructive mb-1">Cons</p>
-          <ul class="space-y-1 text-muted-foreground">
-            <For each={col().cons}>{(c) => <li>{c}</li>}</For>
-          </ul>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap gap-2">
-        <For each={col().bookingOptions}>
-          {(b) => (
-            <a
-              href={b.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="loci-hero__action text-xs px-3 py-1.5"
-              onClick={() =>
-                recordRecommendationEvents([
-                  {
-                    eventType: "RECOMMENDATION_EVENT_TYPE_BOOKING_OPENED",
-                    poiId: col().cityId,
-                    trace: {
-                      runId: "compare",
-                      itemId: col().cityId,
-                      rank: 0,
-                      algorithmVersion: "compare-v1",
-                      experimentVariant: "default",
-                      surface: "RECOMMENDATION_SURFACE_DISCOVER",
-                      channel: "RECOMMENDATION_CHANNEL_WEB",
-                    },
-                    metadata: { provider: b.provider, surface: "compare" },
-                  },
-                ])
-              }
-            >
-              {b.label}
-            </a>
-          )}
-        </For>
-        <For each={col().transportOptions.filter((t: { url?: string }) => t.url)}>
-          {(t) => (
-            <a
-              href={t.url!}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="loci-chip text-xs inline-flex items-center gap-1"
-            >
-              <Car class="w-3 h-3" />
-              {t.summary}
-            </a>
-          )}
-        </For>
-      </div>
-
-      <button
-        type="button"
-        class="loci-hero__action w-full justify-center mt-auto"
-        disabled={props.choosing}
-        onClick={props.onChoose}
-      >
-        {props.choosing ? (
-          <Loader2 class="w-4 h-4 animate-spin" />
-        ) : (
-          <>
-            Choose {col().cityName}
-            <ArrowRight class="w-4 h-4" />
-          </>
-        )}
-      </button>
-    </article>
-  );
-}
+import ErrorView from "~/components/ErrorView";
+import { friendlyError } from "~/lib/connect-errors";
+import { handleEntitlementError } from "~/lib/entitlement-error";
+import { showUpgradePrompt } from "~/lib/upgrade-prompt";
+import { citySuggestionsFrom, type CitySuggestion } from "~/lib/compare-suggestions";
+import { CompareForm } from "~/components/compare/CompareForm";
+import { ColumnCard } from "~/components/compare/ColumnCard";
+import { ColumnSkeleton } from "~/components/compare/ColumnSkeleton";
+import { CompareEmptyState, type ComparePreset } from "~/components/compare/CompareEmptyState";
+import type { CitySelection } from "~/components/compare/CityAutocomplete";
 
 export default function ComparePage() {
   const navigate = useNavigate();
   const compareMutation = useCompareWeekendMutation();
   const saveTrip = useSaveTrip();
 
-  const weekend = defaultWeekend();
-  const [origin, setOrigin] = createSignal("Porto");
-  const [candidates, setCandidates] = createSignal("Évora, Beja");
   const [choosingCity, setChoosingCity] = createSignal<string | null>(null);
+  const [saveError, setSaveError] = createSignal<string | null>(null);
+  // Bumped to remount the form when a preset or a suggestion prefills it, which
+  // is simpler than threading controlled values through every field. Starts at
+  // 1 because the keyed Show below treats 0 as nothing to render.
+  const [formKey, setFormKey] = createSignal(1);
+  const [preset, setPreset] = createSignal<ComparePreset | null>(null);
+  const [lastInput, setLastInput] = createSignal<CompareWeekendInput | null>(null);
 
   const result = createMemo(() => compareMutation.data);
   const columns = createMemo(() => result()?.columns ?? []);
 
-  const runCompare = () => {
-    const names = candidates()
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (names.length < 2) return;
-    compareMutation.mutate({
-      originCity: origin(),
-      candidates: names,
-      startDate: weekend.start,
-      endDate: weekend.end,
+  // "Did you mean" cities, when the server could not resolve one of the names.
+  const suggestions = createMemo<CitySuggestion[]>(() =>
+    compareMutation.isError ? citySuggestionsFrom(compareMutation.error) : [],
+  );
+
+  const runCompare = (input: CompareWeekendInput) => {
+    setLastInput(input);
+    compareMutation.mutate(input);
+  };
+
+  const applyPreset = (next: ComparePreset) => {
+    setPreset(next);
+    setFormKey((k) => k + 1);
+  };
+
+  // A suggestion already carries coordinates, so re-running with it skips
+  // resolution altogether rather than guessing at the spelling again.
+  const applySuggestion = (suggestion: CitySuggestion) => {
+    const previous = lastInput();
+    const chosen: CitySelection = {
+      name: suggestion.name,
+      country: suggestion.country,
+      lat: suggestion.lat,
+      lon: suggestion.lon,
+    };
+    applyPreset({
+      origin: chosen,
+      candidates: (previous?.candidates ?? []).map((name) => ({ name })),
     });
   };
 
   const saveFromColumn = async (col: CityCompareColumn, dual?: boolean) => {
     setChoosingCity(col.cityName);
+    setSaveError(null);
     try {
       const stops = col.topPois.slice(0, 4).map((p: { id: string; name: string }, i: number) => ({
         id: "",
@@ -228,6 +122,14 @@ export default function ComparePage() {
         baseVersion: 0n,
       });
       navigate(`/trips/${saved.id}`);
+    } catch (err) {
+      // Without this the rejection was unhandled: the spinner stopped, nothing
+      // appeared, and the button looked broken. An entitlement denial opens the
+      // upgrade prompt; anything else is said in words, next to the button that
+      // was pressed.
+      if (!handleEntitlementError(err)) {
+        setSaveError(friendlyError(err).message);
+      }
     } finally {
       setChoosingCity(null);
     }
@@ -241,6 +143,7 @@ export default function ComparePage() {
     if (!plan || !plan.feasible || plan.cities.length === 0) return;
 
     setChoosingCity("__route__");
+    setSaveError(null);
     try {
       const columnFor = (cityName: string) => columns().find((c) => c.cityName === cityName);
 
@@ -298,6 +201,10 @@ export default function ComparePage() {
 
       const saved = await saveTrip.mutateAsync({ trip: tripPayload, baseVersion: 0n });
       navigate(`/trips/${saved.id}`);
+    } catch (err) {
+      if (!handleEntitlementError(err)) {
+        setSaveError(friendlyError(err).message);
+      }
     } finally {
       setChoosingCity(null);
     }
@@ -320,94 +227,120 @@ export default function ComparePage() {
           </p>
         </header>
 
-        <form
-          class="loci-card rounded-2xl p-5 mb-8 grid gap-4 sm:grid-cols-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            runCompare();
-          }}
-        >
-          <label class="block">
-            <span class="text-sm font-medium">From</span>
-            <div class="mt-1 flex items-center gap-2 rounded-lg border px-3 py-2">
-              <MapPin class="w-4 h-4 text-muted-foreground" />
-              <input
-                class="flex-1 bg-transparent outline-none"
-                value={origin()}
-                onInput={(e) => setOrigin(e.currentTarget.value)}
-                placeholder="Porto"
-              />
-            </div>
-          </label>
-          <label class="block sm:col-span-2">
-            <span class="text-sm font-medium">Candidates (comma-separated)</span>
-            <input
-              class="mt-1 w-full rounded-lg border px-3 py-2 bg-transparent"
-              value={candidates()}
-              onInput={(e) => setCandidates(e.currentTarget.value)}
-              placeholder="Évora, Beja"
-            />
-          </label>
-          <button
-            type="submit"
-            class="loci-hero__action sm:col-span-3 justify-center"
-            disabled={compareMutation.isPending}
-          >
-            {compareMutation.isPending ? (
-              <>
-                <Loader2 class="w-4 h-4 animate-spin" /> Comparing…
-              </>
-            ) : (
-              "Compare weekend"
-            )}
-          </button>
-        </form>
-
-        <Show when={compareMutation.error}>
-          <div class="loci-card rounded-2xl p-4 border-destructive/40 text-destructive mb-6">
-            {(compareMutation.error as Error).message ||
-              "Compare failed — check city names and try again."}
-          </div>
+        {/* Keyed, so changing the key remounts the form with its new initial
+            values. Solid has no React-style `key`, and the alternative — making
+            every field controlled from here — would put the form's state in the
+            route just to support prefilling it. */}
+        <Show when={formKey()} keyed>
+          <CompareForm
+            pending={compareMutation.isPending}
+            onSubmit={runCompare}
+            onUpgrade={() =>
+              showUpgradePrompt(
+                "entitlement",
+                "Compare up to 8 cities and plan a multi-city route with Pro.",
+              )
+            }
+            initialOrigin={preset()?.origin ?? null}
+            initialCandidates={preset()?.candidates ?? []}
+          />
         </Show>
 
-        <Show when={result()}>
-          {(data) => (
-            <>
-              <Show when={data().recommendationReason}>
-                <p class="text-sm text-muted-foreground mb-4 flex items-center gap-2">
-                  <CloudSun class="w-4 h-4" />
-                  {data().recommendationReason}
-                  <span class="loci-chip text-xs ml-2">
-                    {recommendationLabel(data().recommendation, data().columns)}
-                  </span>
-                </p>
-              </Show>
-
-              <div class="grid gap-6 md:grid-cols-2">
-                <For each={data().columns}>
-                  {(col) => (
-                    <ColumnCard
-                      column={col}
-                      choosing={choosingCity() === col.cityName}
-                      onChoose={() => saveFromColumn(col)}
-                    />
+        {/* The old banner printed the raw ConnectError, so a user saw
+            "[invalid_argument] compare: origin city not found: Porto". */}
+        <Show when={compareMutation.isError}>
+          <div class="mb-6 flex flex-col gap-3">
+            <ErrorView
+              error={compareMutation.error}
+              onRetry={() => {
+                const input = lastInput();
+                if (input) compareMutation.mutate(input);
+              }}
+            />
+            <Show when={suggestions().length > 0}>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-sm text-muted-foreground">Did you mean</span>
+                <For each={suggestions()}>
+                  {(s) => (
+                    <button
+                      type="button"
+                      class="loci-chip text-sm"
+                      onClick={() => applySuggestion(s)}
+                    >
+                      {s.name}
+                      <Show when={s.country}>
+                        <span class="text-muted-foreground"> · {s.country}</span>
+                      </Show>
+                    </button>
                   )}
                 </For>
               </div>
+            </Show>
+          </div>
+        </Show>
 
-              {/* The planned route. Replaces the old "both cities?" yes/no —
-                  it handles any number of cities over any number of days, shows
-                  the day split and driving, and says what it left out. */}
+        <Show when={saveError()}>
+          <div class="loci-card rounded-2xl p-4 border-destructive/40 text-destructive mb-6">
+            {saveError()}
+          </div>
+        </Show>
+
+        <Show when={compareMutation.isPending}>
+          <div class="grid gap-6 md:grid-cols-2">
+            <ColumnSkeleton />
+            <ColumnSkeleton />
+          </div>
+        </Show>
+
+        <Show when={!compareMutation.isPending && !result() && !compareMutation.isError}>
+          <CompareEmptyState onPick={applyPreset} />
+        </Show>
+
+        <Show when={!compareMutation.isPending && result()}>
+          {(data) => (
+            <>
+              <Show when={data().recommendationReason}>
+                <div class="flex items-center gap-2 mb-6">
+                  <CloudSun class="w-5 h-5 text-primary" />
+                  <p class="text-sm text-muted-foreground">{data().recommendationReason}</p>
+                  <span class="loci-chip text-xs">
+                    {recommendationLabel(data().recommendation, columns())}
+                  </span>
+                </div>
+              </Show>
+
+              {/* Every column being dropped is impossible today — the server
+                  fails before it can happen — but a blank page would be the
+                  worst way to find out that changed. */}
+              <Show
+                when={columns().length > 0}
+                fallback={
+                  <p class="text-sm text-muted-foreground">
+                    None of those cities could be compared. Try different ones.
+                  </p>
+                }
+              >
+                <div class="grid gap-6 md:grid-cols-2">
+                  <For each={columns()}>
+                    {(col) => (
+                      <ColumnCard
+                        column={col}
+                        choosing={choosingCity() === col.cityName}
+                        onChoose={() => saveFromColumn(col)}
+                      />
+                    )}
+                  </For>
+                </div>
+              </Show>
+
               <Show when={data().multiCityPlan}>
-                {(plan) => (
-                  <div class="mt-8">
-                    <MultiCityPlanCard
-                      plan={plan() as MultiCityPlan}
-                      saving={choosingCity() === "__route__"}
-                      onSave={saveFromPlan}
-                    />
-                  </div>
-                )}
+                <div class="mt-8">
+                  <MultiCityPlanCard
+                    plan={data().multiCityPlan as MultiCityPlan}
+                    saving={choosingCity() === "__route__"}
+                    onSave={saveFromPlan}
+                  />
+                </div>
               </Show>
             </>
           )}
