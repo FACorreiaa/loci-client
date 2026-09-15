@@ -1,11 +1,18 @@
 import { Component, Show } from "solid-js";
-import { Download, Share2, Bookmark } from "lucide-solid";
+import { Download, Share2, Bookmark, WifiOff } from "lucide-solid";
+import { ShareMenu } from "~/components/ShareMenu";
+import type { SharePayload } from "~/lib/share";
 
 interface ActionToolbarProps {
   onDownload?: () => void;
+  /** @deprecated Use sharePayload instead for the enhanced ShareMenu. */
   onShare?: () => void;
   onBookmark?: () => void;
   isBookmarked?: boolean;
+  onSaveOffline?: () => void;
+  isSavedOffline?: boolean;
+  /** When provided, renders the ShareMenu dropdown instead of a plain button. */
+  sharePayload?: SharePayload;
 }
 
 export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
@@ -18,6 +25,20 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
           title="Download Data"
         >
           <Download class="w-4 h-4" />
+        </button>
+      </Show>
+
+      <Show when={props.onSaveOffline}>
+        <button
+          onClick={props.onSaveOffline}
+          class={`p-2 rounded-full transition-colors ${
+            props.isSavedOffline
+              ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
+              : "text-gray-600 dark:text-gray-300 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+          }`}
+          title={props.isSavedOffline ? "Saved Offline" : "Save for Offline"}
+        >
+          <WifiOff class={`w-4 h-4 ${props.isSavedOffline ? "fill-current" : ""}`} />
         </button>
       </Show>
 
@@ -35,14 +56,22 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
         </button>
       </Show>
 
-      <Show when={props.onShare}>
-        <button
-          onClick={props.onShare}
-          class="p-2 text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors"
-          title="Share"
-        >
-          <Share2 class="w-4 h-4" />
-        </button>
+      {/* Enhanced ShareMenu when payload provided; plain share button as fallback */}
+      <Show
+        when={props.sharePayload}
+        fallback={
+          <Show when={props.onShare}>
+            <button
+              onClick={props.onShare}
+              class="p-2 text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors"
+              title="Share"
+            >
+              <Share2 class="w-4 h-4" />
+            </button>
+          </Show>
+        }
+      >
+        {(payload) => <ShareMenu payload={payload()} />}
       </Show>
     </div>
   );

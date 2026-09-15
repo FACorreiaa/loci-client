@@ -1,86 +1,84 @@
-import { createSignal, For, Show, createMemo } from "solid-js";
+import { createSignal, createMemo, For, Show, onMount } from "solid-js";
 import { Title, Meta } from "@solidjs/meta";
 import {
   Bookmark,
-  Plus,
   FolderOpen,
   Loader2,
   Trash2,
-  ExternalLink,
   MapPin,
   Calendar,
+  WifiOff,
+  Wifi,
 } from "lucide-solid";
 import { A } from "@solidjs/router";
-import { useMutation, useQueryClient } from "@tanstack/solid-query";
-import { createClient } from "@connectrpc/connect";
+import { useAuth } from "~/contexts/AuthContext";
 import {
-  ListService,
-  GetSavedListsRequestSchema,
-  UnsaveListRequestSchema,
-} from "@buf/loci_loci-proto.bufbuild_es/loci/list/list_pb.js";
-import { create } from "@bufbuild/protobuf";
-import { transport } from "~/lib/connect-transport";
-import { authAPI, getAuthToken } from "~/lib/api";
-import { useAppQuery } from "~/lib/api/authed-query";
+  listOfflineItineraries,
+  deleteOfflineItinerary,
+  clearOfflineItineraries,
+  type OfflineItinerary,
+} from "~/lib/itinerary-offline-store";
+import {
+  useAllUserItineraries,
+  useRemoveItineraryMutation,
+} from "~/lib/api/itineraries";
 
-const listClient = createClient(ListService, transport);
-
-// Fetch user's saved/bookmarked lists
-const fetchSavedLists = async () => {
-  const token = getAuthToken();
-  if (!token) return [];
-
-  const session = await authAPI.validateSession();
-  if (!session.valid || !session.user_id) return [];
-
-  const response = await listClient.getSavedLists(
-    create(GetSavedListsRequestSchema, {
-      userId: session.user_id,
-      limit: 50,
-      offset: 0,
-    }),
-  );
-
-  return response.lists || [];
-};
+type TabId = "saved" | "offline";
 
 export default function BookmarksPage() {
-  const queryClient = useQueryClient();
-  const [_selectedList, _setSelectedList] = createSignal<string | null>(null);
+  const [activeTab, setActiveTab] = createSignal<TabId>("saved");
+  const [offlineItems, setOfflineItems] = createSignal<OfflineItinerary[]>([]);
+  const [offlineLoading, setOfflineLoading] = createSignal(false);
+  const { isAuthenticated } = useAuth();
 
-  // Query for saved lists
-  const savedListsQuery = useAppQuery(() => ({
-    queryKey: ["savedLists"],
-    queryFn: fetchSavedLists,
-    staleTime: 5 * 60 * 1000,
-  }));
+  // ── Server-saved itineraries ──
+  const savedQuery = useAllUserItineraries({ enabled: isAuthenticated() });
+  const removeItineraryMutation = useRemoveItineraryMutation();
 
-  // Unsave mutation
-  const unsaveMutation = useMutation(() => ({
-    mutationFn: async (listId: string) => {
-      const session = await authAPI.validateSession();
-      if (!session.valid || !session.user_id) throw new Error("Not authenticated");
+  const savedList = createMemo(() => savedQuery.data?.itineraries || []);
+  const savedLoading = createMemo(() => savedQuery.isLoading);
+  const savedError = createMemo(() => savedQuery.isError);
 
-      await listClient.unsaveList(
-        create(UnsaveListRequestSchema, {
-          userId: session.user_id,
-          listId: listId,
-        }),
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["savedLists"] });
-    },
-  }));
-
-  const lists = createMemo(() => savedListsQuery.data || []);
-  const isLoading = createMemo(() => savedListsQuery.isLoading);
-  const isError = createMemo(() => savedListsQuery.isError);
-
-  const handleUnsave = async (listId: string, e: Event) => {
+  const handleRemoveSaved = async (itineraryId: string, e: Event) => {
     e.preventDefault();
     e.stopPropagation();
-    unsaveMutation.mutate(listId);
+    removeItineraryMutation.mutate(itineraryId);
+  };
+
+  // ── Offline itineraries ──
+  const loadOffline = async () => {
+    setOfflineLoading(true);
+    try {
+      const items = await listOfflineItineraries();
+      setOfflineItems(items);
+    } catch (err) {
+      console.error("Failed to load offline itineraries:", err);
+    } finally {
+      setOfflineLoading(false);
+    }
+  };
+
+  onMount(loadOffline);
+
+  const handleDeleteOffline = async (id: string, e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await deleteOfflineItinerary(id);
+      setOfflineItems((prev) => prev.filter((item) => item.id !== id));
+    } catch (err) {
+      console.error("Failed to delete offline itinerary:", err);
+    }
+  };
+
+  const handleClearAllOffline = async () => {
+    if (!confirm("Remove all offline-saved itineraries?")) return;
+    try {
+      await clearOfflineItineraries();
+      setOfflineItems([]);
+    } catch (err) {
+      console.error("Failed to clear offline itineraries:", err);
+    }
   };
 
   const formatDate = (timestamp: any) => {
@@ -95,6 +93,43 @@ export default function BookmarksPage() {
     } catch {
       return "Unknown date";
     }
+  };
+
+  const TabButton = (props: {
+    id: TabId;
+    label: string;
+    count?: number;
+    icon: typeof Bookmark;
+  }) => {
+    const isActive = () => activeTab() === props.id;
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setActiveTab(props.id);
+          if (props.id === "offline") void loadOffline();
+        }}
+        class={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-colors ${
+          isActive()
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+        }`}
+      >
+        <props.icon class="w-4 h-4" />
+        {props.label}
+        <Show when={props.count != null && props.count > 0}>
+          <span
+            class={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold ${
+              isActive()
+                ? "bg-primary-foreground/20 text-primary-foreground"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {props.count}
+          </span>
+        </Show>
+      </button>
+    );
   };
 
   return (
@@ -125,115 +160,248 @@ export default function BookmarksPage() {
                     </p>
                   </div>
                 </div>
-                <A href="/lists" class="loci-hero__action--strong">
-                  <Plus class="w-4 h-4" />
-                  Create List
+                <A href="/discover" class="loci-hero__action--strong">
+                  <FolderOpen class="w-4 h-4" />
+                  Discover
                 </A>
+              </div>
+
+              {/* Tab bar */}
+              <div class="flex items-center gap-2 bg-secondary/30 rounded-xl p-1">
+                <TabButton id="saved" label="Saved" count={savedList().length} icon={Bookmark} />
+                <TabButton
+                  id="offline"
+                  label="Offline"
+                  count={offlineItems().length}
+                  icon={WifiOff}
+                />
               </div>
             </div>
           </div>
         </div>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-          {/* Loading State */}
-          <Show when={isLoading()}>
-            <div class="flex items-center justify-center py-16">
-              <Loader2 class="w-8 h-8 animate-spin text-primary" />
-              <span class="ml-3 text-muted-foreground">Loading your bookmarks...</span>
-            </div>
-          </Show>
-
-          {/* Error State */}
-          <Show when={isError()}>
-            <div class="text-center py-16">
-              <div class="text-destructive mb-4">Failed to load bookmarks</div>
-              <button
-                onClick={() => savedListsQuery.refetch()}
-                class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
-              >
-                Try Again
-              </button>
-            </div>
-          </Show>
-
-          {/* Empty State */}
-          <Show when={!isLoading() && !isError() && lists().length === 0}>
-            <div class="text-center py-16">
-              <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
-                <Bookmark class="w-10 h-10 text-primary" />
+          {/* ═══ Saved Tab ═══ */}
+          <Show when={activeTab() === "saved"}>
+            {/* Loading State */}
+            <Show when={savedLoading()}>
+              <div class="flex items-center justify-center py-16">
+                <Loader2 class="w-8 h-8 animate-spin text-primary" />
+                <span class="ml-3 text-muted-foreground">Loading your bookmarks...</span>
               </div>
-              <h3 class="text-xl font-semibold text-foreground mb-2">No Bookmarks Yet</h3>
-              <p class="text-muted-foreground mb-6 max-w-md mx-auto">
-                Save itineraries and travel plans to quickly access them later. Click the bookmark
-                icon on any itinerary to save it here.
-              </p>
-              <A
-                href="/discover"
-                class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-all shadow-lg"
-              >
-                <FolderOpen class="w-5 h-5" />
-                Discover Places
-              </A>
-            </div>
+            </Show>
+
+            {/* Error State */}
+            <Show when={savedError()}>
+              <div class="text-center py-16">
+                <div class="text-destructive mb-4">Failed to load bookmarks</div>
+                <button
+                  onClick={() => savedQuery.refetch()}
+                  class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                >
+                  Try Again
+                </button>
+              </div>
+            </Show>
+
+            {/* Not authenticated */}
+            <Show when={!isAuthenticated() && !savedLoading()}>
+              <div class="text-center py-16">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Bookmark class="w-10 h-10 text-primary" />
+                </div>
+                <h3 class="text-xl font-semibold text-foreground mb-2">Sign in to see bookmarks</h3>
+                <p class="text-muted-foreground mb-6 max-w-md mx-auto">
+                  Sign in to save itineraries to your account and access them from any device.
+                </p>
+                <A
+                  href="/auth/signin"
+                  class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-all shadow-lg"
+                >
+                  Sign in
+                </A>
+              </div>
+            </Show>
+
+            {/* Empty State */}
+            <Show when={isAuthenticated() && !savedLoading() && !savedError() && savedList().length === 0}>
+              <div class="text-center py-16">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Bookmark class="w-10 h-10 text-primary" />
+                </div>
+                <h3 class="text-xl font-semibold text-foreground mb-2">No Bookmarks Yet</h3>
+                <p class="text-muted-foreground mb-6 max-w-md mx-auto">
+                  Save itineraries and travel plans to quickly access them later. Click the bookmark
+                  icon on any itinerary to save it here.
+                </p>
+                <A
+                  href="/discover"
+                  class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-all shadow-lg"
+                >
+                  <FolderOpen class="w-5 h-5" />
+                  Discover Places
+                </A>
+              </div>
+            </Show>
+
+            {/* Saved Grid */}
+            <Show when={!savedLoading() && savedList().length > 0}>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <For each={savedList()}>
+                  {(itinerary: any) => (
+                    <div class="loci-card loci-card-interactive p-5 cursor-pointer group">
+                      <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                          <h3 class="text-lg font-semibold text-foreground line-clamp-1">
+                            {itinerary.title || "Untitled"}
+                          </h3>
+                          <Show when={itinerary.primary_city_id}>
+                            <div class="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                              <MapPin class="w-3 h-3" />
+                              <span>{itinerary.primary_city_id}</span>
+                            </div>
+                          </Show>
+                        </div>
+                        <button
+                          onClick={(e) => handleRemoveSaved(itinerary.id, e)}
+                          disabled={removeItineraryMutation.isPending}
+                          class="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Remove bookmark"
+                        >
+                          <Trash2 class="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <Show when={itinerary.description}>
+                        <p class="text-sm text-muted-foreground line-clamp-2 mb-4">
+                          {itinerary.description}
+                        </p>
+                      </Show>
+
+                      <div class="flex items-center justify-between text-xs text-muted-foreground">
+                        <div class="flex items-center gap-3">
+                          <span class="flex items-center gap-1">
+                            <Calendar class="w-3 h-3" />
+                            {formatDate(itinerary.created_at)}
+                          </span>
+                          <Show when={itinerary.estimated_duration_days}>
+                            <span>{itinerary.estimated_duration_days} days</span>
+                          </Show>
+                        </div>
+                        <span class="flex items-center gap-1 text-primary">
+                          <Wifi class="w-3 h-3" />
+                          Cloud
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </Show>
           </Show>
 
-          {/* Bookmarks Grid */}
-          <Show when={!isLoading() && lists().length > 0}>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <For each={lists()}>
-                {(list: any) => (
-                  <div class="loci-card loci-card-interactive p-5 cursor-pointer group">
-                    <div class="flex items-start justify-between mb-4">
-                      <div class="flex-1">
-                        <h3 class="text-lg font-semibold text-foreground line-clamp-1">
-                          {list.name || "Untitled"}
-                        </h3>
-                        <Show when={list.cityId}>
+          {/* ═══ Offline Tab ═══ */}
+          <Show when={activeTab() === "offline"}>
+            {/* Loading */}
+            <Show when={offlineLoading()}>
+              <div class="flex items-center justify-center py-16">
+                <Loader2 class="w-8 h-8 animate-spin text-primary" />
+                <span class="ml-3 text-muted-foreground">Loading offline itineraries...</span>
+              </div>
+            </Show>
+
+            {/* Empty state */}
+            <Show when={!offlineLoading() && offlineItems().length === 0}>
+              <div class="text-center py-16">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                  <WifiOff class="w-10 h-10 text-emerald-500" />
+                </div>
+                <h3 class="text-xl font-semibold text-foreground mb-2">No Offline Itineraries</h3>
+                <p class="text-muted-foreground mb-6 max-w-md mx-auto">
+                  Save itineraries for offline access by clicking the{" "}
+                  <WifiOff class="inline w-4 h-4 text-emerald-500" /> icon on any itinerary page.
+                  They'll be available here even without internet.
+                </p>
+                <A
+                  href="/discover"
+                  class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-all shadow-lg"
+                >
+                  <FolderOpen class="w-5 h-5" />
+                  Discover Places
+                </A>
+              </div>
+            </Show>
+
+            {/* Offline Grid */}
+            <Show when={!offlineLoading() && offlineItems().length > 0}>
+              {/* Clear all header */}
+              <div class="flex items-center justify-between mb-4">
+                <p class="text-sm text-muted-foreground">
+                  {offlineItems().length} itinerar{offlineItems().length === 1 ? "y" : "ies"} saved
+                  offline
+                </p>
+                <button
+                  type="button"
+                  onClick={handleClearAllOffline}
+                  class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 class="w-3 h-3" />
+                  Clear all
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <For each={offlineItems()}>
+                  {(item) => (
+                    <A
+                      href={item.sourceUrl || `/itinerary?sessionId=${item.id}&cityName=${encodeURIComponent(item.cityName)}`}
+                      class="loci-card loci-card-interactive p-5 cursor-pointer group block"
+                    >
+                      <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                          <h3 class="text-lg font-semibold text-foreground line-clamp-1">
+                            {item.title || "Untitled"}
+                          </h3>
                           <div class="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                             <MapPin class="w-3 h-3" />
-                            <span>{list.cityId}</span>
+                            <span>{item.cityName}</span>
                           </div>
-                        </Show>
+                        </div>
+                        <button
+                          onClick={(e) => void handleDeleteOffline(item.id, e)}
+                          class="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Remove offline copy"
+                        >
+                          <Trash2 class="w-4 h-4" />
+                        </button>
                       </div>
-                      <button
-                        onClick={(e) => handleUnsave(list.id, e)}
-                        disabled={unsaveMutation.isPending}
-                        class="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
-                        title="Remove bookmark"
-                      >
-                        <Trash2 class="w-4 h-4" />
-                      </button>
-                    </div>
 
-                    <Show when={list.description}>
-                      <p class="text-sm text-muted-foreground line-clamp-2 mb-4">
-                        {list.description}
-                      </p>
-                    </Show>
+                      <Show when={item.description}>
+                        <p class="text-sm text-muted-foreground line-clamp-2 mb-4">
+                          {item.description}
+                        </p>
+                      </Show>
 
-                    <div class="flex items-center justify-between text-xs text-muted-foreground">
-                      <div class="flex items-center gap-3">
-                        <span class="flex items-center gap-1">
-                          <Calendar class="w-3 h-3" />
-                          {formatDate(list.createdAt)}
+                      <div class="flex items-center justify-between text-xs text-muted-foreground">
+                        <div class="flex items-center gap-3">
+                          <span class="flex items-center gap-1">
+                            <Calendar class="w-3 h-3" />
+                            {formatDate(item.savedAt)}
+                          </span>
+                          <Show when={item.stopCount > 0}>
+                            <span>{item.stopCount} stops</span>
+                          </Show>
+                        </div>
+                        <span class="flex items-center gap-1 text-emerald-500 font-medium">
+                          <WifiOff class="w-3 h-3" />
+                          Offline
                         </span>
-                        <Show when={list.itemCount > 0}>
-                          <span>{list.itemCount} items</span>
-                        </Show>
                       </div>
-                      <A
-                        href={`/lists/${list.id}`}
-                        class="flex items-center gap-1 text-primary hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        View
-                        <ExternalLink class="w-3 h-3" />
-                      </A>
-                    </div>
-                  </div>
-                )}
-              </For>
-            </div>
+                    </A>
+                  )}
+                </For>
+              </div>
+            </Show>
           </Show>
         </div>
       </div>

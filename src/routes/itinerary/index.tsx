@@ -49,6 +49,8 @@ import { useUserSubscription } from "@/lib/api/billing";
 import { isProPlan } from "@/lib/subscription";
 import type { TripStop } from "@/lib/trip-kit";
 import { useAuth } from "@/contexts/AuthContext";
+import { saveItineraryOffline, getOfflineItinerary } from "@/lib/itinerary-offline-store";
+import type { SharePayload } from "@/lib/share";
 
 export default function ItineraryPage() {
   const [searchParams] = useSearchParams();
@@ -81,6 +83,7 @@ export default function ItineraryPage() {
   const saveItineraryMutation = useSaveItineraryMutation();
   const subscriptionQuery = useUserSubscription(() => isAuthenticated());
   const isPro = createMemo(() => isProPlan(subscriptionQuery.data?.plan));
+  const [savedOffline, setSavedOffline] = createSignal(false);
   // isPro is derived from a query, so "not loaded yet" and "genuinely free"
   // both read as false. The trip kit needs to tell them apart: exporting on the
   // first reading silently handed a Pro account a Day-1 file.
@@ -186,6 +189,13 @@ export default function ItineraryPage() {
 
   onMount(() => {
     const sessionIdFromUrl = searchParams.sessionId as string;
+
+    // Check if this itinerary is already saved offline
+    if (sessionIdFromUrl) {
+      void getOfflineItinerary(sessionIdFromUrl).then((existing) => {
+        if (existing) setSavedOffline(true);
+      });
+    }
 
     if (sessionIdFromUrl) {
       // Live (or resumable after a reload) → bind; otherwise the stored /
@@ -413,35 +423,62 @@ export default function ItineraryPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator
-        .share({
-          title: `Itinerary for ${cityName()}`,
-          text: `Check out this itinerary for ${cityName()}!`,
-          url: window.location.href,
-        })
-        .catch(console.error);
-    } else {
-      console.log("Share API not supported");
+  const sharePayload = createMemo<SharePayload>(() => ({
+    cityName: cityData()?.city || cityName() || "",
+    title: itineraryModel().title || `${cityData()?.city || cityName()} Itinerary`,
+    description: cityData()?.description,
+    url: typeof window !== "undefined" ? window.location.href : "",
+    stopCount: itineraryModel().stops.length,
+  }));
+
+  const handleSaveOffline = async () => {
+    const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
+    const city = cityData();
+    if (!sessionId || !store.data) {
+      alert("Nothing to save yet — wait for the itinerary to load.");
+      return;
+    }
+
+    try {
+      await saveItineraryOffline({
+        id: sessionId,
+        cityName: city?.city || cityName() || "Unknown",
+        title: itineraryModel().title || `${city?.city || cityName()} Itinerary`,
+        description: city?.description,
+        payload: store.data,
+        stopCount: itineraryModel().stops.length,
+        savedAt: new Date().toISOString(),
+        sourceUrl: typeof window !== "undefined" ? window.location.href : "",
+      });
+      setSavedOffline(true);
+      alert(`Itinerary saved for offline viewing!`);
+    } catch (error) {
+      console.error("❌ Failed to save offline:", error);
+      alert("Failed to save offline. Please try again.");
     }
   };
 
   const handleBookmark = async () => {
-    const city = cityData();
-    const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
-    // const itinerary = itineraryData();
+    if (!isAuthenticated()) {
+      alert("Sign in to bookmark itineraries.");
+      return;
+    }
 
+    const city = cityData();
     if (!city?.city) {
       console.warn("Cannot bookmark: No city data available");
       alert("Unable to bookmark: No city data available yet.");
       return;
     }
 
+    // NOTE: We intentionally omit session_id here. The user_saved_itineraries
+    // table has session_id REFERENCES chat_sessions(id), but the streaming
+    // session ID from the URL is not guaranteed to exist in chat_sessions yet
+    // (it may be ephemeral or not yet persisted). Sending it causes a FK
+    // constraint violation and a 500 error. The bookmark works fine without it.
     const bookmarkData = {
-      session_id: sessionId,
       primary_city_name: city.city,
-      title: `${city.city} Itinerary`,
+      title: itineraryModel().title || `${city.city} Itinerary`,
       description: city.description || `Itinerary for ${city.city}`,
       tags: [],
       is_public: false,
@@ -450,10 +487,11 @@ export default function ItineraryPage() {
     try {
       await saveItineraryMutation.mutateAsync(bookmarkData);
       alert(`Itinerary for ${city.city} has been bookmarked!`);
-      console.log("✅ Itinerary bookmarked successfully");
     } catch (error) {
       console.error("❌ Failed to bookmark itinerary:", error);
-      alert("Failed to bookmark the itinerary. Please try again.");
+      const msg =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`Failed to bookmark the itinerary: ${msg}`);
     }
   };
 
@@ -499,8 +537,10 @@ export default function ItineraryPage() {
       <div class="absolute top-4 left-4 z-10">
         <ActionToolbar
           onDownload={handleDownload}
-          onShare={handleShare}
           onBookmark={handleBookmark}
+          onSaveOffline={handleSaveOffline}
+          isSavedOffline={savedOffline()}
+          sharePayload={sharePayload()}
         />
       </div>
     </div>
