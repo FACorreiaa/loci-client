@@ -29,6 +29,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    setupFiles: ["./src/test/happy-dom-setup.ts"],
     exclude: ["**/node_modules/**", "**/.claude/**", "**/.output/**"],
     server: {
       deps: {
