@@ -41,185 +41,132 @@ export default function ProfileQuickSelect() {
     return "Any";
   };
 
+  const metaLine = (budget: number, radiusKm: number) => {
+    const bits = [getBudgetLabel(budget)];
+    if (radiusKm > 0) bits.push(`${radiusKm}km`);
+    return bits.join(" · ");
+  };
+
   return (
-    <div class="mb-6">
-      <div class="flex items-center justify-between mb-3">
-        <label class="text-sm font-medium text-gray-700 dark:text-slate-200">Search Profile</label>
-        <button
-          onClick={() => navigate("/settings/profiles")}
-          class="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium flex items-center gap-1 transition-colors"
+    <div class="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen())}
+        disabled={profilesQuery.isLoading || isChangingProfile()}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen()}
+        class="inline-flex max-w-full items-center gap-2 rounded-full border border-primary-foreground/25 bg-primary-foreground/10 px-3 py-1.5 text-left text-sm text-primary-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <User class="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden="true" />
+        <Show
+          when={!profilesQuery.isLoading}
+          fallback={<span class="text-primary-foreground/70">Loading profile</span>}
         >
-          <Plus class="w-3 h-3" />
-          Manage Profiles
-        </button>
-      </div>
+          <Show
+            when={currentProfile()}
+            fallback={<span class="text-primary-foreground/80">No profile</span>}
+          >
+            {(profile) => (
+              <span class="min-w-0 truncate">
+                <span class="font-medium">{profile().profile_name}</span>
+                <span class="ml-2 font-coord text-[10px] uppercase tracking-[0.12em] text-primary-foreground/65">
+                  {metaLine(profile().budget_level, profile().search_radius_km)}
+                </span>
+              </span>
+            )}
+          </Show>
+        </Show>
+        <ChevronDown
+          class={`h-3.5 w-3.5 shrink-0 opacity-70 transition-transform ${isOpen() ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
 
-      <div class="relative">
-        <button
-          onClick={() => setIsOpen(!isOpen())}
-          disabled={profilesQuery.isLoading || isChangingProfile()}
-          class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-white/90 dark:bg-white/5 border border-gray-300 dark:border-white/10 hover:border-emerald-600 dark:hover:border-emerald-400 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <div class="flex items-center gap-3 flex-1 min-w-0">
-            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg">
-              <User class="w-5 h-5 text-white" />
-            </div>
-            <Show
-              when={!profilesQuery.isLoading}
-              fallback={
-                <div class="flex-1 text-left">
-                  <p class="text-sm text-gray-500 dark:text-slate-400">Loading profiles...</p>
-                </div>
-              }
-            >
-              <Show
-                when={currentProfile()}
-                fallback={
-                  <div class="flex-1 text-left">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">
-                      No profile selected
-                    </p>
-                    <p class="text-xs text-gray-500 dark:text-slate-400">
-                      Create a profile to get started
-                    </p>
-                  </div>
-                }
-              >
-                {(profile) => (
-                  <div class="flex-1 text-left min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {profile().profile_name}
-                    </p>
-                    <div class="flex items-center gap-2 mt-0.5">
-                      <span class="text-xs text-gray-500 dark:text-slate-400">
-                        {getBudgetLabel(profile().budget_level)}
-                      </span>
-                      <Show when={profile().search_radius_km > 0}>
-                        <span class="text-xs text-gray-400 dark:text-slate-500">•</span>
-                        <span class="text-xs text-gray-500 dark:text-slate-400">
-                          {profile().search_radius_km}km radius
-                        </span>
-                      </Show>
-                    </div>
-                  </div>
-                )}
-              </Show>
-            </Show>
-          </div>
-          <ChevronDown
-            class={`w-4 h-4 text-gray-500 dark:text-slate-400 transition-transform ${isOpen() ? "rotate-180" : ""}`}
-          />
-        </button>
+      <Show when={isOpen()}>
+        <div class="fixed inset-0 z-40" onClick={() => setIsOpen(false)} aria-hidden="true" />
+        <div class="loci-card absolute left-0 top-full z-50 mt-2 min-w-[16rem] overflow-hidden">
+          <Show
+            when={profiles().length > 0}
+            fallback={
+              <div class="px-4 py-6 text-center">
+                <p class="mb-3 text-sm text-muted-foreground">No profiles yet</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate("/profiles");
+                  }}
+                  class="text-sm font-medium text-primary hover:text-primary/80"
+                >
+                  Create your first profile
+                </button>
+              </div>
+            }
+          >
+            <For each={profiles()}>
+              {(profile) => {
+                const isSelected = () => profile.id === currentProfile()?.id;
 
-        {/* Dropdown Menu */}
-        <Show when={isOpen()}>
-          <div class="loci-card absolute top-full left-0 right-0 z-20 mt-2 overflow-hidden">
-            <Show
-              when={profiles().length > 0}
-              fallback={
-                <div class="px-4 py-8 text-center">
-                  <User class="w-8 h-8 text-gray-300 dark:text-slate-600 mx-auto mb-2" />
-                  <p class="text-sm text-gray-500 dark:text-slate-400 mb-3">No profiles yet</p>
+                return (
                   <button
-                    onClick={() => {
-                      setIsOpen(false);
-                      navigate("/settings/profiles");
-                    }}
-                    class="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium"
+                    type="button"
+                    onClick={() => handleSelectProfile(profile.id)}
+                    disabled={isChangingProfile()}
+                    class={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors disabled:opacity-50 ${
+                      isSelected() ? "bg-muted" : "hover:bg-muted/70"
+                    }`}
                   >
-                    Create your first profile
-                  </button>
-                </div>
-              }
-            >
-              <For each={profiles()}>
-                {(profile) => {
-                  const isSelected = () => profile.id === currentProfile()?.id;
-
-                  return (
-                    <button
-                      onClick={() => handleSelectProfile(profile.id)}
-                      disabled={isChangingProfile()}
-                      class={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors disabled:opacity-50 ${
+                    <div
+                      class={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
                         isSelected()
-                          ? "bg-emerald-50 dark:bg-emerald-900/20"
-                          : "hover:bg-gray-50 dark:hover:bg-white/5"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
                       }`}
                     >
-                      <div
-                        class={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          isSelected()
-                            ? "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg"
-                            : "bg-gray-200 dark:bg-white/10"
-                        }`}
+                      <Show
+                        when={isSelected()}
+                        fallback={<User class="h-4 w-4" aria-hidden="true" />}
                       >
-                        <Show
-                          when={isSelected()}
-                          fallback={<User class="w-4 h-4 text-gray-600 dark:text-slate-400" />}
-                        >
-                          <Check class="w-4 h-4 text-white" />
+                        <Check class="h-4 w-4" aria-hidden="true" />
+                      </Show>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2">
+                        <p class="truncate text-sm font-medium text-foreground">
+                          {profile.profile_name}
+                        </p>
+                        <Show when={profile.is_default}>
+                          <span class="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
+                            Default
+                          </span>
                         </Show>
                       </div>
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                          <p
-                            class={`text-sm font-medium truncate ${
-                              isSelected()
-                                ? "text-emerald-700 dark:text-emerald-300"
-                                : "text-gray-900 dark:text-white"
-                            }`}
-                          >
-                            {profile.profile_name}
-                          </p>
-                          <Show when={profile.is_default}>
-                            <span class="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full font-medium">
-                              Default
-                            </span>
-                          </Show>
-                        </div>
-                        <div class="flex items-center gap-2 mt-0.5">
-                          <span class="text-xs text-gray-500 dark:text-slate-400">
-                            {getBudgetLabel(profile.budget_level)}
-                          </span>
-                          <Show when={profile.search_radius_km > 0}>
-                            <span class="text-xs text-gray-400 dark:text-slate-500">•</span>
-                            <span class="text-xs text-gray-500 dark:text-slate-400">
-                              {profile.search_radius_km}km
-                            </span>
-                          </Show>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                }}
-              </For>
+                      <p class="mt-0.5 text-xs text-muted-foreground">
+                        {metaLine(profile.budget_level, profile.search_radius_km)}
+                      </p>
+                    </div>
+                  </button>
+                );
+              }}
+            </For>
 
-              {/* Divider */}
-              <div class="border-t border-gray-200 dark:border-white/10 my-2" />
+            <div class="my-1 border-t border-border" />
 
-              {/* Create New Profile Button */}
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  navigate("/settings/profiles");
-                }}
-                class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-              >
-                <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-white/10 flex items-center justify-center flex-shrink-0">
-                  <Plus class="w-4 h-4 text-gray-600 dark:text-slate-400" />
-                </div>
-                <p class="text-sm font-medium text-gray-700 dark:text-slate-200">
-                  Create New Profile
-                </p>
-              </button>
-            </Show>
-          </div>
-        </Show>
-      </div>
-
-      {/* Click outside to close */}
-      <Show when={isOpen()}>
-        <div class="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                navigate("/profiles");
+              }}
+              class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/70"
+            >
+              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                <Plus class="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              </div>
+              <p class="text-sm font-medium text-foreground">Manage profiles</p>
+            </button>
+          </Show>
+        </div>
       </Show>
     </div>
   );

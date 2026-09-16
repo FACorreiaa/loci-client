@@ -62,16 +62,29 @@ export const summariseDay = (day: TripDay): DaySummary => {
   return { stopCount: day.stops.length, window, totalLabel: formatDuration(total) };
 };
 
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * A trip day's date, as a Date. Date-only strings ("2026-09-20") become local
+ * midnight: `new Date("2026-09-20")` is UTC midnight, which is the evening
+ * before anywhere west of Greenwich, and the day would print one short.
+ * Anything unparseable is undefined rather than an Invalid Date.
+ */
+export const parseTripDate = (iso?: string): Date | undefined => {
+  if (!iso) return undefined;
+  const m = DATE_ONLY.exec(iso);
+  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(iso);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+};
+
 /**
  * "12–15 Sep" style range across a trip's days. Days carry an optional ISO
  * date; a trip with none at all gets nothing rather than a fabricated range.
  */
 export const formatTripDates = (days: TripDay[]): string | undefined => {
   const dates = days
-    .map((d) => d.date)
-    .filter((d): d is string => Boolean(d))
-    .map((d) => new Date(d))
-    .filter((d) => !Number.isNaN(d.getTime()))
+    .map((d) => parseTripDate(d.date))
+    .filter((d): d is Date => d !== undefined)
     .sort((a, b) => a.getTime() - b.getTime());
   if (dates.length === 0) return undefined;
 

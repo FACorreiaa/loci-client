@@ -353,6 +353,13 @@
     font-family: "Space Mono", ui-monospace, monospace;
   }
 
+  /* Tailwind has no fontFamily extension, so `font-display` emitted nothing
+     and headings set with it fell back to DM Sans. h1–h4 already get Fraunces;
+     this covers the non-heading elements that ask for the display face. */
+  .font-display {
+    font-family: "Fraunces", Georgia, serif;
+  }
+
   .loci-hero {
     border-radius: 0.9rem;
     border-color: hsl(var(--primary-foreground) / 0.18);

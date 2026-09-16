@@ -1,5 +1,5 @@
 import { createSignal, Show, For, createEffect } from "solid-js";
-import { useNavigate } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import { X, User, MapPin, Bell, Settings, Loader2 } from "lucide-solid";
 import { useAuth } from "~/contexts/AuthContext";
 import AppearanceSettings from "~/components/AppearanceSettings";
@@ -9,6 +9,14 @@ import {
   useSearchProfiles,
   useSetDefaultProfileMutation,
 } from "~/lib/api/profiles";
+import {
+  ensureNotificationPermission,
+  getNotificationPermission,
+  loadNotificationPrefs,
+  saveNotificationPrefs,
+  type BrowserNotificationPermission,
+  type NotificationPrefs,
+} from "~/lib/notification-prefs";
 import { Button } from "~/ui/button";
 import { Label } from "~/ui/label";
 import { Checkbox, CheckboxControl } from "~/ui/checkbox";
@@ -18,32 +26,51 @@ interface QuickSettingsModalProps {
   onClose: () => void;
 }
 
+const permissionCopy: Record<BrowserNotificationPermission, string> = {
+  unsupported: "This browser does not support notifications.",
+  default: "Browser permission not requested yet.",
+  granted: "Browser notifications allowed.",
+  denied: "Browser notifications blocked. Enable them in site settings.",
+};
+
 export default function QuickSettingsModal(props: QuickSettingsModalProps) {
   const navigate = useNavigate();
-  const _auth = useAuth(); // User unused but keeping hook for future use
-  const { userLocation, requestLocation } = useUserLocation();
+  const auth = useAuth();
+  const { userLocation, requestLocation, error, isLoadingLocation } = useUserLocation();
 
-  // API hooks
   const profilesQuery = useSearchProfiles();
   const defaultProfileQuery = useDefaultSearchProfile();
   const setDefaultProfileMutation = useSetDefaultProfileMutation();
 
-  // Local state
-  const [isUpdatingLocation, setIsUpdatingLocation] = createSignal(false);
   const [locationStatus, setLocationStatus] = createSignal<
     "idle" | "requesting" | "success" | "error"
   >("idle");
   const [selectedProfile, setSelectedProfile] = createSignal<string>("");
+  const [notifPrefs, setNotifPrefs] = createSignal<NotificationPrefs>({
+    recommendations: false,
+    tripReminders: false,
+  });
+  const [notifPermission, setNotifPermission] = createSignal<BrowserNotificationPermission>(
+    getNotificationPermission(),
+  );
 
-  // Initialize selected profile
+  const userId = () => auth.user()?.id ?? "anonymous";
+  const profiles = () => profilesQuery.data ?? [];
+  const profilesLoading = () => profilesQuery.isFetching && profilesQuery.data === undefined;
+
   createEffect(() => {
     if (defaultProfileQuery.data?.id) {
       setSelectedProfile(defaultProfileQuery.data.id);
     }
   });
 
+  createEffect(() => {
+    if (!props.isOpen) return;
+    setNotifPrefs(loadNotificationPrefs(userId()));
+    setNotifPermission(getNotificationPermission());
+  });
+
   const handleLocationUpdate = async () => {
-    setIsUpdatingLocation(true);
     setLocationStatus("requesting");
 
     try {
@@ -53,8 +80,6 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
     } catch (_error) {
       setLocationStatus("error");
       setTimeout(() => setLocationStatus("idle"), 3000);
-    } finally {
-      setIsUpdatingLocation(false);
     }
   };
 
@@ -62,11 +87,30 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
     setSelectedProfile(profileId);
     try {
       await setDefaultProfileMutation.mutateAsync(profileId);
-    } catch (error) {
-      console.error("Failed to update default profile:", error);
-      // Revert selection on error
+    } catch (err) {
+      console.error("Failed to update default profile:", err);
       setSelectedProfile(defaultProfileQuery.data?.id || "");
     }
+  };
+
+  const persistNotifPrefs = (next: NotificationPrefs) => {
+    setNotifPrefs(next);
+    saveNotificationPrefs(userId(), next);
+  };
+
+  const handleNotificationToggle = async (key: keyof NotificationPrefs, enabled: boolean) => {
+    if (!enabled) {
+      persistNotifPrefs({ ...notifPrefs(), [key]: false });
+      return;
+    }
+
+    const permission = await ensureNotificationPermission();
+    setNotifPermission(permission);
+    if (permission !== "granted") {
+      persistNotifPrefs({ ...notifPrefs(), [key]: false });
+      return;
+    }
+    persistNotifPrefs({ ...notifPrefs(), [key]: true });
   };
 
   const handleOpenFullSettings = () => {
@@ -74,8 +118,12 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
     navigate("/settings");
   };
 
-  const currentLocation = userLocation();
-  const profiles = profilesQuery.data || [];
+  const locationButtonLabel = () => {
+    if (locationStatus() === "requesting" || isLoadingLocation()) return "Requesting...";
+    if (locationStatus() === "success") return "Updated!";
+    if (locationStatus() === "error") return "Failed";
+    return userLocation() ? "Update Location" : "Enable Location";
+  };
 
   return (
     <Show when={props.isOpen}>
@@ -111,24 +159,56 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
                 <Label>Active Travel Profile</Label>
               </div>
               <Show
-                when={!profilesQuery.isLoading && profiles.length > 0}
+                when={!profilesQuery.isError}
                 fallback={
-                  <div class="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 class="w-4 h-4 animate-spin" />
-                    Loading profiles...
+                  <div class="space-y-2">
+                    <p class="text-sm text-muted-foreground">Could not load travel profiles.</p>
+                    <Button
+                      variant="secondary"
+                      class="w-full"
+                      onClick={() => void profilesQuery.refetch()}
+                    >
+                      Retry
+                    </Button>
                   </div>
                 }
               >
-                <select
-                  value={selectedProfile()}
-                  onChange={(e) => handleProfileChange(e.target.value)}
-                  disabled={setDefaultProfileMutation.isPending}
-                  class="w-full p-3 border border-border rounded-lg bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                <Show
+                  when={!profilesLoading()}
+                  fallback={
+                    <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 class="w-4 h-4 animate-spin" />
+                      Loading profiles...
+                    </div>
+                  }
                 >
-                  <For each={profiles}>
-                    {(profile) => <option value={profile.id}>{profile.profile_name}</option>}
-                  </For>
-                </select>
+                  <Show
+                    when={profiles().length > 0}
+                    fallback={
+                      <div class="space-y-2">
+                        <p class="text-sm text-muted-foreground">No travel profiles yet.</p>
+                        <A
+                          href="/profiles"
+                          class="text-sm text-primary underline-offset-4 hover:underline"
+                          onClick={props.onClose}
+                        >
+                          Create a profile
+                        </A>
+                      </div>
+                    }
+                  >
+                    <select
+                      value={selectedProfile()}
+                      onChange={(e) => handleProfileChange(e.target.value)}
+                      disabled={setDefaultProfileMutation.isPending}
+                      class="w-full p-3 border border-border rounded-lg bg-background text-foreground text-sm focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <For each={profiles()}>
+                        {(profile) => <option value={profile.id}>{profile.profile_name}</option>}
+                      </For>
+                    </select>
+                  </Show>
+                </Show>
               </Show>
               <Show when={setDefaultProfileMutation.isPending}>
                 <div class="flex items-center gap-2 text-sm text-primary">
@@ -146,40 +226,36 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
               </div>
               <div class="p-3 bg-muted/50 rounded-lg">
                 <Show
-                  when={currentLocation}
-                  fallback={
-                    <p class="text-sm text-muted-foreground mb-3">Location not set</p>
-                  }
+                  when={userLocation()}
+                  fallback={<p class="text-sm text-muted-foreground mb-3">Location not set</p>}
                 >
-                  <p class="text-sm text-foreground mb-1">
-                    📍 {currentLocation?.latitude?.toFixed(4)},{" "}
-                    {currentLocation?.longitude?.toFixed(4)}
-                  </p>
-                  <p class="text-xs text-muted-foreground mb-3">
-                    Used for nearby recommendations
-                  </p>
+                  {(loc) => (
+                    <>
+                      <p class="text-sm text-foreground mb-1">
+                        {loc().latitude.toFixed(4)}, {loc().longitude.toFixed(4)}
+                      </p>
+                      <p class="text-xs text-muted-foreground mb-3">
+                        Used for nearby recommendations
+                      </p>
+                    </>
+                  )}
                 </Show>
                 <Button
                   onClick={handleLocationUpdate}
-                  disabled={isUpdatingLocation()}
+                  disabled={isLoadingLocation() || locationStatus() === "requesting"}
                   class="w-full"
                 >
                   <Show
-                    when={!isUpdatingLocation()}
+                    when={!(isLoadingLocation() || locationStatus() === "requesting")}
                     fallback={<Loader2 class="w-4 h-4 animate-spin" />}
                   >
                     <MapPin class="w-4 h-4" />
                   </Show>
-                  {locationStatus() === "requesting"
-                    ? "Requesting..."
-                    : locationStatus() === "success"
-                      ? "Updated!"
-                      : locationStatus() === "error"
-                        ? "Failed"
-                        : currentLocation
-                          ? "Update Location"
-                          : "Enable Location"}
+                  {locationButtonLabel()}
                 </Button>
+                <Show when={error() && locationStatus() !== "success"}>
+                  <p class="text-xs text-destructive mt-2">{error()}</p>
+                </Show>
               </div>
             </div>
 
@@ -191,16 +267,27 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
                 <Bell class="w-4 h-4 text-muted-foreground" />
                 <Label>Notifications</Label>
               </div>
+              <p class="text-xs text-muted-foreground">{permissionCopy[notifPermission()]}</p>
               <div class="space-y-2">
                 <div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <span class="text-sm text-foreground">New recommendations</span>
-                  <Checkbox defaultChecked>
+                  <Checkbox
+                    checked={notifPrefs().recommendations}
+                    onChange={(checked) =>
+                      void handleNotificationToggle("recommendations", checked)
+                    }
+                    disabled={notifPermission() === "unsupported"}
+                  >
                     <CheckboxControl />
                   </Checkbox>
                 </div>
                 <div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <span class="text-sm text-foreground">Trip reminders</span>
-                  <Checkbox defaultChecked>
+                  <Checkbox
+                    checked={notifPrefs().tripReminders}
+                    onChange={(checked) => void handleNotificationToggle("tripReminders", checked)}
+                    disabled={notifPermission() === "unsupported"}
+                  >
                     <CheckboxControl />
                   </Checkbox>
                 </div>

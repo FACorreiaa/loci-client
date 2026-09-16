@@ -30,6 +30,32 @@ interface LocationProviderProps {
   children: JSX.Element;
 }
 
+/** GeolocationPositionError codes. Do not rely on `instanceof` — Safari often throws DOMException. */
+const GEO_PERMISSION_DENIED = 1;
+const GEO_POSITION_UNAVAILABLE = 2;
+const GEO_TIMEOUT = 3;
+
+function geolocationFailure(err: unknown): { message: string; denied: boolean } {
+  const code =
+    typeof err === "object" && err !== null && "code" in err
+      ? Number((err as { code: unknown }).code)
+      : Number.NaN;
+
+  if (code === GEO_PERMISSION_DENIED) {
+    return { message: "Location access was denied by the user.", denied: true };
+  }
+  if (code === GEO_POSITION_UNAVAILABLE) {
+    return { message: "Location information is unavailable.", denied: false };
+  }
+  if (code === GEO_TIMEOUT) {
+    return { message: "The request to get your location timed out.", denied: false };
+  }
+  if (err instanceof Error && err.message) {
+    return { message: err.message, denied: false };
+  }
+  return { message: "Failed to get location.", denied: false };
+}
+
 export function LocationProvider(props: LocationProviderProps) {
   const [userLocation, setUserLocation] = createSignal<UserLocation | null>(null);
   const [isLoadingLocation, setisLoadingLocation] = createSignal(false);
@@ -41,8 +67,9 @@ export function LocationProvider(props: LocationProviderProps) {
   // Function to request location and trigger the browser prompt
   const requestLocation = async () => {
     if (!isGeolocationSupported) {
-      setError("Geolocation is not supported by your browser.");
-      return;
+      const message = "Geolocation is not supported by your browser.";
+      setError(message);
+      throw new Error(message);
     }
 
     setisLoadingLocation(true);
@@ -57,31 +84,21 @@ export function LocationProvider(props: LocationProviderProps) {
         });
       });
 
-      const userLocation: UserLocation = {
+      const coords: UserLocation = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         accuracy: position.coords.accuracy,
       };
 
-      setUserLocation(userLocation);
+      setUserLocation(coords);
       setPermissionStatus("granted");
     } catch (err) {
-      let errorMessage = "Failed to get location.";
-      if (err instanceof GeolocationPositionError) {
-        switch (err.code) {
-          case err.PERMISSION_DENIED:
-            setError("Location access was denied by the user.");
-            setPermissionStatus("denied");
-            break;
-          case err.POSITION_UNAVAILABLE:
-            errorMessage = "Location information is unavailable.";
-            break;
-          case err.TIMEOUT:
-            errorMessage = "The request to get your location timed out.";
-            break;
-        }
+      const { message, denied } = geolocationFailure(err);
+      if (denied) {
+        setPermissionStatus("denied");
       }
-      setError(errorMessage);
+      setError(message);
+      throw new Error(message);
     } finally {
       setisLoadingLocation(false);
     }
@@ -100,14 +117,14 @@ export function LocationProvider(props: LocationProviderProps) {
         // Only auto-fetch if permission was already granted previously
         // This avoids triggering the browser prompt on page load
         if (permission.state === "granted") {
-          requestLocation();
+          void requestLocation().catch(() => {});
         }
 
         // Listen for permission changes
         permission.onchange = () => {
           setPermissionStatus(permission.state);
           if (permission.state === "granted") {
-            requestLocation();
+            void requestLocation().catch(() => {});
           }
         };
       });
