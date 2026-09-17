@@ -14,11 +14,9 @@ import {
   ChevronRight,
   MapPin,
   Calendar,
-  Heart,
   Bookmark,
   CheckSquare,
   Square,
-  Share2,
 } from "lucide-solid";
 import {
   useLists,
@@ -30,7 +28,6 @@ import {
 import { Button } from "~/ui/button";
 import { useSelection, type SelectionItem } from "~/lib/hooks/useSelection";
 import { SelectionToolbar } from "~/components/ui/SelectionToolbar";
-import { exportListToPDF } from "~/lib/api/export";
 import { ErrorView } from "~/components/ErrorView";
 
 export default function ListsPage() {
@@ -68,28 +65,10 @@ export default function ListsPage() {
     selection.toggleSelection(listToSelectionItem(list));
   };
 
-  // Handle export selected lists
-  const handleExport = async () => {
-    const items = selection.getSelectedItems();
-    for (const item of items) {
-      await exportListToPDF(item.id, item.name, [], [], []);
-    }
-  };
-
   // Select all filtered lists
   const handleSelectAll = () => {
     const items = filteredLists().map(listToSelectionItem);
     selection.selectAll(items);
-  };
-
-  // Share list (copy link)
-  const handleShare = (list: any, e: Event) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const url = `${window.location.origin}/lists/${list.id}`;
-    navigator.clipboard.writeText(url).then(() => {
-      alert("Link copied to clipboard!");
-    });
   };
 
   // Derived state
@@ -217,13 +196,9 @@ export default function ListsPage() {
 
               {/* Quick Links */}
               <div class="flex items-center gap-3 flex-wrap">
-                <A href="/favorites" class="loci-hero__action px-4 py-2">
-                  <Heart class="w-4 h-4" />
-                  View Favorites
-                </A>
-                <A href="/bookmarks" class="loci-hero__action px-4 py-2">
+                <A href="/saved" class="loci-hero__action px-4 py-2">
                   <Bookmark class="w-4 h-4" />
-                  View Bookmarks
+                  View saved
                 </A>
               </div>
             </div>
@@ -365,15 +340,6 @@ export default function ListsPage() {
                             <Square class="w-4 h-4" />
                           )}
                         </button>
-                        <Show when={list.isPublic}>
-                          <button
-                            onClick={(e) => handleShare(list, e)}
-                            class="p-2 text-muted-foreground hover:text-accent rounded-lg hover:bg-accent/10"
-                            title="Share"
-                          >
-                            <Share2 class="w-4 h-4" />
-                          </button>
-                        </Show>
                         <button
                           onClick={() => openEditModal(list)}
                           class="p-2 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/10"
@@ -517,9 +483,10 @@ export default function ListsPage() {
         </Show>
 
         {/* Selection Toolbar */}
+        {/* No Export: list contents are not served yet (GetListItems is
+            unimplemented), so a PDF would always have come out empty. */}
         <SelectionToolbar
           count={selection.count()}
-          onExport={handleExport}
           onClear={selection.clearSelection}
           onSelectAll={handleSelectAll}
         />

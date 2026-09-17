@@ -130,7 +130,16 @@ export const queryUtils = {
 
   // Remove all user-related data (useful on logout)
   removeUserData: () => {
-    const userDataKeys = ["profiles", "interests", "tags", "favorites", "lists", "settings"];
+    const userDataKeys = [
+      "profiles",
+      "interests",
+      "tags",
+      "favorites",
+      "user-itineraries",
+      "pois",
+      "lists",
+      "settings",
+    ];
     userDataKeys.forEach((key) => {
       queryClient.removeQueries({ queryKey: [key] });
     });

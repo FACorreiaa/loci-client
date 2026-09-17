@@ -149,7 +149,7 @@ const ErrorBoundary: Component<ErrorBoundaryProps> = (props) => {
                   <div class="text-sm text-gray-500 dark:text-gray-400">
                     <p class="mb-2">While our servers are down, you can still:</p>
                     <div class="flex flex-wrap justify-center gap-2">
-                      <A href="/favorites" class="text-blue-600 hover:text-blue-700">
+                      <A href="/saved" class="text-blue-600 hover:text-blue-700">
                         View Favorites
                       </A>
                       <span>•</span>
