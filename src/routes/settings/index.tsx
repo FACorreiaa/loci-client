@@ -48,6 +48,7 @@ import { useAuth } from "~/contexts/AuthContext";
 import TagsComponent from "~/components/features/Settings/Tags";
 import InterestsComponent from "~/components/features/Settings/Interests";
 import TravelProfiles from "~/components/features/Settings/TravelProfiles";
+import NewsTickerToggle from "~/components/features/Settings/NewsTickerToggle";
 import AppearanceSettings from "~/components/AppearanceSettings";
 import { ConnectionsPage } from "~/components/features/Settings/connections/ConnectionsPage";
 import TwoFactor from "~/components/features/Settings/TwoFactor";
@@ -631,6 +632,8 @@ export default function SettingsPage() {
               </p>
               <AppearanceSettings />
             </div>
+
+            <NewsTickerToggle />
 
             <div class="loci-card rounded-3xl p-6 sm:p-8 space-y-3">
               <div class="flex items-center gap-2">
