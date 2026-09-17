@@ -25,7 +25,8 @@ import { citySuggestionsFrom, type CitySuggestion } from "~/lib/compare-suggesti
 import { CompareForm } from "~/components/compare/CompareForm";
 import { ColumnCard } from "~/components/compare/ColumnCard";
 import { ColumnSkeleton } from "~/components/compare/ColumnSkeleton";
-import { CompareEmptyState, type ComparePreset } from "~/components/compare/CompareEmptyState";
+import { CompareEmptyState } from "~/components/compare/CompareEmptyState";
+import { presetInput, type ComparePreset } from "~/lib/compare-presets";
 import type { CitySelection } from "~/components/compare/CityAutocomplete";
 
 export default function ComparePage() {
@@ -55,9 +56,14 @@ export default function ComparePage() {
     compareMutation.mutate(input);
   };
 
+  // A preset is one tap: it fills the form and runs. The remounted form starts
+  // from the same window the request was built with, so what it shows is what
+  // was sent. A preset that cannot run as it stands is only a prefill.
   const applyPreset = (next: ComparePreset) => {
     setPreset(next);
     setFormKey((k) => k + 1);
+    const input = presetInput(next);
+    if (input) runCompare(input);
   };
 
   // A suggestion already carries coordinates, so re-running with it skips
@@ -73,6 +79,8 @@ export default function ComparePage() {
     applyPreset({
       origin: chosen,
       candidates: (previous?.candidates ?? []).map((name) => ({ name })),
+      // The dates the person chose, not a fresh default weekend.
+      window: previous ? { start: previous.startDate, end: previous.endDate } : undefined,
     });
   };
 
@@ -243,6 +251,7 @@ export default function ComparePage() {
             }
             initialOrigin={preset()?.origin ?? null}
             initialCandidates={preset()?.candidates ?? []}
+            initialWindow={preset()?.window}
           />
         </Show>
 

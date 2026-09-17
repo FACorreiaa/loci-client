@@ -1,5 +1,6 @@
 import { For, Show } from "solid-js";
 import { ArrowRight, Car, Clock, Info, Lock, MapPin } from "lucide-solid";
+import { Button } from "~/ui/button";
 import type { MultiCityPlan } from "@buf/loci_loci-proto.bufbuild_es/loci/compare/v1/compare_pb.js";
 
 interface MultiCityPlanCardProps {
@@ -148,14 +149,14 @@ export function MultiCityPlanCard(props: MultiCityPlanCardProps) {
       </Show>
 
       <Show when={props.onSave && plan().feasible && !plan().proOnly}>
-        <button
+        <Button
           type="button"
-          class="loci-hero__action mt-4 w-full justify-center"
+          class="mt-4 w-full"
           disabled={props.saving}
           onClick={() => props.onSave?.()}
         >
           {props.saving ? "Saving…" : "Save this route as a trip"}
-        </button>
+        </Button>
       </Show>
 
       <Show when={plan().proOnly && plan().feasible}>

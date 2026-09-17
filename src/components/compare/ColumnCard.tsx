@@ -1,5 +1,6 @@
 import { For, Show } from "solid-js";
 import { Loader2, ArrowRight, Car } from "lucide-solid";
+import { Button } from "~/ui/button";
 import type { CityCompareColumn } from "~/lib/api/compare";
 import { recordRecommendationEvents } from "~/lib/api/recommendations";
 import LocalWeather from "~/components/LocalWeather";
@@ -129,9 +130,9 @@ export function ColumnCard(props: {
         </For>
       </div>
 
-      <button
+      <Button
         type="button"
-        class="loci-hero__action w-full justify-center mt-auto"
+        class="mt-auto w-full gap-2"
         disabled={props.choosing}
         onClick={props.onChoose}
       >
@@ -143,7 +144,7 @@ export function ColumnCard(props: {
             <ArrowRight class="w-4 h-4" />
           </>
         )}
-      </button>
+      </Button>
     </article>
   );
 }

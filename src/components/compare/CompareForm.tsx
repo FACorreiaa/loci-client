@@ -1,5 +1,6 @@
 import { createMemo, createSignal, Show } from "solid-js";
 import { Loader2, GitCompare } from "lucide-solid";
+import { Button } from "~/ui/button";
 import { useEntitlements } from "~/lib/api/entitlements";
 import { isProPlan } from "~/lib/subscription";
 import { defaultWeekend, type DateWindow } from "~/lib/compare-defaults";
@@ -22,18 +23,21 @@ interface CompareFormProps {
   /** Prefills from an example or a "did you mean" suggestion. */
   initialOrigin?: CitySelection | null;
   initialCandidates?: CitySelection[];
+  /** The window a preset or a rerun was sent with, so the form shows what ran. */
+  initialWindow?: DateWindow;
 }
 
 export function CompareForm(props: CompareFormProps) {
   const entitlements = useEntitlements();
-  const isPro = () => isProPlan(entitlements.data?.plan);
+  // Guarded: `.data` suspends while pending, up to the router-level <Suspense>.
+  const isPro = () => entitlements.isSuccess && isProPlan(entitlements.data?.plan);
   const maxCandidates = () => (isPro() ? PRO_MAX_CANDIDATES : FREE_MAX_CANDIDATES);
 
   const [origin, setOrigin] = createSignal<CitySelection | null>(props.initialOrigin ?? null);
   const [candidates, setCandidates] = createSignal<CitySelection[]>(props.initialCandidates ?? []);
   // Computed at construction rather than at module scope, so a page left open
   // over a weekend does not go on offering the one that has passed.
-  const [window, setWindow] = createSignal<DateWindow>(defaultWeekend());
+  const [window, setWindow] = createSignal<DateWindow>(props.initialWindow ?? defaultWeekend());
 
   const enoughCandidates = () => candidates().length >= 2;
   const windowValid = () => window().end > window().start;
@@ -101,11 +105,10 @@ export function CompareForm(props: CompareFormProps) {
       <DateRangeField window={window()} onChange={setWindow} />
 
       <div class="flex flex-col gap-2">
-        <button
-          type="submit"
-          class="loci-hero__action w-full justify-center"
-          disabled={!canSubmit()}
-        >
+        {/* The kit's primary button, not `.loci-hero__action`: that class paints
+            in --hero-foreground, which is near-white, so on this card the one
+            action on the page was white on white and read as missing. */}
+        <Button type="submit" size="lg" class="w-full gap-2" disabled={!canSubmit()}>
           <Show
             when={!props.pending}
             fallback={
@@ -118,7 +121,7 @@ export function CompareForm(props: CompareFormProps) {
             <GitCompare class="w-4 h-4" />
             Compare weekend
           </Show>
-        </button>
+        </Button>
 
         {/* The old form validated silently: fewer than two cities simply did
             nothing when the button was pressed, which reads as a broken button.
