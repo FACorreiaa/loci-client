@@ -43,6 +43,7 @@ import {
   useToggleInterestActiveMutation,
 } from "../../lib/api/interests";
 import { useSearchProfiles } from "~/lib/api/profiles";
+import { ProtectedRoute } from "~/contexts/AuthContext";
 import { ProcessedProfileData, UserProfileResponse } from "~/lib/api/types";
 import { useAuth } from "~/contexts/AuthContext";
 import TagsComponent from "~/components/features/Settings/Tags";
@@ -77,7 +78,7 @@ const TAB_IDS = TABS.map((t) => t.id);
 // there — support answers, the /mcp guide — and should land somewhere useful.
 const LEGACY_TABS: Record<string, string> = { apikeys: "connections" };
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const { user } = useAuth();
   const [notification, setNotification] = createSignal<{
     message: string;
@@ -1009,5 +1010,16 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Everything on this page is the signed-in user's own: their profile, their
+// travel profiles, what Loci has learned about them. Unguarded, it rendered
+// the whole shell to a logged-out visitor and fired the authed RPCs behind it.
+export default function SettingsPage() {
+  return (
+    <ProtectedRoute>
+      <SettingsPageContent />
+    </ProtectedRoute>
   );
 }

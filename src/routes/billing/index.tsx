@@ -16,6 +16,7 @@ import {
   useCreateCustomerPortalSession,
 } from "~/lib/api/billing";
 import { Button } from "~/ui/button";
+import { ProtectedRoute } from "~/contexts/AuthContext";
 import {
   hasCheckoutConfigured,
   isProPlan,
@@ -36,7 +37,7 @@ const PRO_FEATURES = [
   "Priority feature access",
 ];
 
-export default function BillingPage() {
+function BillingPageContent() {
   const subscriptionQuery = useUserSubscription();
   const createCheckoutMutation = useCreateCheckoutSession();
   const createPortalMutation = useCreateCustomerPortalSession();
@@ -328,5 +329,15 @@ export default function BillingPage() {
         </Show>
       </div>
     </div>
+  );
+}
+
+// Everything on this page is the signed-in user's own. Unguarded, it rendered
+// the whole shell to a logged-out visitor and fired the authed RPCs behind it.
+export default function BillingPage() {
+  return (
+    <ProtectedRoute>
+      <BillingPageContent />
+    </ProtectedRoute>
   );
 }
