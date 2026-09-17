@@ -1,5 +1,5 @@
 // The question box: where a trip starts. Streams the prompt and hands off to the result route.
-import { createSignal, Show } from "solid-js";
+import { createEffect, createSignal, on, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { Send, Loader2, Settings } from "lucide-solid";
 import { detectDomain } from "~/lib/api/llm";
@@ -8,6 +8,8 @@ import type { StreamingSession, AiCityResponse } from "~/lib/api/types";
 import { useUserLocation } from "~/contexts/LocationContext";
 import { useDefaultSearchProfile } from "~/lib/api/profiles";
 import { formatCoord } from "~/lib/dashboard/format";
+import { heroPrompt } from "~/lib/dashboard/hero-prompt";
+import { prefersReducedMotion } from "~/lib/hooks/useInView";
 import QuickSettingsModal from "~/components/modals/QuickSettingsModal";
 import ProfileQuickSelect from "./ProfileQuickSelect";
 
@@ -18,6 +20,26 @@ export default function DeskHero() {
   const [streamProgress, setStreamProgress] = createSignal("");
   const [_streamingSession, setStreamingSession] = createSignal<StreamingSession | null>(null);
   const [isQuickSettingsOpen, setIsQuickSettingsOpen] = createSignal(false);
+  let textareaRef: HTMLTextAreaElement | undefined;
+
+  // The in-season strip writes a request here; the person still presses
+  // Discover. Nonce 0 is the untouched initial value, so the box is not
+  // cleared on mount.
+  createEffect(
+    on(
+      heroPrompt,
+      (p) => {
+        if (!p.nonce) return;
+        setCurrentMessage(p.text);
+        textareaRef?.focus();
+        textareaRef?.scrollIntoView({
+          block: "center",
+          behavior: prefersReducedMotion() ? "auto" : "smooth",
+        });
+      },
+      { defer: true },
+    ),
+  );
 
   const { userLocation } = useUserLocation();
   // Streaming needs a position; Lisbon stands in when the browser gives none.
@@ -146,6 +168,7 @@ export default function DeskHero() {
 
           <div class="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
             <textarea
+              ref={textareaRef}
               value={currentMessage()}
               onInput={(e) => setCurrentMessage(e.target.value)}
               placeholder="Lisbon for two days, walking, late dinners"
