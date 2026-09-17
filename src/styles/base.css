@@ -209,6 +209,25 @@
     color: hsl(var(--accent-foreground));
   }
 
+  /* Same failure as .loci-chip: --hero-foreground is near-white, so outside
+     .loci-hero this button was white on white (the compare submit, "Choose
+     city", "Save this route" all read as missing). Surface tokens off-hero. */
+  .loci-hero__action:not(.loci-hero *) {
+    background: hsl(var(--card));
+    border-color: hsl(var(--border));
+    color: hsl(var(--foreground));
+    padding: 0.5rem 1rem;
+  }
+
+  .loci-hero__action:not(.loci-hero *):hover {
+    background: hsl(var(--muted));
+  }
+
+  .loci-hero__action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   .loci-chip--destructive {
     background: hsl(var(--destructive) / 0.3);
     border-color: hsl(var(--destructive) / 0.4);

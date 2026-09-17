@@ -1,11 +1,8 @@
 import { For } from "solid-js";
 import { CloudSun, Car, MapPin } from "lucide-solid";
-import type { CitySelection } from "./CityAutocomplete";
+import { COMPARE_PRESETS, type ComparePreset } from "~/lib/compare-presets";
 
-export interface ComparePreset {
-  origin: CitySelection;
-  candidates: CitySelection[];
-}
+export type { ComparePreset };
 
 /**
  * What the page shows before anyone has compared anything.
@@ -16,29 +13,7 @@ export interface ComparePreset {
  * cold start is thinking of two cities.
  */
 export function CompareEmptyState(props: { onPick: (preset: ComparePreset) => void }) {
-  const presets: ComparePreset[] = [
-    {
-      origin: { name: "Porto", country: "Portugal" },
-      candidates: [
-        { name: "Évora", country: "Portugal" },
-        { name: "Beja", country: "Portugal" },
-      ],
-    },
-    {
-      origin: { name: "Lisbon", country: "Portugal" },
-      candidates: [
-        { name: "Sintra", country: "Portugal" },
-        { name: "Óbidos", country: "Portugal" },
-      ],
-    },
-    {
-      origin: { name: "Madrid", country: "Spain" },
-      candidates: [
-        { name: "Toledo", country: "Spain" },
-        { name: "Segovia", country: "Spain" },
-      ],
-    },
-  ];
+  const presets = COMPARE_PRESETS;
 
   return (
     <section class="loci-card rounded-2xl p-6 flex flex-col gap-5">

@@ -14,6 +14,7 @@ import {
 } from "@buf/loci_loci-proto.bufbuild_es/loci/city/city_pb.js";
 import { createEffect, createSignal, onCleanup, type Accessor } from "solid-js";
 import { transport } from "../connect-transport";
+import { keepPreviousData } from "@tanstack/solid-query";
 import { useAppQuery } from "./authed-query";
 
 const cityClient = createClient(CityService, transport);
@@ -72,6 +73,12 @@ export function useCitySearch(query: Accessor<string>, debounceMs = 250) {
       queryKey: ["cities", "search", q],
       queryFn: () => searchCities(q),
       enabled: q.length >= MIN_CITY_QUERY_LENGTH,
+      // Every keystroke is a new key. Without this a new key starts in the
+      // loading state, reading `.data` suspends, and the only <Suspense> is the
+      // one around the whole router outlet (src/app.tsx) — so the entire page
+      // swapped to the loading screen on each debounced character. Keeping the
+      // previous list means the query never has "no data" after its first hit.
+      placeholderData: keepPreviousData,
       // A city's name and position do not change; only the set of matches does.
       staleTime: 30 * 60 * 1000,
     };

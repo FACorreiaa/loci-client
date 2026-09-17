@@ -42,8 +42,12 @@ export function CityAutocomplete(props: CityAutocompleteProps) {
     () => new Set((props.excludeNames ?? []).map((n) => n.trim().toLowerCase())),
   );
 
+  // Guarded read. `.data` on a solid-query result suspends while the query is
+  // pending, and the nearest <Suspense> is the one around the whole router
+  // outlet, so an unguarded read here replaced the entire page with the loading
+  // screen on the very first search. (See TravelProfiles for the same guard.)
   const results = createMemo<City[]>(() => {
-    const list = search.data ?? [];
+    const list = search.isPending ? [] : (search.data ?? []);
     return list.filter((c) => !excluded().has(c.name.trim().toLowerCase()));
   });
 
