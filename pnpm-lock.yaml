@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@buf/loci_loci-proto.bufbuild_es':
-        specifier: 1.5.1-00000000000000-78e89f4c8704.1
-        version: 1.5.1-00000000000000-78e89f4c8704.1(@bufbuild/protobuf@2.15.0)
+        specifier: 2.15.0-00000000000000-78e89f4c8704.1
+        version: 2.15.0-00000000000000-78e89f4c8704.1(@bufbuild/protobuf@2.15.0)
       '@bufbuild/protobuf':
         specifier: ^2.15.0
         version: 2.15.0
@@ -685,20 +685,20 @@ packages:
     resolution: {integrity: sha512-4zBIxpPzowiZpusoFkyGVwakdRJUyuH5PxQ/PrqghfdFWWasvnCdPfQXHrenDai+gyLARulZjZowCOj6fjT4pA==}
     engines: {node: '>=6.9.0'}
 
-  '@buf/bufbuild_protovalidate.bufbuild_es@1.5.1-20251209175733-2a1774d88802.1':
-    resolution: {integrity: sha512-j0vi/khFT3KSFj8KQR8KAcY0HSG4VwunYsSRfOUHDt/0CWWDKrhsFEGtoPDizif0i96wcycDeAvYapcneuC5/w==}
+  '@buf/bufbuild_protovalidate.bufbuild_es@2.15.0-20251209175733-2a1774d88802.1':
+    resolution: {integrity: sha512-QToyH8zFMIkrTNvQ1hQ6ZwJJyIphP5ppUDKgIbSKedKDEf+/VykKpg897gP2N1G6mcK3aL97bvxm1WIa5be/OQ==}
     peerDependencies:
-      '@bufbuild/protobuf': ^1.5.1
+      '@bufbuild/protobuf': ^2.15.0
 
-  '@buf/loci_loci-proto.bufbuild_es@1.5.1-00000000000000-78e89f4c8704.1':
-    resolution: {integrity: sha512-8HCEqNmDNAiCdkXUbULnes1CA4cMoySXHomULxU3eFtsuZ/E1IPaiooLqzz9meQ8gRDjKZacEbdbB49CQ0SiaA==}
+  '@buf/loci_loci-proto.bufbuild_es@2.15.0-00000000000000-78e89f4c8704.1':
+    resolution: {integrity: sha512-0yjxRnHzrw/lTLE7TsmO5LecphDM3Nr0seKCk/g7J822sQ+lGLJ7MHCx0hLi1DlspAhfHVCNeDZx2b+FXGnugg==}
     peerDependencies:
-      '@bufbuild/protobuf': ^1.5.1
+      '@bufbuild/protobuf': ^2.15.0
 
-  '@buf/protocolbuffers_wellknowntypes.bufbuild_es@1.5.1-20230331140314-f17e05fe4a76.1':
-    resolution: {integrity: sha512-MDohibZd7oa44/WgseKedusK0mm0OkJGWWepVGrHGN9+KoLUjPwVAJ2CPkoHJ9FqpCkQDxYewMp/LUKCczdpFg==}
+  '@buf/protocolbuffers_wellknowntypes.bufbuild_es@2.15.0-20230331140314-f17e05fe4a76.1':
+    resolution: {integrity: sha512-7UxL/jR7eOiydWgZn5Uk+weWdRye6OtpOYyF8kSdEtD8VzaI55OLNnpfwl21qUFez4laU7hzJvOhGEwI8+Uj8g==}
     peerDependencies:
-      '@bufbuild/protobuf': ^1.5.1
+      '@bufbuild/protobuf': ^2.15.0
 
   '@bufbuild/protobuf@2.15.0':
     resolution: {integrity: sha512-DAheWUkVr/SJTWCc+lg9dhY0eN4SaWlf4+bG1KzHeXbnqt0AfB/NX0Z+VunGlM1ki1B4zVvye27MpKh/svySUA==}
@@ -6103,17 +6103,17 @@ snapshots:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@buf/bufbuild_protovalidate.bufbuild_es@1.5.1-20251209175733-2a1774d88802.1(@bufbuild/protobuf@2.15.0)':
+  '@buf/bufbuild_protovalidate.bufbuild_es@2.15.0-20251209175733-2a1774d88802.1(@bufbuild/protobuf@2.15.0)':
     dependencies:
       '@bufbuild/protobuf': 2.15.0
 
-  '@buf/loci_loci-proto.bufbuild_es@1.5.1-00000000000000-78e89f4c8704.1(@bufbuild/protobuf@2.15.0)':
+  '@buf/loci_loci-proto.bufbuild_es@2.15.0-00000000000000-78e89f4c8704.1(@bufbuild/protobuf@2.15.0)':
     dependencies:
-      '@buf/bufbuild_protovalidate.bufbuild_es': 1.5.1-20251209175733-2a1774d88802.1(@bufbuild/protobuf@2.15.0)
-      '@buf/protocolbuffers_wellknowntypes.bufbuild_es': 1.5.1-20230331140314-f17e05fe4a76.1(@bufbuild/protobuf@2.15.0)
+      '@buf/bufbuild_protovalidate.bufbuild_es': 2.15.0-20251209175733-2a1774d88802.1(@bufbuild/protobuf@2.15.0)
+      '@buf/protocolbuffers_wellknowntypes.bufbuild_es': 2.15.0-20230331140314-f17e05fe4a76.1(@bufbuild/protobuf@2.15.0)
       '@bufbuild/protobuf': 2.15.0
 
-  '@buf/protocolbuffers_wellknowntypes.bufbuild_es@1.5.1-20230331140314-f17e05fe4a76.1(@bufbuild/protobuf@2.15.0)':
+  '@buf/protocolbuffers_wellknowntypes.bufbuild_es@2.15.0-20230331140314-f17e05fe4a76.1(@bufbuild/protobuf@2.15.0)':
     dependencies:
       '@bufbuild/protobuf': 2.15.0
 
