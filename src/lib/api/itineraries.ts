@@ -44,7 +44,9 @@ const mapProtoToItinerary = (proto: any): UserSavedItinerary => ({
 // ====================
 
 // Query to get all user's saved itineraries
-export const useAllUserItineraries = (options: { enabled?: boolean } = {}) => {
+// `enabled` may be an accessor: a plain boolean is read once at setup, so a
+// page that mounts before auth resolves would never fetch.
+export const useAllUserItineraries = (options: { enabled?: boolean | (() => boolean) } = {}) => {
   return useAppQuery(() => ({
     queryKey: queryKeys.userItineraries,
     queryFn: async (): Promise<PaginatedItinerariesResponse> => {
@@ -61,7 +63,7 @@ export const useAllUserItineraries = (options: { enabled?: boolean } = {}) => {
       };
     },
     staleTime: 2 * 60 * 1000,
-    enabled: options.enabled ?? true,
+    enabled: typeof options.enabled === "function" ? options.enabled() : (options.enabled ?? true),
   }));
 };
 

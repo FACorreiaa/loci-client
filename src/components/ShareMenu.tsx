@@ -1,11 +1,12 @@
 import { Component, createSignal, Show, For } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import { Share2, Copy, Check, MessageCircle, Globe, AtSign } from "lucide-solid";
+import { Share2, Copy, Check, MessageCircle, Globe, AtSign, Send } from "lucide-solid";
 import {
   shareNative,
   twitterShareUrl,
   facebookShareUrl,
   whatsappShareUrl,
+  telegramShareUrl,
   copyShareToClipboard,
   type SharePayload,
 } from "~/lib/share";
@@ -15,62 +16,61 @@ interface ShareMenuProps {
 }
 
 /**
- * A share dropdown that shows social media options on desktop and
- * the native share sheet on mobile.
+ * Share: the native sheet where there is one (it carries the text and the
+ * Loci mark), otherwise a menu of web intents plus copy. When the native
+ * sheet is missing or fails the menu opens; a deliberate cancel does nothing.
  *
- * Uses generic lucide icons since lucide doesn't ship brand icons.
- * AtSign → Twitter/X, Globe → Facebook, MessageCircle → WhatsApp.
+ * Generic lucide glyphs stand in for brand marks lucide does not ship.
  */
 export const ShareMenu: Component<ShareMenuProps> = (props) => {
   const [open, setOpen] = createSignal(false);
   const [copied, setCopied] = createSignal(false);
 
-  const handleNativeShare = async () => {
-    const shared = await shareNative(props.payload);
-    if (shared) setOpen(false);
+  const handleClick = async () => {
+    if (open()) {
+      setOpen(false);
+      return;
+    }
+    const result = await shareNative(props.payload);
+    if (result === "shared" || result === "cancelled") return;
+    setOpen(true);
   };
 
   const handleCopy = async () => {
-    const ok = await copyShareToClipboard(props.payload);
-    if (ok) {
+    if (await copyShareToClipboard(props.payload)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
   const socialLinks = () => [
-    { name: "Twitter / X", icon: AtSign, url: twitterShareUrl(props.payload) },
-    { name: "Facebook", icon: Globe, url: facebookShareUrl(props.payload) },
+    { name: "X", icon: AtSign, url: twitterShareUrl(props.payload) },
     { name: "WhatsApp", icon: MessageCircle, url: whatsappShareUrl(props.payload) },
+    { name: "Telegram", icon: Send, url: telegramShareUrl(props.payload) },
+    { name: "Facebook", icon: Globe, url: facebookShareUrl(props.payload) },
   ];
 
   return (
     <div class="relative">
       <button
         type="button"
-        onClick={() => {
-          // On mobile, prefer native share
-          if (typeof navigator.share === "function") {
-            void handleNativeShare();
-          } else {
-            setOpen(!open());
-          }
-        }}
-        class="p-2 text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors"
+        onClick={() => void handleClick()}
+        class="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         title="Share"
+        aria-haspopup="menu"
+        aria-expanded={open()}
       >
-        <Share2 class="w-4 h-4" />
+        <Share2 class="h-4 w-4" />
       </button>
 
       <Show when={open()}>
-        {/* Backdrop */}
         <div class="fixed inset-0 z-40" onClick={() => setOpen(false)} />
 
-        {/* Dropdown */}
-        <div class="absolute right-0 top-full mt-2 w-56 z-50 rounded-xl border border-border bg-popover p-2 shadow-xl">
-          <p class="px-3 py-2 font-coord text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Share itinerary
-          </p>
+        <div
+          role="menu"
+          class="absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-popover p-2 shadow-xl"
+        >
+          <p class="kicker px-3 py-2">share</p>
 
           <For each={socialLinks()}>
             {(link) => (
@@ -78,10 +78,11 @@ export const ShareMenu: Component<ShareMenuProps> = (props) => {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                role="menuitem"
+                class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-secondary"
                 onClick={() => setOpen(false)}
               >
-                <Dynamic component={link.icon} class="w-4 h-4 text-muted-foreground" />
+                <Dynamic component={link.icon} class="h-4 w-4 text-muted-foreground" />
                 {link.name}
               </a>
             )}
@@ -91,13 +92,14 @@ export const ShareMenu: Component<ShareMenuProps> = (props) => {
 
           <button
             type="button"
-            onClick={handleCopy}
-            class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+            role="menuitem"
+            onClick={() => void handleCopy()}
+            class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-secondary"
           >
-            <Show when={copied()} fallback={<Copy class="w-4 h-4 text-muted-foreground" />}>
-              <Check class="w-4 h-4 text-green-500" />
+            <Show when={copied()} fallback={<Copy class="h-4 w-4 text-muted-foreground" />}>
+              <Check class="h-4 w-4 text-primary" />
             </Show>
-            {copied() ? "Copied!" : "Copy link"}
+            {copied() ? "Copied" : "Copy text"}
           </button>
         </div>
       </Show>

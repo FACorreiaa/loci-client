@@ -1,5 +1,5 @@
 import { Component, Show } from "solid-js";
-import { Download, Share2, Bookmark, WifiOff } from "lucide-solid";
+import { Download, Share2, Bookmark, WifiOff, Loader2 } from "lucide-solid";
 import { ShareMenu } from "~/components/ShareMenu";
 import type { SharePayload } from "~/lib/share";
 
@@ -13,6 +13,15 @@ interface ActionToolbarProps {
   isSavedOffline?: boolean;
   /** When provided, renders the ShareMenu dropdown instead of a plain button. */
   sharePayload?: SharePayload;
+  /**
+   * One Save: on the device first, then the account. Replaces the separate
+   * bookmark and save-offline buttons on pages that adopt it.
+   */
+  onSave?: () => void;
+  isSaved?: boolean;
+  saving?: boolean;
+  /** A short line next to the buttons, e.g. "Saved on this device". */
+  status?: string;
 }
 
 export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
@@ -25,6 +34,25 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
           title="Download Data"
         >
           <Download class="w-4 h-4" />
+        </button>
+      </Show>
+
+      <Show when={props.onSave}>
+        <button
+          type="button"
+          onClick={props.onSave}
+          disabled={props.saving}
+          class={`rounded-full p-2 transition-colors ${
+            props.isSaved
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+          title={props.isSaved ? "Saved on this device" : "Save"}
+          aria-pressed={props.isSaved}
+        >
+          <Show when={!props.saving} fallback={<Loader2 class="h-4 w-4 animate-spin" />}>
+            <Bookmark class={`h-4 w-4 ${props.isSaved ? "fill-current" : ""}`} />
+          </Show>
         </button>
       </Show>
 
@@ -72,6 +100,12 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
         }
       >
         {(payload) => <ShareMenu payload={payload()} />}
+      </Show>
+
+      <Show when={props.status}>
+        <span role="status" class="pr-2 text-xs text-muted-foreground">
+          {props.status}
+        </span>
       </Show>
     </div>
   );

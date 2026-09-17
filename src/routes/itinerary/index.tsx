@@ -50,7 +50,7 @@ import { isProPlan } from "@/lib/subscription";
 import type { TripStop } from "@/lib/trip-kit";
 import { useAuth } from "@/contexts/AuthContext";
 import { saveItineraryOffline, getOfflineItinerary } from "@/lib/itinerary-offline-store";
-import type { SharePayload } from "@/lib/share";
+import { SHARE_HOME_URL, type SharePayload } from "@/lib/share";
 
 export default function ItineraryPage() {
   const [searchParams] = useSearchParams();
@@ -163,8 +163,29 @@ export default function ItineraryPage() {
     }
   };
 
+  // The copy saved on this device. Before the server: it is what the person
+  // chose to keep, it answers instantly, and it is the only source with no
+  // network. Until this existed the copy was written and never read back, so
+  // a saved itinerary opened offline showed "could not load".
+  const restoreFromDevice = async (sessionIdFromUrl: string): Promise<boolean> => {
+    try {
+      const saved = await getOfflineItinerary(sessionIdFromUrl);
+      const normalized = saved ? normalizeItineraryPayload(saved.payload) : null;
+      if (!normalized || !hasItineraryContent(normalized)) return false;
+      setStore("data", normalized);
+      setSavedOffline(true);
+      return true;
+    } catch (e) {
+      console.warn("Could not read the offline copy:", e);
+      return false;
+    }
+  };
+
   const restoreOrHydrateSession = async (sessionIdFromUrl: string) => {
     if (restoreFromSessionStorage(sessionIdFromUrl)) {
+      return;
+    }
+    if (await restoreFromDevice(sessionIdFromUrl)) {
       return;
     }
     await hydrateFromServer(sessionIdFromUrl);
@@ -427,23 +448,41 @@ export default function ItineraryPage() {
     cityName: cityData()?.city || cityName() || "",
     title: itineraryModel().title || `${cityData()?.city || cityName()} Itinerary`,
     description: cityData()?.description,
-    url: typeof window !== "undefined" ? window.location.href : "",
+    // The Loci home, not this page: this URL names a private session nobody
+    // else can open. See src/lib/share.ts.
+    url: SHARE_HOME_URL,
     stopCount: itineraryModel().stops.length,
+    stops: itineraryModel().stops.map((s, i) => ({ name: s.name, day: dayOf(s, i) })),
   }));
 
-  const handleSaveOffline = async () => {
+  const [saving, setSaving] = createSignal(false);
+  const [saveStatus, setSaveStatus] = createSignal("");
+  let statusTimer: ReturnType<typeof setTimeout> | undefined;
+  const showStatus = (text: string) => {
+    setSaveStatus(text);
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(() => setSaveStatus(""), 4000);
+  };
+
+  // One Save. The device copy is the point — it is what makes the itinerary
+  // open with no network — so it is written first and counts as success on
+  // its own. The account bookmark follows when signed in; the server keeps
+  // only title and city (its session id is not accepted), so a failure there
+  // is reported, not treated as losing the save.
+  const handleSave = async () => {
     const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
     const city = cityData();
-    if (!sessionId || !store.data) {
-      alert("Nothing to save yet — wait for the itinerary to load.");
+    if (!sessionId || !store.data || !hasItineraryContent(store.data)) {
+      showStatus("Nothing to save yet");
       return;
     }
-
+    const title = itineraryModel().title || `${city?.city || cityName()} Itinerary`;
+    setSaving(true);
     try {
       await saveItineraryOffline({
         id: sessionId,
         cityName: city?.city || cityName() || "Unknown",
-        title: itineraryModel().title || `${city?.city || cityName()} Itinerary`,
+        title,
         description: city?.description,
         payload: store.data,
         stopCount: itineraryModel().stops.length,
@@ -451,47 +490,32 @@ export default function ItineraryPage() {
         sourceUrl: typeof window !== "undefined" ? window.location.href : "",
       });
       setSavedOffline(true);
-      alert(`Itinerary saved for offline viewing!`);
     } catch (error) {
-      console.error("❌ Failed to save offline:", error);
-      alert("Failed to save offline. Please try again.");
-    }
-  };
-
-  const handleBookmark = async () => {
-    if (!isAuthenticated()) {
-      alert("Sign in to bookmark itineraries.");
+      console.error("Failed to save on this device:", error);
+      showStatus("Could not save on this device");
+      setSaving(false);
       return;
     }
 
-    const city = cityData();
-    if (!city?.city) {
-      console.warn("Cannot bookmark: No city data available");
-      alert("Unable to bookmark: No city data available yet.");
+    if (!isAuthenticated() || !city?.city) {
+      showStatus("Saved on this device");
+      setSaving(false);
       return;
     }
-
-    // NOTE: We intentionally omit session_id here. The user_saved_itineraries
-    // table has session_id REFERENCES chat_sessions(id), but the streaming
-    // session ID from the URL is not guaranteed to exist in chat_sessions yet
-    // (it may be ephemeral or not yet persisted). Sending it causes a FK
-    // constraint violation and a 500 error. The bookmark works fine without it.
-    const bookmarkData = {
-      primary_city_name: city.city,
-      title: itineraryModel().title || `${city.city} Itinerary`,
-      description: city.description || `Itinerary for ${city.city}`,
-      tags: [],
-      is_public: false,
-    };
-
     try {
-      await saveItineraryMutation.mutateAsync(bookmarkData);
-      alert(`Itinerary for ${city.city} has been bookmarked!`);
+      await saveItineraryMutation.mutateAsync({
+        primary_city_name: city.city,
+        title,
+        description: city.description || `Itinerary for ${city.city}`,
+        tags: [],
+        is_public: false,
+      });
+      showStatus("Saved on this device and to your account");
     } catch (error) {
-      console.error("❌ Failed to bookmark itinerary:", error);
-      const msg =
-        error instanceof Error ? error.message : "Unknown error";
-      alert(`Failed to bookmark the itinerary: ${msg}`);
+      console.error("Failed to bookmark itinerary:", error);
+      showStatus("Saved on this device · account sync failed");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -537,9 +561,10 @@ export default function ItineraryPage() {
       <div class="absolute top-4 left-4 z-10">
         <ActionToolbar
           onDownload={handleDownload}
-          onBookmark={handleBookmark}
-          onSaveOffline={handleSaveOffline}
-          isSavedOffline={savedOffline()}
+          onSave={() => void handleSave()}
+          isSaved={savedOffline()}
+          saving={saving()}
+          status={saveStatus()}
           sharePayload={sharePayload()}
         />
       </div>

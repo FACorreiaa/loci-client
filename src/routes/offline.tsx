@@ -1,17 +1,26 @@
 import { Component, For, Show, createSignal, onMount } from "solid-js";
 import { A } from "@solidjs/router";
 import { Button } from "@/ui/button";
-import { Wifi, RefreshCw, Map, Trash2 } from "lucide-solid";
+import { Wifi, RefreshCw, Map, Trash2, Bookmark } from "lucide-solid";
 import {
   clearOfflineTripCache,
   listCachedTrips,
   type CachedTripSummary,
 } from "~/lib/trip-offline-cache";
+import { listOfflineItineraries, type OfflineItinerary } from "~/lib/itinerary-offline-store";
+import { savedItineraryHref } from "~/lib/saved-itineraries";
 
 const OfflinePage: Component = () => {
   const [cached, setCached] = createSignal<CachedTripSummary[]>([]);
 
-  const refresh = () => setCached(listCachedTrips());
+  const [itineraries, setItineraries] = createSignal<OfflineItinerary[]>([]);
+
+  const refresh = () => {
+    setCached(listCachedTrips());
+    void listOfflineItineraries()
+      .then(setItineraries)
+      .catch(() => setItineraries([]));
+  };
 
   onMount(refresh);
 
@@ -35,7 +44,7 @@ const OfflinePage: Component = () => {
           <h1 class="text-2xl font-bold text-foreground mb-4">You're Offline</h1>
 
           <p class="text-muted-foreground mb-6 leading-relaxed">
-            Connection lost. Open a trip while online and it stays available here for later.
+            Connection lost. Itineraries you saved and trips you opened are still here.
           </p>
 
           <Button
@@ -46,6 +55,32 @@ const OfflinePage: Component = () => {
             Try Again
           </Button>
         </div>
+
+        <Show when={itineraries().length > 0}>
+          <div class="border-t border-border pt-5 mb-5">
+            <h2 class="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <Bookmark class="h-3.5 w-3.5" />
+              Saved itineraries
+            </h2>
+            <ul class="space-y-2">
+              <For each={itineraries()}>
+                {(it) => (
+                  <li>
+                    <A
+                      href={savedItineraryHref(it.id, it.cityName)}
+                      class="block rounded-lg border border-border px-3 py-2.5 text-left transition hover:bg-muted/50"
+                    >
+                      <span class="font-medium text-foreground">{it.title}</span>
+                      <p class="text-xs text-muted-foreground">
+                        {it.cityName} · {it.stopCount} stop{it.stopCount === 1 ? "" : "s"}
+                      </p>
+                    </A>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </div>
+        </Show>
 
         <div class="border-t border-border pt-5">
           <div class="mb-3 flex items-center justify-between gap-2">
