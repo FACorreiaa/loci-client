@@ -69,6 +69,14 @@
     transform: none !important;
   }
 
+  /* The desk's in-season strip slides on a keyframe declared in base.css;
+     without this it keeps moving under reduced motion. The component also
+     renders a static row on the client, but SSR markup carries the track. */
+  .loci-marquee__track {
+    animation: none !important;
+    transform: none !important;
+  }
+
   .motion-settle,
   .motion-press:active {
     transition: none !important;

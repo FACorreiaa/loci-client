@@ -8,6 +8,7 @@ import { useTrips } from "~/lib/api/trips";
 import { pickNextTrip } from "~/lib/dashboard/next-trip";
 import DeskHero from "./DeskHero";
 import NextTripBand from "./NextTripBand";
+import InSeasonBand from "./InSeasonBand";
 import NewsTickerBand from "./NewsTickerBand";
 import KeptSection from "./KeptSection";
 import WhereYouveBeen from "./WhereYouveBeen";
@@ -30,6 +31,8 @@ export default function LoggedInDashboard() {
     <div class="min-h-[100dvh] bg-background text-foreground">
       <div class="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
         <DeskHero />
+
+        <InSeasonBand />
 
         <NewsTickerBand />
 

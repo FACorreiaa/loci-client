@@ -204,6 +204,56 @@
     color: hsl(var(--foreground));
   }
 
+  /* The moving strip on the desk. Two copies of the items sit in one track;
+     sliding it by exactly half its width lands on the first copy again, so
+     the loop has no seam. The gap must live on the track, not the items, or
+     the seam shows. Hover or keyboard focus holds it still. */
+  .loci-marquee {
+    display: flex;
+    align-items: stretch;
+    border-block: 1px solid hsl(var(--border));
+    overflow: hidden;
+  }
+
+  .loci-marquee__label {
+    flex: none;
+    display: flex;
+    align-items: center;
+    padding-inline: 0.75rem;
+    border-inline-end: 1px solid hsl(var(--border));
+    white-space: nowrap;
+  }
+
+  .loci-marquee__viewport {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 6% 94%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 6% 94%, transparent);
+  }
+
+  .loci-marquee__track {
+    display: flex;
+    width: max-content;
+    gap: 0.5rem;
+    padding-block: 0.5rem;
+    /* Must equal the gap: half the track is then one copy plus one gap, which
+       is exactly where the second copy starts. */
+    padding-inline-end: 0.5rem;
+    animation: loci-marquee var(--loci-marquee-duration, 45s) linear infinite;
+  }
+
+  .loci-marquee:hover .loci-marquee__track,
+  .loci-marquee:focus-within .loci-marquee__track {
+    animation-play-state: paused;
+  }
+
+  @keyframes loci-marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
   .loci-chip--surface:hover {
     background: hsl(var(--accent));
     color: hsl(var(--accent-foreground));
