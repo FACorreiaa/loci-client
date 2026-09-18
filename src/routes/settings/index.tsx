@@ -59,6 +59,7 @@ import LocaleSettings from "~/components/features/Settings/LocaleSettings";
 import TasteAndPrivacy from "~/components/features/Settings/TasteAndPrivacy";
 import AccountData from "~/components/features/Settings/AccountData";
 import { Button } from "~/ui/button";
+import { useUserSubscription } from "~/lib/api/billing";
 
 const TABS = [
   { id: "settings", label: "Settings", icon: User },
@@ -99,6 +100,7 @@ function SettingsPageContent() {
   // replace: true so tabbing around does not fill the back button with
   // settings panes.
   const setActiveTab = (id: string) => setSearchParams({ tab: id }, { replace: true });
+  const subscriptionQuery = useUserSubscription();
   const uploadAvatarMutation = useUploadAvatarMutation();
   const profileQuery = useUserProfileQuery();
   const updateProfileMutation = useUpdateProfileMutation();
@@ -860,6 +862,34 @@ function SettingsPageContent() {
           Manage your subscription, payment method and invoices, or compare what each plan includes.
         </p>
       </div>
+
+      {/*
+        This tab was two link cards and nothing else: a "Plan & billing" entry
+        in the sidebar that could not tell you which plan you were on. The
+        answer is one query the app already makes everywhere else.
+
+        isSuccess before .data: reading .data on a pending solid-query suspends
+        the app-wide boundary and blanks the whole route.
+      */}
+      <Show when={subscriptionQuery.isSuccess && subscriptionQuery.data}>
+        {(subscription) => (
+          <div class="rounded-lg border border-border p-4">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <span class="font-medium text-foreground capitalize">{subscription().plan} plan</span>
+              <span class="text-sm text-muted-foreground capitalize">{subscription().status}</span>
+            </div>
+            <p class="text-sm text-muted-foreground mt-1">
+              {subscription().usage.requestsToday} of {subscription().usage.requestsLimit} requests
+              used today.
+            </p>
+            <Show when={subscription().cancelAtPeriodEnd}>
+              <p class="text-sm text-muted-foreground mt-1">
+                Cancels at the end of the current period.
+              </p>
+            </Show>
+          </div>
+        )}
+      </Show>
 
       <div class="grid gap-3 sm:grid-cols-2">
         <A

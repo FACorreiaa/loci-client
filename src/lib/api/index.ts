@@ -28,9 +28,6 @@ export * from "./llm";
 export * from "./hotels";
 export * from "./restaurants";
 
-// Export settings queries
-export * from "./settings";
-
 // Export search profile queries
 export * from "./profiles";
 

@@ -70,7 +70,12 @@ function BillingPageContent() {
     const { monthly, annual } = stripePriceIds();
     const priceId = interval === "annual" ? annual || monthly : monthly || annual;
     if (!priceId) {
-      setError("Stripe price IDs are not configured (VITE_STRIPE_PRICE_ID_MONTHLY / ANNUAL).");
+      // The operator needs the variable names; the customer needs to know it is
+      // not their fault and not their problem to fix.
+      console.error(
+        "Checkout unavailable: VITE_STRIPE_PRICE_ID_MONTHLY / VITE_STRIPE_PRICE_ID_ANNUAL are unset.",
+      );
+      setError("Upgrading isn't available right now. Nothing is wrong with your account.");
       return;
     }
 
@@ -320,8 +325,15 @@ function BillingPageContent() {
                 </Button>
               </div>
               <Show when={!hasCheckoutConfigured()}>
+                {/*
+                  Said "Configure VITE_STRIPE_PRICE_ID_MONTHLY / ANNUAL to
+                  enable checkout", to the person trying to buy something. The
+                  environment variable names belong in the logs, not on the
+                  upgrade card.
+                */}
                 <p class="text-xs text-muted-foreground mt-3">
-                  Configure VITE_STRIPE_PRICE_ID_MONTHLY / ANNUAL to enable checkout.
+                  Upgrading isn't available right now. Nothing is wrong with your account — we're
+                  sorting it out.
                 </p>
               </Show>
             </div>

@@ -7,7 +7,11 @@ const links = [
   { label: "Trips", href: "/trips" },
   { label: "Ask Loci", href: "/chat" },
   { label: "Contribute", href: "/contribute" },
-  { label: "Privacy", href: "/settings" },
+  // Was labelled "Privacy" and pointed at /settings, which promised a privacy
+  // policy and delivered the settings root. There is no policy page; the page
+  // that actually answers the question is the one listing what Loci has
+  // learned about you, with export and delete on it.
+  { label: "Your data", href: "/settings/memory" },
 ];
 
 export default function Footer() {
