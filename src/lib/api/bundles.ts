@@ -16,6 +16,7 @@ import { transport } from "../connect-transport";
 import { useAppQuery } from "./authed-query";
 import { useAuthGate } from "../auth/useAuthGate";
 import type { ItineraryStop } from "../itinerary/createItineraryStream";
+import { pointsFromDays, type PackPoint } from "../bundles/points";
 
 const bundleClient = createClient(BundleService, transport);
 
@@ -43,9 +44,13 @@ export interface PackDay {
   stops: ItineraryStop[];
 }
 
+export type { PackPoint };
+
 export interface PackDetail {
   pack: PackSummary;
   days: PackDay[];
+  /** Every stop that has a position, in visiting order. */
+  points: PackPoint[];
   lockedDayCount: number;
 }
 
@@ -67,9 +72,11 @@ const toPack = (b: ProtoBundle): PackSummary => ({
   owned: b.owned,
 });
 
-const toDetail = (d: ProtoBundleDetail): PackDetail => ({
+/** Exported for testing: the list and the map must not disagree. */
+export const toDetail = (d: ProtoBundleDetail): PackDetail => ({
   pack: d.bundle ? toPack(d.bundle) : ({} as PackSummary),
   lockedDayCount: d.lockedDayCount,
+  points: pointsFromDays(d.days),
   days: d.days.map((day) => ({
     dayNumber: day.dayNumber,
     title: day.title,
