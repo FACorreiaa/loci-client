@@ -1,4 +1,4 @@
-import { createMemo, For, Show } from "solid-js";
+import { createMemo, Show } from "solid-js";
 import { Title, Meta } from "@solidjs/meta";
 import { useParams, useSearchParams, useNavigate, A } from "@solidjs/router";
 import { Lock, Loader2, ArrowRight } from "lucide-solid";
