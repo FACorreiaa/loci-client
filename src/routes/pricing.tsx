@@ -2,7 +2,6 @@ import { A, useNavigate } from "@solidjs/router";
 import { Title, Meta } from "@solidjs/meta";
 import { Check, Clock, Star, Zap, Crown, Heart, Plug } from "lucide-solid";
 import { createSignal, Show, For } from "solid-js";
-import PromoCodeSection from "~/components/PromoCodeSection";
 import { useAuth } from "~/contexts/AuthContext";
 import { useCreateCheckoutSession, useUserSubscription } from "~/lib/api/billing";
 import { hasCheckoutConfigured, isProPlan, stripePriceIds } from "~/lib/subscription";
@@ -16,13 +15,6 @@ export default function Pricing() {
   const subscriptionQuery = useUserSubscription(() => isAuthenticated());
   const checkout = useCreateCheckoutSession();
 
-  const [appliedPromo, setAppliedPromo] = createSignal<{
-    description?: string;
-    type?: string;
-    discount?: number;
-    duration?: number;
-    planAccess?: string;
-  } | null>(null);
   const [interval, setInterval] = createSignal<BillingInterval>("monthly");
   const [checkoutError, setCheckoutError] = createSignal<string | null>(null);
   const [loading, setLoading] = createSignal(false);
@@ -95,16 +87,6 @@ export default function Pricing() {
       ],
     },
   ];
-
-  const handlePromoSuccess = (promoData: {
-    description?: string;
-    type?: string;
-    discount?: number;
-    duration?: number;
-    planAccess?: string;
-  }) => {
-    setAppliedPromo(promoData);
-  };
 
   const startCheckout = async () => {
     setCheckoutError(null);
@@ -234,15 +216,6 @@ export default function Pricing() {
               </div>
             </div>
           </header>
-
-          <PromoCodeSection onSuccess={handlePromoSuccess} />
-
-          <Show when={appliedPromo()}>
-            <div class="max-w-3xl mx-auto loci-card rounded-2xl p-5">
-              <p class="font-semibold text-foreground">Promo applied</p>
-              <p class="text-muted-foreground text-sm">{appliedPromo()?.description}</p>
-            </div>
-          </Show>
 
           {/* Interval toggle */}
           <div class="flex justify-center">
