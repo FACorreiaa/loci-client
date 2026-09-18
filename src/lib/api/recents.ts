@@ -2,6 +2,7 @@ import { createClient } from "@connectrpc/connect";
 import {
   RecentsService,
   GetRecentInteractionsRequestSchema,
+  GetInteractionHistoryRequestSchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/recents/recents_pb.js";
 import { create } from "@bufbuild/protobuf";
 import { transport } from "../connect-transport";
@@ -9,6 +10,8 @@ import { getAuthToken, authAPI } from "../api";
 import type { RecentInteractionsResponse, CityInteractions } from "./types";
 import { useAppQuery } from "./authed-query";
 import { stripPromptWrapper } from "./prompt-wrapper";
+import { useAuthGate } from "../auth/useAuthGate";
+import type { ActivityEntry, ActivityKind } from "../recents/types";
 
 // Create authenticated recents client
 const recentsClient = createClient(RecentsService, transport);
@@ -164,5 +167,118 @@ export const useCityDetails = (cityName: string) => {
     },
     enabled: !!cityName,
     staleTime: 5 * 60 * 1000, // 5 minutes
+  }));
+};
+
+// ---------------------------------------------------------------------------
+// Activity feed
+// ---------------------------------------------------------------------------
+
+/**
+ * One page of the recents activity feed: every prompt the person sent, every
+ * itinerary they kept and every place they favourited, newest first.
+ *
+ * This is a different shape from `useRecentInteractions` above and deliberately
+ * so. That one groups by city, which answers "where have I been"; the feed
+ * answers "what did I do", and a city grid cannot.
+ *
+ * Note what is NOT sent: an `InteractionFilter`. Its `city_id` and
+ * `search_query` fields are declared with `min_len: 1` and no ignore rule, so
+ * the server's validation interceptor rejects any filter that leaves them
+ * blank — which is every filter that only narrows by type. The proto is fixed
+ * in loci-connect-proto but the fix is not in a released module yet, so until
+ * it is the feed asks for everything and the chips narrow what has loaded.
+ * `sort_by` and `sort_order` are sent for the same reason: their `in` rules
+ * reject the empty default.
+ */
+async function fetchActivityHistory(limit: number, offset: number): Promise<ActivityPage> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { entries: [], hasMore: false };
+
+  const response = await recentsClient.getInteractionHistory(
+    create(GetInteractionHistoryRequestSchema, {
+      userId,
+      limit,
+      offset,
+      sortBy: "date",
+      sortOrder: "desc",
+    }),
+  );
+
+  const entries = (response.interactions || []).map(mapActivityEntry);
+  // total_count is a floor, not a total: the server reports one more than it
+  // has served when another page exists rather than counting a three-way union
+  // on every request. See the handler for why.
+  const hasMore = offset + entries.length < Number(response.totalCount || 0);
+
+  return { entries, hasMore };
+}
+
+export interface ActivityPage {
+  entries: ActivityEntry[];
+  hasMore: boolean;
+}
+
+/**
+ * Map one proto interaction onto a feed entry.
+ *
+ * `entityType` carries the feed kind for a save or a favourite and the routed
+ * domain for a prompt; `metadata.kind` is the unambiguous discriminator and
+ * `metadata.content_type` narrows a favourite.
+ */
+function mapActivityEntry(interaction: {
+  id: string;
+  entityId: string;
+  entityType: string;
+  description: string;
+  cityName: string;
+  metadata: Record<string, string>;
+  createdAt?: { seconds: bigint } | undefined;
+}): ActivityEntry {
+  const kind = (interaction.metadata?.kind as ActivityKind) || "prompt";
+  const detail =
+    kind === "favourite"
+      ? interaction.metadata?.content_type || "poi"
+      : kind === "saved_itinerary"
+        ? "itinerary"
+        : interaction.entityType || "general";
+
+  return {
+    id: interaction.id || "",
+    kind,
+    detail,
+    // The server unwraps the prompt wrapper before sending. This second pass
+    // costs nothing and keeps the page correct against an older server.
+    label: stripPromptWrapper(interaction.description || ""),
+    cityName: interaction.cityName || "",
+    refId: interaction.entityId || "",
+    occurredAt: interaction.createdAt
+      ? new Date(Number(interaction.createdAt.seconds) * 1000).toISOString()
+      : new Date().toISOString(),
+  };
+}
+
+export const ACTIVITY_PAGE_SIZE = 40;
+
+/**
+ * The feed, one page at a time.
+ *
+ * Unlike `fetchRecentInteractions` above, a failure here is not swallowed into
+ * an empty result: a feed that silently shows "no recent activity" when the API
+ * is down is indistinguishable from a feed that is genuinely empty, and the two
+ * call for very different things from the reader.
+ */
+export const useActivityHistory = (pages: () => number) => {
+  const gate = useAuthGate();
+  return useAppQuery(() => ({
+    queryKey: ["recents", "activity", pages()],
+    queryFn: async (): Promise<ActivityPage> => {
+      // Pages accumulate into one list rather than being kept separate: "load
+      // more" on a feed appends, and refetching the whole range keeps the
+      // merged ordering correct when something new arrives at the top.
+      return fetchActivityHistory(ACTIVITY_PAGE_SIZE * pages(), 0);
+    },
+    enabled: gate(),
+    staleTime: 60 * 1000,
   }));
 };
