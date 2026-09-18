@@ -25,7 +25,9 @@ export type AnalyticsEvent =
   /** A shareable content link was successfully generated. */
   | "share_link_created"
   /** A generated share link was copied to the clipboard. */
-  | "share_link_copied";
+  | "share_link_copied"
+  /** A field report was submitted. Metric: scout contributions, and how many corroborate. */
+  | "place_claim_submitted";
 
 export type AnalyticsProperties = Record<string, unknown>;
 
