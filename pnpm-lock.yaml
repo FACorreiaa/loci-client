@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@buf/loci_loci-proto.bufbuild_es':
-        specifier: 2.15.0-20260918062648-94cf0f9e42a6.1
-        version: 2.15.0-20260918062648-94cf0f9e42a6.1(@bufbuild/protobuf@2.15.0)
+        specifier: 2.15.0-20260918070524-af8f452c8f60.1
+        version: 2.15.0-20260918070524-af8f452c8f60.1(@bufbuild/protobuf@2.15.0)
       '@bufbuild/protobuf':
         specifier: ^2.15.0
         version: 2.15.0
@@ -690,8 +690,8 @@ packages:
     peerDependencies:
       '@bufbuild/protobuf': ^2.15.0
 
-  '@buf/loci_loci-proto.bufbuild_es@2.15.0-20260918062648-94cf0f9e42a6.1':
-    resolution: {integrity: sha512-AxstwaKzTkUsXPhST7g76EUJL4Y56IwgRxhgcGP0s5i/pEu+M0T7fBIeucZTxbAisPYG7RojPA5kLl+D75qksQ==}
+  '@buf/loci_loci-proto.bufbuild_es@2.15.0-20260918070524-af8f452c8f60.1':
+    resolution: {integrity: sha512-fce6WAE/lqQgxOaiDFKBeRf04239mujJ54HQS721ToJrjTudwMf0PrwPWMWHR3cUNLC3Nvv7pC5ppAyTeR7TEg==}
     peerDependencies:
       '@bufbuild/protobuf': ^2.15.0
 
@@ -4876,8 +4876,8 @@ packages:
   third-party-web@0.26.7:
     resolution: {integrity: sha512-buUzX4sXC4efFX6xg2bw6/eZsCUh8qQwSavC4D9HpONMFlRbcHhD8Je5qwYdCpViR6q0qla2wPP+t91a2vgolg==}
 
-  third-party-web@0.29.2:
-    resolution: {integrity: sha512-fegtha91tq2DHphyoiBXVHjVi2YG9zFaRnboT9C28tO1en9Y3wJsfspuy40F+u5wl3hHVbw7cnd1b67kEGHb8g==}
+  third-party-web@0.30.0:
+    resolution: {integrity: sha512-p+PfyL5U0ediGzvwPzMSdD9MnC8rHW6nWJJVLIQvqN7RsSqfaZ+7n4c9GILqH36EYR0eXB9CzAeCRnKFr/9uJg==}
 
   three@0.185.1:
     resolution: {integrity: sha512-5aojFCXKwnjBRZvUnt3WFfEcvUJgkN5LlijRFN95hMy8WVkG4I0QNcJE+OuWvuJ0bOdStrbfXn0pkd6/QyiAlg==}
@@ -6107,7 +6107,7 @@ snapshots:
     dependencies:
       '@bufbuild/protobuf': 2.15.0
 
-  '@buf/loci_loci-proto.bufbuild_es@2.15.0-20260918062648-94cf0f9e42a6.1(@bufbuild/protobuf@2.15.0)':
+  '@buf/loci_loci-proto.bufbuild_es@2.15.0-20260918070524-af8f452c8f60.1(@bufbuild/protobuf@2.15.0)':
     dependencies:
       '@buf/bufbuild_protovalidate.bufbuild_es': 2.15.0-20251209175733-2a1774d88802.1(@bufbuild/protobuf@2.15.0)
       '@buf/protocolbuffers_wellknowntypes.bufbuild_es': 2.15.0-20230331140314-f17e05fe4a76.1(@bufbuild/protobuf@2.15.0)
@@ -6731,7 +6731,7 @@ snapshots:
   '@paulirish/trace_engine@0.0.53':
     dependencies:
       legacy-javascript: 0.0.1
-      third-party-web: 0.29.2
+      third-party-web: 0.30.0
 
   '@poppinss/colors@4.1.6':
     dependencies:
@@ -10302,7 +10302,7 @@ snapshots:
 
   third-party-web@0.26.7: {}
 
-  third-party-web@0.29.2: {}
+  third-party-web@0.30.0: {}
 
   three@0.185.1: {}
 
