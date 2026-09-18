@@ -25,6 +25,15 @@ import type {
   ItineraryPreferences,
 } from "./types";
 import { useAppQuery } from "./authed-query";
+import {
+  dayPreferenceToLabel,
+  searchPaceToLabel,
+  transportToLabel,
+  labelToDayPreference,
+  labelToSearchPace,
+  labelToTransport,
+  timestampToISO,
+} from "./profile-enums";
 
 const profileClient = createClient(ProfileService, transport);
 
@@ -34,21 +43,46 @@ const mapProtoToSearchProfile = (profile: any): SearchProfile => ({
   profile_name: profile.profileName,
   is_default: profile.isDefault ?? false,
   search_radius_km: profile.searchRadiusKm ?? 0,
-  preferred_time: profile.preferredTime ?? "DAY_PREFERENCE_ANY",
+  preferred_time: dayPreferenceToLabel(profile.preferredTime),
   budget_level: profile.budgetLevel ?? 0,
-  preferred_pace: profile.preferredPace ?? "SEARCH_PACE_ANY",
+  preferred_pace: searchPaceToLabel(profile.preferredPace),
   prefer_accessible_pois: profile.preferAccessiblePois ?? false,
   prefer_outdoor_seating: profile.preferOutdoorSeating ?? false,
   prefer_dog_friendly: profile.preferDogFriendly ?? false,
   preferred_vibes: profile.preferredVibes || [],
-  preferred_transport: profile.preferredTransport ?? "TRANSPORT_PREFERENCE_ANY",
+  preferred_transport: transportToLabel(profile.preferredTransport),
   dietary_needs: profile.dietaryNeeds || [],
-  interests: profile.interests || null,
-  tags: profile.tags || null,
+  interests:
+    profile.interests?.map((i: any) => ({
+      id: i.id,
+      name: i.name,
+      description: i.description ?? null,
+    })) ?? null,
+  tags:
+    profile.tags?.map((t: any) => ({
+      id: t.id,
+      name: t.name,
+      tag_type: t.tagType ?? "",
+      description: t.description ?? null,
+    })) ?? null,
   user_latitude: profile.userLatitude || null,
   user_longitude: profile.userLongitude || null,
-  created_at: profile.createdAt?.toDate?.()?.toISOString() || "",
-  updated_at: profile.updatedAt?.toDate?.()?.toISOString() || "",
+  created_at: timestampToISO(profile.createdAt),
+  updated_at: timestampToISO(profile.updatedAt),
+  // The server returns all four blobs now. Without these the editors filled
+  // themselves from hard-coded constants on every open.
+  accommodation_preferences: profile.accommodationPreferences
+    ? mapProtoToAccommodationPreferences(profile.accommodationPreferences)
+    : null,
+  dining_preferences: profile.diningPreferences
+    ? mapProtoToDiningPreferences(profile.diningPreferences)
+    : null,
+  activity_preferences: profile.activityPreferences
+    ? mapProtoToActivityPreferences(profile.activityPreferences)
+    : null,
+  itinerary_preferences: profile.itineraryPreferences
+    ? mapProtoToItineraryPreferences(profile.itineraryPreferences)
+    : null,
 });
 
 const mapProtoToAccommodationPreferences = (prefs: any): AccommodationPreferences => ({
@@ -106,6 +140,75 @@ const mapProtoToItineraryPreferences = (prefs: any): ItineraryPreferences => ({
   adventure_vs_relaxation: prefs?.adventureVsRelaxation || "",
   spontaneous_vs_planned: prefs?.spontaneousVsPlanned || "",
 });
+
+// Form -> proto for the domain preference blocks. The mutations used to send
+// none of these, so the entire preferences questionnaire was discarded before it
+// reached the wire.
+
+const rangeToProto = (r: { min?: number; max?: number } | undefined) =>
+  r ? { min: r.min, max: r.max } : undefined;
+
+const accommodationToProto = (p: AccommodationPreferences | undefined) =>
+  p
+    ? {
+        accommodationType: p.accommodation_type ?? [],
+        starRating: rangeToProto(p.star_rating),
+        priceRangePerNight: rangeToProto(p.price_range_per_night),
+        amenities: p.amenities ?? [],
+        roomType: p.room_type ?? [],
+        chainPreference: p.chain_preference || undefined,
+        cancellationPolicy: p.cancellation_policy ?? [],
+        bookingFlexibility: p.booking_flexibility || undefined,
+      }
+    : undefined;
+
+const diningToProto = (p: DiningPreferences | undefined) =>
+  p
+    ? {
+        cuisineTypes: p.cuisine_types ?? [],
+        mealTypes: p.meal_types ?? [],
+        serviceStyle: p.service_style ?? [],
+        priceRangePerPerson: rangeToProto(p.price_range_per_person),
+        dietaryNeeds: p.dietary_needs ?? [],
+        allergenFree: p.allergen_free ?? [],
+        michelinRated: p.michelin_rated ?? false,
+        localRecommendations: p.local_recommendations ?? false,
+        chainVsLocal: p.chain_vs_local || undefined,
+        organicPreference: p.organic_preference ?? false,
+        outdoorSeatingPreferred: p.outdoor_seating_preferred ?? false,
+      }
+    : undefined;
+
+const activityToProto = (p: ActivityPreferences | undefined) =>
+  p
+    ? {
+        activityCategories: p.activity_categories ?? [],
+        physicalActivityLevel: p.physical_activity_level || undefined,
+        indoorOutdoorPreference: p.indoor_outdoor_preference || undefined,
+        culturalImmersionLevel: p.cultural_immersion_level || undefined,
+        mustSeeVsHiddenGems: p.must_see_vs_hidden_gems || undefined,
+        educationalPreference: p.educational_preference ?? false,
+        photographyOpportunities: p.photography_opportunities ?? false,
+        seasonSpecificActivities: p.season_specific_activities ?? [],
+        avoidCrowds: p.avoid_crowds ?? false,
+        localEventsInterest: p.local_events_interest ?? [],
+      }
+    : undefined;
+
+const itineraryToProto = (p: ItineraryPreferences | undefined) =>
+  p
+    ? {
+        planningStyle: p.planning_style || undefined,
+        preferredPace: p.preferred_pace || undefined,
+        timeFlexibility: p.time_flexibility || undefined,
+        morningVsEvening: p.morning_vs_evening || undefined,
+        weekendVsWeekday: p.weekend_vs_weekday || undefined,
+        preferredSeasons: p.preferred_seasons ?? [],
+        avoidPeakSeason: p.avoid_peak_season ?? false,
+        adventureVsRelaxation: p.adventure_vs_relaxation || undefined,
+        spontaneousVsPlanned: p.spontaneous_vs_planned || undefined,
+      }
+    : undefined;
 
 // ==================
 // DIRECT FETCH FUNCTIONS (for use outside React)
@@ -262,13 +365,22 @@ export const useCreateSearchProfileMutation = () => {
         isDefault: data.is_default,
         searchRadiusKm: data.search_radius_km,
         budgetLevel: data.budget_level,
+        preferredTime: labelToDayPreference(data.preferred_time),
+        preferredPace: labelToSearchPace(data.preferred_pace),
+        preferredTransport: labelToTransport(data.preferred_transport),
         preferAccessiblePois: data.prefer_accessible_pois,
         preferOutdoorSeating: data.prefer_outdoor_seating,
         preferDogFriendly: data.prefer_dog_friendly,
         preferredVibes: data.preferred_vibes || [],
         dietaryNeeds: data.dietary_needs || [],
+        // These must be ids. Sending display names is what made every create
+        // with a selection fail with InvalidArgument.
         tagIds: data.tags || [],
         interestIds: data.interests || [],
+        accommodationPreferences: accommodationToProto(data.accommodation_preferences),
+        diningPreferences: diningToProto(data.dining_preferences),
+        activityPreferences: activityToProto(data.activity_preferences),
+        itineraryPreferences: itineraryToProto(data.itinerary_preferences),
       });
       const response = await profileClient.createUserPreferenceProfile(request);
       return response;
@@ -292,12 +404,22 @@ export const useUpdateSearchProfileMutation = () => {
       profileId: string;
       data: Partial<TravelProfileFormData>;
     }) => {
+      // The server replaces the list-valued fields on update rather than
+      // merging them, so callers send the full lists they want to keep.
       const request = create(UpdateUserPreferenceProfileRequestSchema, {
         profileId,
         profileName: data.profile_name,
         isDefault: data.is_default,
         searchRadiusKm: data.search_radius_km,
         budgetLevel: data.budget_level,
+        preferredTime:
+          data.preferred_time === undefined ? undefined : labelToDayPreference(data.preferred_time),
+        preferredPace:
+          data.preferred_pace === undefined ? undefined : labelToSearchPace(data.preferred_pace),
+        preferredTransport:
+          data.preferred_transport === undefined
+            ? undefined
+            : labelToTransport(data.preferred_transport),
         preferAccessiblePois: data.prefer_accessible_pois,
         preferOutdoorSeating: data.prefer_outdoor_seating,
         preferDogFriendly: data.prefer_dog_friendly,
@@ -305,6 +427,10 @@ export const useUpdateSearchProfileMutation = () => {
         dietaryNeeds: data.dietary_needs || [],
         tagIds: data.tags || [],
         interestIds: data.interests || [],
+        accommodationPreferences: accommodationToProto(data.accommodation_preferences),
+        diningPreferences: diningToProto(data.dining_preferences),
+        activityPreferences: activityToProto(data.activity_preferences),
+        itineraryPreferences: itineraryToProto(data.itinerary_preferences),
       });
       const response = await profileClient.updateUserPreferenceProfile(request);
       return response;

@@ -344,12 +344,32 @@ export interface SearchProfile {
   preferred_vibes: string[];
   preferred_transport: string;
   dietary_needs: string[];
-  interests: string[] | null;
-  tags: string[] | null;
+  // Messages, not strings: the proto carries loci.interest.Interest and
+  // loci.interest.Tags here. Copying them straight into a string[] is what
+  // rendered them as [object Object] chips.
+  interests: ProfileInterest[] | null;
+  tags: ProfileTag[] | null;
   user_latitude: number | null;
   user_longitude: number | null;
   created_at: string;
   updated_at: string;
+  accommodation_preferences?: AccommodationPreferences | null;
+  dining_preferences?: DiningPreferences | null;
+  activity_preferences?: ActivityPreferences | null;
+  itinerary_preferences?: ItineraryPreferences | null;
+}
+
+export interface ProfileInterest {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface ProfileTag {
+  id: string;
+  name: string;
+  tag_type: string;
+  description: string | null;
 }
 
 // Domain-specific preference types based on SEARCH_FILTERS_SUGGESTIONS.md

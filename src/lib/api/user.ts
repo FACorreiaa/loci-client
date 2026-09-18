@@ -84,6 +84,10 @@ export const useDefaultProfile = () => {
 export const useCreateProfileMutation = () => {
   const queryClient = useQueryClient();
 
+  // Hoisted: calling a hook inside mutationFn runs it outside a reactive owner,
+  // on every invocation.
+  const createSearchProfile = useCreateSearchProfileMutation();
+
   return useMutation(() => ({
     mutationFn: async (profileData: Partial<UserProfile>) => {
       // Map budget_level from string (if any) to number for the search profile mutation
@@ -92,7 +96,7 @@ export const useCreateProfileMutation = () => {
         mappedData.budget_level = parseInt(profileData.budget_level, 10) || 0;
       }
 
-      await useCreateSearchProfileMutation().mutateAsync(mappedData);
+      await createSearchProfile.mutateAsync(mappedData);
       return profileData as UserProfile;
     },
     onSuccess: (newProfile) => {
@@ -263,9 +267,11 @@ export const useUpdateProfileMutation = () => {
 export const useDeleteProfileMutation = () => {
   const queryClient = useQueryClient();
 
+  const deleteSearchProfile = useDeleteSearchProfileMutation();
+
   return useMutation(() => ({
     mutationFn: async (profileId: string) => {
-      await useDeleteSearchProfileMutation().mutateAsync(profileId);
+      await deleteSearchProfile.mutateAsync(profileId);
       return { message: "Profile deleted" };
     },
     onSuccess: (_, profileId) => {

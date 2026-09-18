@@ -8,7 +8,14 @@ import {
   useDeleteSearchProfileMutation,
   useSetDefaultProfileMutation,
 } from "~/lib/api/profiles";
-import type { SearchProfile, TravelProfileFormData } from "~/lib/api/types";
+import { useInterests } from "~/lib/api/interests";
+import { useTags } from "~/lib/api/tags";
+import type {
+  SearchProfile,
+  TravelProfileFormData,
+  ProfileInterest,
+  ProfileTag,
+} from "~/lib/api/types";
 
 interface ProfileStats {
   placesVisited: number;
@@ -20,11 +27,10 @@ interface Profile {
   id: string;
   name: string;
   description: string;
-  interests: string[];
-  tags: string[];
+  interests: ProfileInterest[];
+  tags: ProfileTag[];
   budget: string;
   travelStyle: string;
-  groupSize: string;
   accessibility: string[];
   isDefault: boolean;
   isPublic: boolean;
@@ -34,22 +40,33 @@ interface Profile {
   stats: ProfileStats;
 }
 
+// The form holds catalogue ids; the cards display names. The two used to be the
+// same string, which is how display labels ended up in interest_ids.
+interface ProfileForm {
+  name: string;
+  description: string;
+  interests: string[];
+  tags: string[];
+  budget: string;
+  travelStyle: string;
+  accessibility: string[];
+  isDefault: boolean;
+  isPublic: boolean;
+}
+
 export default function ProfilesPage() {
   const [selectedProfile, setSelectedProfile] = createSignal<Profile | null>(null);
   const [showCreateModal, setShowCreateModal] = createSignal(false);
   const [showEditModal, setShowEditModal] = createSignal(false);
 
   // Profile form state
-  const [profileForm, setProfileForm] = createSignal<
-    Omit<Profile, "id" | "createdAt" | "usageCount" | "lastUsed" | "stats">
-  >({
+  const [profileForm, setProfileForm] = createSignal<ProfileForm>({
     name: "",
     description: "",
     interests: [],
     tags: [],
     budget: "medium",
     travelStyle: "balanced",
-    groupSize: "solo",
     accessibility: [],
     isDefault: false,
     isPublic: false,
@@ -57,6 +74,8 @@ export default function ProfilesPage() {
 
   // Real profiles from the API (was mock local data).
   const searchProfilesQuery = useSearchProfiles();
+  const interestsQuery = useInterests();
+  const tagsQuery = useTags();
   const createMut = useCreateSearchProfileMutation();
   const updateMut = useUpdateSearchProfileMutation();
   const deleteMut = useDeleteSearchProfileMutation();
@@ -67,7 +86,9 @@ export default function ProfilesPage() {
   const budgetToLevel = (b: string) =>
     b === "low" ? 1 : b === "medium" ? 2 : b === "high" ? 3 : b === "luxury" ? 4 : 2;
 
-  // The API has no per-profile stats/usage; those display fields default to zero.
+  // Description, group size, public, usage counts and per-profile stats have no
+  // backing on the server. They are not rendered as if they were live data --
+  // see the card below, which omits them rather than showing invented zeroes.
   const mapToDisplay = (p: SearchProfile): Profile => ({
     id: p.id,
     name: p.profile_name,
@@ -75,9 +96,14 @@ export default function ProfilesPage() {
     interests: p.interests ?? [],
     tags: p.tags ?? [],
     budget: levelToBudget(p.budget_level),
-    travelStyle: p.preferred_pace || "balanced",
-    groupSize: "solo",
-    accessibility: p.prefer_accessible_pois ? ["Wheelchair Accessible"] : [],
+    // formToApi writes the travel style into preferred_vibes, so read it back
+    // from there. Reading preferred_pace meant the label lookup never matched
+    // and the card rendered undefined.
+    travelStyle: p.preferred_vibes?.[0] || "balanced",
+    accessibility: [
+      ...(p.prefer_accessible_pois ? ["Wheelchair Accessible"] : []),
+      ...(p.prefer_dog_friendly ? ["Dog Friendly"] : []),
+    ],
     isDefault: p.is_default,
     isPublic: false,
     createdAt: p.created_at,
@@ -88,10 +114,10 @@ export default function ProfilesPage() {
 
   const profiles = createMemo<Profile[]>(() => (searchProfilesQuery.data ?? []).map(mapToDisplay));
 
-  // Map the editor form to the API's create/update input. NOTE: interests/tags are
-  // sent as-is; the backend resolves them against its id catalog (a full
-  // name→id picker lives in Settings → Travel Profiles).
-  const formToApi = (f: ReturnType<typeof profileForm>): Partial<TravelProfileFormData> => ({
+  // Map the editor form to the API's create/update input. interests and tags are
+  // catalogue ids: the request fields are interest_ids/tag_ids and the server
+  // parses them as UUIDs, so sending display names failed the whole call.
+  const formToApi = (f: ProfileForm): Partial<TravelProfileFormData> => ({
     profile_name: f.name,
     is_default: f.isDefault,
     budget_level: budgetToLevel(f.budget),
@@ -102,51 +128,24 @@ export default function ProfilesPage() {
     tags: f.tags,
   });
 
-  const interestOptions = [
-    "Art & Culture",
-    "Food & Dining",
-    "History",
-    "Photography",
-    "Architecture",
-    "Music & Entertainment",
-    "Outdoor Activities",
-    "Shopping",
-    "Nightlife",
-    "Nature & Parks",
-    "Sports",
-    "Technology",
-    "Literature",
-    "Fashion",
-    "Local Culture",
-    "Markets",
-    "Cooking",
-    "Educational",
-    "Entertainment",
-  ];
+  // Real catalogues, not hard-coded labels.
+  //
+  // Only part of each catalogue can be attached to a profile, and the halves are
+  // inverted: user_profile_interests references the global `interests` table, so
+  // custom interests cannot be linked; user_personal_tags is the only table with
+  // a profile_id, so global tags cannot be. Offering the rest would mean the
+  // save failing or silently dropping the selection.
+  const interestOptions = createMemo(() =>
+    (interestsQuery.data ?? [])
+      .filter((i) => i.source === "global" && i.active !== false)
+      .map((i) => ({ id: i.id, name: i.name })),
+  );
 
-  const tagOptions = [
-    "Museums",
-    "Restaurants",
-    "Parks",
-    "Historic Sites",
-    "Architecture",
-    "Photography",
-    "Walking Tours",
-    "Food Markets",
-    "Cafes",
-    "Shopping",
-    "Nightlife",
-    "Beaches",
-    "Adventure Sports",
-    "Cultural Events",
-    "Religious Sites",
-    "Cooking Classes",
-    "Wine Tasting",
-    "Family Friendly",
-    "Interactive",
-    "Public Transport",
-    "Wheelchair Accessible",
-  ];
+  const tagOptions = createMemo(() =>
+    (tagsQuery.data ?? [])
+      .filter((t) => t.source === "personal" && t.active !== false)
+      .map((t) => ({ id: t.id, name: t.name })),
+  );
 
   const budgetOptions = [
     { id: "low", label: "Budget Conscious", description: "Free and low-cost activities" },
@@ -161,13 +160,6 @@ export default function ProfilesPage() {
     { id: "relaxed", label: "Relaxed", description: "Peaceful, slow-paced" },
     { id: "family", label: "Family", description: "Family-friendly activities" },
     { id: "balanced", label: "Balanced", description: "Mix of different activities" },
-  ];
-
-  const groupSizeOptions = [
-    { id: "solo", label: "Solo Travel", icon: "👤" },
-    { id: "couple", label: "Couple", icon: "👫" },
-    { id: "family", label: "Family", icon: "👨‍👩‍👧‍👦" },
-    { id: "group", label: "Group", icon: "👥" },
   ];
 
   const accessibilityOptions = [
@@ -213,11 +205,10 @@ export default function ProfilesPage() {
       formToApi({
         name: `${profile.name} (Copy)`,
         description: profile.description,
-        interests: profile.interests,
-        tags: profile.tags,
+        interests: profile.interests.map((i) => i.id),
+        tags: profile.tags.map((t) => t.id),
         budget: profile.budget,
         travelStyle: profile.travelStyle,
-        groupSize: profile.groupSize,
         accessibility: profile.accessibility,
         isDefault: false,
         isPublic: profile.isPublic,
@@ -237,7 +228,6 @@ export default function ProfilesPage() {
       tags: [],
       budget: "medium",
       travelStyle: "balanced",
-      groupSize: "solo",
       accessibility: [],
       isDefault: false,
       isPublic: false,
@@ -249,11 +239,10 @@ export default function ProfilesPage() {
     setProfileForm({
       name: profile.name,
       description: profile.description,
-      interests: [...profile.interests],
-      tags: [...profile.tags],
+      interests: profile.interests.map((i) => i.id),
+      tags: profile.tags.map((t) => t.id),
       budget: profile.budget,
       travelStyle: profile.travelStyle,
-      groupSize: profile.groupSize,
       accessibility: [...profile.accessibility],
       isDefault: profile.isDefault,
       isPublic: profile.isPublic,
@@ -340,24 +329,6 @@ export default function ProfilesPage() {
           </div>
         </div>
 
-        {/* Quick stats */}
-        <div class="grid grid-cols-3 gap-4 mb-4 py-3 bg-muted rounded-lg">
-          <div class="text-center">
-            <div class="text-lg font-semibold text-foreground">{profile.stats.placesVisited}</div>
-            <div class="text-xs text-muted-foreground">Places</div>
-          </div>
-          <div class="text-center">
-            <div class="text-lg font-semibold text-foreground">
-              {profile.stats.itinerariesCreated}
-            </div>
-            <div class="text-xs text-muted-foreground">Trips</div>
-          </div>
-          <div class="text-center">
-            <div class="text-lg font-semibold text-foreground">{profile.stats.avgRating}</div>
-            <div class="text-xs text-muted-foreground">Rating</div>
-          </div>
-        </div>
-
         {/* Profile details */}
         <div class="space-y-3 mb-4">
           <div class="flex items-center gap-2 text-sm">
@@ -372,20 +343,18 @@ export default function ProfilesPage() {
             </span>
           </div>
 
-          <div class="flex items-center gap-2 text-sm">
-            <span class="text-xl">
-              {groupSizeOptions.find((g) => g.id === profile.groupSize)?.icon}
-            </span>
-            <span class="text-muted-foreground">
-              {groupSizeOptions.find((g) => g.id === profile.groupSize)?.label}
-            </span>
-            {profile.usageCount > 0 && (
-              <>
-                <span class="text-muted-foreground">•</span>
-                <span class="text-muted-foreground">Used {profile.usageCount} times</span>
-              </>
-            )}
-          </div>
+          <Show when={profile.tags.length > 0}>
+            <div class="flex flex-wrap items-center gap-1 text-sm">
+              <span class="text-muted-foreground mr-1">Avoids</span>
+              <For each={profile.tags.slice(0, 3)}>
+                {(tag) => (
+                  <span class="px-2 py-1 bg-muted text-muted-foreground rounded-full text-xs">
+                    {tag.name}
+                  </span>
+                )}
+              </For>
+            </div>
+          </Show>
         </div>
 
         {/* Interests preview */}
@@ -394,7 +363,7 @@ export default function ProfilesPage() {
             <For each={profile.interests.slice(0, 3)}>
               {(interest) => (
                 <span class="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
-                  {interest}
+                  {interest.name}
                 </span>
               )}
             </For>
@@ -409,9 +378,7 @@ export default function ProfilesPage() {
         {/* Actions */}
         <div class="flex items-center justify-between pt-4 border-t border-border">
           <div class="text-xs text-muted-foreground">
-            {profile.lastUsed
-              ? `Last used ${new Date(profile.lastUsed).toLocaleDateString()}`
-              : "Never used"}
+            {profile.createdAt ? `Created ${new Date(profile.createdAt).toLocaleDateString()}` : ""}
           </div>
           <div class="flex items-center gap-2">
             {!profile.isDefault && (
@@ -422,7 +389,6 @@ export default function ProfilesPage() {
                 Set as Default
               </button>
             )}
-            <Button size="sm">Use Profile</Button>
           </div>
         </div>
       </div>
@@ -440,17 +406,6 @@ export default function ProfilesPage() {
           onInput={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
           class="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent"
           placeholder="e.g., Solo Explorer, Family Fun"
-        />
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-muted-foreground mb-2">Description</label>
-        <textarea
-          value={profileForm().description}
-          onInput={(e) => setProfileForm((prev) => ({ ...prev, description: e.target.value }))}
-          rows={3}
-          class="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent"
-          placeholder="Describe this travel profile and when you'd use it..."
         />
       </div>
 
@@ -518,55 +473,24 @@ export default function ProfilesPage() {
         </div>
       </div>
 
-      {/* Group Size */}
-      <div>
-        <label class="block text-sm font-medium text-muted-foreground mb-3">Group Size</label>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <For each={groupSizeOptions}>
-            {(group) => (
-              <label class="relative cursor-pointer">
-                <input
-                  type="radio"
-                  name="groupSize"
-                  value={group.id}
-                  checked={profileForm().groupSize === group.id}
-                  onChange={() => setProfileForm((prev) => ({ ...prev, groupSize: group.id }))}
-                  class="sr-only"
-                />
-                <div
-                  class={`p-3 rounded-lg border-2 transition-all text-center ${
-                    profileForm().groupSize === group.id
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-border"
-                  }`}
-                >
-                  <div class="text-2xl mb-1">{group.icon}</div>
-                  <div class="text-sm font-medium text-foreground">{group.label}</div>
-                </div>
-              </label>
-            )}
-          </For>
-        </div>
-      </div>
-
       {/* Interests */}
       <div>
         <label class="block text-sm font-medium text-muted-foreground mb-3">Interests</label>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          <For each={interestOptions}>
+          <For each={interestOptions()}>
             {(interest) => (
               <label class="flex items-center p-2 rounded-lg cursor-pointer hover:bg-muted">
                 <input
                   type="checkbox"
-                  checked={profileForm().interests.includes(interest)}
+                  checked={profileForm().interests.includes(interest.id)}
                   onChange={() =>
-                    toggleArrayItem(profileForm().interests, interest, (newInterests) =>
+                    toggleArrayItem(profileForm().interests, interest.id, (newInterests) =>
                       setProfileForm((prev) => ({ ...prev, interests: newInterests })),
                     )
                   }
                   class="text-primary rounded focus:ring-ring"
                 />
-                <span class="ml-2 text-sm text-muted-foreground">{interest}</span>
+                <span class="ml-2 text-sm text-muted-foreground">{interest.name}</span>
               </label>
             )}
           </For>
@@ -577,25 +501,31 @@ export default function ProfilesPage() {
       <div>
         <label class="block text-sm font-medium text-muted-foreground mb-3">Preferred Tags</label>
         <div class="flex flex-wrap gap-2">
-          <For each={tagOptions}>
+          <For each={tagOptions()}>
             {(tag) => (
               <button
                 type="button"
                 onClick={() =>
-                  toggleArrayItem(profileForm().tags, tag, (newTags) =>
+                  toggleArrayItem(profileForm().tags, tag.id, (newTags) =>
                     setProfileForm((prev) => ({ ...prev, tags: newTags })),
                   )
                 }
                 class={`px-3 py-1 rounded-full border transition-all text-sm ${
-                  profileForm().tags.includes(tag)
+                  profileForm().tags.includes(tag.id)
                     ? "bg-primary/10 text-primary border-primary/30"
                     : "bg-card text-muted-foreground border-border hover:border-primary/30"
                 }`}
               >
-                {tag}
+                {tag.name}
               </button>
             )}
           </For>
+          <Show when={tagOptions().length === 0}>
+            <p class="text-sm text-muted-foreground">
+              No personal tags yet. Create them in Settings — only personal tags can be attached to
+              a profile.
+            </p>
+          </Show>
         </div>
       </div>
 
@@ -635,18 +565,6 @@ export default function ProfilesPage() {
             class="text-primary rounded focus:ring-ring"
           />
           <span class="ml-2 text-sm text-muted-foreground">Set as default profile</span>
-        </label>
-
-        <label class="flex items-center">
-          <input
-            type="checkbox"
-            checked={profileForm().isPublic}
-            onChange={(e) => setProfileForm((prev) => ({ ...prev, isPublic: e.target.checked }))}
-            class="text-primary rounded focus:ring-ring"
-          />
-          <span class="ml-2 text-sm text-muted-foreground">
-            Make profile public (others can discover and use it)
-          </span>
         </label>
       </div>
     </div>

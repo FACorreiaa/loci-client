@@ -203,9 +203,14 @@ export default function TravelProfiles(props: TravelProfilesProps) {
       preferred_vibes: profile.preferred_vibes,
       preferred_transport: profile.preferred_transport,
       dietary_needs: profile.dietary_needs,
-      interests: profile.interests || [],
-      tags: profile.tags || [],
-      accommodation_preferences: {
+      // Ids, not names: the request fields are interest_ids/tag_ids and the
+      // server parses them as UUIDs.
+      interests: (profile.interests ?? []).map((i) => i.id),
+      tags: (profile.tags ?? []).map((t) => t.id),
+      // Straight off the profile the server returned. These four used to be
+      // hard-coded constants, so opening the editor silently replaced whatever
+      // the user had saved with the same defaults every time.
+      accommodation_preferences: profile.accommodation_preferences ?? {
         accommodation_type: [],
         star_rating: { min: 1, max: 5 },
         price_range_per_night: { min: 0, max: 500 },
@@ -215,7 +220,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
         cancellation_policy: [],
         booking_flexibility: "any",
       },
-      dining_preferences: {
+      dining_preferences: profile.dining_preferences ?? {
         cuisine_types: [],
         meal_types: [],
         service_style: [],
@@ -228,7 +233,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
         organic_preference: false,
         outdoor_seating_preferred: profile.prefer_outdoor_seating,
       },
-      activity_preferences: {
+      activity_preferences: profile.activity_preferences ?? {
         activity_categories: [],
         physical_activity_level: "moderate",
         indoor_outdoor_preference: "mixed",
@@ -240,7 +245,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
         avoid_crowds: false,
         local_events_interest: [],
       },
-      itinerary_preferences: {
+      itinerary_preferences: profile.itinerary_preferences ?? {
         planning_style: "flexible",
         preferred_pace: profile.preferred_pace,
         time_flexibility: "loose_schedule",
@@ -255,8 +260,6 @@ export default function TravelProfiles(props: TravelProfilesProps) {
 
     setEditingProfile(profile.id);
     setActiveSection("basic");
-
-    // Domain preferences will be included in the profile response from the backend
   };
 
   const cancelEditing = () => {
@@ -1063,7 +1066,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
                         </div>
                         <div class="flex items-center gap-1">
                           <DollarSign class="w-4 h-4" />
-                          <span>Budget {profile.budget_level}/5</span>
+                          <span>Budget {profile.budget_level}/4</span>
                         </div>
                         <div class="flex items-center gap-1">
                           <Zap class="w-4 h-4" />
@@ -1075,14 +1078,14 @@ export default function TravelProfiles(props: TravelProfilesProps) {
                           <For each={profile.interests || []}>
                             {(interest) => (
                               <span class="px-2 py-1 bg-accent/10 text-accent rounded-md text-sm">
-                                {interest}
+                                {interest.name}
                               </span>
                             )}
                           </For>
                           <For each={profile.tags || []}>
                             {(tag) => (
                               <span class="px-2 py-1 bg-primary/10 text-primary rounded-md text-sm">
-                                {tag}
+                                {tag.name}
                               </span>
                             )}
                           </For>
