@@ -5,10 +5,11 @@ import { Users } from "lucide-solid";
 import {
   type VerificationTask,
   useContributorProfile,
+  usePendingPlaces,
   useVerificationTasks,
 } from "~/lib/api/place-intelligence";
 import { useAuth } from "~/contexts/AuthContext";
-import { ClaimForm, TaskCard } from "~/components/contribute";
+import { AddPlaceForm, ClaimForm, PendingPlaceCard, TaskCard } from "~/components/contribute";
 import { ErrorView } from "~/components/ErrorView";
 import RegisterBanner from "~/components/ui/RegisterBanner";
 
@@ -18,6 +19,7 @@ export default function ContributePage() {
   // nothing but a guaranteed 401 and a skeleton that never resolves.
   const tasks = useVerificationTasks({ enabled: () => isAuthenticated() });
   const profile = useContributorProfile({ enabled: () => isAuthenticated() });
+  const pendingPlaces = usePendingPlaces({ enabled: () => isAuthenticated() });
   const [selected, setSelected] = createSignal<VerificationTask>();
 
   return (
@@ -85,6 +87,12 @@ export default function ContributePage() {
               <span class="text-xs text-muted-foreground">Two matching reports verify a fact</span>
             </div>
 
+            <Show when={(pendingPlaces.data?.length ?? 0) > 0}>
+              <div class="mb-6 grid gap-3">
+                <For each={pendingPlaces.data}>{(place) => <PendingPlaceCard place={place} />}</For>
+              </div>
+            </Show>
+
             <Show when={tasks.isError}>
               <ErrorView error={tasks.error} onRetry={() => tasks.refetch()} class="my-6" />
             </Show>
@@ -142,6 +150,10 @@ export default function ContributePage() {
               {(task) => <ClaimForm task={task()} />}
             </Show>
           </aside>
+
+          <div class="lg:col-start-2">
+            <AddPlaceForm />
+          </div>
         </div>
       </Show>
     </main>
