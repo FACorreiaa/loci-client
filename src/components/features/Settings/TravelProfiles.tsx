@@ -24,11 +24,15 @@ import {
   useSetDefaultProfileMutation,
 } from "~/lib/api/profiles";
 import { useTags } from "~/lib/api/tags";
+import { errorMessage } from "~/lib/connect-error";
 import { useInterests } from "~/lib/api/interests";
 import type { SearchProfile, TravelProfileFormData } from "~/lib/api/types";
 
 interface TravelProfilesProps {
-  onNotification: (notification: { message: string; type: "success" | "error" }) => void;
+  // (message, type), matching every other child of the settings page. This
+  // one took an object, so the two shapes sat side by side in the same file
+  // and the settings route had to adapt per child.
+  onNotification: (message: string, type: "success" | "error") => void;
 }
 
 export default function TravelProfiles(props: TravelProfilesProps) {
@@ -292,19 +296,16 @@ export default function TravelProfiles(props: TravelProfilesProps) {
           profileId: editingProfile()!,
           data,
         });
-        props.onNotification({ message: "Profile updated successfully!", type: "success" });
+        props.onNotification("Profile updated successfully!", "success");
       } else {
         // Create new profile with all domain preferences
         const _newProfile = await createProfileMutation.mutateAsync(data);
-        props.onNotification({ message: "Profile created successfully!", type: "success" });
+        props.onNotification("Profile created successfully!", "success");
       }
 
       cancelEditing();
     } catch (error) {
-      props.onNotification({
-        message: (error as any)?.message || "Failed to save profile",
-        type: "error",
-      });
+      props.onNotification(errorMessage(error, "Failed to save profile"), "error");
     }
   };
 
@@ -312,12 +313,9 @@ export default function TravelProfiles(props: TravelProfilesProps) {
     if (confirm(`Are you sure you want to delete "${profileName}"?`)) {
       try {
         await deleteProfileMutation.mutateAsync(profileId);
-        props.onNotification({ message: "Profile deleted successfully!", type: "success" });
+        props.onNotification("Profile deleted successfully!", "success");
       } catch (error) {
-        props.onNotification({
-          message: (error as any)?.message || "Failed to delete profile",
-          type: "error",
-        });
+        props.onNotification(errorMessage(error, "Failed to delete profile"), "error");
       }
     }
   };
@@ -325,15 +323,9 @@ export default function TravelProfiles(props: TravelProfilesProps) {
   const setDefaultProfile = async (profileId: string, profileName: string) => {
     try {
       await setDefaultProfileMutation.mutateAsync(profileId);
-      props.onNotification({
-        message: `"${profileName}" set as default profile!`,
-        type: "success",
-      });
+      props.onNotification(`"${profileName}" set as default profile!`, "success");
     } catch (error) {
-      props.onNotification({
-        message: (error as any)?.message || "Failed to set default profile",
-        type: "error",
-      });
+      props.onNotification(errorMessage(error, "Failed to set default profile"), "error");
     }
   };
 

@@ -2,6 +2,7 @@ import { createSignal, Show, For, createResource } from "solid-js";
 import { ShieldCheck, ShieldOff, Copy, Check, Download, RefreshCw, KeyRound } from "lucide-solid";
 import QRCode from "qrcode";
 import { Button } from "~/ui/button";
+import { errorMessage } from "~/lib/connect-error";
 import { TextField, TextFieldRoot } from "~/ui/textfield";
 import { Label } from "~/ui/label";
 import {
@@ -19,13 +20,6 @@ interface TwoFactorProps {
 
 /** Codes are shown once. Below this, warn the user before they run out. */
 const LOW_RECOVERY_CODES = 3;
-
-function errorMessage(err: unknown, fallback: string): string {
-  const raw = err instanceof Error ? err.message : "";
-  if (!raw) return fallback;
-  // Strip the Connect "[code] " prefix, which means nothing to a user.
-  return raw.replace(/^\[.*?\]\s*/, "") || fallback;
-}
 
 export default function TwoFactor(props: TwoFactorProps) {
   const statusQuery = useMFAStatus();

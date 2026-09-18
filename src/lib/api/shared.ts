@@ -62,6 +62,8 @@ export const queryKeys = {
 
   // Settings
   settings: ["settings"] as const,
+  notificationSettings: ["notification-settings"] as const,
+  sessions: ["sessions"] as const,
   userSettings: (profileId: string) => ["settings", profileId] as const,
 
   // Cities

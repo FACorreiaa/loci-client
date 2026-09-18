@@ -10,6 +10,7 @@ import {
 } from "~/lib/api/profiles";
 import { useInterests } from "~/lib/api/interests";
 import { useTags } from "~/lib/api/tags";
+import { ProtectedRoute } from "~/contexts/AuthContext";
 import type {
   SearchProfile,
   TravelProfileFormData,
@@ -54,7 +55,7 @@ interface ProfileForm {
   isPublic: boolean;
 }
 
-export default function ProfilesPage() {
+function ProfilesPageContent() {
   const [selectedProfile, setSelectedProfile] = createSignal<Profile | null>(null);
   const [showCreateModal, setShowCreateModal] = createSignal(false);
   const [showEditModal, setShowEditModal] = createSignal(false);
@@ -665,5 +666,15 @@ export default function ProfilesPage() {
         </div>
       </Show>
     </div>
+  );
+}
+
+// Everything on this page is the signed-in user's own. Unguarded, it rendered
+// the whole shell to a logged-out visitor and fired the authed RPCs behind it.
+export default function ProfilesPage() {
+  return (
+    <ProtectedRoute>
+      <ProfilesPageContent />
+    </ProtectedRoute>
   );
 }

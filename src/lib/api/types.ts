@@ -78,12 +78,14 @@ export interface ProcessedProfileData {
   avatar?: string;
   interests: string[];
   badges: string[];
+  // Only the counts that have something behind them. reviews_written,
+  // followers and following were in this type and rendered as 0 next to real
+  // numbers, which reads as "you have written no reviews" rather than "reviews
+  // do not exist here". There is no reviews table and no social graph; when
+  // either arrives, this is where its count goes.
   stats: {
     places_visited: number;
-    reviews_written: number;
     lists_created: number;
-    followers: number;
-    following: number;
   };
 }
 
@@ -353,6 +355,9 @@ export interface SearchProfile {
   user_longitude: number | null;
   created_at: string;
   updated_at: string;
+  // The four domain-preference blocks. Absent or null means the profile has
+  // never had that domain set, which the editor distinguishes from a domain
+  // whose preferences are genuinely empty.
   accommodation_preferences?: AccommodationPreferences | null;
   dining_preferences?: DiningPreferences | null;
   activity_preferences?: ActivityPreferences | null;

@@ -24,6 +24,7 @@ import {
   Plug,
 } from "lucide-solid";
 import {
+  type UpdateUserProfileParams,
   useUpdateProfileMutation,
   useUploadAvatarMutation,
   useUserProfileQuery,
@@ -43,6 +44,7 @@ import {
   useToggleInterestActiveMutation,
 } from "../../lib/api/interests";
 import { useSearchProfiles } from "~/lib/api/profiles";
+import { ProtectedRoute } from "~/contexts/AuthContext";
 import { ProcessedProfileData, UserProfileResponse } from "~/lib/api/types";
 import { useAuth } from "~/contexts/AuthContext";
 import TagsComponent from "~/components/features/Settings/Tags";
@@ -56,7 +58,10 @@ import ChangePassword from "~/components/features/Settings/ChangePassword";
 import LocaleSettings from "~/components/features/Settings/LocaleSettings";
 import TasteAndPrivacy from "~/components/features/Settings/TasteAndPrivacy";
 import AccountData from "~/components/features/Settings/AccountData";
+import NotificationSettings from "~/components/features/Settings/NotificationSettings";
+import SignedInDevices from "~/components/features/Settings/SignedInDevices";
 import { Button } from "~/ui/button";
+import { useUserSubscription } from "~/lib/api/billing";
 
 const TABS = [
   { id: "settings", label: "Settings", icon: User },
@@ -67,6 +72,9 @@ const TABS = [
   // over MCP, your Telegram chat, your own model key, MCP servers Loci calls.
   { id: "connections", label: "Connections", icon: Plug },
   { id: "memory", label: "What Loci remembers", icon: Brain },
+  // Reachable only through the dashboard's quick-settings modal until now, so
+  // "where do I turn these off" had no answer on the settings page.
+  { id: "notifications", label: "Notifications", icon: Bell },
   { id: "security", label: "Security", icon: ShieldCheck },
   { id: "billing", label: "Plan & Billing", icon: CreditCard },
 ];
@@ -77,7 +85,7 @@ const TAB_IDS = TABS.map((t) => t.id);
 // there — support answers, the /mcp guide — and should land somewhere useful.
 const LEGACY_TABS: Record<string, string> = { apikeys: "connections" };
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const { user } = useAuth();
   const [notification, setNotification] = createSignal<{
     message: string;
@@ -97,6 +105,7 @@ export default function SettingsPage() {
   // replace: true so tabbing around does not fill the back button with
   // settings panes.
   const setActiveTab = (id: string) => setSearchParams({ tab: id }, { replace: true });
+  const subscriptionQuery = useUserSubscription();
   const uploadAvatarMutation = useUploadAvatarMutation();
   const profileQuery = useUserProfileQuery();
   const updateProfileMutation = useUpdateProfileMutation();
@@ -150,19 +159,40 @@ export default function SettingsPage() {
   });
 
   const saveProfile = async () => {
+    // The form starts as a set of empty strings and is filled in by the effect
+    // above once the profile arrives. Saving before that would now send those
+    // empty strings as deliberate clears and wipe the profile, because an empty
+    // field is no longer silently dropped. Nothing to save until it has loaded.
+    if (!profileQuery.isSuccess) {
+      setNotification({
+        message: "Still loading your profile — give it a moment before saving.",
+        type: "error",
+      });
+      setTimeout(() => setNotification(null), 5000);
+      return;
+    }
+
     try {
       const profileData = userProfile();
-      const profileUpdateData = {
+      // Annotated so a misspelled or renamed field is a compile error. Without
+      // the annotation this is just an object, excess-property checking does
+      // not apply, and two fields sat here for months being silently dropped.
+      const profileUpdateData: UpdateUserProfileParams = {
         // The form has had a Username field all along and this payload omitted
         // it, so every edit to it was silently discarded on save.
         username: profileData.username,
         firstname: profileData.firstname,
         lastname: profileData.lastname,
         email: profileData.email,
-        phone: profileData.phone,
+        // These two were sent as `phone` and `about_you`. UpdateUserProfileParams
+        // spells them phoneNumber and aboutYou, and TypeScript does not apply
+        // excess-property checking to a variable, so both were dropped on the
+        // floor: editing your phone number or your bio on this page has never
+        // saved anything.
+        phoneNumber: profileData.phone,
+        aboutYou: profileData.bio,
         city: profileData.city,
         country: profileData.country,
-        about_you: profileData.bio,
         // Note: avatar is handled separately via uploadAvatarMutation
       };
 
@@ -819,9 +849,9 @@ export default function SettingsPage() {
 
   const renderProfiles = () => (
     <TravelProfiles
-      onNotification={(notification) => {
-        setNotification(notification);
-        setTimeout(() => setNotification(null), 3000);
+      onNotification={(message, type) => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), type === "error" ? 5000 : 3000);
       }}
     />
   );
@@ -837,6 +867,34 @@ export default function SettingsPage() {
           Manage your subscription, payment method and invoices, or compare what each plan includes.
         </p>
       </div>
+
+      {/*
+        This tab was two link cards and nothing else: a "Plan & billing" entry
+        in the sidebar that could not tell you which plan you were on. The
+        answer is one query the app already makes everywhere else.
+
+        isSuccess before .data: reading .data on a pending solid-query suspends
+        the app-wide boundary and blanks the whole route.
+      */}
+      <Show when={subscriptionQuery.isSuccess && subscriptionQuery.data}>
+        {(subscription) => (
+          <div class="rounded-lg border border-border p-4">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <span class="font-medium text-foreground capitalize">{subscription().plan} plan</span>
+              <span class="text-sm text-muted-foreground capitalize">{subscription().status}</span>
+            </div>
+            <p class="text-sm text-muted-foreground mt-1">
+              {subscription().usage.requestsToday} of {subscription().usage.requestsLimit} requests
+              used today.
+            </p>
+            <Show when={subscription().cancelAtPeriodEnd}>
+              <p class="text-sm text-muted-foreground mt-1">
+                Cancels at the end of the current period.
+              </p>
+            </Show>
+          </div>
+        )}
+      </Show>
 
       <div class="grid gap-3 sm:grid-cols-2">
         <A
@@ -901,6 +959,9 @@ export default function SettingsPage() {
       <div class="border-t border-border pt-8">
         <TwoFactor onNotification={(message, type) => setNotification({ message, type })} />
       </div>
+      <div class="border-t border-border pt-8">
+        <SignedInDevices onNotification={(message, type) => setNotification({ message, type })} />
+      </div>
     </div>
   );
 
@@ -920,6 +981,12 @@ export default function SettingsPage() {
         );
       case "memory":
         return renderMemoryLink();
+      case "notifications":
+        return (
+          <NotificationSettings
+            onNotification={(message, type) => setNotification({ message, type })}
+          />
+        );
       case "security":
         return renderSecurity();
       case "billing":
@@ -1009,5 +1076,16 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Everything on this page is the signed-in user's own: their profile, their
+// travel profiles, what Loci has learned about them. Unguarded, it rendered
+// the whole shell to a logged-out visitor and fired the authed RPCs behind it.
+export default function SettingsPage() {
+  return (
+    <ProtectedRoute>
+      <SettingsPageContent />
+    </ProtectedRoute>
   );
 }

@@ -177,44 +177,47 @@ export const useUpdateProfileMutation = () => {
     mutationFn: async (
       params: UpdateUserProfileParams,
     ): Promise<{ success: boolean; message?: string }> => {
-      // Only include fields that have non-empty values to avoid validation errors
+      // A partial update. `undefined` means the request is not about that
+      // field and the stored value is left alone; an empty string means the
+      // person cleared it and it is sent.
+      //
+      // Everything here used to be skipped when empty, "to avoid validation
+      // errors" — but nothing validates these: the server runs no protovalidate
+      // interceptor, and the proto's min_len rules are documentation. The only
+      // effect was that no profile field could ever be emptied. Deleting your
+      // bio, phone or city produced "Profile updated successfully" and the old
+      // value came back on the next load.
       const updateParamsData: Record<string, unknown> = {};
 
+      // Fields a person can legitimately empty out.
+      const clearable = [
+        "displayName",
+        "profileImageUrl",
+        "firstname",
+        "lastname",
+        "phoneNumber",
+        "city",
+        "country",
+        "aboutYou",
+        "location",
+      ] as const;
+      for (const field of clearable) {
+        if (params[field] !== undefined) {
+          updateParamsData[field] = params[field];
+        }
+      }
+
+      // Username and email identify the account. Blanking either is not an edit
+      // anyone means to make, and the API has no way to express it, so an empty
+      // one is still treated as absent.
       if (params.username !== undefined && params.username !== "") {
         updateParamsData.username = params.username;
       }
       if (params.email !== undefined && params.email !== "") {
         updateParamsData.email = params.email;
       }
-      if (params.displayName !== undefined && params.displayName !== "") {
-        updateParamsData.displayName = params.displayName;
-      }
-      if (params.profileImageUrl !== undefined && params.profileImageUrl !== "") {
-        updateParamsData.profileImageUrl = params.profileImageUrl;
-      }
-      if (params.firstname !== undefined && params.firstname !== "") {
-        updateParamsData.firstname = params.firstname;
-      }
-      if (params.lastname !== undefined && params.lastname !== "") {
-        updateParamsData.lastname = params.lastname;
-      }
-      if (params.phoneNumber !== undefined && params.phoneNumber !== "") {
-        updateParamsData.phoneNumber = params.phoneNumber;
-      }
       if (params.age !== undefined) {
         updateParamsData.age = params.age;
-      }
-      if (params.city !== undefined && params.city !== "") {
-        updateParamsData.city = params.city;
-      }
-      if (params.country !== undefined && params.country !== "") {
-        updateParamsData.country = params.country;
-      }
-      if (params.aboutYou !== undefined && params.aboutYou !== "") {
-        updateParamsData.aboutYou = params.aboutYou;
-      }
-      if (params.location !== undefined && params.location !== "") {
-        updateParamsData.location = params.location;
       }
       if (params.interests !== undefined && params.interests.length > 0) {
         updateParamsData.interests = params.interests;

@@ -46,12 +46,13 @@ function ProfilePageContent() {
     // Favorites count
     const _favoritesCount = favorites.length; // Underscored as it's not directly used in the returned object
 
+    // Only what can actually be counted. reviews_written, followers and
+    // following were rendered as 0 beside real numbers, which reads as "you
+    // have written no reviews" rather than "reviews do not exist" — there is no
+    // reviews table and no social graph behind either.
     return {
       places_visited: placesVisited,
-      reviews_written: 0, // Reviews not implemented yet (item #7)
       lists_created: listsCreated,
-      followers: 0, // Social features not implemented
-      following: 0, // Social features not implemented
     };
   });
 
@@ -187,7 +188,6 @@ function ProfilePageContent() {
     { id: "overview", label: "Overview" },
     { id: "activity", label: "Activity" },
     { id: "lists", label: "Lists" },
-    { id: "reviews", label: "Reviews" },
   ];
 
   // Compute recent activity from real data
@@ -279,14 +279,10 @@ function ProfilePageContent() {
     return (
       <div class="space-y-6">
         {/* Stats Grid (social/follower counts omitted — not backed by the API) */}
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="bg-card rounded-lg p-4 text-center border border-border">
             <div class="text-2xl font-bold text-primary">{profile.stats.places_visited}</div>
             <div class="text-sm text-muted-foreground">Places Visited</div>
-          </div>
-          <div class="bg-card rounded-lg p-4 text-center border border-border">
-            <div class="text-2xl font-bold text-accent">{profile.stats.reviews_written}</div>
-            <div class="text-sm text-muted-foreground">Reviews</div>
           </div>
           <div class="bg-card rounded-lg p-4 text-center border border-border">
             <div class="text-2xl font-bold text-accent dark:text-accent">
@@ -647,12 +643,6 @@ function ProfilePageContent() {
             <Show when={activeTab() === "overview"}>{renderOverview()}</Show>
             <Show when={activeTab() === "activity"}>{renderActivity()}</Show>
             <Show when={activeTab() === "lists"}>{renderLists()}</Show>
-            <Show when={activeTab() === "reviews"}>
-              <div class="bg-card rounded-lg p-6 border border-border">
-                <h3 class="text-lg font-semibold text-foreground mb-4">My Reviews</h3>
-                <p class="text-muted-foreground">Your reviews will appear here.</p>
-              </div>
-            </Show>
           </div>
         </div>
       </Match>

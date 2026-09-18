@@ -10,6 +10,7 @@ import {
   type TraitView,
 } from "../../lib/api/memory";
 import { exportUserData } from "../../lib/api/user";
+import { ProtectedRoute } from "~/contexts/AuthContext";
 
 /**
  * "What Loci remembers about you."
@@ -19,7 +20,7 @@ import { exportUserData } from "../../lib/api/user";
  * what survives, so removing one thing never leaves the others asserting
  * something the record no longer supports.
  */
-export default function MemorySettings() {
+function MemorySettingsContent() {
   const memory = useMemory(true);
   const forgetTrait = useForgetTrait();
   const forgetEvidence = useForgetEvidence();
@@ -316,4 +317,14 @@ function formatDate(millis?: number): string {
     month: "short",
     day: "numeric",
   });
+}
+
+// Everything on this page is the signed-in user's own. Unguarded, it rendered
+// the whole shell to a logged-out visitor and fired the authed RPCs behind it.
+export default function MemorySettings() {
+  return (
+    <ProtectedRoute>
+      <MemorySettingsContent />
+    </ProtectedRoute>
+  );
 }

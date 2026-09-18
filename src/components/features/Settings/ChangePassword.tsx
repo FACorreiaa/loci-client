@@ -83,8 +83,14 @@ export default function ChangePassword(props: ChangePasswordProps) {
           <Lock class="w-5 h-5 text-primary" />
           Password
         </h3>
+        {/*
+          This said the opposite — "Changing it here does not sign out your
+          other sessions" — while AuthService.ChangePassword has always called
+          DeleteAllUserSessions. Somebody changing their password after a scare
+          was told the one thing they needed to be true was not.
+        */}
         <p class="text-sm text-muted-foreground mt-1">
-          Changing it here does not sign out your other sessions.
+          Changing it signs out every device, including this one. You'll need to sign in again.
         </p>
       </div>
 
