@@ -3,6 +3,7 @@ import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   GetMyContributorProfileRequestSchema,
   ListVerificationTasksRequestSchema,
+  PlaceClaimStatus as ProtoPlaceClaimStatus,
   PlaceFactField as ProtoPlaceFactField,
   PlaceIntelligenceService,
   SubmitPlaceClaimRequestSchema,
@@ -39,6 +40,32 @@ export interface ContributorProfile {
   badges: string[];
 }
 
+/**
+ * What became of a submitted claim.
+ *
+ * A report does not go live on its own: it waits as PENDING until a second
+ * scout independently reports the same thing. Surfacing that distinction is the
+ * difference between "nothing happened" and "one more look needed".
+ */
+export type ClaimStatus = "UNSPECIFIED" | "PENDING" | "ACCEPTED" | "CONTRADICTED" | "EXPIRED";
+
+export interface SubmitClaimResult {
+  claimId: string;
+  status: ClaimStatus;
+}
+
+const claimStatuses: Record<ClaimStatus, ProtoPlaceClaimStatus> = {
+  UNSPECIFIED: ProtoPlaceClaimStatus.UNSPECIFIED,
+  PENDING: ProtoPlaceClaimStatus.PENDING,
+  ACCEPTED: ProtoPlaceClaimStatus.ACCEPTED,
+  CONTRADICTED: ProtoPlaceClaimStatus.CONTRADICTED,
+  EXPIRED: ProtoPlaceClaimStatus.EXPIRED,
+};
+
+const claimStatusNames = Object.fromEntries(
+  Object.entries(claimStatuses).map(([name, value]) => [value, name]),
+) as Record<ProtoPlaceClaimStatus, ClaimStatus>;
+
 const fields: Record<PlaceFactField, ProtoPlaceFactField> = {
   PLACE_FACT_FIELD_OPENING_HOURS: ProtoPlaceFactField.OPENING_HOURS,
   PLACE_FACT_FIELD_PRICE_LEVEL: ProtoPlaceFactField.PRICE_LEVEL,
@@ -55,8 +82,14 @@ const fieldNames = Object.fromEntries(
   Object.entries(fields).map(([name, value]) => [value, name]),
 ) as Record<ProtoPlaceFactField, PlaceFactField>;
 
-export const useVerificationTasks = () =>
+/** Options shared by the read hooks, so a signed-out visit fires no doomed RPC. */
+export interface PlaceIntelligenceQueryOptions {
+  enabled?: () => boolean;
+}
+
+export const useVerificationTasks = (options: PlaceIntelligenceQueryOptions = {}) =>
   useAppQuery(() => ({
+    enabled: options.enabled ? options.enabled() : true,
     queryKey: ["place-intelligence", "tasks"],
     queryFn: async (): Promise<VerificationTask[]> => {
       const response = await placeClient.listVerificationTasks(
@@ -75,8 +108,9 @@ export const useVerificationTasks = () =>
     },
   }));
 
-export const useContributorProfile = () =>
+export const useContributorProfile = (options: PlaceIntelligenceQueryOptions = {}) =>
   useAppQuery(() => ({
+    enabled: options.enabled ? options.enabled() : true,
     queryKey: ["place-intelligence", "profile"],
     queryFn: async (): Promise<ContributorProfile> => {
       const profile = await placeClient.getMyContributorProfile(
@@ -94,8 +128,12 @@ export const useContributorProfile = () =>
 export const useSubmitPlaceClaim = () => {
   const queryClient = useQueryClient();
   return useMutation(() => ({
-    mutationFn: (claim: { poiId: string; field: PlaceFactField; value: string }) =>
-      placeClient.submitPlaceClaim(
+    mutationFn: async (claim: {
+      poiId: string;
+      field: PlaceFactField;
+      value: string;
+    }): Promise<SubmitClaimResult> => {
+      const response = await placeClient.submitPlaceClaim(
         create(SubmitPlaceClaimRequestSchema, {
           clientClaimId: crypto.randomUUID(),
           observedAt: timestampFromDate(new Date()),
@@ -103,7 +141,15 @@ export const useSubmitPlaceClaim = () => {
           field: fields[claim.field],
           value: claim.value,
         }),
-      ),
+      );
+      // The response used to be thrown away, which is why every submit looked
+      // identical whether it was still waiting on a second scout or had just
+      // gone live.
+      return {
+        claimId: response.claimId,
+        status: claimStatusNames[response.status] ?? "UNSPECIFIED",
+      };
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["place-intelligence"] }),
   }));
 };
