@@ -58,6 +58,8 @@ import ChangePassword from "~/components/features/Settings/ChangePassword";
 import LocaleSettings from "~/components/features/Settings/LocaleSettings";
 import TasteAndPrivacy from "~/components/features/Settings/TasteAndPrivacy";
 import AccountData from "~/components/features/Settings/AccountData";
+import NotificationSettings from "~/components/features/Settings/NotificationSettings";
+import SignedInDevices from "~/components/features/Settings/SignedInDevices";
 import { Button } from "~/ui/button";
 import { useUserSubscription } from "~/lib/api/billing";
 
@@ -70,6 +72,9 @@ const TABS = [
   // over MCP, your Telegram chat, your own model key, MCP servers Loci calls.
   { id: "connections", label: "Connections", icon: Plug },
   { id: "memory", label: "What Loci remembers", icon: Brain },
+  // Reachable only through the dashboard's quick-settings modal until now, so
+  // "where do I turn these off" had no answer on the settings page.
+  { id: "notifications", label: "Notifications", icon: Bell },
   { id: "security", label: "Security", icon: ShieldCheck },
   { id: "billing", label: "Plan & Billing", icon: CreditCard },
 ];
@@ -954,6 +959,9 @@ function SettingsPageContent() {
       <div class="border-t border-border pt-8">
         <TwoFactor onNotification={(message, type) => setNotification({ message, type })} />
       </div>
+      <div class="border-t border-border pt-8">
+        <SignedInDevices onNotification={(message, type) => setNotification({ message, type })} />
+      </div>
     </div>
   );
 
@@ -973,6 +981,12 @@ function SettingsPageContent() {
         );
       case "memory":
         return renderMemoryLink();
+      case "notifications":
+        return (
+          <NotificationSettings
+            onNotification={(message, type) => setNotification({ message, type })}
+          />
+        );
       case "security":
         return renderSecurity();
       case "billing":

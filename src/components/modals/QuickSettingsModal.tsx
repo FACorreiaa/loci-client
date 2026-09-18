@@ -1,7 +1,6 @@
 import { createSignal, Show, For, createEffect } from "solid-js";
 import { A, useNavigate } from "@solidjs/router";
 import { X, User, MapPin, Bell, Settings, Loader2 } from "lucide-solid";
-import { useAuth } from "~/contexts/AuthContext";
 import AppearanceSettings from "~/components/AppearanceSettings";
 import { useUserLocation } from "~/contexts/LocationContext";
 import {
@@ -12,11 +11,13 @@ import {
 import {
   ensureNotificationPermission,
   getNotificationPermission,
-  loadNotificationPrefs,
-  saveNotificationPrefs,
   type BrowserNotificationPermission,
-  type NotificationPrefs,
 } from "~/lib/notification-prefs";
+import {
+  useNotificationSettings,
+  useUpdateNotificationSettings,
+  type NotificationSettings,
+} from "~/lib/api/notifications";
 import { Button } from "~/ui/button";
 import { Label } from "~/ui/label";
 import { Checkbox, CheckboxControl } from "~/ui/checkbox";
@@ -35,7 +36,6 @@ const permissionCopy: Record<BrowserNotificationPermission, string> = {
 
 export default function QuickSettingsModal(props: QuickSettingsModalProps) {
   const navigate = useNavigate();
-  const auth = useAuth();
   const { userLocation, requestLocation, error, isLoadingLocation } = useUserLocation();
 
   const profilesQuery = useSearchProfiles();
@@ -46,15 +46,21 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
     "idle" | "requesting" | "success" | "error"
   >("idle");
   const [selectedProfile, setSelectedProfile] = createSignal<string>("");
-  const [notifPrefs, setNotifPrefs] = createSignal<NotificationPrefs>({
-    recommendations: false,
-    tripReminders: false,
-  });
+  // The switches are the account's, not this browser's. They used to be read
+  // from and written to localStorage keyed by user id, so they did not follow
+  // anyone to another device and nothing server-side could see them.
+  const notificationSettingsQuery = useNotificationSettings();
+  const updateNotificationSettings = useUpdateNotificationSettings();
+  const notifPrefs = (): NotificationSettings =>
+    // isSuccess before .data: reading .data on a pending solid-query suspends
+    // the app-wide boundary, and this modal renders over the dashboard.
+    notificationSettingsQuery.isSuccess
+      ? notificationSettingsQuery.data
+      : { recommendations: false, tripReminders: false };
   const [notifPermission, setNotifPermission] = createSignal<BrowserNotificationPermission>(
     getNotificationPermission(),
   );
 
-  const userId = () => auth.user()?.id ?? "anonymous";
   const profiles = () => profilesQuery.data ?? [];
   const profilesLoading = () => profilesQuery.isFetching && profilesQuery.data === undefined;
 
@@ -66,7 +72,6 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
 
   createEffect(() => {
     if (!props.isOpen) return;
-    setNotifPrefs(loadNotificationPrefs(userId()));
     setNotifPermission(getNotificationPermission());
   });
 
@@ -93,24 +98,27 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
     }
   };
 
-  const persistNotifPrefs = (next: NotificationPrefs) => {
-    setNotifPrefs(next);
-    saveNotificationPrefs(userId(), next);
+  // Send only the switch that moved; omitting the other means "leave it as it
+  // is", which the server treats differently from turning it off.
+  const persistNotifPref = (key: keyof NotificationSettings, value: boolean) => {
+    void updateNotificationSettings.mutateAsync({ [key]: value }).catch((err: unknown) => {
+      console.error("Failed to save notification preference:", err);
+    });
   };
 
-  const handleNotificationToggle = async (key: keyof NotificationPrefs, enabled: boolean) => {
+  const handleNotificationToggle = async (key: keyof NotificationSettings, enabled: boolean) => {
     if (!enabled) {
-      persistNotifPrefs({ ...notifPrefs(), [key]: false });
+      persistNotifPref(key, false);
       return;
     }
 
     const permission = await ensureNotificationPermission();
     setNotifPermission(permission);
     if (permission !== "granted") {
-      persistNotifPrefs({ ...notifPrefs(), [key]: false });
+      persistNotifPref(key, false);
       return;
     }
-    persistNotifPrefs({ ...notifPrefs(), [key]: true });
+    persistNotifPref(key, true);
   };
 
   const handleOpenFullSettings = () => {

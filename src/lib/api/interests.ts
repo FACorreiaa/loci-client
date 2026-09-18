@@ -7,6 +7,7 @@ import {
   GetInterestsRequestSchema,
   CreateInterestRequestSchema,
   UpdateInterestRequestSchema,
+  DeleteInterestRequestSchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/interest/interest_pb.js";
 import { queryKeys } from "./shared";
 import { transport } from "../connect-transport";
@@ -137,15 +138,15 @@ export const useDeleteInterestMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation(() => ({
-    // Note: Delete might not be in the proto - using a placeholder that toggles inactive
+    // This used to call updateInterest with active: false, because the proto
+    // had no delete. The UI still said "Interest deleted successfully!", and
+    // the interest stayed in the list — GetInterests ignored active_only, so
+    // the very next fetch handed it straight back. Deactivating and deleting
+    // are different things and the toggle already covers the first one.
     mutationFn: async (interestId: string) => {
-      // For now, toggle to inactive since proto doesn't have delete
-      const request = create(UpdateInterestRequestSchema, {
-        interestId,
-        active: false,
-      });
+      const request = create(DeleteInterestRequestSchema, { interestId });
 
-      const response = await interestClient.updateInterest(request);
+      const response = await interestClient.deleteInterest(request);
       return { success: response.success, message: response.message };
     },
     onSuccess: () => {
