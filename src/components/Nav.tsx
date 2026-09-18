@@ -27,6 +27,8 @@ import { Button } from "~/ui/button";
 import { handleLinkPreload } from "~/lib/preload";
 
 const publicItems = [
+  // A public surface, and the one page here meant to be found from outside.
+  { name: "City Packs", href: "/packs" },
   { name: "How it works", href: "/features" },
   { name: "About", href: "/about" },
   { name: "Pricing", href: "/pricing" },
