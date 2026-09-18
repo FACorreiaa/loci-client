@@ -3,7 +3,7 @@ import { CheckCircle2, ShieldCheck } from "lucide-solid";
 import {
   type PlaceFactField,
   type VerificationTask,
-  useSubmitPlaceClaim,
+  useSubmitPlaceClaims,
 } from "~/lib/api/place-intelligence";
 import { capture } from "~/lib/analytics";
 import {
@@ -13,9 +13,9 @@ import {
   type OpeningHours,
 } from "~/lib/place-facts/opening-hours";
 import {
+  claimValuesFor,
   fieldLabel,
   fieldQuestion,
-  serializeTokens,
   vocabularyFor,
 } from "~/lib/place-facts/vocabulary";
 import { ErrorView } from "~/components/ErrorView";
@@ -33,7 +33,7 @@ import { FieldPicker } from "./FieldPicker";
  * the same string, which is the only way the server can ever corroborate them.
  */
 export function ClaimForm(props: { task: VerificationTask }) {
-  const submit = useSubmitPlaceClaim();
+  const submit = useSubmitPlaceClaims();
   const [field, setField] = createSignal<PlaceFactField>();
   const [tokens, setTokens] = createSignal<string[]>([]);
   const [hours, setHours] = createSignal<OpeningHours>(defaultOpeningHours());
@@ -53,9 +53,13 @@ export function ClaimForm(props: { task: VerificationTask }) {
     return current ? vocabularyFor(current).kind === "structured" : false;
   });
 
-  const claimValue = createMemo(() =>
-    structured() ? encodeOpeningHours(hours()) : serializeTokens(tokens()),
-  );
+  // One claim per answer, so each is corroborated on its own rather than only
+  // as part of an identical set.
+  const claimValues = createMemo(() => {
+    const current = field();
+    if (!current) return [];
+    return structured() ? [encodeOpeningHours(hours())] : claimValuesFor(current, tokens());
+  });
 
   const ready = createMemo(() => {
     if (!field()) return false;
@@ -67,14 +71,16 @@ export function ClaimForm(props: { task: VerificationTask }) {
     event.preventDefault();
     const selectedField = field();
     if (!selectedField || !ready()) return;
+    const values = claimValues();
     submit.mutate(
-      { poiId: props.task.poiId, field: selectedField, value: claimValue() },
+      { poiId: props.task.poiId, field: selectedField, values },
       {
         onSuccess: (result) => {
           capture("place_claim_submitted", {
             field: selectedField,
             status: result.status,
             poiId: props.task.poiId,
+            answers: values.length,
           });
           setTokens([]);
         },
