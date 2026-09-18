@@ -125,6 +125,50 @@ export const useContributorProfile = (options: PlaceIntelligenceQueryOptions = {
     },
   }));
 
+/**
+ * Files every answer in a selection, each as its own claim.
+ *
+ * A multi-answer field sends one claim per answer so that each is corroborated
+ * on its own; a single-answer field is the degenerate case of one. The reported
+ * status is the best any of them reached, because that is what the scout is
+ * being told about the report they just made.
+ */
+export const useSubmitPlaceClaims = () => {
+  const queryClient = useQueryClient();
+  return useMutation(() => ({
+    mutationFn: async (claim: {
+      poiId: string;
+      field: PlaceFactField;
+      values: string[];
+    }): Promise<SubmitClaimResult> => {
+      const results = await Promise.all(
+        claim.values.map(async (value) => {
+          const response = await placeClient.submitPlaceClaim(
+            create(SubmitPlaceClaimRequestSchema, {
+              clientClaimId: crypto.randomUUID(),
+              observedAt: timestampFromDate(new Date()),
+              poiId: claim.poiId,
+              field: fields[claim.field],
+              value,
+            }),
+          );
+          return {
+            claimId: response.claimId,
+            status: claimStatusNames[response.status] ?? "UNSPECIFIED",
+          } satisfies SubmitClaimResult;
+        }),
+      );
+
+      const best =
+        results.find((result) => result.status === "ACCEPTED") ??
+        results.find((result) => result.status === "PENDING") ??
+        results[0];
+      return best ?? { claimId: "", status: "UNSPECIFIED" };
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["place-intelligence"] }),
+  }));
+};
+
 export const useSubmitPlaceClaim = () => {
   const queryClient = useQueryClient();
   return useMutation(() => ({

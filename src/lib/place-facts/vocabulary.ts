@@ -118,12 +118,11 @@ export const PLACE_FACT_VOCABULARY: Record<PlaceFactField, FieldVocabulary> = {
   },
   PLACE_FACT_FIELD_VIBE: {
     kind: "multi",
-    // Capped low on purpose. Corroboration needs two scouts to pick the *same
-    // set*, and the number of possible sets grows fast: three picks from eight
-    // tags is 92 possible answers, two is 36. A tighter cap is the difference
-    // between a field that can verify and one that never does.
-    maxSelections: 2,
-    question: "How did it feel? Pick up to two.",
+    // Each tag is filed and corroborated separately, so a generous selection no
+    // longer makes agreement unlikely. The cap is now only about keeping the
+    // answer considered rather than everything-at-once.
+    maxSelections: 3,
+    question: "How did it feel? Pick up to three.",
     options: [
       { token: "cosy", label: "Cosy" },
       { token: "lively", label: "Lively" },
@@ -166,14 +165,24 @@ export const fieldLabel = (field: PlaceFactField): string =>
     .join(" ");
 
 /**
- * The one spelling a set of tokens is sent as.
+ * The claims a selection turns into.
  *
- * De-duplicated and sorted, so two scouts who pick the same things in a
- * different order produce a byte-identical string and their claims can find
- * each other. Must match `normalizeValue` in the Go mirror exactly.
+ * A multi-answer field sends one claim per answer rather than one claim for the
+ * whole set. Corroboration is an exact match, so a set would only ever be
+ * confirmed by an identical set: one scout saying a place is vegan and gluten
+ * free and another saying only vegan agree about vegan, and sending sets would
+ * throw that agreement away. Sending each answer separately counts it on its
+ * own.
+ *
+ * Tokens are cleaned and sorted so the same selection always produces the same
+ * claims in the same order. The server applies the matching rules in
+ * `normalizeValue`.
  */
-export const serializeTokens = (tokens: string[]): string =>
-  Array.from(new Set(tokens.map((token) => token.trim().toLowerCase())))
+export const claimValuesFor = (field: PlaceFactField, tokens: string[]): string[] => {
+  const cleaned = Array.from(new Set(tokens.map((token) => token.trim().toLowerCase())))
     .filter((token) => token !== "")
-    .sort()
-    .join(",");
+    .sort();
+
+  if (cleaned.length === 0) return [];
+  return vocabularyFor(field)?.kind === "single" ? [cleaned[0]] : cleaned;
+};

@@ -7,27 +7,38 @@ import {
   parseOpeningHours,
   type OpeningHours,
 } from "./opening-hours";
-import { CONTRIBUTABLE_FIELDS, PLACE_FACT_VOCABULARY, serializeTokens } from "./vocabulary";
+import { claimValuesFor, CONTRIBUTABLE_FIELDS, PLACE_FACT_VOCABULARY } from "./vocabulary";
 
-describe("serializeTokens", () => {
-  // The whole point of the vocabulary: two scouts who pick the same things in a
-  // different order must produce the same string, or their claims never meet.
-  it("is order independent", () => {
-    expect(serializeTokens(["vegan", "gluten_free"])).toBe(
-      serializeTokens(["gluten_free", "vegan"]),
+describe("claimValuesFor", () => {
+  const DIETARY = "PLACE_FACT_FIELD_DIETARY" as const;
+  const CROWD = "PLACE_FACT_FIELD_CROWD_LEVEL" as const;
+
+  // Each answer is filed separately so it corroborates on its own: two scouts
+  // who both say vegan agree about vegan, whatever else either of them said.
+  it("sends one claim per answer for a multi-answer field", () => {
+    expect(claimValuesFor(DIETARY, ["vegan", "gluten_free"])).toEqual(["gluten_free", "vegan"]);
+  });
+
+  it("orders answers the same way however they were picked", () => {
+    expect(claimValuesFor(DIETARY, ["vegan", "gluten_free"])).toEqual(
+      claimValuesFor(DIETARY, ["gluten_free", "vegan"]),
     );
   });
 
-  it("sorts and joins without spaces", () => {
-    expect(serializeTokens(["vegan", "gluten_free"])).toBe("gluten_free,vegan");
-  });
-
   it("de-duplicates and lowercases", () => {
-    expect(serializeTokens(["Cosy", "cosy", " LOCAL "])).toBe("cosy,local");
+    expect(claimValuesFor(DIETARY, ["Vegan", "vegan", " HALAL "])).toEqual(["halal", "vegan"]);
   });
 
   it("drops empty entries", () => {
-    expect(serializeTokens(["quiet", "", "  "])).toBe("quiet");
+    expect(claimValuesFor(DIETARY, ["vegan", "", "  "])).toEqual(["vegan"]);
+  });
+
+  it("sends a single claim for a single-answer field", () => {
+    expect(claimValuesFor(CROWD, ["busy"])).toEqual(["busy"]);
+  });
+
+  it("sends nothing when nothing is selected", () => {
+    expect(claimValuesFor(DIETARY, [])).toEqual([]);
   });
 });
 
