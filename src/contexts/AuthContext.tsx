@@ -13,6 +13,8 @@ import { isDeadSession } from "~/lib/auth/session-failure";
 import { onAuthEstablished, onAuthExpired } from "~/lib/auth/auth-events";
 import { authAPI } from "~/lib/api";
 import { identify, resetIdentity } from "~/lib/analytics";
+import { clearFavoritesIdentityCache } from "~/lib/api/favorites";
+import { queryUtils } from "~/lib/query-client";
 
 interface User {
   id: string;
@@ -83,6 +85,16 @@ export const useAuth = () => {
   }
   return context;
 };
+
+/**
+ * Forget everything cached for whoever was signed in a moment ago: the
+ * favourites module caches the id it parsed out of the JWT for five minutes,
+ * and the QueryClient holds user-scoped lists for longer than that.
+ */
+function forgetUserScopedData(): void {
+  clearFavoritesIdentityCache();
+  queryUtils.removeUserData();
+}
 
 interface AuthProviderProps {
   children: JSX.Element;
@@ -276,6 +288,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
     const off = onAuthExpired(() => {
       clearAuthToken();
       resetIdentity();
+      forgetUserScopedData();
       setUser(null);
       setIsLoading(false);
       if (typeof window !== "undefined" && !window.location.pathname.includes("/auth/")) {
@@ -303,6 +316,9 @@ export const AuthProvider = (props: AuthProviderProps) => {
   ): void => {
     const { access_token, refresh_token, user_id, username, email: userEmail } = response;
     setAuthToken(access_token, rememberMe, refresh_token);
+    // Anything cached before a token existed was fetched as nobody. Drop it, or
+    // the empty favourites list from the signed-out page stays "fresh" here.
+    forgetUserScopedData();
 
     // Build display name with proper fallbacks
     const displayName = username || userEmail?.split("@")[0] || fallbackEmail.split("@")[0];
@@ -397,6 +413,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
       // Stop attributing events to someone who has left, so the next user on
       // this browser is not merged into their session.
       resetIdentity();
+      forgetUserScopedData();
       setUser(null);
       setIsLoading(false);
       setAuthError(null);

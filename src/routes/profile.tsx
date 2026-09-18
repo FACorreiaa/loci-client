@@ -12,7 +12,8 @@ import { Button } from "~/ui/button";
 import ProPlanBadge from "~/components/ProPlanBadge";
 import { useRecentInteractions } from "~/lib/api/recents";
 import { useLists } from "~/lib/api/lists";
-import { useFavorites } from "~/lib/api/pois";
+import { useFavoritesList } from "~/lib/api/favorites";
+import { recentFavorites } from "~/lib/dashboard/kept";
 
 function ProfilePageContent() {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ function ProfilePageContent() {
   // API hooks for real data - no more hardcoded values
   const recentsQuery = useRecentInteractions(20);
   const listsQuery = useLists();
-  const favoritesQuery = useFavorites();
+  const favoritesQuery = useFavoritesList();
 
   console.log("Profile page - User data:", user());
   console.log("Profile query status:", {
@@ -44,7 +45,7 @@ function ProfilePageContent() {
   const computedStats = createMemo(() => {
     const cities = recentsQuery.data?.cities || [];
     const lists = listsQuery.data || [];
-    const favorites = favoritesQuery.data || [];
+    const favorites = favoritesQuery.data?.favorites || [];
 
     // Count unique cities visited (places_visited)
     const placesVisited = cities.length;
@@ -222,11 +223,10 @@ function ProfilePageContent() {
     }
 
     // Add recent favorites
-    const favorites = (favoritesQuery.data as any[]) || [];
-    for (const fav of favorites.slice(0, 2)) {
+    for (const fav of recentFavorites(favoritesQuery.data?.favorites, 2)) {
       activities.push({
         type: "favorite",
-        title: `Added ${fav.name || "a place"} to favorites`,
+        title: `Added ${fav.itemName || "a place"} to favorites`,
         date: "Recently",
       });
     }

@@ -50,15 +50,17 @@ export const useAllUserItineraries = (options: { enabled?: boolean | (() => bool
   return useAppQuery(() => ({
     queryKey: queryKeys.userItineraries,
     queryFn: async (): Promise<PaginatedItinerariesResponse> => {
+      // page_size is capped at 100 by buf.validate; 1000 was rejected with
+      // InvalidArgument before the request ever reached a handler.
       const request = create(GetUserItinerariesRequestSchema, {
-        pagination: create(PaginationRequestSchema, { page: 1, pageSize: 1000 }),
+        pagination: create(PaginationRequestSchema, { page: 1, pageSize: 100 }),
       });
       const response = await itineraryClient.getUserItineraries(request);
       return {
         itineraries: (response.itineraries || []).map(mapProtoToItinerary),
         total: response.pagination?.totalRecords || 0,
         page: response.pagination?.page || 1,
-        limit: response.pagination?.pageSize || 1000,
+        limit: response.pagination?.pageSize || 100,
         has_more: (response.pagination?.page || 1) < (response.pagination?.totalPages || 1),
       };
     },

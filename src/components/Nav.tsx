@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Clock3,
   Compass,
-  Heart,
   LogOut,
   Map,
   MapPin,
@@ -44,8 +43,7 @@ const journeyItems = [
 
 const accountItems = [
   { name: "Contribute", href: "/contribute", icon: Users },
-  { name: "Favorites", href: "/favorites", icon: Heart },
-  { name: "Bookmarks", href: "/bookmarks", icon: Bookmark },
+  { name: "Saved", href: "/saved", icon: Bookmark },
   { name: "Recents", href: "/recents", icon: Clock3 },
   { name: "Travel profiles", href: "/profiles", icon: User },
   { name: "Settings", href: "/settings", icon: Settings },

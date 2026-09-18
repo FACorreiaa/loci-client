@@ -47,7 +47,7 @@ export default function KeptSection(props: Props) {
                 kicker="kept"
                 title="Saved places"
                 action={
-                  <A href="/favorites" class={listAction}>
+                  <A href="/saved?view=places" class={listAction}>
                     All saved
                   </A>
                 }

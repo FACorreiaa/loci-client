@@ -4,7 +4,8 @@ import { Button } from "~/ui/button";
 
 interface SelectionToolbarProps {
   count: number;
-  onExport: () => void;
+  /** Omit where there is nothing real to export. */
+  onExport?: () => void;
   onClear: () => void;
   onSelectAll?: () => void;
 }
@@ -40,15 +41,17 @@ export function SelectionToolbar(props: SelectionToolbarProps) {
               </Button>
             </Show>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={props.onExport}
-              class="text-white hover:bg-white/20 hover:text-white gap-1.5 h-8"
-            >
-              <Download class="w-3.5 h-3.5" />
-              Export
-            </Button>
+            <Show when={props.onExport}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={props.onExport}
+                class="text-white hover:bg-white/20 hover:text-white gap-1.5 h-8"
+              >
+                <Download class="w-3.5 h-3.5" />
+                Export
+              </Button>
+            </Show>
 
             <Button
               variant="ghost"

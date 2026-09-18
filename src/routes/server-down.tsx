@@ -130,10 +130,10 @@ const ServerDownPage: Component = () => {
           <p class="text-sm text-muted-foreground mb-4">Try these offline-friendly features:</p>
           <div class="flex flex-wrap justify-center gap-3">
             <A
-              href="/favorites"
+              href="/saved"
               class="inline-flex items-center gap-1 px-3 py-2 text-xs bg-card text-muted-foreground rounded-full border border-border hover:bg-muted transition-colors"
             >
-              ❤️ Favorites
+              ❤️ Saved
             </A>
             <A
               href="/lists"

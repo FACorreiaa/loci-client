@@ -21,8 +21,13 @@ export const queryKeys = {
   tags: ["tags"] as const,
   tag: (id: string) => ["tags", id] as const,
 
+  // Favourites. One root for invalidation, one keyed by user for the data —
+  // `favorites` used to be ["pois","favorites"] while the page fetched under
+  // ["favorites","list"], so every invalidation helper cleared the wrong cache.
+  favoritesRoot: ["favorites"] as const,
+  favoritesList: (userId: string | null) => ["favorites", "list", userId ?? "anonymous"] as const,
+
   // POIs
-  favorites: ["pois", "favorites"] as const,
   poiDetails: (id: string) => ["pois", "details", id] as const,
   nearbyPois: (lat: number, lng: number, radius?: number) =>
     ["pois", "nearby", lat, lng, radius] as const,
@@ -83,7 +88,7 @@ export const useInvalidateUserQueries = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
     queryClient.invalidateQueries({ queryKey: queryKeys.interests });
     queryClient.invalidateQueries({ queryKey: queryKeys.tags });
-    queryClient.invalidateQueries({ queryKey: queryKeys.favorites });
+    queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
     queryClient.invalidateQueries({ queryKey: queryKeys.lists });
     queryClient.invalidateQueries({ queryKey: queryKeys.settings });
   };

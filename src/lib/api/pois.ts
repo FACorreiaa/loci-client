@@ -1,17 +1,14 @@
-// POI and favorites queries and mutations - Using RPC (REST removed)
+// POI queries and mutations (RPC). Favourites live in ./favorites.ts — there
+// used to be a second, parallel implementation here on a different cache key.
 import { createResource } from "solid-js";
-import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
-import { FavoritesService } from "@buf/loci_loci-proto.bufbuild_es/loci/favorites/v1/favorites_pb.js";
 import { POIService } from "@buf/loci_loci-proto.bufbuild_es/loci/poi/poi_pb.js";
 import type { POIDetailedInfo as ProtoPOI } from "@buf/loci_loci-proto.bufbuild_es/loci/poi/poi_pb.js";
 import { transport } from "../connect-transport";
-import { logger } from "../logger";
 import { queryKeys } from "./shared";
-import type { POI, POIDetailedInfo } from "./types";
+import type { POI } from "./types";
 import { useAppQuery } from "./authed-query";
 
-const favoritesClient = createClient(FavoritesService, transport);
 const poiClient = createClient(POIService, transport);
 
 function mapProtoPOI(poi: ProtoPOI): POI {
@@ -53,118 +50,6 @@ function mapProtoPOI(poi: ProtoPOI): POI {
 // ===============
 // POI QUERIES - RPC
 // ===============
-
-export const useFavorites = () => {
-  return useAppQuery(() => ({
-    queryKey: queryKeys.favorites,
-    queryFn: async (): Promise<POIDetailedInfo[]> => {
-      logger.debug("Fetching user favorites via RPC...");
-      try {
-        const response = await favoritesClient.getFavorites({});
-        const favorites = (response.favorites || []).map((f) => ({
-          id: f.itemId || "",
-          name: f.itemName || "Unknown POI",
-          description: f.description || "",
-          latitude: f.latitude || 0,
-          longitude: f.longitude || 0,
-          category: f.category || "",
-          rating: f.rating || 0,
-          address: "",
-          city: f.cityName || "",
-          imageUrl: "",
-        })) as POIDetailedInfo[];
-        logger.debug("Favorites fetched via RPC:", favorites.length);
-        return favorites;
-      } catch (error) {
-        logger.error("Failed to fetch favorites via RPC:", error);
-        return [];
-      }
-    },
-    staleTime: 5 * 60 * 1000,
-  }));
-};
-
-export const useAddToFavoritesMutation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation(() => ({
-    mutationFn: async (params: { poiId: string; poiData?: POIDetailedInfo }) => {
-      logger.debug("Adding POI to favorites via RPC:", params);
-      try {
-        await favoritesClient.addToFavorites({
-          itemId: params.poiId,
-          itemName: params.poiData?.name || "",
-          description: params.poiData?.description || "",
-          cityName: params.poiData?.city || "",
-          latitude: params.poiData?.latitude || 0,
-          longitude: params.poiData?.longitude || 0,
-          rating: params.poiData?.rating || 0,
-          category: params.poiData?.category || "",
-        });
-        logger.debug("Added to favorites via RPC");
-        return { message: "Added to favorites" };
-      } catch (error) {
-        logger.error("Add to favorites failed:", error);
-        throw error;
-      }
-    },
-    onMutate: async (params) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.favorites });
-      const previousFavorites = queryClient.getQueryData(queryKeys.favorites);
-      queryClient.setQueryData(queryKeys.favorites, (old: POI[] | undefined) => {
-        const currentFavorites = old || [];
-        const newPOI = params.poiData || ({ id: params.poiId, name: "POI" } as POI);
-        return [...currentFavorites, newPOI];
-      });
-      return { previousFavorites };
-    },
-    onError: (error, params, context) => {
-      logger.error("Add to favorites failed:", error);
-      queryClient.setQueryData(queryKeys.favorites, context?.previousFavorites);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.favorites });
-    },
-  }));
-};
-
-export const useRemoveFromFavoritesMutation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation(() => ({
-    mutationFn: async (params: { poiId: string; poiData?: POIDetailedInfo }) => {
-      logger.debug("Removing POI from favorites via RPC:", params);
-      try {
-        await favoritesClient.removeFromFavorites({
-          itemId: params.poiId,
-        });
-        logger.debug("Removed from favorites via RPC");
-        return { message: "Removed from favorites" };
-      } catch (error) {
-        logger.error("Remove from favorites failed:", error);
-        throw error;
-      }
-    },
-    onMutate: async (params) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.favorites });
-      const previousFavorites = queryClient.getQueryData(queryKeys.favorites);
-      queryClient.setQueryData(queryKeys.favorites, (old: POI[] | undefined) => {
-        const currentFavorites = old || [];
-        return currentFavorites.filter((poi) => poi.id !== params.poiId);
-      });
-      return { previousFavorites };
-    },
-    onError: (err, params, context) => {
-      logger.error("Remove from favorites failed:", err);
-      if (context?.previousFavorites) {
-        queryClient.setQueryData(queryKeys.favorites, context.previousFavorites);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.favorites });
-    },
-  }));
-};
 
 export const usePOIDetails = (poiId: string) => {
   return useAppQuery(() => ({

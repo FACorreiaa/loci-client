@@ -31,19 +31,24 @@ export const savedItineraryHref = (sessionId: string, cityName: string): string 
   `/itinerary?sessionId=${encodeURIComponent(sessionId)}&cityName=${encodeURIComponent(cityName)}&domain=itinerary`;
 
 const norm = (s: string | undefined) => (s ?? "").trim().toLowerCase();
-const matchKey = (title: string | undefined, city: string | undefined) =>
-  `${norm(title)}|${norm(city)}`;
 const ms = (iso: string | undefined) => {
   const t = new Date(iso ?? "").getTime();
   return Number.isNaN(t) ? 0 : t;
 };
 
 /**
- * Offline copies come first-class. A cloud bookmark with the same title and
- * city folds into its copy — the server keeps no session id, so title + city
- * is the only handle there is. Cloud-only bookmarks stay visible so nothing a
- * person saved goes missing, but they cannot open until the server stores
- * content.
+ * Offline copies come first-class. A cloud bookmark folds into its copy when the
+ * titles match — the server keeps no session id, so the title is the only handle
+ * there is.
+ *
+ * City is compared only when BOTH sides have one. The bookmark RPC accepts a
+ * `primary_city_name` but persists only `primary_city_id`, and the client has
+ * never sent an id, so every bookmark ever written has an empty city. Requiring
+ * the cities to match therefore guaranteed a miss, and every saved itinerary
+ * showed up twice: once as a device copy, once as a cloud row with a blank city.
+ *
+ * Cloud-only bookmarks stay visible so nothing a person saved goes missing, but
+ * they cannot open until the server stores content.
  */
 export function mergeSavedItineraries(
   offline: OfflineItinerary[],
@@ -60,10 +65,24 @@ export function mergeSavedItineraries(
     href: savedItineraryHref(o.id, o.cityName),
   }));
 
-  const byMatch = new Map(items.map((i) => [matchKey(i.title, i.cityName), i]));
+  // Several device copies can share a title (the same city planned twice), so
+  // keep them all and pick the one whose city agrees, if any side names one.
+  const byTitle = new Map<string, SavedItinerary[]>();
+  for (const i of items) {
+    const k = norm(i.title);
+    const bucket = byTitle.get(k);
+    if (bucket) bucket.push(i);
+    else byTitle.set(k, [i]);
+  }
 
   for (const c of cloud) {
-    const existing = byMatch.get(matchKey(c.title, c.primary_city_id));
+    const candidates = byTitle.get(norm(c.title)) ?? [];
+    const cloudCity = norm(c.primary_city_id);
+    const existing = candidates.find(
+      (i) =>
+        // One device copy cannot stand in for two different bookmarks.
+        !i.cloudId && (!cloudCity || !norm(i.cityName) || norm(i.cityName) === cloudCity),
+    );
     if (existing) {
       existing.cloudId = c.id;
       if (ms(c.created_at) > ms(existing.savedAt))
@@ -73,7 +92,9 @@ export function mergeSavedItineraries(
     items.push({
       key: `cloud:${c.id}`,
       title: c.title,
-      cityName: c.primary_city_id ?? "",
+      // Deliberately blank: the server holds a city *id*, and printing a UUID
+      // where a city name belongs is worse than printing nothing.
+      cityName: "",
       description: c.description || undefined,
       savedAt: c.created_at ?? "",
       cloudId: c.id,

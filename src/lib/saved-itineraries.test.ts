@@ -55,6 +55,60 @@ describe("mergeSavedItineraries", () => {
     expect(items[0]).toMatchObject({ offlineId: "s1", cloudId: "c1" });
   });
 
+  it("folds a cloud bookmark that carries no city into the offline copy", () => {
+    // Every bookmark the app has ever written has an empty primary_city_id:
+    // the RPC takes a city *name* and persists only an id, which is never sent.
+    // Requiring the cities to match meant these never merged, so a single saved
+    // itinerary appeared twice.
+    const items = mergeSavedItineraries(
+      [offline("s1", "Lisbon food walk", "Lisbon", "2026-09-10T10:00:00Z")],
+      [cloud("c1", "Lisbon food walk", "", "2026-09-09T00:00:00Z")],
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ offlineId: "s1", cloudId: "c1", cityName: "Lisbon" });
+  });
+
+  it("leaves a cloud-only city blank rather than printing an id", () => {
+    const [item] = mergeSavedItineraries(
+      [],
+      [
+        cloud(
+          "c1",
+          "Porto weekend",
+          "7f3a1b2c-0000-4000-8000-000000000001",
+          "2026-09-01T00:00:00Z",
+        ),
+      ],
+    );
+    expect(item.cityName).toBe("");
+  });
+
+  it("does not let one offline copy absorb two different bookmarks", () => {
+    const items = mergeSavedItineraries(
+      [offline("s1", "Porto weekend", "Porto", "2026-09-10T10:00:00Z")],
+      [
+        cloud("c1", "Porto weekend", "", "2026-09-09T00:00:00Z"),
+        cloud("c2", "Porto weekend", "", "2026-09-08T00:00:00Z"),
+      ],
+    );
+    expect(items).toHaveLength(2);
+    expect(items.filter((i) => i.cloudId === "c1")).toHaveLength(1);
+    expect(items.filter((i) => i.cloudId === "c2")).toHaveLength(1);
+  });
+
+  it("still keeps two different cities with the same title apart", () => {
+    const items = mergeSavedItineraries(
+      [
+        offline("s1", "Two days", "Porto", "2026-09-10T10:00:00Z"),
+        offline("s2", "Two days", "Lisbon", "2026-09-11T10:00:00Z"),
+      ],
+      [cloud("c1", "Two days", "Lisbon", "2026-09-09T00:00:00Z")],
+    );
+    expect(items).toHaveLength(2);
+    expect(items.find((i) => i.offlineId === "s2")?.cloudId).toBe("c1");
+    expect(items.find((i) => i.offlineId === "s1")?.cloudId).toBeUndefined();
+  });
+
   it("orders newest first across both sources", () => {
     const items = mergeSavedItineraries(
       [offline("s1", "Old", "Porto", "2026-08-01T00:00:00Z")],
