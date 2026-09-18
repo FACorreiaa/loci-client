@@ -1,4 +1,4 @@
-# Loci — the plan that knows what changed today
+# Loci is the plan that knows what changed today
 
 Every AI can write you an itinerary. Loci is the one that knows the museum is
 shut for a public holiday, the transit strike is on, and what the trip actually
