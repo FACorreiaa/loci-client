@@ -170,6 +170,90 @@ export const useUserProfileQuery = () => {
 /**
  * Update the authenticated user's profile via RPC
  */
+/**
+ * Build the UpdateProfileParams payload from a partial edit.
+ *
+ * Exported so the empty-string rule is testable: UpdateProfileParams carries
+ * `min_len: 1` on every optional text field and the server runs protovalidate,
+ * so sending "" fails the whole request rather than clearing that field.
+ */
+export function buildUpdateProfileParams(params: UpdateUserProfileParams): Record<string, unknown> {
+  // A partial update: a field this request does not mention keeps its
+  // stored value.
+  //
+  // Empty strings are dropped rather than sent, because UpdateProfileParams
+  // carries `min_len: 1` on every one of these fields and the server runs
+  // protovalidate (cmd/api/router.go, validate.NewInterceptor). Sending ""
+  // does not clear the field — it fails validation for the whole request,
+  // so one empty phone number made every other edit on the page fail too.
+  //
+  // The cost is that a field still cannot be emptied once set. That is a
+  // real gap, and fixing it properly means relaxing the proto — adding
+  // `ignore: IGNORE_IF_ZERO_VALUE` to these fields so "" is a value rather
+  // than a violation — then re-releasing the contract. Until that lands,
+  // saving has to work.
+  const updateParamsData: Record<string, unknown> = {};
+
+  // Optional text fields, all constrained to min_len: 1 on the wire.
+  const optionalText = [
+    "displayName",
+    "profileImageUrl",
+    "firstname",
+    "lastname",
+    "phoneNumber",
+    "city",
+    "country",
+    "aboutYou",
+    "location",
+  ] as const;
+  for (const field of optionalText) {
+    const value = params[field];
+    if (value !== undefined && value !== "") {
+      updateParamsData[field] = value;
+    }
+  }
+
+  // Username and email identify the account; blanking either is not an edit
+  // anyone means to make.
+  if (params.username !== undefined && params.username !== "") {
+    updateParamsData.username = params.username;
+  }
+  if (params.email !== undefined && params.email !== "") {
+    updateParamsData.email = params.email;
+  }
+  if (params.age !== undefined) {
+    updateParamsData.age = params.age;
+  }
+  if (params.interests !== undefined && params.interests.length > 0) {
+    updateParamsData.interests = params.interests;
+  }
+  if (params.badges !== undefined && params.badges.length > 0) {
+    updateParamsData.badges = params.badges;
+  }
+  if (params.theme !== undefined && params.theme !== "") {
+    updateParamsData.theme = params.theme;
+  }
+  if (params.language !== undefined && params.language !== "") {
+    updateParamsData.language = params.language;
+  }
+  // Same empty-means-absent rule as every field above, and for these three
+  // it is also the only correct one: units and currency carry CHECK
+  // constraints that an empty string violates, so "" is never a value to
+  // send. Clearing a locale field back to NULL is therefore not something
+  // this API can express — the card offers changing them, not unsetting.
+  if (params.timezone !== undefined && params.timezone !== "") {
+    updateParamsData.timezone = params.timezone;
+  }
+  if (params.units !== undefined && params.units !== "") {
+    updateParamsData.units = params.units;
+  }
+  if (params.currency !== undefined && params.currency !== "") {
+    updateParamsData.currency = params.currency;
+  }
+
+  return updateParamsData;
+}
+
 export const useUpdateProfileMutation = () => {
   const queryClient = useQueryClient();
 
@@ -177,74 +261,7 @@ export const useUpdateProfileMutation = () => {
     mutationFn: async (
       params: UpdateUserProfileParams,
     ): Promise<{ success: boolean; message?: string }> => {
-      // A partial update. `undefined` means the request is not about that
-      // field and the stored value is left alone; an empty string means the
-      // person cleared it and it is sent.
-      //
-      // Everything here used to be skipped when empty, "to avoid validation
-      // errors" — but nothing validates these: the server runs no protovalidate
-      // interceptor, and the proto's min_len rules are documentation. The only
-      // effect was that no profile field could ever be emptied. Deleting your
-      // bio, phone or city produced "Profile updated successfully" and the old
-      // value came back on the next load.
-      const updateParamsData: Record<string, unknown> = {};
-
-      // Fields a person can legitimately empty out.
-      const clearable = [
-        "displayName",
-        "profileImageUrl",
-        "firstname",
-        "lastname",
-        "phoneNumber",
-        "city",
-        "country",
-        "aboutYou",
-        "location",
-      ] as const;
-      for (const field of clearable) {
-        if (params[field] !== undefined) {
-          updateParamsData[field] = params[field];
-        }
-      }
-
-      // Username and email identify the account. Blanking either is not an edit
-      // anyone means to make, and the API has no way to express it, so an empty
-      // one is still treated as absent.
-      if (params.username !== undefined && params.username !== "") {
-        updateParamsData.username = params.username;
-      }
-      if (params.email !== undefined && params.email !== "") {
-        updateParamsData.email = params.email;
-      }
-      if (params.age !== undefined) {
-        updateParamsData.age = params.age;
-      }
-      if (params.interests !== undefined && params.interests.length > 0) {
-        updateParamsData.interests = params.interests;
-      }
-      if (params.badges !== undefined && params.badges.length > 0) {
-        updateParamsData.badges = params.badges;
-      }
-      if (params.theme !== undefined && params.theme !== "") {
-        updateParamsData.theme = params.theme;
-      }
-      if (params.language !== undefined && params.language !== "") {
-        updateParamsData.language = params.language;
-      }
-      // Same empty-means-absent rule as every field above, and for these three
-      // it is also the only correct one: units and currency carry CHECK
-      // constraints that an empty string violates, so "" is never a value to
-      // send. Clearing a locale field back to NULL is therefore not something
-      // this API can express — the card offers changing them, not unsetting.
-      if (params.timezone !== undefined && params.timezone !== "") {
-        updateParamsData.timezone = params.timezone;
-      }
-      if (params.units !== undefined && params.units !== "") {
-        updateParamsData.units = params.units;
-      }
-      if (params.currency !== undefined && params.currency !== "") {
-        updateParamsData.currency = params.currency;
-      }
+      const updateParamsData = buildUpdateProfileParams(params);
 
       const updateParams = create(UpdateProfileParamsSchema, updateParamsData);
 
