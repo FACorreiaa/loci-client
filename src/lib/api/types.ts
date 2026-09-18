@@ -351,6 +351,16 @@ export interface SearchProfile {
   tags: ProfileTag[] | null;
   user_latitude: number | null;
   user_longitude: number | null;
+  // The four domain-preference blocks. Optional because a profile that has
+  // never had any set comes back without them, which the editor distinguishes
+  // from a profile whose preferences are genuinely empty.
+  //
+  // These were missing from this type while the server was dropping them in
+  // both directions, so nothing noticed they were absent.
+  accommodation_preferences?: AccommodationPreferences;
+  dining_preferences?: DiningPreferences;
+  activity_preferences?: ActivityPreferences;
+  itinerary_preferences?: ItineraryPreferences;
   created_at: string;
   updated_at: string;
   accommodation_preferences?: AccommodationPreferences | null;

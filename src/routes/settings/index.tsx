@@ -24,6 +24,7 @@ import {
   Plug,
 } from "lucide-solid";
 import {
+  type UpdateUserProfileParams,
   useUpdateProfileMutation,
   useUploadAvatarMutation,
   useUserProfileQuery,
@@ -151,19 +152,40 @@ function SettingsPageContent() {
   });
 
   const saveProfile = async () => {
+    // The form starts as a set of empty strings and is filled in by the effect
+    // above once the profile arrives. Saving before that would now send those
+    // empty strings as deliberate clears and wipe the profile, because an empty
+    // field is no longer silently dropped. Nothing to save until it has loaded.
+    if (!profileQuery.isSuccess) {
+      setNotification({
+        message: "Still loading your profile — give it a moment before saving.",
+        type: "error",
+      });
+      setTimeout(() => setNotification(null), 5000);
+      return;
+    }
+
     try {
       const profileData = userProfile();
-      const profileUpdateData = {
+      // Annotated so a misspelled or renamed field is a compile error. Without
+      // the annotation this is just an object, excess-property checking does
+      // not apply, and two fields sat here for months being silently dropped.
+      const profileUpdateData: UpdateUserProfileParams = {
         // The form has had a Username field all along and this payload omitted
         // it, so every edit to it was silently discarded on save.
         username: profileData.username,
         firstname: profileData.firstname,
         lastname: profileData.lastname,
         email: profileData.email,
-        phone: profileData.phone,
+        // These two were sent as `phone` and `about_you`. UpdateUserProfileParams
+        // spells them phoneNumber and aboutYou, and TypeScript does not apply
+        // excess-property checking to a variable, so both were dropped on the
+        // floor: editing your phone number or your bio on this page has never
+        // saved anything.
+        phoneNumber: profileData.phone,
+        aboutYou: profileData.bio,
         city: profileData.city,
         country: profileData.country,
-        about_you: profileData.bio,
         // Note: avatar is handled separately via uploadAvatarMutation
       };
 
