@@ -141,23 +141,33 @@ export default function ItineraryPage() {
     return false;
   };
 
-  const hydrateFromServer = async (sessionIdFromUrl: string) => {
+  /**
+   * Ask the server for the itinerary this session saved.
+   *
+   * Returns whether it found one, and no longer decides what an empty result
+   * means. A session with nothing saved is not necessarily an error — when the
+   * original query is still in the URL it is a reason to re-run the search —
+   * so the caller owns that choice. See restoreOrHydrateSession.
+   */
+  const hydrateFromServer = async (sessionIdFromUrl: string): Promise<boolean> => {
     setStore("error", null);
     setStore("isLoading", true);
 
     try {
       const itinerary = await getChatSession(sessionIdFromUrl);
       if (!itinerary || stopsFromCityResponse(itinerary).stops.length === 0) {
-        throw new Error("This session has no saved itinerary yet. Try starting a new search.");
+        return false;
       }
 
       const normalizedData = normalizeItineraryPayload(itinerary);
       setStore("data", normalizedData);
       persistCompletedSession(sessionIdFromUrl, normalizedData);
+      return true;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Could not load your itinerary. Please try again.";
       setStore("error", new Error(message));
+      return true;
     } finally {
       setStore("isLoading", false);
     }
@@ -188,7 +198,31 @@ export default function ItineraryPage() {
     if (await restoreFromDevice(sessionIdFromUrl)) {
       return;
     }
-    await hydrateFromServer(sessionIdFromUrl);
+    if (await hydrateFromServer(sessionIdFromUrl)) {
+      return;
+    }
+
+    // The session saved nothing. Re-run the search when the URL still says what
+    // was asked.
+    //
+    // /hotels, /restaurants and /activities have always fallen through to the
+    // query here; this route stopped at "this session has no saved itinerary
+    // yet" instead. That gap became visible when /recents started linking here:
+    // the completed-session store holds exactly one session, so every row but
+    // the most recent one in this tab restored nothing and dead-ended — a
+    // history page where almost none of the history opened.
+    //
+    // Repeating an identical prompt is close to free: the generation cache
+    // serves it from Postgres without a provider call.
+    if (message().trim() && cityName().trim()) {
+      connect();
+      return;
+    }
+
+    setStore(
+      "error",
+      new Error("This session has no saved itinerary yet. Try starting a new search."),
+    );
   };
 
   // Connect on mount - but only if we don't already have data from navigation
@@ -416,6 +450,7 @@ export default function ItineraryPage() {
     const full = allByName().get(poi.name) || poi;
     setDetailItem({
       type: "poi",
+      id: full.id || full.placeId || full.place_id,
       name: full.name,
       latitude: toNum(full.latitude),
       longitude: toNum(full.longitude),
