@@ -1,3 +1,4 @@
+export { AddPlaceForm } from "./AddPlaceForm";
 export { ClaimForm } from "./ClaimForm";
 export { ClaimResult } from "./ClaimResult";
 export { FieldPicker } from "./FieldPicker";
