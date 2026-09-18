@@ -71,10 +71,22 @@ export const routePreloaders: Record<string, () => void> = {
 };
 
 /**
+ * Preloaders for routes whose path is not fixed.
+ *
+ * routePreloaders is keyed on an exact href, which a dynamic route can never
+ * match: a pack lives at /packs/lisbon-jacarandas-3day, not at a literal
+ * "/packs/[slug]". Registering the literal would have been dead code that
+ * looked correct.
+ */
+const routePrefixPreloaders: Array<[string, () => void]> = [["/packs/", preloadMap]];
+
+/**
  * Get preloader function for a route
  */
 export const getPreloader = (href: string): (() => void) | undefined => {
-  return routePreloaders[href];
+  const exact = routePreloaders[href];
+  if (exact) return exact;
+  return routePrefixPreloaders.find(([prefix]) => href.startsWith(prefix))?.[1];
 };
 
 /**

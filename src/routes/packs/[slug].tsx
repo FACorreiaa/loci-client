@@ -1,11 +1,17 @@
-import { createMemo, Show } from "solid-js";
+import { createMemo, createSignal, Show } from "solid-js";
 import { Title, Meta } from "@solidjs/meta";
 import { useParams, useSearchParams, useNavigate, A } from "@solidjs/router";
 import { Lock, Loader2, ArrowRight } from "lucide-solid";
 import ItineraryStreamView from "~/components/itinerary/ItineraryStreamView";
+import SplitView from "~/components/layout/SplitView";
+import { lazyChunk } from "~/lib/lazyChunk";
 import { useAuth } from "~/contexts/AuthContext";
 import { usePack, useCreatePackCheckout, useClaimPack } from "~/lib/api/bundles";
 import { monthsLabel, priceLabel, themeLabel } from "~/lib/bundles/themes";
+
+// Mapbox is a large chunk and most of the page is readable without it, so it
+// loads on its own rather than blocking the itinerary.
+const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 
 /**
  * How much of this pack the reader may see.
@@ -42,6 +48,18 @@ export default function PackDetailPage() {
   // the page still looks locked.
   const justPurchased = () => search.purchased === "1";
   const stops = createMemo(() => detail()?.days.flatMap((d) => d.stops) ?? []);
+  const points = createMemo(() => detail()?.points ?? []);
+
+  // Selection is shared both ways: clicking a marker highlights the row, and
+  // clicking a row flies the map to it.
+  const [selectedKey, setSelectedKey] = createSignal<string | undefined>();
+
+  // Centre on the first stop that has one. A pack whose stops all lack
+  // positions shows no map rather than the Atlantic.
+  const center = createMemo<[number, number] | null>(() => {
+    const first = points()[0];
+    return first ? [first.longitude, first.latitude] : null;
+  });
 
   const startCheckout = async () => {
     const p = pack();
@@ -126,15 +144,60 @@ export default function PackDetailPage() {
             </div>
           </header>
 
-          <div class="mt-6">
-            <ItineraryStreamView
-              phase="done"
-              title={pack()!.title}
-              summary=""
-              stops={stops()}
-              enrichedCount={stops().length}
-            />
-          </div>
+          <Show
+            when={center()}
+            fallback={
+              <div class="mt-6">
+                <ItineraryStreamView
+                  phase="done"
+                  title={pack()!.title}
+                  summary=""
+                  stops={stops()}
+                  enrichedCount={stops().length}
+                  selectedKey={selectedKey()}
+                  onStopClick={(s) => setSelectedKey(s.key)}
+                />
+              </div>
+            }
+          >
+            <div class="mt-6 h-[70vh] overflow-hidden rounded-2xl border border-border">
+              <SplitView
+                initialMode="split"
+                listContent={
+                  <div class="h-full overflow-y-auto p-4">
+                    <ItineraryStreamView
+                      phase="done"
+                      title={pack()!.title}
+                      summary=""
+                      stops={stops()}
+                      enrichedCount={stops().length}
+                      selectedKey={selectedKey()}
+                      onStopClick={(s) => setSelectedKey(s.key)}
+                    />
+                  </div>
+                }
+                mapContent={
+                  <div class="relative h-full w-full bg-muted">
+                    <MapComponent
+                      center={center()!}
+                      zoom={12}
+                      pointsOfInterest={points()}
+                      selectedId={selectedKey()}
+                      onSelect={(poi) => setSelectedKey(poi.id)}
+                      showRoutes
+                    />
+                  </div>
+                }
+              />
+            </div>
+          </Show>
+
+          <Show when={points().length < stops().length}>
+            <p class="mt-2 text-xs text-muted-foreground">
+              {stops().length - points().length} of {stops().length} stops have no position yet and
+              are not on the map.
+            </p>
+          </Show>
 
           <Show when={access() === "locked"}>
             <section class="loci-card mt-6 p-6 text-center">
