@@ -1,13 +1,17 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
+  ConfirmPlaceRequestSchema,
   GetMyContributorProfileRequestSchema,
   GetPlaceFactsRequestSchema,
+  ListPendingPlacesRequestSchema,
   ListVerificationTasksRequestSchema,
   PlaceClaimStatus as ProtoPlaceClaimStatus,
   PlaceFactField as ProtoPlaceFactField,
   PlaceIntelligenceService,
+  PlaceSubmissionStatus as ProtoPlaceSubmissionStatus,
   SubmitPlaceClaimRequestSchema,
+  SubmitPlaceRequestSchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/place/place_intelligence_pb.js";
 import { createClient } from "@connectrpc/connect";
 import { useMutation, useQueryClient } from "@tanstack/solid-query";
@@ -221,6 +225,80 @@ export const useSubmitPlaceClaims = () => {
         results.find((result) => result.status === "PENDING") ??
         results[0];
       return best ?? { claimId: "", status: "UNSPECIFIED" };
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["place-intelligence"] }),
+  }));
+};
+
+export interface PendingPlace {
+  submissionId: string;
+  name: string;
+  cityName: string;
+  category?: string;
+  address?: string;
+  confirmationsNeeded: number;
+}
+
+/** Places somebody else has proposed, waiting on a second pair of eyes. */
+export const usePendingPlaces = (options: PlaceIntelligenceQueryOptions = {}) =>
+  useAppQuery(() => ({
+    enabled: options.enabled ? options.enabled() : true,
+    queryKey: ["place-intelligence", "pending-places"],
+    queryFn: async (): Promise<PendingPlace[]> => {
+      const response = await placeClient.listPendingPlaces(
+        create(ListPendingPlacesRequestSchema, { limit: 20 }),
+      );
+      return response.places.map((place) => ({
+        submissionId: place.submissionId,
+        name: place.name,
+        cityName: place.cityName,
+        category: place.category,
+        address: place.address,
+        confirmationsNeeded: place.confirmationsNeeded,
+      }));
+    },
+  }));
+
+export const useSubmitPlace = () => {
+  const queryClient = useQueryClient();
+  return useMutation(() => ({
+    mutationFn: async (place: {
+      name: string;
+      cityName: string;
+      country?: string;
+      category?: string;
+      latitude?: number;
+      longitude?: number;
+      address?: string;
+      website?: string;
+    }) => {
+      const response = await placeClient.submitPlace(
+        create(SubmitPlaceRequestSchema, {
+          clientSubmissionId: crypto.randomUUID(),
+          ...place,
+        }),
+      );
+      return {
+        submissionId: response.submissionId,
+        confirmationsNeeded: response.confirmationsNeeded,
+      };
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["place-intelligence"] }),
+  }));
+};
+
+export const useConfirmPlace = () => {
+  const queryClient = useQueryClient();
+  return useMutation(() => ({
+    mutationFn: async (submissionId: string) => {
+      const response = await placeClient.confirmPlace(
+        create(ConfirmPlaceRequestSchema, { submissionId }),
+      );
+      return {
+        promoted: response.status === ProtoPlaceSubmissionStatus.ACCEPTED,
+        confirmationsNeeded: response.confirmationsNeeded,
+        poiId: response.poiId,
+      };
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["place-intelligence"] }),
   }));
