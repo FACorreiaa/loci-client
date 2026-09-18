@@ -182,9 +182,10 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
         streaming?.restaurants?.[0]?.city ||
         "Unknown";
 
-      // Get user ID from auth context
-      const userId = auth.user()?.id;
-      if (!userId) {
+      // Auth check only. This used to also be passed as profileId below, but a
+      // user id is not a profile id -- it parses as a valid UUID, so the server
+      // looked up a profile that does not exist and the request failed outright.
+      if (!auth.user()?.id) {
         throw new Error("User not authenticated - cannot start new session");
       }
 
@@ -198,7 +199,8 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
       // Canonical typed reader; adapt each event to the legacy shape below.
       for await (const ev of streamChatEvents({
         message: newSessionPayload.message,
-        profileId: userId,
+        // Empty means "use my default profile": FetchUserData falls back to it.
+        profileId: "",
         cityName,
       })) {
         const eventData: any = toLegacyEvent(ev);

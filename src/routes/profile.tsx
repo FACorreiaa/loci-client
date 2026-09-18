@@ -33,14 +33,6 @@ function ProfilePageContent() {
   const listsQuery = useLists();
   const favoritesQuery = useFavoritesList();
 
-  console.log("Profile page - User data:", user());
-  console.log("Profile query status:", {
-    isLoading: profileQuery.isLoading,
-    isError: profileQuery.isError,
-    error: profileQuery.error,
-    data: profileQuery.data,
-  });
-
   // Compute real stats from API data
   const computedStats = createMemo(() => {
     const cities = recentsQuery.data?.cities || [];
@@ -98,7 +90,9 @@ function ProfilePageContent() {
       location: apiData?.location || (userData as any)?.location,
       joinedDate: apiData?.created_at || userData?.created_at,
       avatar: apiData?.profile_image_url || userData?.profile_image_url,
-      interests: apiData?.interests || ["Architecture", "Food & Dining", "Museums", "Photography"],
+      // No canned fallback: showing four invented interests made an empty
+      // profile look like a filled-in one. settings/index.tsx already uses [].
+      interests: apiData?.interests || [],
       // Badges based on real activity
       badges: computedBadges(),
       // Real stats from API data

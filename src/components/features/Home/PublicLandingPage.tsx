@@ -76,7 +76,9 @@ export default function PublicLandingPage() {
 
       streamingService.startStream(
         {
-          profileId: "free",
+          // Not a profile id. Empty lets the server fall back to the default
+          // profile instead of silently failing to parse this.
+          profileId: "",
           message: query,
           userLocation: userLocation()
             ? { userLat: userLocation()!.latitude, userLon: userLocation()!.longitude }
