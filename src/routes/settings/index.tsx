@@ -849,9 +849,9 @@ function SettingsPageContent() {
 
   const renderProfiles = () => (
     <TravelProfiles
-      onNotification={(notification) => {
-        setNotification(notification);
-        setTimeout(() => setNotification(null), 3000);
+      onNotification={(message, type) => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), type === "error" ? 5000 : 3000);
       }}
     />
   );
