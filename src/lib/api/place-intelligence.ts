@@ -93,7 +93,7 @@ export const useVerificationTasks = (options: PlaceIntelligenceQueryOptions = {}
     queryKey: ["place-intelligence", "tasks"],
     queryFn: async (): Promise<VerificationTask[]> => {
       const response = await placeClient.listVerificationTasks(
-        create(ListVerificationTasksRequestSchema, { limit: 20 }),
+        create(ListVerificationTasksRequestSchema, { limit: 40 }),
       );
       return response.tasks.map((task) => ({
         poiId: task.poiId,
