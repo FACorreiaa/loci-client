@@ -2,6 +2,7 @@ import { A, useLocation } from "@solidjs/router";
 import ProPlanBadge from "~/components/ProPlanBadge";
 import {
   Bookmark,
+  CalendarDays,
   ChevronDown,
   Clock3,
   Compass,
@@ -38,8 +39,11 @@ const journeyItems = [
   { name: "Compare", href: "/compare", icon: GitCompare },
   { name: "Nearby", href: "/nearme", icon: MapPin },
   { name: "Trips", href: "/trips", icon: Map },
+  { name: "Calendar", href: "/calendar", icon: CalendarDays },
   { name: "Ask Loci", href: "/chat", icon: MessageCircle },
 ];
+
+const mobileJourneyItems = journeyItems.filter((item) => item.href !== "/compare");
 
 const accountItems = [
   { name: "Contribute", href: "/contribute", icon: Users },
@@ -234,8 +238,8 @@ export default function Nav() {
       </nav>
 
       <Show when={isAuthenticated() && !isLoading()}>
-        <nav class="fixed inset-x-3 bottom-3 z-50 grid grid-cols-4 rounded-2xl border border-border bg-background/95 p-1.5 shadow-xl backdrop-blur md:hidden">
-          <For each={journeyItems}>
+        <nav class="fixed inset-x-3 bottom-3 z-50 grid grid-cols-5 rounded-2xl border border-border bg-background/95 p-1.5 shadow-xl backdrop-blur md:hidden">
+          <For each={mobileJourneyItems}>
             {(item) => {
               const Icon = item.icon;
               const active = () => location.pathname.startsWith(item.href);

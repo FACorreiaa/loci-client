@@ -58,6 +58,7 @@ import ChangePassword from "~/components/features/Settings/ChangePassword";
 import LocaleSettings from "~/components/features/Settings/LocaleSettings";
 import TasteAndPrivacy from "~/components/features/Settings/TasteAndPrivacy";
 import AccountData from "~/components/features/Settings/AccountData";
+import ConnectedCalendars from "~/components/features/Settings/ConnectedCalendars";
 import NotificationSettings from "~/components/features/Settings/NotificationSettings";
 import SignedInDevices from "~/components/features/Settings/SignedInDevices";
 import { Button } from "~/ui/button";
@@ -475,6 +476,10 @@ function SettingsPageContent() {
 
         <div class="mb-6">
           <AccountData />
+        </div>
+
+        <div class="mb-6">
+          <ConnectedCalendars />
         </div>
 
         <div class="grid lg:grid-cols-3 gap-6">

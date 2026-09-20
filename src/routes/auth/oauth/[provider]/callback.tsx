@@ -1,4 +1,6 @@
 import { Component, onMount } from "solid-js";
+import { useParams } from "@solidjs/router";
+import { oauthCallbackAction } from "~/lib/auth/oauth-callback-action";
 
 /**
  * Where Google and Apple send the browser back to, after the person has agreed.
@@ -16,34 +18,35 @@ import { Component, onMount } from "solid-js";
  * own. A callback hosted on the API domain could not talk to the page that
  * opened it.
  *
- * This page does not exchange the code itself. It passes it to the opener,
- * which calls OAuthCallback over RPC — the exchange needs the client secret,
- * which lives on the server.
+ * This page does not exchange the code itself. It either postMessages the
+ * opener (web popup) or redirects to loci:// (iOS ASWebAuthenticationSession).
+ * The exchange needs the client secret, which lives on the server.
  */
 const OAuthCallback: Component = () => {
-  onMount(() => {
-    // Get OAuth response from URL
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    const state = params.get("state");
-    const error = params.get("error");
-    const errorDescription = params.get("error_description");
+  const params = useParams();
 
-    // Send message to parent window (opener)
-    if (window.opener) {
-      window.opener.postMessage(
-        {
-          type: "oauth-callback",
-          code,
-          state,
-          error: error || errorDescription,
-        },
-        window.location.origin,
-      );
-    } else {
-      // If no opener (user navigated directly), redirect to login
-      window.location.href = "/auth/signin";
+  onMount(() => {
+    const query = new URLSearchParams(window.location.search);
+    const pathParts = window.location.pathname.split("/").filter(Boolean);
+    const oauthIdx = pathParts.indexOf("oauth");
+    const providerFromPath = oauthIdx >= 0 ? (pathParts[oauthIdx + 1] ?? "") : "";
+    const action = oauthCallbackAction({
+      hasOpener: Boolean(window.opener),
+      provider: params.provider || providerFromPath,
+      code: query.get("code"),
+      state: query.get("state"),
+      error: query.get("error") || query.get("error_description"),
+    });
+
+    if (action.kind === "postMessage" && window.opener) {
+      window.opener.postMessage(action.payload, window.location.origin);
+      return;
     }
+    if (action.kind === "nativeRedirect") {
+      window.location.href = action.url;
+      return;
+    }
+    window.location.href = "/auth/signin";
   });
 
   return (

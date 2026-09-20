@@ -24,12 +24,23 @@ export default function TripsList() {
               can actually follow.
             </p>
           </div>
-          <A href="/discover">
-            <Button class="gap-2 border border-primary-foreground/25 bg-primary-foreground text-primary hover:bg-primary-foreground/90">
-              <Plus class="h-4 w-4" />
-              Plan a new trip
-            </Button>
-          </A>
+          <div class="flex flex-wrap gap-2">
+            <A href="/calendar">
+              <Button
+                variant="outline"
+                class="gap-2 border-primary-foreground/25 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
+              >
+                <CalendarDays class="h-4 w-4" />
+                Calendar
+              </Button>
+            </A>
+            <A href="/discover">
+              <Button class="gap-2 border border-primary-foreground/25 bg-primary-foreground text-primary hover:bg-primary-foreground/90">
+                <Plus class="h-4 w-4" />
+                Plan a new trip
+              </Button>
+            </A>
+          </div>
         </div>
       </section>
 
