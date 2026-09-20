@@ -3,6 +3,9 @@ import { buildAppleMapsUrl, buildGoogleMapsUrl } from "~/lib/trip-kit";
 import type { POIImageCredit } from "~/lib/api/types";
 import ProgressiveImage from "./itinerary/ProgressiveImage";
 import { GroundedBadge } from "./ui/GroundedBadge";
+import PlaceFacts from "./poi/PlaceFacts";
+import { useGetPlaceFacts } from "~/lib/api/place-intelligence";
+import { useAuth } from "~/contexts/AuthContext";
 import { Show, createSignal, createEffect, For } from "solid-js";
 import { lazyChunk } from "~/lib/lazyChunk";
 import {
@@ -26,6 +29,12 @@ const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 // Union type for all possible item types
 type DetailedItem = {
   type: "hotel" | "restaurant" | "activity" | "poi";
+  /**
+   * The persisted POI id, when the stop has been enriched. Absent before
+   * enrichment lands, which is why everything keyed on it degrades quietly
+   * rather than assuming it is there.
+   */
+  id?: string;
   name: string;
   latitude?: number;
   longitude?: number;
@@ -62,6 +71,10 @@ interface DetailedItemModalProps {
 
 export default function DetailedItemModal(props: DetailedItemModalProps) {
   const locale = useLocale();
+  const { isAuthenticated } = useAuth();
+  // GetPlaceFacts is authenticated, and a stop only has an id once enrichment
+  // has patched it in, so this stays idle until both are true.
+  const facts = useGetPlaceFacts(() => props.item?.id, { enabled: () => isAuthenticated() });
   const [activeTab, setActiveTab] = createSignal<"details" | "map">("details");
   const [isFavorited, setIsFavorited] = createSignal(false);
 
@@ -284,6 +297,8 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                     </For>
                   </div>
                 </Show>
+
+                <PlaceFacts facts={facts.data} />
 
                 {/* Description */}
                 <Show when={props.item!.description_poi}>

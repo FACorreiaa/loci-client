@@ -2,6 +2,7 @@ import { create } from "@bufbuild/protobuf";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   GetMyContributorProfileRequestSchema,
+  GetPlaceFactsRequestSchema,
   ListVerificationTasksRequestSchema,
   PlaceClaimStatus as ProtoPlaceClaimStatus,
   PlaceFactField as ProtoPlaceFactField,
@@ -86,6 +87,62 @@ const fieldNames = Object.fromEntries(
 export interface PlaceIntelligenceQueryOptions {
   enabled?: () => boolean;
 }
+
+/**
+ * A fact the crowd has established about a place.
+ *
+ * `contributorCount` is the whole story: one scout is a report that is waiting,
+ * two or more is something the field guide stands behind. The same threshold
+ * governs the server's promotion rule and what the generator is told, so the
+ * three never disagree.
+ */
+export interface PlaceFact {
+  field: PlaceFactField;
+  value: string;
+  confidence: number;
+  contributorCount: number;
+  verifiedAt?: string;
+}
+
+export const CLAIMS_REQUIRED_FOR_VERIFICATION = 2;
+
+export const isVerifiedFact = (fact: PlaceFact) =>
+  fact.contributorCount >= CLAIMS_REQUIRED_FOR_VERIFICATION;
+
+/**
+ * What scouts have confirmed about one place.
+ *
+ * The RPC has existed since the contribution flow was built and nothing called
+ * it, so contributions were invisible to everyone except the generator.
+ */
+export const useGetPlaceFacts = (
+  poiId: () => string | undefined,
+  options: PlaceIntelligenceQueryOptions = {},
+) =>
+  useAppQuery(() => ({
+    enabled: Boolean(poiId()) && (options.enabled ? options.enabled() : true),
+    queryKey: ["place-intelligence", "facts", poiId()],
+    queryFn: async (): Promise<PlaceFact[]> => {
+      const response = await placeClient.getPlaceFacts(
+        create(GetPlaceFactsRequestSchema, { poiId: poiId() as string }),
+      );
+      const facts: PlaceFact[] = [];
+      for (const fact of response.facts) {
+        const field = fieldNames[fact.field];
+        // A field this client does not know about is dropped rather than
+        // rendered as a raw enum name — the server may be ahead of the bundle.
+        if (!field) continue;
+        facts.push({
+          field,
+          value: fact.value,
+          confidence: fact.confidence,
+          contributorCount: fact.contributorCount,
+          verifiedAt: fact.verifiedAt ? timestampDate(fact.verifiedAt).toISOString() : undefined,
+        });
+      }
+      return facts;
+    },
+  }));
 
 export const useVerificationTasks = (options: PlaceIntelligenceQueryOptions = {}) =>
   useAppQuery(() => ({

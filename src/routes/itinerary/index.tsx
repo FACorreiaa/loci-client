@@ -450,6 +450,7 @@ export default function ItineraryPage() {
     const full = allByName().get(poi.name) || poi;
     setDetailItem({
       type: "poi",
+      id: full.id || full.placeId || full.place_id,
       name: full.name,
       latitude: toNum(full.latitude),
       longitude: toNum(full.longitude),
