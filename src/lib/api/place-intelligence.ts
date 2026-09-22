@@ -283,6 +283,9 @@ export const useSubmitPlace = () => {
       return {
         submissionId: response.submissionId,
         confirmationsNeeded: response.confirmationsNeeded,
+        // Somebody else had already proposed it, so this submission was their
+        // second voice and put it on the guide.
+        promoted: response.status === ProtoPlaceSubmissionStatus.ACCEPTED,
       };
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["place-intelligence"] }),

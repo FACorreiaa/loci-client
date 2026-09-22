@@ -101,7 +101,9 @@ export function AddPlaceForm() {
 
       <Show when={submit.isSuccess}>
         <p class="mt-4 rounded-lg bg-secondary/50 p-3 text-center text-sm">
-          Recorded. One more scout needs to confirm this place exists.
+          {submit.data?.promoted
+            ? "Another scout had already proposed this place. With you, it is on the guide now."
+            : "Recorded. One more scout needs to confirm this place exists."}
         </p>
       </Show>
     </form>
