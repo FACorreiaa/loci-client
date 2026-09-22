@@ -33,6 +33,7 @@ import {
   type LiveStream,
 } from "./streaming/live-stream-store";
 import { COMPLETED_SESSION_KEY } from "./streaming/restore-session";
+import { saveCompletedSession } from "./streaming/completed-sessions";
 import { logger } from "./logger";
 
 export interface StreamingSessionManager {
@@ -340,6 +341,7 @@ export class StreamingChatService {
       } catch {
         /* private mode / quota */
       }
+      saveCompletedSession(s.sessionId, s);
     }
     run.manager.onComplete(s);
   }
