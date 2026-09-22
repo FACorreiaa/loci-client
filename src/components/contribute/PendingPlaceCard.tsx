@@ -3,9 +3,29 @@ import { HelpCircle } from "lucide-solid";
 import { type PendingPlace, useConfirmPlace } from "~/lib/api/place-intelligence";
 import { Button } from "~/ui/button";
 
-/** "Does this place exist?" — the other half of somebody's submission. */
-export function PendingPlaceCard(props: { place: PendingPlace }) {
+export interface ConfirmOutcome {
+  promoted: boolean;
+}
+
+/**
+ * "Does this place exist?" — the other half of somebody's submission.
+ *
+ * The outcome lives with the caller, not in here: confirming drops the place
+ * from the pending feed, which unmounts this card, and a result held locally
+ * would vanish before anyone could read it.
+ */
+export function PendingPlaceCard(props: {
+  place: PendingPlace;
+  outcome?: ConfirmOutcome;
+  onConfirmed: (outcome: ConfirmOutcome) => void;
+}) {
   const confirm = useConfirmPlace();
+
+  const onConfirm = () =>
+    confirm
+      .mutateAsync(props.place.submissionId)
+      .then((result) => props.onConfirmed({ promoted: result.promoted }))
+      .catch(() => undefined);
 
   return (
     <div class="rounded-xl border border-border bg-card p-5">
@@ -24,22 +44,25 @@ export function PendingPlaceCard(props: { place: PendingPlace }) {
       </div>
 
       <Show
-        when={!confirm.isSuccess}
+        when={props.outcome}
         fallback={
+          <>
+            <Button class="mt-4 w-full" disabled={confirm.isPending} onClick={onConfirm}>
+              {confirm.isPending ? "Confirming…" : "Yes, it exists"}
+            </Button>
+            <Show when={confirm.isError}>
+              <p class="mt-2 text-sm text-destructive">That did not go through. Try again.</p>
+            </Show>
+          </>
+        }
+      >
+        {(outcome) => (
           <p class="mt-4 text-sm text-accent">
-            {confirm.data?.promoted
+            {outcome().promoted
               ? "Confirmed. It is on the guide now."
               : "Thanks — still waiting on one more scout."}
           </p>
-        }
-      >
-        <Button
-          class="mt-4 w-full"
-          disabled={confirm.isPending}
-          onClick={() => confirm.mutate(props.place.submissionId)}
-        >
-          {confirm.isPending ? "Confirming…" : "Yes, it exists"}
-        </Button>
+        )}
       </Show>
     </div>
   );

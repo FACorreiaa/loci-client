@@ -1,4 +1,4 @@
-import { createSignal, Show } from "solid-js";
+import { createMemo, createSignal, Show } from "solid-js";
 import { MapPinPlus } from "lucide-solid";
 import { useSubmitPlace } from "~/lib/api/place-intelligence";
 import { capture } from "~/lib/analytics";
@@ -17,6 +17,15 @@ export function AddPlaceForm() {
   const [cityName, setCityName] = createSignal("");
   const [category, setCategory] = createSignal("");
 
+  // The same draft keeps the same id, so resubmitting after a dropped response
+  // is recognised as a repeat. Editing any field makes it a different place.
+  const draftId = createMemo(() => {
+    name();
+    cityName();
+    category();
+    return crypto.randomUUID();
+  });
+
   const ready = () => name().trim().length > 1 && cityName().trim().length > 0;
 
   const onSubmit = (event: SubmitEvent) => {
@@ -24,6 +33,7 @@ export function AddPlaceForm() {
     if (!ready()) return;
     submit.mutate(
       {
+        clientSubmissionId: draftId(),
         name: name().trim(),
         cityName: cityName().trim(),
         category: category().trim() || undefined,

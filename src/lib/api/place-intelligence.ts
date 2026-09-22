@@ -263,6 +263,9 @@ export const useSubmitPlace = () => {
   const queryClient = useQueryClient();
   return useMutation(() => ({
     mutationFn: async (place: {
+      // One per draft, made by the caller. Generated in here it would change on
+      // every retry, and the server could never recognise the repeat.
+      clientSubmissionId: string;
       name: string;
       cityName: string;
       country?: string;
@@ -274,7 +277,6 @@ export const useSubmitPlace = () => {
     }) => {
       const response = await placeClient.submitPlace(
         create(SubmitPlaceRequestSchema, {
-          clientSubmissionId: crypto.randomUUID(),
           ...place,
         }),
       );
@@ -300,7 +302,11 @@ export const useConfirmPlace = () => {
         poiId: response.poiId,
       };
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["place-intelligence"] }),
+    // Not awaited: the refetch drops the confirmed place from the feed, and the
+    // caller has to record the outcome before that happens.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["place-intelligence"] });
+    },
   }));
 };
 

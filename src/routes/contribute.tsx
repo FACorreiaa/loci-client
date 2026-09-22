@@ -3,6 +3,7 @@ import { Meta, Title } from "@solidjs/meta";
 import { A, useSearchParams } from "@solidjs/router";
 import { Users } from "lucide-solid";
 import {
+  type PendingPlace,
   type VerificationTask,
   useContributorProfile,
   usePendingPlaces,
@@ -16,6 +17,7 @@ import {
   AddPlaceForm,
   ClaimForm,
   MissingPlaceCard,
+  type ConfirmOutcome,
   PendingPlaceCard,
   TaskCard,
   TaskPager,
@@ -33,6 +35,19 @@ export default function ContributePage() {
   const pendingPlaces = usePendingPlaces({ enabled: () => isAuthenticated() });
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = createSignal<VerificationTask>();
+  // Confirmed places leave the pending feed on the next refetch, so they are kept
+  // here long enough for the scout to see what their confirmation did.
+  const [confirmed, setConfirmed] = createSignal<
+    Record<string, { place: PendingPlace; outcome: ConfirmOutcome }>
+  >({});
+  const shownPending = createMemo(() => {
+    const live = pendingPlaces.data ?? [];
+    const liveIds = new Set(live.map((place) => place.submissionId));
+    const settled = Object.values(confirmed())
+      .filter((entry) => !liveIds.has(entry.place.submissionId))
+      .map((entry) => entry.place);
+    return [...live, ...settled];
+  });
   let listAnchor: HTMLElement | undefined;
 
   const allTasks = createMemo(() => tasks.data ?? []);
@@ -159,9 +174,22 @@ export default function ContributePage() {
               }
             />
 
-            <Show when={(pendingPlaces.data?.length ?? 0) > 0}>
+            <Show when={shownPending().length > 0}>
               <div class="mb-6 grid gap-3">
-                <For each={pendingPlaces.data}>{(place) => <PendingPlaceCard place={place} />}</For>
+                <For each={shownPending()}>
+                  {(place) => (
+                    <PendingPlaceCard
+                      place={place}
+                      outcome={confirmed()[place.submissionId]?.outcome}
+                      onConfirmed={(outcome) =>
+                        setConfirmed((prev) => ({
+                          ...prev,
+                          [place.submissionId]: { place, outcome },
+                        }))
+                      }
+                    />
+                  )}
+                </For>
               </div>
             </Show>
 
