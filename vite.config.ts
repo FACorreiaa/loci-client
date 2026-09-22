@@ -48,28 +48,35 @@ const pwa = VitePWA({
       },
     ],
     globIgnores: ["**/mapbox-gl*"],
-    // navigateFallback names a URL the service worker must ALREADY HOLD, and
-    // the manifest above is built by globbing the build output. This app is
-    // server-rendered and prerenders nothing, so that glob finds 235
-    // JavaScript chunks and not one HTML file — /offline was never in it, and
-    // naming it threw on every single page load:
-    //
-    //   Uncaught (in promise) non-precached-url: [{"url":"/offline"}]
-    //
-    // taking the rest of the worker's activation with it. Dropping the option
-    // does not help either: vite-plugin-pwa then falls back to its own default
-    // of "index.html", which this build does not emit, so the same error comes
-    // back under a different name.
-    //
-    // So the page has to be put in the precache by hand. A manifest entry for
-    // a URL rather than a file makes the worker FETCH it during install and
-    // store the response, which is how an SSR app precaches a rendered page at
-    // all. The revision is what makes it re-fetch on the next deploy instead
-    // of serving a stale copy forever.
+    // /offline is the page shown when a navigation cannot reach the network.
+    // This app is server-rendered and prerenders nothing, so the glob above
+    // finds JavaScript chunks and not one HTML file. The page has to be put in
+    // the precache by hand: a manifest entry for a URL rather than a file makes
+    // the worker FETCH it during install and store the response. The revision
+    // is what makes it re-fetch on the next deploy instead of serving a stale
+    // copy forever.
     additionalManifestEntries: [{ url: "/offline", revision: buildRevision }],
-    navigateFallback: "/offline",
-    navigateFallbackDenylist: [/^\/api\//],
+    // NOT navigateFallback. That option is the SPA app-shell pattern: workbox
+    // answers EVERY navigation from the precached document, online or not.
+    // Here that document is the rendered /offline page, so once the worker
+    // was active every page load got /offline's HTML and then hydrated it as
+    // whatever route the URL named — a hydration failure, and the global
+    // "Something went wrong" boundary. It showed up wherever Safari had the
+    // worker installed, including the iOS app's sign-in sheet, which shares
+    // Safari's site data.
+    //
+    // null rather than omitted: vite-plugin-pwa merges its own default of
+    // "index.html" over a missing key. The navigation route below goes to
+    // the network and only falls back to /offline when that fails.
+    navigateFallback: null,
     runtimeCaching: [
+      {
+        urlPattern: ({ request }: { request: Request }) => request.mode === "navigate",
+        handler: "NetworkOnly",
+        options: {
+          precacheFallback: { fallbackURL: "/offline" },
+        },
+      },
       {
         // Cache the map/globe bundles on first use, not up front. Content
         // hashes make these immutable, so CacheFirst is safe.
