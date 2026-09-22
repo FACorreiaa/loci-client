@@ -3,15 +3,25 @@ import { Meta, Title } from "@solidjs/meta";
 import { A, useSearchParams } from "@solidjs/router";
 import { Users } from "lucide-solid";
 import {
+  type PendingPlace,
   type VerificationTask,
   useContributorProfile,
+  usePendingPlaces,
   useVerificationTasks,
 } from "~/lib/api/place-intelligence";
 import type { POI } from "~/lib/api/types";
 import { clampPage, pageFromParam, pageOf, pageSlice } from "~/lib/contribute/paginate";
 import { resolveTask } from "~/lib/contribute/task-from-place";
 import { useAuth } from "~/contexts/AuthContext";
-import { ClaimForm, MissingPlaceCard, TaskCard, TaskPager } from "~/components/contribute";
+import {
+  AddPlaceForm,
+  ClaimForm,
+  MissingPlaceCard,
+  type ConfirmOutcome,
+  PendingPlaceCard,
+  TaskCard,
+  TaskPager,
+} from "~/components/contribute";
 import { ErrorView } from "~/components/ErrorView";
 import RegisterBanner from "~/components/ui/RegisterBanner";
 import SectionHeader from "~/components/ui/SectionHeader";
@@ -22,8 +32,22 @@ export default function ContributePage() {
   // nothing but a guaranteed 401 and a skeleton that never resolves.
   const tasks = useVerificationTasks({ enabled: () => isAuthenticated() });
   const profile = useContributorProfile({ enabled: () => isAuthenticated() });
+  const pendingPlaces = usePendingPlaces({ enabled: () => isAuthenticated() });
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = createSignal<VerificationTask>();
+  // Confirmed places leave the pending feed on the next refetch, so they are kept
+  // here long enough for the scout to see what their confirmation did.
+  const [confirmed, setConfirmed] = createSignal<
+    Record<string, { place: PendingPlace; outcome: ConfirmOutcome }>
+  >({});
+  const shownPending = createMemo(() => {
+    const live = pendingPlaces.data ?? [];
+    const liveIds = new Set(live.map((place) => place.submissionId));
+    const settled = Object.values(confirmed())
+      .filter((entry) => !liveIds.has(entry.place.submissionId))
+      .map((entry) => entry.place);
+    return [...live, ...settled];
+  });
   let listAnchor: HTMLElement | undefined;
 
   const allTasks = createMemo(() => tasks.data ?? []);
@@ -136,6 +160,7 @@ export default function ContributePage() {
                 </aside>
               )}
             </Show>
+            <AddPlaceForm />
           </div>
 
           <section class="lg:col-start-1 lg:row-start-1" ref={(el) => (listAnchor = el)}>
@@ -148,6 +173,25 @@ export default function ContributePage() {
                 </span>
               }
             />
+
+            <Show when={shownPending().length > 0}>
+              <div class="mb-6 grid gap-3">
+                <For each={shownPending()}>
+                  {(place) => (
+                    <PendingPlaceCard
+                      place={place}
+                      outcome={confirmed()[place.submissionId]?.outcome}
+                      onConfirmed={(outcome) =>
+                        setConfirmed((prev) => ({
+                          ...prev,
+                          [place.submissionId]: { place, outcome },
+                        }))
+                      }
+                    />
+                  )}
+                </For>
+              </div>
+            </Show>
 
             <Show when={tasks.isError}>
               <ErrorView error={tasks.error} onRetry={() => tasks.refetch()} class="my-6" />

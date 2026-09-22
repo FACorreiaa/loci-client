@@ -27,7 +27,9 @@ export type AnalyticsEvent =
   /** A generated share link was copied to the clipboard. */
   | "share_link_copied"
   /** A field report was submitted. Metric: scout contributions, and how many corroborate. */
-  | "place_claim_submitted";
+  | "place_claim_submitted"
+  /** A new place was proposed. Metric: map growth from scouts. */
+  | "place_submitted";
 
 export type AnalyticsProperties = Record<string, unknown>;
 
