@@ -29,6 +29,14 @@ const PROFILE_ICONS = ["🎒", "🍽️", "👨‍👩‍👧‍👦", "🎨", "
 
 export { getCompletionMessage };
 
+/**
+ * Where this chat renders its runs: the result lands inline here, not on the
+ * run's /itinerary url, so RunWatcher must not toast it while you are here.
+ * /chat carries no session param, so the path alone names the page.
+ */
+const chatHostPath = (): string =>
+  typeof window === "undefined" ? "/chat" : window.location.pathname;
+
 const welcomeMessage = (profile: string): ChatMessage => ({
   id: "welcome",
   type: "assistant",
@@ -228,6 +236,7 @@ export function useChat() {
       },
       {
         session,
+        hostPath: chatHostPath(),
         onProgress: (updated) => {
           setStreamingSession({ ...updated });
           setStreamProgress(progressLabel(updated));
@@ -279,6 +288,7 @@ export function useChat() {
       },
       {
         session,
+        hostPath: chatHostPath(),
         onProgress: (updated) => {
           setStreamingSession({ ...updated });
           setStreamProgress(

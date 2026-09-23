@@ -27,8 +27,10 @@ import {
   type LociStreamEvent,
 } from "./streaming/chatStream";
 import {
+  clearActiveSession,
   liveRuns,
   persistActiveSession,
+  removeRun,
   upsertRun,
   type LiveStream,
 } from "./streaming/live-stream-store";
@@ -50,6 +52,11 @@ export interface StreamingSessionManager {
   onComplete: (session: StreamingSession) => void;
   onError: (error: string) => void;
   onRedirect?: (domain: DomainType, data: UnifiedChatResponse) => void;
+  /**
+   * The page that renders this run inline while it streams, when that is not
+   * its result page (/chat). RunWatcher treats it as the run's own page.
+   */
+  hostPath?: string;
 }
 
 /** One in-flight stream: its manager and the controller that can stop it. */
@@ -116,6 +123,7 @@ export class StreamingChatService {
         startedAt: Date.now(),
         source: "service",
         url: getDomainRoute(manager.session.domain, run.sessionId, manager.session.city),
+        ...(manager.hostPath ? { hostPath: manager.hostPath } : {}),
       });
     }
 
@@ -123,8 +131,9 @@ export class StreamingChatService {
   }
 
   /** Stop one run (by session id, or by request id before the server has
-   *  named it), or every run. Finalizes the partial session (onComplete),
-   *  does not surface an error. */
+   *  named it), or every run. Hands the partial session to onComplete, does
+   *  not surface an error, and unlists the run: a stopped search did not
+   *  finish, so nothing announces it or saves it as a result. */
   public stop(id?: string): void {
     for (const run of this.runs.values()) {
       if (id && run.sessionId !== id && run.requestId !== id) continue;
@@ -153,6 +162,7 @@ export class StreamingChatService {
       logger.error("Stream processing error:", error);
       run.manager.onError(`Stream error: ${error}`);
       this.live(run, { phase: "error", error: String(error) });
+      if (run.sessionId) clearActiveSession(run.sessionId);
     } finally {
       this.runs.delete(run.requestId);
     }
@@ -167,7 +177,11 @@ export class StreamingChatService {
       data: s.data ?? null,
       ...extra,
     });
-    if (run.sessionId) {
+    // A finished run has nothing to resume. Writing its envelope here, after
+    // live() has already let RunWatcher announce and clear it, left it on
+    // disk, and the next reload announced the same run again.
+    const finished = extra.phase === "complete" || extra.phase === "error";
+    if (run.sessionId && !finished) {
       const entry = liveRuns[run.sessionId];
       persistActiveSession({
         sessionId: run.sessionId,
@@ -203,6 +217,7 @@ export class StreamingChatService {
           source: "service",
           requestId: run.requestId,
           query: run.query,
+          ...(mgr.hostPath ? { hostPath: mgr.hostPath } : {}),
           // A resume keeps the time its entry was created with.
           startedAt: liveRuns[run.sessionId]?.startedAt ?? Date.now(),
         });
@@ -299,6 +314,7 @@ export class StreamingChatService {
       case "error":
         mgr.session.error = event.userMessage;
         this.live(run, { phase: "error", error: event.userMessage });
+        if (run.sessionId) clearActiveSession(run.sessionId);
         mgr.onError(event.userMessage);
         break;
 
@@ -330,9 +346,34 @@ export class StreamingChatService {
   }
 
   private handleStreamComplete(run: Run): void {
-    if (run.manager.session.isComplete) return;
+    const s = run.manager.session;
+    if (s.isComplete) return;
+    if (run.aborted) {
+      this.abandon(run);
+      return;
+    }
+    // streamChatEvents reports a failure as a final `error` event and then
+    // returns. That run failed; finalizing it here flipped it to complete
+    // and saved its partial data as a result.
+    if (s.error) return;
     // Stream ended without an explicit complete event — finalize anyway.
     this.finalize(run);
+  }
+
+  /**
+   * A stopped run. Its caller still gets the partial session (useChat's Stop
+   * turns it into the answer shown in the chat), but the run is unlisted and
+   * its envelope dropped: no `complete` phase, no toast, no completed-session
+   * save that a later restore would read back as a finished result.
+   */
+  private abandon(run: Run): void {
+    const s = run.manager.session;
+    s.isComplete = true;
+    if (run.sessionId) {
+      removeRun(run.sessionId);
+      clearActiveSession(run.sessionId);
+    }
+    run.manager.onComplete(s);
   }
 
   /**
@@ -349,6 +390,7 @@ export class StreamingChatService {
       phase: "complete",
       ...(run.sessionId ? { url: getDomainRoute(s.domain, run.sessionId, s.city) } : {}),
     });
+    if (run.sessionId) clearActiveSession(run.sessionId);
     if (s.sessionId) {
       try {
         sessionStorage.setItem(COMPLETED_SESSION_KEY, JSON.stringify(s));

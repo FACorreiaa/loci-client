@@ -56,7 +56,7 @@ vi.mock("./streaming/chatStream", () => {
 
 import { streamingService, createStreamingSession } from "./streaming-service";
 import { liveRuns, readActiveSessions, removeRun } from "./streaming/live-stream-store";
-import { COMPLETED_SESSION_KEY } from "./streaming/restore-session";
+import { COMPLETED_SESSION_KEY, readCompletedSession } from "./streaming/restore-session";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -229,6 +229,9 @@ describe("streamingService → live store", () => {
     await tick();
     expect(a.feed.aborted()).toBe(true);
     expect(b.feed.aborted()).toBe(false);
+    // A stopped run did not finish: unlisted, envelope dropped, no toast.
+    expect(liveRuns.a).toBeUndefined();
+    expect(readActiveSessions().map((e) => e.sessionId)).toEqual(["b"]);
 
     b.feed.push(itineraryEvent());
     b.feed.push({ kind: "complete", sessionId: "b" });
@@ -279,5 +282,57 @@ describe("streamingService → live store", () => {
 
     expect(liveRuns.s9.phase).toBe("complete");
     expect(liveRuns.s9.url.startsWith("/itinerary?sessionId=s9")).toBe(true);
+  });
+
+  it("drops a finished run's resume envelope, so a reload does not announce it again", async () => {
+    const { feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary", eventId: "e1" });
+    feed.push(itineraryEvent());
+    await tick();
+    expect(readActiveSessions().map((e) => e.sessionId)).toEqual(["s1"]);
+
+    feed.push({ kind: "complete", sessionId: "s1" });
+    await tick();
+    expect(liveRuns.s1.phase).toBe("complete");
+    expect(readActiveSessions()).toEqual([]);
+  });
+
+  it("keeps a run that ended on an error event failed, and saves nothing", async () => {
+    const { manager, feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary" });
+    feed.push(itineraryEvent());
+    feed.push({ kind: "error", userMessage: "Nope.", internalCode: "x", retryable: false });
+    // streamChatEvents returns after yielding its error.
+    feed.end();
+    await tick();
+
+    expect(liveRuns.s1.phase).toBe("error");
+    expect(manager.onComplete).not.toHaveBeenCalled();
+    expect(readCompletedSession("s1")).toBeNull();
+    expect(sessionStorage.getItem(COMPLETED_SESSION_KEY)).toBeNull();
+    expect(readActiveSessions()).toEqual([]);
+  });
+
+  it("hands a stopped run's partial answer to its caller without saving it", async () => {
+    const { manager, feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary" });
+    feed.push(itineraryEvent());
+    await tick();
+
+    streamingService.stop("s1");
+    await tick();
+
+    expect(manager.onComplete).toHaveBeenCalledTimes(1);
+    expect(liveRuns.s1).toBeUndefined();
+    expect(readCompletedSession("s1")).toBeNull();
+    expect(sessionStorage.getItem(COMPLETED_SESSION_KEY)).toBeNull();
+    expect(readActiveSessions()).toEqual([]);
+  });
+
+  it("records the page that hosts a run inline", async () => {
+    const { feed } = start({ hostPath: "/chat" });
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary" });
+    await tick();
+    expect(liveRuns.s1.hostPath).toBe("/chat");
   });
 });
