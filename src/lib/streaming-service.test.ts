@@ -63,7 +63,7 @@ vi.mock("./streaming/chatStream", () => {
 import { streamingService, createStreamingSession } from "./streaming-service";
 import { liveRuns, readActiveSessions, removeRun } from "./streaming/live-stream-store";
 import { COMPLETED_SESSION_KEY, readCompletedSession } from "./streaming/restore-session";
-import { reconnectPolicy } from "./streaming/reconnect";
+import { reconnectPolicy, settleEvent } from "./streaming/reconnect";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -423,6 +423,28 @@ describe("streamingService → reconnect", () => {
     expect(liveRuns.s1.url).toContain("/itinerary?sessionId=s1");
     expect(manager.onError).not.toHaveBeenCalled();
     expect(readCompletedSession("s1")).toBeNull();
+  });
+
+  it("fills a settled run's navigation from its RunInfo", () => {
+    const e = settleEvent("h1", {
+      status: "done",
+      info: {
+        sessionId: "h1",
+        status: "done",
+        url: "/hotels?sessionId=h1&cityName=Porto",
+        cityName: "Porto",
+        domain: "2", // DomainType.ACCOMMODATION, as getRunStatuses stringifies it
+      },
+    });
+    expect(e).toMatchObject({
+      kind: "complete",
+      loadFromSession: true,
+      navigation: {
+        url: "/hotels?sessionId=h1&cityName=Porto",
+        routeType: "hotels",
+        queryParams: { sessionId: "h1", domain: "accommodation", cityName: "Porto" },
+      },
+    });
   });
 
   it("polls the run's status after resume_lost, and completes with the server's url", async () => {

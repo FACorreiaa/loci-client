@@ -25,7 +25,13 @@
 import { getRunStatuses, type RunInfo } from "../api/llm";
 import { capture } from "../analytics";
 import { logger } from "../logger";
-import { streamChatEvents, type ChatStreamParams, type LociStreamEvent } from "./chatStream";
+import {
+  streamChatEvents,
+  type ChatStreamParams,
+  type LociStreamEvent,
+  type NavigationInfo,
+} from "./chatStream";
+import { domainName } from "./domain-name";
 
 type ErrorEvent = Extract<LociStreamEvent, { kind: "error" }>;
 
@@ -112,6 +118,26 @@ export async function pollRunToSettle(
   }
 }
 
+/**
+ * The navigation a live `complete` would have carried, rebuilt from RunInfo:
+ * routeType is the result route ("itinerary", "hotels", …) the server names
+ * it by, and the query params match what readers pick out of a live one.
+ */
+function navigationFromRun(sessionId: string, info: RunInfo): NavigationInfo {
+  // getRunStatuses stringifies the proto enum ("2"); a name passes through.
+  const domain = /^\d+$/.test(info.domain) ? domainName(Number(info.domain)) : info.domain;
+  const routeType = new URL(info.url, "https://x").pathname.split("/").filter(Boolean)[0] ?? "";
+  return {
+    url: info.url,
+    routeType,
+    queryParams: {
+      sessionId,
+      ...(domain ? { domain } : {}),
+      ...(info.cityName ? { cityName: info.cityName } : {}),
+    },
+  };
+}
+
 /** What a settled poll means to a stream reader: its terminal event. */
 export function settleEvent(sessionId: string, outcome: SettleOutcome): LociStreamEvent | null {
   switch (outcome.status) {
@@ -121,15 +147,7 @@ export function settleEvent(sessionId: string, outcome: SettleOutcome): LociStre
         sessionId,
         // Nothing came down the stream: pages load the result from the session.
         loadFromSession: true,
-        ...(outcome.info.url
-          ? {
-              navigation: {
-                url: outcome.info.url,
-                routeType: "",
-                queryParams: { sessionId },
-              },
-            }
-          : {}),
+        ...(outcome.info.url ? { navigation: navigationFromRun(sessionId, outcome.info) } : {}),
       };
     case "failed":
       return {

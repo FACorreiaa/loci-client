@@ -16,7 +16,6 @@ import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
 import {
   ChatRequestSchema,
-  DomainType,
   StreamEventType,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
 import type { StreamEvent as ProtoStreamEvent } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
@@ -27,6 +26,7 @@ import { mapAiCityResponse, mapGeneralCityData, mapPoi } from "@/lib/api/llm";
 import type { AiCityResponse, GeneralCityData, POIDetailedInfo } from "@/lib/api/types";
 import { capture } from "~/lib/analytics";
 import { logger } from "~/lib/logger";
+import { domainName } from "./domain-name";
 
 export interface NavigationInfo {
   url: string;
@@ -90,23 +90,6 @@ export interface ChatStreamParams {
   /** Client-generated idempotency/correlation id echoed back on events. */
   requestId?: string;
 }
-
-export const domainName = (d: DomainType): string => {
-  switch (d) {
-    case DomainType.ACCOMMODATION:
-      return "accommodation";
-    case DomainType.DINING:
-      return "dining";
-    case DomainType.ACTIVITIES:
-      return "activities";
-    case DomainType.ITINERARY:
-      return "itinerary";
-    case DomainType.TRANSPORT:
-      return "transport";
-    default:
-      return "general";
-  }
-};
 
 const mapNavigation = (nav: ProtoStreamEvent["navigation"]): NavigationInfo | undefined =>
   nav ? { url: nav.url, routeType: nav.routeType, queryParams: nav.queryParams ?? {} } : undefined;
