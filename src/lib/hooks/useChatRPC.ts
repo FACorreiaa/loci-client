@@ -5,7 +5,7 @@ import { parseStreamError } from "../errors";
 import { streamChatEvents, type LociStreamEvent } from "../streaming/chatStream";
 import { upsertRun } from "../streaming/live-stream-store";
 import { saveCompletedSession } from "../streaming/completed-sessions";
-import { getDomainRoute } from "../streaming-service";
+import { getDomainRoute, responseHasContent } from "../streaming-service";
 
 export interface ChatRPCState {
   isConnected: boolean;
@@ -153,7 +153,12 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
               phase: "complete",
               url: event.navigation?.url || getDomainRoute(domain, sessionId, runCity),
             });
-            saveCompletedSession(sessionId, { sessionId, data: state.streamedData });
+            // A finished run with nothing to show (a zero-valued response, or
+            // no data event ever arrived) is not worth caching — it would
+            // make a later restore read back as a successful, empty result.
+            if (responseHasContent(state.streamedData)) {
+              saveCompletedSession(sessionId, { sessionId, data: state.streamedData });
+            }
 
             if (event.navigation && options.onRedirect) {
               const nav = event.navigation;
