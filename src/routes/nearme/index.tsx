@@ -3,7 +3,7 @@ import { lazyChunk } from "@/lib/lazyChunk";
 import { useSearchParams } from "@solidjs/router";
 import { MapPin, Navigation, Loader2, AlertCircle, ChevronDown } from "lucide-solid";
 import { useChatRPC } from "~/lib/hooks/useChatRPC";
-import { readCompletedSession } from "~/lib/streaming/restore-session";
+import { hasListContent, readCompletedSession } from "~/lib/streaming/restore-session";
 import { useLiveSession } from "~/lib/streaming/live-stream-store";
 import { resumeLiveSession } from "~/lib/streaming/resume-live";
 import { hydrateSession } from "~/lib/streaming/hydrate-session";
@@ -148,8 +148,12 @@ export default function NearmePage() {
         setBoundLive(true);
         return;
       }
+      // A stored wrapper with no content (`{ sessionId, data: null }`, or an
+      // empty payload) comes back truthy from readCompletedSession — accepting
+      // it as-is would render a permanently blank page instead of falling
+      // through to hydrateSession.
       const restored = readCompletedSession(sessionIdFromUrl);
-      if (restored) {
+      if (restored && hasListContent(restored, "points_of_interest")) {
         setRestoredData(restored);
         return;
       }
