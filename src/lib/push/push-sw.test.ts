@@ -40,4 +40,40 @@ describe("push-sw decide", () => {
   it("rejects a backslash right after the leading slash", () => {
     expect(pushSw.targetUrl({ url: "/\\evil.example/x" })).toBe("/");
   });
+
+  it("sanitizes an off-site url before it would be relayed to a tab", () => {
+    // Mirrors the production relay path's
+    // `Object.assign({}, payload, { url: targetUrl(payload) })`: the message
+    // posted to a visible tab must carry the same targetUrl-checked url as
+    // the notification path, not the raw payload url.
+    const evilPayload = { sessionId: "s1", url: "https://evil.example/x" };
+    const visible = { visibilityState: "visible", url: "https://lociai.fyi/nearme" };
+
+    const d = pushSw.decide(evilPayload, [visible]);
+    expect(d).toEqual({ kind: "relay", client: visible });
+
+    const sanitized = Object.assign({}, evilPayload, { url: pushSw.targetUrl(evilPayload) });
+    expect(sanitized).toEqual({ sessionId: "s1", url: "/" });
+  });
+});
+
+describe("push-sw pickTab", () => {
+  const origin = "https://lociai.fyi";
+
+  it("picks the same-origin window client", () => {
+    const tab = { url: "https://lociai.fyi/nearme" };
+    const other = { url: "https://not-loci.example/" };
+    expect(pushSw.pickTab([other, tab], origin)).toBe(tab);
+  });
+
+  it("returns null when no client matches the origin", () => {
+    expect(pushSw.pickTab([{ url: "https://not-loci.example/" }], origin)).toBeNull();
+    expect(pushSw.pickTab([], origin)).toBeNull();
+    expect(pushSw.pickTab(undefined, origin)).toBeNull();
+  });
+
+  it("skips a client whose url cannot be parsed instead of throwing", () => {
+    const tab = { url: "https://lociai.fyi/nearme" };
+    expect(pushSw.pickTab([{ url: "not a url" }, tab], origin)).toBe(tab);
+  });
 });
