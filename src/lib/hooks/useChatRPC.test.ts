@@ -100,9 +100,32 @@ describe("useChatRPC — completed-session caching", () => {
     const { startStream } = useChatRPC({ onStart });
     await startStream("cheap", "Lisbon");
 
-    expect(onStart).toHaveBeenCalledWith("h1");
+    // The city too, so a page opened with a bare message can still write it
+    // into its URL.
+    expect(onStart).toHaveBeenCalledWith("h1", "Lisbon");
     expect(liveRuns.h1.url).toBe("/hotels?message=cheap&cityName=Lisbon&sessionId=h1");
     expect(liveRuns.h1.hostPath).toBe("/hotels?sessionId=h1");
+  });
+
+  it("passes the search profile through to the stream request", async () => {
+    events = [{ kind: "start", sessionId: "p1", domain: "accommodation" }];
+    const { startStream } = useChatRPC();
+    await startStream("cheap", "Lisbon", undefined, "profile-9");
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      message: "cheap",
+      cityName: "Lisbon",
+      profileId: "profile-9",
+    });
+  });
+
+  it("sends no profile when the page was opened without one", async () => {
+    events = [{ kind: "start", sessionId: "p2", domain: "accommodation" }];
+    const { startStream } = useChatRPC();
+    await startStream("cheap", "Lisbon", undefined, "");
+
+    expect((calls[0] as { profileId?: string }).profileId).toBeUndefined();
   });
 
   it("aborts its previous stream when a new one starts, and unlists it", async () => {

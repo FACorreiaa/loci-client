@@ -27,6 +27,12 @@ export interface SharePayload {
   url: string;
   stopCount?: number;
   stops?: ShareStop[];
+  /**
+   * Names with no order to them — a hotels or restaurants list. Written as
+   * one line rather than as days, because a list of places to sleep is not a
+   * plan and "Day 1" would say it was.
+   */
+  items?: string[];
 }
 
 export const SIGNATURE = "Generated from Loci";
@@ -38,6 +44,7 @@ export const SHARE_IMAGE_PATH = "/images/brand/icon-192.png";
 const STOPS_PER_DAY = 4;
 const MAX_NAMES_PER_DAY = 4;
 const MAX_DAYS = 4;
+const MAX_ITEMS = 6;
 
 const groupByDay = (stops: ShareStop[]): string[][] => {
   const days = new Map<number, string[]>();
@@ -60,11 +67,16 @@ export function buildShareText(payload: SharePayload): string {
   const lines: string[] = [payload.title];
   const stops = payload.stops ?? [];
 
+  const items = payload.items ?? [];
+
   if (stops.length > 0) {
     const days = groupByDay(stops);
     days.slice(0, MAX_DAYS).forEach((names, i) => lines.push(dayLine(i + 1, names)));
     const rest = days.length - MAX_DAYS;
     if (rest > 0) lines.push(`+${rest} more day${rest === 1 ? "" : "s"}`);
+  } else if (items.length > 0) {
+    const rest = items.length - MAX_ITEMS;
+    lines.push(`${items.slice(0, MAX_ITEMS).join(", ")}${rest > 0 ? ` +${rest} more` : ""}`);
   } else if (payload.stopCount && payload.stopCount > 0) {
     lines.push(`${payload.stopCount} stops`);
   } else if (payload.description) {

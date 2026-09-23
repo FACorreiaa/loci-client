@@ -27,9 +27,10 @@ export interface UseChatRPCOptions {
   /**
    * The server named this run. The owning page puts the id in its URL here,
    * so RunWatcher knows the viewer is on the run's page and a reload can
-   * restore it.
+   * restore it. `city` is the server's resolved city name, so a page that
+   * was asked without one can still write it into its URL.
    */
-  onStart?: (sessionId: string) => void;
+  onStart?: (sessionId: string, city: string) => void;
   onComplete?: (data: any) => void;
   onError?: (error: string) => void;
   onRedirect?: (domain: DomainType, sessionId: string, city: string) => void;
@@ -56,6 +57,8 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
     message: string,
     cityName?: string,
     userLocation?: { latitude: number; longitude: number },
+    /** The search profile to answer with, when the page was opened with one. */
+    profileId?: string,
   ) => {
     inflight?.abort();
     const ctrl = new AbortController();
@@ -91,6 +94,7 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
         {
           message,
           cityName,
+          profileId: profileId || undefined,
           userLocation: userLocation
             ? { userLat: userLocation.latitude, userLon: userLocation.longitude }
             : undefined,
@@ -122,7 +126,7 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
               // This page shows the run whatever url the server names later.
               hostPath: here.split("?")[0] + `?sessionId=${encodeURIComponent(sessionId)}`,
             });
-            if (sessionId) options.onStart?.(sessionId);
+            if (sessionId) options.onStart?.(sessionId, runCity);
             handleProgress("start");
             break;
           }

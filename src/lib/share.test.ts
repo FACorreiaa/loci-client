@@ -64,6 +64,18 @@ describe("buildShareText", () => {
     expect(text).toContain("+1 more day");
   });
 
+  it("writes a flat list as one line, with no days", () => {
+    const text = buildShareText({
+      cityName: "Rome",
+      title: "Hotels in Rome",
+      url: SHARE_HOME_URL,
+      stopCount: 8,
+      items: ["A", "B", "C", "D", "E", "F", "G", "H"],
+    });
+    expect(text.split("\n")).toEqual(["Hotels in Rome", "A, B, C, D, E, F +2 more", "", SIGNATURE]);
+    expect(text).not.toContain("Day 1");
+  });
+
   it("falls back to a stop count, then to the description, when there are no stops", () => {
     expect(buildShareText({ ...payload, stops: [], stopCount: 7 })).toContain("7 stops");
     expect(
