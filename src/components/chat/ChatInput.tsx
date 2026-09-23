@@ -49,7 +49,7 @@ const ChatInput: Component<ChatInputProps> = (props) => {
   };
 
   return (
-    <div class="bg-popover border-t border-border p-3 sm:p-4">
+    <div class="bg-[var(--muse-canvas)] px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
       <div class="max-w-3xl mx-auto">
         <div class="flex items-end gap-2 sm:gap-3">
           <Show when={dictation.supported()}>
@@ -88,7 +88,7 @@ const ChatInput: Component<ChatInputProps> = (props) => {
                 props.placeholder ||
                 "Ask me about destinations, activities, or let me create an itinerary for you..."
               }
-              class="min-h-[56px] max-h-[160px] resize-none"
+              class="min-h-[56px] max-h-[160px] resize-none rounded-[24px] border-transparent bg-[var(--muse-pill)] px-4 py-3 text-[15px] text-[var(--muse-text)] shadow-none placeholder:text-[var(--muse-text-secondary)]"
               disabled={props.isLoading || dictating()}
             />
           </TextFieldRoot>
@@ -115,7 +115,7 @@ const ChatInput: Component<ChatInputProps> = (props) => {
           class="text-xs mt-2 text-center"
           classList={{
             "text-destructive": !!dictation.error(),
-            "text-muted-foreground": !dictation.error(),
+            "text-[var(--muse-text-secondary)]": !dictation.error(),
           }}
           aria-live="polite"
         >

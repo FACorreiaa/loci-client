@@ -1,61 +1,92 @@
-import { Component, Show } from "solid-js";
-import { Menu } from "lucide-solid";
-import { LociMark } from "~/components/brand/Logo";
+import { Component } from "solid-js";
+import { Menu, Plus } from "lucide-solid";
 
 export interface ChatHeaderProps {
-  activeProfile: string;
-  sessionId: string | null;
   onNewChat: () => void;
   /** Opens the chat-history drawer on mobile. */
   onToggleSidebar?: () => void;
+  /** Agent name under the avatar. */
+  name?: string;
+  /** Status line under the name. Stage A is always "Ready". */
+  status?: string;
 }
 
-const ChatHeader: Component<ChatHeaderProps> = (props) => {
-  return (
-    <div class="border-b border-border bg-card p-3 sm:p-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-          <button
-            onClick={props.onToggleSidebar}
-            class="p-2 -ml-1 text-muted-foreground hover:bg-muted rounded-lg lg:hidden"
-            title="Chat history"
-            aria-label="Open chat history"
-          >
-            <Menu class="w-5 h-5" />
-          </button>
-          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-accent/15 text-accent flex items-center justify-center flex-shrink-0">
-            <LociMark class="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-          <div class="min-w-0 flex-1">
-            <h1 class="text-base sm:text-lg font-semibold text-foreground truncate">Loci</h1>
-            <p class="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-              Get personalized travel recommendations
-            </p>
-          </div>
-        </div>
+const MASCOT_SRC = "/images/brand/mascot.webp";
+const MASCOT_SRCSET = "/images/brand/mascot-sm.webp 303w, /images/brand/mascot.webp 606w";
 
-        <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          <span class="text-xs text-muted-foreground hidden sm:inline">Using:</span>
-          <span class="text-xs font-medium text-primary truncate max-w-20 sm:max-w-none">
-            {props.activeProfile}
-          </span>
-          {/* Session indicator and controls */}
-          <Show when={props.sessionId}>
-            <div class="flex items-center gap-1 text-xs">
-              <div class="w-2 h-2 bg-accent rounded-full animate-pulse" />
-              <span class="text-accent font-medium hidden sm:inline">Connected</span>
-              <button
-                onClick={props.onNewChat}
-                class="ml-1 px-2 py-1 text-xs text-destructive hover:bg-destructive/10 rounded border border-destructive/30"
-                title="Clear session and start fresh"
-              >
-                Clear
-              </button>
-            </div>
-          </Show>
+/**
+ * The Muse chat header (apps/_reviews/muse-chat-contract.md).
+ *
+ * It floats over the transcript rather than sitting above it: a 56px bar with
+ * the conversation-list button and a "New chat" pill, and a 110px avatar that
+ * hangs ~55px below the bar, over the top of the transcript. The transcript
+ * reserves that space with its own top inset (see routes/chat/index.tsx), and
+ * scrolls under a 120px canvas-to-transparent scrim so messages fade out
+ * behind the avatar instead of colliding with it. The scrim is plain gradient,
+ * not backdrop-blur, so it costs nothing on low-power devices.
+ *
+ * The overlay ignores pointer events except on its controls, so the part of
+ * the transcript under the scrim can still be scrolled and selected.
+ */
+const ChatHeader: Component<ChatHeaderProps> = (props) => {
+  const name = () => props.name ?? "Loci";
+  const status = () => props.status ?? "Ready";
+
+  return (
+    <header class="pointer-events-none absolute inset-x-0 top-0 z-20" data-testid="muse-header">
+      <div
+        aria-hidden="true"
+        class="absolute inset-x-0 top-0 h-[120px]"
+        style={{ background: "linear-gradient(to bottom, var(--muse-canvas), transparent)" }}
+      />
+
+      <div class="relative flex h-14 items-center justify-between px-4">
+        <button
+          type="button"
+          onClick={props.onToggleSidebar}
+          class="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-[var(--muse-pill)] text-[var(--muse-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:invisible"
+          title="Chat history"
+          aria-label="Open chat history"
+        >
+          <Menu class="h-5 w-5" aria-hidden="true" />
+        </button>
+
+        <button
+          type="button"
+          onClick={props.onNewChat}
+          class="pointer-events-auto flex h-10 items-center gap-1.5 rounded-full bg-[var(--muse-pill)] px-4 text-sm font-semibold text-[var(--muse-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          title="Start a new conversation"
+        >
+          <Plus class="h-4 w-4" aria-hidden="true" />
+          New chat
+        </button>
+      </div>
+
+      <div class="absolute left-1/2 top-1 flex -translate-x-1/2 flex-col items-center">
+        <div class="h-[110px] w-[110px] overflow-hidden rounded-full bg-[var(--muse-pill)] ring-4 ring-[var(--muse-canvas)]">
+          <img
+            src={MASCOT_SRC}
+            srcset={MASCOT_SRCSET}
+            sizes="110px"
+            alt=""
+            width={110}
+            height={110}
+            class="h-full w-full object-cover object-top"
+            data-testid="muse-avatar"
+          />
+        </div>
+        <div
+          class="-mt-3 flex flex-col items-center rounded-full bg-[var(--muse-pill)] px-4 py-1.5 ring-4 ring-[var(--muse-canvas)]"
+          role="status"
+          aria-live="polite"
+        >
+          <h1 class="font-sans text-[15px] font-semibold leading-5 text-[var(--muse-text)]">
+            {name()}
+          </h1>
+          <p class="text-[13px] leading-4 text-[var(--muse-text-secondary)]">{status()}</p>
         </div>
       </div>
-    </div>
+    </header>
   );
 };
 

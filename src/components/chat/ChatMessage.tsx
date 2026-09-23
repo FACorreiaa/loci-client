@@ -1,6 +1,5 @@
 import { Component, Show, createMemo } from "solid-js";
-import { User, Heart, Share2, ChevronDown, ChevronUp } from "lucide-solid";
-import { LociMark } from "~/components/brand/Logo";
+import { Heart, Share2, ChevronDown, ChevronUp } from "lucide-solid";
 import { formatMessageContent } from "./format-message-content";
 import HotelResults from "~/components/results/HotelResults";
 import RestaurantResults from "~/components/results/RestaurantResults";
@@ -120,39 +119,38 @@ const ChatMessage: Component<ChatMessageProps> = (props) => {
     return raw || `${cityData()?.city} Guide`;
   };
 
+  // Muse bubbles (apps/_reviews/muse-chat-contract.md): no inline avatar and no
+  // per-message name — the header carries who is speaking. Radius 24; the user
+  // bubble is darkened coral with ink text, because white on it is 2.89:1.
   return (
-    <div class={`flex gap-2 sm:gap-3 ${isUser() ? "justify-end" : "justify-start"}`}>
-      <Show when={!isUser()}>
-        <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center flex-shrink-0">
-          <LociMark class="w-3 h-3 sm:w-4 sm:h-4" />
-        </div>
-      </Show>
-
-      <div class={`max-w-[85%] sm:max-w-[70%] ${isUser() ? "order-1" : ""}`}>
-        <Show when={!isUser()}>
-          <p class="text-[11px] font-medium text-muted-foreground mb-1">Loci</p>
-        </Show>
+    <div
+      class={`flex ${isUser() ? "justify-end" : "justify-start"}`}
+      data-testid="chat-message"
+      data-role={isUser() ? "user" : "agent"}
+    >
+      <div class={isUser() ? "max-w-[85%]" : "max-w-[94%] min-w-0"}>
         <Show when={props.message.content.trim().length > 0 || !props.message.streaming}>
           <div
-            class={`rounded-2xl px-3 py-2 sm:px-4 sm:py-3 shadow-sm ${
+            data-testid="chat-bubble"
+            class={`rounded-[24px] px-4 py-2.5 text-[15px] leading-normal ${
               isUser()
-                ? "bg-primary text-primary-foreground shadow-primary/20"
+                ? "bg-[var(--muse-user-bubble)] text-[var(--muse-user-text)]"
                 : isError()
                   ? "bg-destructive/10 text-destructive border border-destructive/30"
-                  : "loci-card text-foreground"
+                  : "bg-[var(--muse-agent-bubble)] text-[var(--muse-text)]"
             }`}
           >
             <Show
               when={!isUser() && !isError()}
-              fallback={<div class="text-sm whitespace-pre-wrap">{displayText()}</div>}
+              fallback={<div class="whitespace-pre-wrap">{displayText()}</div>}
             >
-              <Markdown text={displayText()} class="text-sm" />
+              <Markdown text={displayText()} />
             </Show>
           </div>
         </Show>
 
         <Show when={props.message.streamingData}>
-          <div class="mt-2 sm:mt-3 loci-card rounded-xl p-3 sm:p-4 motion-enter">
+          <div class="mt-2 rounded-2xl bg-[var(--muse-agent-bubble)] text-[var(--muse-text)] p-3 sm:p-4 motion-enter">
             <Show when={cityData()}>
               <div class="flex items-center justify-between mb-2 sm:mb-3">
                 <div class="min-w-0 flex-1 pr-2">
@@ -207,17 +205,11 @@ const ChatMessage: Component<ChatMessageProps> = (props) => {
         </Show>
 
         <p
-          class={`text-xs mt-1 sm:mt-2 ${isUser() ? "text-primary-foreground/70 text-right" : "text-muted-foreground"}`}
+          class={`mt-1 px-2 text-xs text-[var(--muse-text-secondary)] ${isUser() ? "text-right" : ""}`}
         >
           {formatTimestamp(props.message.timestamp)}
         </p>
       </div>
-
-      <Show when={isUser()}>
-        <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-          <User class="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
-        </div>
-      </Show>
     </div>
   );
 };
