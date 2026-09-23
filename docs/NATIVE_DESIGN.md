@@ -40,9 +40,12 @@ HSL source matches web `themes.css`. Use sRGB in native.
 
 Same order as web `LOCI_DAY_COLORS` in `src/lib/theme-colors.ts`:
 
-`#294d3c`, `#5a7a55`, `#c76b4a`, `#8a6e2f`, `#3d5a4a`, `#a85a3a`, `#6b8f71`, `#d4845c`
+`#e2664a`, `#2f7d6e`, `#b07a2a`, `#7a5ca8`, `#4a7cb0`, `#8c6248`, `#5e8c3a`, `#a34f72`
 
-Cluster color: `#294d3c`. Ungrouped: `#6b7c72`.
+Indexed as web does: `colors[day % 8]` with the server's 1-based day, so Day 1
+is `#2f7d6e`; a list with no days is day 0, `#e2664a`.
+
+Cluster color: `#294d3c`. Ungrouped: `#6e7a82` (web `LOCI_MAP_UNGROUPED_COLOR`).
 
 ---
 
