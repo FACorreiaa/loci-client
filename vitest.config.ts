@@ -1,5 +1,6 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
+import solid from "vite-plugin-solid";
 
 /**
  * Vitest previously ran on bare defaults, which worked only because every test
@@ -12,6 +13,10 @@ import { defineConfig } from "vitest/config";
  * config, not a plain Vite one.
  */
 export default defineConfig({
+  // Compiles .tsx with Solid's JSX transform so component tests can render the
+  // real components. Without it esbuild emits React.createElement calls.
+  // `hot: false` — HMR wiring is meaningless under vitest.
+  plugins: [solid({ hot: false })],
   // solid-js ships a server build selected by the "node" condition, whose
   // createEffect/onMount are inert and whose isServer is true. Tests of hooks
   // and stores need the browser build, the one the app actually runs. Pinned

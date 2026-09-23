@@ -109,3 +109,44 @@
     color-scheme: dark;
   }
 }
+
+/*
+ * Muse chat surface (apps/_reviews/muse-chat-contract.md).
+ *
+ * The chat screen shares one design across Loci, Lumina, Norviq and North, and
+ * on Loci it matches the iOS app rather than the web palette above: canvas,
+ * bubbles and pill are LociTheme.swift's lociPaper / lociCard / lociMuted, so a
+ * conversation looks the same on both clients. Plain hex, not HSL triplets —
+ * nothing composes these with an alpha.
+ *
+ * Measured (WCAG 2.x relative luminance):
+ *   user text  #1A2E26 on #D4845C  4.96:1  (white on it is 2.89:1 — fails, so ink)
+ *   agent text #EDE8DC on #162019 13.69:1  | #1A2E26 on #FDFBF7 13.89:1
+ *   status     #B9AFA2 on #1F2923  6.94:1  | #52625A on #E8E2D6  5.00:1
+ * The light secondary is a step darker than iOS lociMutedInk (#5A6B62), which
+ * is 4.38:1 on the pill and fails AA for the 13px status line.
+ */
+@layer base {
+  :root,
+  [data-theme="loci"] {
+    --muse-canvas: #f5f0e6;
+    --muse-agent-bubble: #fdfbf7;
+    --muse-user-bubble: #d4845c;
+    --muse-pill: #e8e2d6;
+    --muse-text: #1a2e26;
+    --muse-text-secondary: #52625a;
+    --muse-user-text: #1a2e26;
+  }
+
+  .dark,
+  [data-kb-theme="dark"],
+  [data-theme="loci"].dark {
+    --muse-canvas: #101a16;
+    --muse-agent-bubble: #162019;
+    --muse-user-bubble: #d4845c;
+    --muse-pill: #1f2923;
+    --muse-text: #ede8dc;
+    --muse-text-secondary: #b9afa2;
+    --muse-user-text: #1a2e26;
+  }
+}
