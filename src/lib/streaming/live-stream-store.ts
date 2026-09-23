@@ -14,6 +14,7 @@
 
 import { createStore, produce } from "solid-js/store";
 import type { DomainType, UnifiedChatResponse } from "../api/types";
+import { responseHasContent } from "./response-content";
 
 export type LiveStreamPhase = "idle" | "connecting" | "streaming" | "complete" | "error";
 
@@ -35,6 +36,12 @@ export interface LiveStream {
   url: string;
   /** Who reads the stream: the shared service, or a page's own useChatRPC. */
   source: "service" | "page";
+  /**
+   * The page that shows this run while it streams, when that is not `url`:
+   * /chat renders its runs inline, and a list page owns the run it started.
+   * RunWatcher counts it as the run's own page, so no toast fires there.
+   */
+  hostPath?: string;
 }
 
 // Not solid-js/web's `isServer`: under vitest the package resolves to its
@@ -44,6 +51,11 @@ const isServer = typeof window === "undefined";
 
 /** How many searches may stream at once. */
 export const MAX_RUNS = 3;
+
+/** How many finished (complete or error) runs stay listed; older ones are dropped. */
+export const MAX_FINISHED_RUNS = 10;
+
+const isFinished = (r: LiveStream) => r.phase === "complete" || r.phase === "error";
 
 const blank = (sessionId: string): LiveStream => ({
   sessionId,
@@ -73,6 +85,13 @@ export function upsertRun(sessionId: string, patch: Partial<LiveStream>): void {
   setLiveRuns(
     produce((runs) => {
       runs[sessionId] = Object.assign(runs[sessionId] ?? blank(sessionId), patch);
+      if (!isFinished(runs[sessionId])) return;
+      // Finished runs stay listed for the tab's life otherwise, and nothing
+      // reads an old one: keep the newest few.
+      const finished = Object.values(runs)
+        .filter(isFinished)
+        .sort((a, b) => b.startedAt - a.startedAt);
+      for (const old of finished.slice(MAX_FINISHED_RUNS)) delete runs[old.sessionId];
     }),
   );
 }
@@ -83,20 +102,33 @@ export function removeRun(sessionId: string): void {
 }
 
 /**
- * Whether `sessionId` is a run in flight (or one that finished and is still
- * listed). A page that lands with this id can render from the store directly.
+ * Whether a page landing with `sessionId` should bind to the store: the run
+ * is still streaming, or it finished here with something to show.
+ *
+ * A finished entry with no data (a run settled after a reload, or one a push
+ * relayed) is not a result. Binding to it rendered a blank page; the page
+ * must fall through to its stored copy or the server instead.
  */
 export function isLiveSession(sessionId: string | undefined | null): boolean {
   if (!sessionId) return false;
   const run = liveRuns[sessionId];
-  return Boolean(run && run.phase !== "idle");
+  if (!run) return false;
+  if (run.phase === "connecting" || run.phase === "streaming") return true;
+  return run.phase === "complete" && responseHasContent(run.data);
 }
 
-/** Reactive accessors for one session id. All false/null when it is not live. */
+/**
+ * Reactive accessors for one session id. All false/null when it is not listed.
+ *
+ * Deliberately looser than isLiveSession: a page that bound while the run
+ * streamed must still see how it ended, including an empty finish or an
+ * error, or it would sit on its loading state.
+ */
 export function useLiveSession(sessionId: () => string | undefined) {
   const run = () => {
     const id = sessionId();
-    return id && isLiveSession(id) ? liveRuns[id] : null;
+    const entry = id ? liveRuns[id] : undefined;
+    return entry && entry.phase !== "idle" ? entry : null;
   };
   return {
     isLive: () => run() !== null,

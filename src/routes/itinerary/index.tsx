@@ -248,8 +248,9 @@ export default function ItineraryPage() {
 
     if (sessionIdFromUrl) {
       // Live (or resumable after a reload) → bind; otherwise the stored /
-      // server copies as before.
-      if (resumeLiveSession(sessionIdFromUrl)) {
+      // server copies as before. A listed run that failed is not something
+      // to bind to either, the same guard the list routes carry.
+      if (resumeLiveSession(sessionIdFromUrl) && live.phase() !== "error") {
         setBoundLive(true);
         setStore("isLoading", true);
         return;

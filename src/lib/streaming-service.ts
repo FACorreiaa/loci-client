@@ -33,6 +33,7 @@ import {
   type LiveStream,
 } from "./streaming/live-stream-store";
 import { COMPLETED_SESSION_KEY } from "./streaming/restore-session";
+import { responseHasContent } from "./streaming/response-content";
 import { saveCompletedSession } from "./streaming/completed-sessions";
 import { logger } from "./logger";
 
@@ -70,25 +71,7 @@ export const newRequestId = (): string => {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 };
 
-/**
- * Whether a payload has anything a page could render. The server's `complete`
- * frame decodes to a zero-valued AiCityResponse (only session_id set), and
- * preferring it over the itinerary that arrived a frame earlier wiped the
- * results at the finish line.
- */
-export const responseHasContent = (r: Partial<UnifiedChatResponse> | null | undefined): boolean => {
-  if (!r || typeof r !== "object") return false;
-  const any = r as any;
-  if (any.general_city_data?.city) return true;
-  const lists = [
-    any.points_of_interest,
-    any.itinerary_response?.points_of_interest,
-    any.hotels,
-    any.restaurants,
-    any.activities,
-  ];
-  return lists.some((l) => Array.isArray(l) && l.length > 0);
-};
+export { responseHasContent };
 
 export class StreamingChatService {
   // Every stream in flight, keyed by request id: a fresh search has no
