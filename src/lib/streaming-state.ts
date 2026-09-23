@@ -15,7 +15,10 @@ export interface StreamingSession {
   completedAt?: number;
 }
 
-const STREAMING_SESSION_KEY = "active_streaming_session";
+// Not "active_streaming_session": that key holds the list of resume envelopes
+// (live-stream-store.ts). Sharing it let this writer spread that list into an
+// object and overwrite every background run's resume data.
+const STREAMING_SESSION_KEY = "floating_chat_streaming_session";
 const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
 /**
