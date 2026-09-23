@@ -250,6 +250,37 @@ describe("ChatHeader (Muse restyle)", () => {
     expect(host.querySelector("h1")?.textContent).toBe("Loci");
     expect(host.querySelector('[role="status"] p')?.textContent).toBe("Ready");
     expect(host.textContent).toContain("New chat");
+    expect(host.querySelector('[data-testid="muse-ring"]')).toBeNull();
+    dispose();
+  });
+
+  it("shows the live status and wears the ring while working", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const dispose = render(
+      () =>
+        createComponent(ChatHeader, {
+          onNewChat: () => {},
+          name: "Loci",
+          status: "is checking hotels",
+          phase: "working",
+        }),
+      host,
+    );
+    const status = host.querySelector('[role="status"]');
+    expect(status?.getAttribute("aria-live")).toBe("polite");
+    expect(status?.querySelector("p")?.textContent).toBe("is checking hotels");
+    const ring = host.querySelector('[data-testid="muse-ring"]');
+    expect(ring?.getAttribute("data-phase")).toBe("working");
+    expect(ring?.getAttribute("aria-hidden")).toBe("true");
+    dispose();
+  });
+
+  it.each(["idle", "listening", "failed"] as const)("has no ring when %s", (phase) => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const dispose = render(() => createComponent(ChatHeader, { onNewChat: () => {}, phase }), host);
+    expect(host.querySelector('[data-testid="muse-ring"]')).toBeNull();
     dispose();
   });
 });

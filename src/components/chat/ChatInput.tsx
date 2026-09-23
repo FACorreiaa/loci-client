@@ -1,4 +1,4 @@
-import { Component, Show } from "solid-js";
+import { Component, Show, createEffect, on } from "solid-js";
 import { Loader2, Mic, Send, Square } from "lucide-solid";
 import { Button } from "~/ui/button";
 import { TextArea } from "~/ui/textarea";
@@ -14,6 +14,12 @@ export interface ChatInputProps {
   onKeyPress: (e: KeyboardEvent) => void;
   /** When streaming, the Send button becomes a Stop button. */
   onStop?: () => void;
+  /**
+   * The composer started or stopped listening: the textarea gained or lost
+   * focus, or dictation started or stopped recording. Drives the Muse header's
+   * "is listening" state.
+   */
+  onListeningChange?: (listening: boolean) => void;
 }
 
 const MAX_TEXTAREA_PX = 160; // ~6 rows
@@ -36,6 +42,14 @@ const ChatInput: Component<ChatInputProps> = (props) => {
   });
 
   const dictating = () => dictation.state() !== "idle";
+
+  createEffect(
+    on(
+      () => dictation.state() === "recording",
+      (recording) => props.onListeningChange?.(recording),
+      { defer: true },
+    ),
+  );
 
   const micLabel = () => {
     switch (dictation.state()) {
@@ -67,7 +81,9 @@ const ChatInput: Component<ChatInputProps> = (props) => {
                 fallback={
                   <Mic
                     class="w-4 h-4"
-                    classList={{ "animate-pulse": dictation.state() === "recording" }}
+                    classList={{
+                      "animate-pulse": dictation.state() === "recording",
+                    }}
                   />
                 }
               >
@@ -84,6 +100,8 @@ const ChatInput: Component<ChatInputProps> = (props) => {
                 autoGrow(e.currentTarget);
               }}
               onKeyPress={props.onKeyPress}
+              onFocus={() => props.onListeningChange?.(true)}
+              onBlur={() => props.onListeningChange?.(false)}
               placeholder={
                 props.placeholder ||
                 "Ask me about destinations, activities, or let me create an itinerary for you..."
