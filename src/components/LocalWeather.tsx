@@ -14,7 +14,7 @@ import type { Component } from "solid-js";
 import { useLocalContext } from "~/lib/api/localContext";
 import { colorForSeverity } from "~/lib/theme-colors";
 
-const conditionIcon = (c: string): Component<{ class?: string }> => {
+export const conditionIcon = (c: string): Component<{ class?: string }> => {
   const k = c.toLowerCase();
   if (k.includes("clear")) return Sun;
   if (k.includes("cloud")) return Cloud;
@@ -25,7 +25,7 @@ const conditionIcon = (c: string): Component<{ class?: string }> => {
   return Thermometer;
 };
 
-const dayLabel = (iso: string) =>
+export const dayLabel = (iso: string) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { weekday: "short" }) : "";
 
 /** Compact local-context nudge: a few days of weather + any alerts. */
