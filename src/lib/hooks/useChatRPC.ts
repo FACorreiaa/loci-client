@@ -3,7 +3,7 @@ import { DomainType } from "../api/types";
 import { getProgressForEventType } from "../utils/chatUtils";
 import { parseStreamError } from "../errors";
 import { streamChatEvents, type LociStreamEvent } from "../streaming/chatStream";
-import { upsertRun } from "../streaming/live-stream-store";
+import { removeRun, upsertRun } from "../streaming/live-stream-store";
 import { saveCompletedSession } from "../streaming/completed-sessions";
 import { getDomainRoute, responseHasContent } from "../streaming-service";
 
@@ -22,6 +22,12 @@ export interface ChatRPCState {
 }
 
 export interface UseChatRPCOptions {
+  /**
+   * The server named this run. The owning page puts the id in its URL here,
+   * so RunWatcher knows the viewer is on the run's page and a reload can
+   * restore it.
+   */
+  onStart?: (sessionId: string) => void;
   onComplete?: (data: any) => void;
   onError?: (error: string) => void;
   onRedirect?: (domain: DomainType, sessionId: string, city: string) => void;
@@ -39,11 +45,20 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
     streamedData: null,
   });
 
+  // This hook's in-flight stream. A new startStream on the same instance
+  // supersedes it (/nearme re-searches on a distance change); leaving the page
+  // does not, so a search keeps running after you navigate away.
+  let inflight: AbortController | null = null;
+
   const startStream = async (
     message: string,
     cityName?: string,
     userLocation?: { latitude: number; longitude: number },
   ) => {
+    inflight?.abort();
+    const ctrl = new AbortController();
+    inflight = ctrl;
+
     // Reset state for new chat
     setState({
       isConnected: true,
@@ -67,21 +82,28 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
       setState({ currentStep: "Processing request...", progress: 10 });
 
       // Single canonical reader — no bespoke proto/byte parsing here anymore.
-      for await (const event of streamChatEvents({
-        message,
-        cityName,
-        userLocation: userLocation
-          ? { userLat: userLocation.latitude, userLon: userLocation.longitude }
-          : undefined,
-      })) {
+      for await (const event of streamChatEvents(
+        {
+          message,
+          cityName,
+          userLocation: userLocation
+            ? { userLat: userLocation.latitude, userLon: userLocation.longitude }
+            : undefined,
+        },
+        ctrl.signal,
+      )) {
+        // Superseded: its events (including the error an abort produces)
+        // belong to nobody now, and must not overwrite the new run's state.
+        if (ctrl.signal.aborted) break;
         switch (event.kind) {
           case "error":
             throw new Error(event.userMessage);
 
-          case "start":
+          case "start": {
             sessionId = event.sessionId ?? "";
             domain = (event.domain as DomainType) ?? "general";
             runCity = event.city ?? cityName ?? "";
+            const here = pageWithSession(sessionId);
             upsertRun(sessionId, {
               phase: "streaming",
               domain,
@@ -91,10 +113,14 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
               startedAt: Date.now(),
               // Replaced at completion, when the server's navigation tells us
               // the real result page.
-              url: location.pathname + location.search,
+              url: here,
+              // This page shows the run whatever url the server names later.
+              hostPath: here.split("?")[0] + `?sessionId=${encodeURIComponent(sessionId)}`,
             });
+            if (sessionId) options.onStart?.(sessionId);
             handleProgress("start");
             break;
+          }
 
           case "progress":
             handleProgress(event.stage);
@@ -174,6 +200,7 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
         }
       }
     } catch (err: any) {
+      if (ctrl.signal.aborted) return;
       console.error("RPC Stream Error:", err);
 
       const parsedError = parseStreamError(err.message || String(err));
@@ -185,7 +212,19 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
       });
       if (sessionId) upsertRun(sessionId, { phase: "error", error: parsedError.userMessage });
       options.onError?.(parsedError.userMessage);
+    } finally {
+      // A superseded run never finishes; unlist it so nothing waits on it.
+      if (ctrl.signal.aborted && sessionId) removeRun(sessionId);
+      if (inflight === ctrl) inflight = null;
     }
+  };
+
+  // This page's URL with `sessionId` set: where the run is shown.
+  const pageWithSession = (sessionId: string): string => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams(window.location.search);
+    params.set("sessionId", sessionId);
+    return `${window.location.pathname}?${params.toString()}`;
   };
 
   // Shape a domain list event into the streamedData object the UI reads.
