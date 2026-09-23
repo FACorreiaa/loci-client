@@ -112,26 +112,3 @@ describe("enablePush", () => {
     await expect(enablePush()).resolves.toBe("error");
   });
 });
-
-describe("shouldEnablePushOnToggle", () => {
-  it("is true only when a VAPID key exists and permission has not been asked yet", async () => {
-    const { shouldEnablePushOnToggle } = await import("./push-client");
-
-    expect(shouldEnablePushOnToggle({ hasKey: true, permission: "default" })).toBe(true);
-  });
-
-  it("is false when there is no VAPID key, regardless of permission", async () => {
-    const { shouldEnablePushOnToggle } = await import("./push-client");
-
-    expect(shouldEnablePushOnToggle({ hasKey: false, permission: "default" })).toBe(false);
-    expect(shouldEnablePushOnToggle({ hasKey: false, permission: "granted" })).toBe(false);
-  });
-
-  it("is false when permission is already settled (granted, denied, or unsupported)", async () => {
-    const { shouldEnablePushOnToggle } = await import("./push-client");
-
-    expect(shouldEnablePushOnToggle({ hasKey: true, permission: "granted" })).toBe(false);
-    expect(shouldEnablePushOnToggle({ hasKey: true, permission: "denied" })).toBe(false);
-    expect(shouldEnablePushOnToggle({ hasKey: true, permission: "unsupported" })).toBe(false);
-  });
-});

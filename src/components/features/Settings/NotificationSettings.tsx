@@ -1,12 +1,11 @@
-import { createSignal, onMount, Show } from "solid-js";
+import { Show } from "solid-js";
 import { Bell } from "lucide-solid";
 import {
   useNotificationSettings,
   useUpdateNotificationSettings,
   type NotificationSettings as Settings,
 } from "~/lib/api/notifications";
-import { getNotificationPermission } from "~/lib/notification-prefs";
-import { enablePush, getVapidKey, shouldEnablePushOnToggle } from "~/lib/push/push-client";
+import { usePushDeviceState } from "~/lib/push/use-push-device";
 import { Checkbox, CheckboxControl } from "~/ui/checkbox";
 import { Label } from "~/ui/label";
 
@@ -28,15 +27,7 @@ export default function NotificationSettings(props: {
 }) {
   const settingsQuery = useNotificationSettings();
   const updateSettings = useUpdateNotificationSettings();
-
-  // Prefetched on mount rather than inside the click handler: enablePush()
-  // must run synchronously off the click with nothing awaited ahead of it
-  // (see push-client.ts), so the key needs to already be in hand by then.
-  const [vapidKey, setVapidKey] = createSignal("");
-  const [pushNotice, setPushNotice] = createSignal<string | null>(null);
-  onMount(() => {
-    void getVapidKey().then(setVapidKey);
-  });
+  const pushDevice = usePushDeviceState();
 
   // isSuccess before .data: reading .data on a pending solid-query suspends the
   // app-wide boundary and blanks the whole settings route.
@@ -58,30 +49,8 @@ export default function NotificationSettings(props: {
     }
   };
 
-  // enablePush() asks the browser for permission before it knows whether
-  // push is even configured server-side, so this switch must not call it
-  // when there is no VAPID key — the account preference still saves, this
-  // device just won't get a push for it.
   const toggleSearchFinished = (value: boolean) => {
-    setPushNotice(null);
-    if (value) {
-      const permission = getNotificationPermission();
-      if (permission === "denied") {
-        setPushNotice("Notifications are blocked for this site in your browser settings.");
-      } else if (shouldEnablePushOnToggle({ hasKey: Boolean(vapidKey()), permission })) {
-        // Synchronous, nothing awaited ahead of it: keeps this click's
-        // user-gesture window open for Notification.requestPermission().
-        void enablePush().then((result) => {
-          if (result === "denied") {
-            setPushNotice("Notifications are blocked for this site in your browser settings.");
-          } else if (result === "error" || result === "unsupported") {
-            setPushNotice("Couldn't turn on notifications on this device.");
-          }
-        });
-      } else if (!vapidKey()) {
-        setPushNotice("Push isn't available right now.");
-      }
-    }
+    pushDevice.onToggle(value);
     void toggle("searchFinished", value);
   };
 
@@ -149,8 +118,21 @@ export default function NotificationSettings(props: {
               <p class="text-sm text-muted-foreground">
                 A notification when a search you left finishes or fails.
               </p>
-              <Show when={pushNotice()}>
-                {(notice) => <p class="text-sm text-muted-foreground mt-1">{notice()}</p>}
+              <Show when={pushDevice.deviceNotice(settings().searchFinished)}>
+                {(notice) => (
+                  <Show
+                    when={notice().kind === "action"}
+                    fallback={<p class="text-sm text-muted-foreground mt-1">{notice().text}</p>}
+                  >
+                    <button
+                      type="button"
+                      class="text-sm text-primary underline-offset-4 hover:underline mt-1"
+                      onClick={() => pushDevice.enableOnThisDevice()}
+                    >
+                      {notice().text}
+                    </button>
+                  </Show>
+                )}
               </Show>
             </div>
           </div>
