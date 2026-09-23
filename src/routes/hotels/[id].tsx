@@ -1,346 +1,198 @@
-import { createSignal, For, Show } from "solid-js";
-import { useParams } from "@solidjs/router";
-import { Star, MapPin, Phone, Mail, Globe, Heart, Share2, Calendar, ArrowLeft } from "lucide-solid";
-import { A } from "@solidjs/router";
+import { For, Show, createMemo } from "solid-js";
+import { useParams, useSearchParams } from "@solidjs/router";
+import { Star, Wifi, Car, Coffee, Utensils, Check } from "lucide-solid";
 import { useHotelDetails } from "~/lib/api/hotels";
+import type { FavoriteItem } from "~/lib/api/favorites";
+import PlaceDetail, { type PlaceTab } from "~/components/results/PlaceDetail";
 
+const amenityIcon = (amenity: string) => {
+  const a = amenity.toLowerCase();
+  if (a.includes("wifi") || a.includes("internet")) return <Wifi class="w-4 h-4" />;
+  if (a.includes("parking") || a.includes("car")) return <Car class="w-4 h-4" />;
+  if (a.includes("breakfast") || a.includes("coffee")) return <Coffee class="w-4 h-4" />;
+  if (a.includes("restaurant") || a.includes("dining")) return <Utensils class="w-4 h-4" />;
+  return <Check class="w-4 h-4" />;
+};
+
+/**
+ * One hotel. Shows what the service provides — pictures, class, price band,
+ * amenities, contact, location — and nothing it does not: the rooms, check-in
+ * times and reviews tabs this page used to render were always empty.
+ */
 export default function HotelDetailPage() {
   const params = useParams();
-  const [selectedTab, setSelectedTab] = createSignal("overview");
-  const [isFavorite, setIsFavorite] = createSignal(false);
-
-  // Use API hook to fetch hotel details
+  const [searchParams] = useSearchParams();
   const hotelQuery = useHotelDetails(params.id ?? "");
-
   const hotel = () => hotelQuery.data;
 
-  const tabs = [
-    { id: "overview", label: "Overview" },
-    { id: "rooms", label: "Rooms" },
-    { id: "amenities", label: "Amenities" },
-    { id: "location", label: "Location" },
-    { id: "reviews", label: "Reviews" },
-  ];
-
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite());
+  const stars = () => {
+    const n = Math.round(hotel()?.star_rating ?? 0);
+    return n > 0 && n <= 5 ? n : 0;
   };
+  const price = () => hotel()?.priceRange || hotel()?.price_level;
 
-  const renderOverview = () => (
-    <div class="space-y-6">
-      {/* Description */}
-      <div class="bg-card rounded-lg p-6 border border-border">
-        <h3 class="text-lg font-semibold text-foreground mb-3">About this hotel</h3>
-        <p class="text-muted-foreground leading-relaxed">{hotel()?.description}</p>
-      </div>
+  const favorite = createMemo<FavoriteItem | undefined>(() => {
+    const h = hotel();
+    if (!h) return undefined;
+    return {
+      id: h.id,
+      name: h.name,
+      contentType: "hotel",
+      description: h.description,
+      llmInteractionId: h.llm_interaction_id || undefined,
+      cityName: h.city || (searchParams.cityName as string) || undefined,
+      latitude: h.latitude,
+      longitude: h.longitude,
+      rating: h.rating > 0 ? h.rating : undefined,
+      category: h.category || undefined,
+    };
+  });
 
-      {/* Key Information */}
-      <div class="bg-card rounded-lg p-6 border border-border">
-        <h3 class="text-lg font-semibold text-foreground mb-4">Key Information</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="flex items-center gap-3">
-            <Calendar class="w-5 h-5 text-primary" />
-            <div>
-              <div class="font-medium text-foreground">Check-in</div>
-              <div class="text-sm text-muted-foreground">{hotel()?.checkIn}</div>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <Calendar class="w-5 h-5 text-primary" />
-            <div>
-              <div class="font-medium text-foreground">Check-out</div>
-              <div class="text-sm text-muted-foreground">{hotel()?.checkOut}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Nearby Attractions */}
-      <div class="bg-card rounded-lg p-6 border border-border">
-        <h3 class="text-lg font-semibold text-foreground mb-4">Nearby Attractions</h3>
-        <div class="space-y-3">
-          <For each={hotel()?.nearbyAttractions}>
-            {(attraction) => (
-              <div class="flex items-center justify-between py-2 border-b border-border last:border-b-0">
-                <div class="flex items-center gap-3">
-                  <MapPin class="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <div class="font-medium text-foreground">{attraction.name}</div>
-                    <div class="text-sm text-muted-foreground">{attraction.type}</div>
-                  </div>
-                </div>
-                <span class="text-sm text-primary font-medium">
-                  {attraction.distance}
-                </span>
-              </div>
-            )}
-          </For>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderRooms = () => (
-    <div class="space-y-4">
-      <For each={hotel()?.rooms}>
-        {(room) => (
-          <div class="bg-card rounded-lg p-6 border border-border">
-            <div class="flex flex-col lg:flex-row gap-6">
-              <div class="lg:w-1/3">
-                <div class="aspect-video bg-muted/50 border border-border rounded-lg flex items-center justify-center">
-                  🏨
-                </div>
-              </div>
-              <div class="lg:w-2/3">
-                <div class="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 class="text-xl font-semibold text-foreground">{room.type}</h3>
-                    <p class="text-muted-foreground mt-1">{room.description}</p>
-                  </div>
-                  <div class="text-right">
-                    <div class="text-2xl font-bold text-primary">
-                      {room.price}
+  const tabs = createMemo<PlaceTab[]>(() => {
+    const h = hotel();
+    const out: PlaceTab[] = [
+      {
+        id: "overview",
+        label: "Overview",
+        content: () => (
+          <div class="space-y-6">
+            <Show when={h?.description}>
+              <section class="bg-card rounded-2xl p-6 border border-border">
+                <h2 class="text-lg font-semibold text-foreground mb-3">About this hotel</h2>
+                <p class="text-muted-foreground leading-relaxed">{h?.description}</p>
+              </section>
+            </Show>
+            <Show when={price() || h?.pricePerNight || stars() > 0}>
+              <section class="bg-card rounded-2xl p-6 border border-border">
+                <h2 class="text-lg font-semibold text-foreground mb-4">At a glance</h2>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <Show when={stars() > 0}>
+                    <div>
+                      <dt class="text-muted-foreground">Class</dt>
+                      <dd class="text-foreground font-medium">{stars()}-star</dd>
                     </div>
-                    <div class="text-sm text-muted-foreground">per night</div>
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
-                  <div>
-                    <span class="font-medium text-foreground">Size:</span>
-                    <span class="text-muted-foreground ml-1">{room.size}</span>
-                  </div>
-                  <div>
-                    <span class="font-medium text-foreground">Capacity:</span>
-                    <span class="text-muted-foreground ml-1">{room.capacity}</span>
-                  </div>
-                </div>
-
-                <div class="mb-4">
-                  <h4 class="font-medium text-foreground mb-2">Room Amenities</h4>
-                  <div class="flex flex-wrap gap-2">
-                    <For each={room.amenities}>
-                      {(amenity) => (
-                        <span class="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
-                          {amenity}
-                        </span>
-                      )}
-                    </For>
-                  </div>
-                </div>
-
-                <button class="w-full lg:w-auto px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium">
-                  Book Now
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </For>
-    </div>
-  );
-
-  const renderAmenities = () => (
-    <div class="bg-card rounded-lg p-6 border border-border">
-      <h3 class="text-lg font-semibold text-foreground mb-4">Hotel Amenities</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <For each={hotel()?.amenities}>
-          {(amenity) => (
-            <div class="flex items-center gap-3 p-3 rounded-lg bg-accent/10 text-accent">
-              <span class="font-medium">{amenity}</span>
-            </div>
-          )}
-        </For>
-      </div>
-    </div>
-  );
-
-  const renderLocation = () => (
-    <div class="space-y-6">
-      {/* Map placeholder */}
-      <div class="bg-card rounded-lg p-6 border border-border">
-        <h3 class="text-lg font-semibold text-foreground mb-4">Location</h3>
-        <div class="aspect-video bg-muted/50 border border-border rounded-lg flex items-center justify-center mb-4">
-          <MapPin class="w-12 h-12 text-muted-foreground" />
-        </div>
-        <p class="text-muted-foreground">{hotel()?.address}</p>
-      </div>
-
-      {/* Contact Information */}
-      <div class="bg-card rounded-lg p-6 border border-border">
-        <h3 class="text-lg font-semibold text-foreground mb-4">
-          Contact Information
-        </h3>
-        <div class="space-y-3">
-          <div class="flex items-center gap-3">
-            <Phone class="w-5 h-5 text-primary" />
-            <span class="text-foreground">{hotel()?.contact?.phone}</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <Mail class="w-5 h-5 text-primary" />
-            <span class="text-foreground">{hotel()?.contact?.email}</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <Globe class="w-5 h-5 text-primary" />
-            <span class="text-foreground">{hotel()?.contact?.website}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderReviews = () => (
-    <div class="bg-card rounded-lg p-6 border border-border">
-      <h3 class="text-lg font-semibold text-foreground mb-4">Reviews</h3>
-      <p class="text-muted-foreground">Reviews will be displayed here.</p>
-    </div>
-  );
-
-  return (
-    <div class="min-h-screen relative transition-colors">
-      <Show when={hotel()}>
-        {/* Header */}
-        <div class="bg-card border-b border-border">
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {/* Back button */}
-            <div class="mb-4">
-              <A
-                href="/hotels"
-                class="flex items-center gap-2 text-primary hover:text-primary/80"
-              >
-                <ArrowLeft class="w-4 h-4" />
-                Back to Hotels
-              </A>
-            </div>
-
-            <div class="flex flex-col lg:flex-row gap-6">
-              {/* Hotel Images */}
-              <div class="lg:w-1/2">
-                <div class="aspect-video bg-muted/50 border border-border rounded-lg flex items-center justify-center">
-                  🏨
-                </div>
-                <div class="grid grid-cols-3 gap-2 mt-2">
-                  <For each={Array.from({ length: 3 })}>
-                    {() => (
-                      <div class="aspect-video bg-muted/50 border border-border rounded" />
+                  </Show>
+                  <Show when={price()}>
+                    <div>
+                      <dt class="text-muted-foreground">Price band</dt>
+                      <dd class="text-foreground font-medium">{price()}</dd>
+                    </div>
+                  </Show>
+                  <Show when={h?.pricePerNight}>
+                    <div>
+                      <dt class="text-muted-foreground">Per night</dt>
+                      <dd class="text-foreground font-medium">{h?.pricePerNight}</dd>
+                    </div>
+                  </Show>
+                </dl>
+              </section>
+            </Show>
+            <Show when={h?.features?.length}>
+              <section class="bg-card rounded-2xl p-6 border border-border">
+                <h2 class="text-lg font-semibold text-foreground mb-3">Highlights</h2>
+                <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                  <For each={h?.features}>
+                    {(f) => (
+                      <li class="flex items-center gap-2">
+                        <Check class="w-4 h-4 text-accent" /> {f}
+                      </li>
                     )}
                   </For>
-                </div>
-              </div>
-
-              {/* Hotel Info */}
-              <div class="lg:w-1/2">
-                <div class="flex items-start justify-between mb-4">
-                  <div>
-                    <h1 class="text-3xl font-bold text-foreground">
-                      {hotel()?.name}
-                    </h1>
-                    <p class="text-muted-foreground mt-1">
-                      {(hotel() as any)?.category}
-                    </p>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <button
-                      onClick={toggleFavorite}
-                      class={`p-2 rounded-lg ${
-                        isFavorite()
-                          ? "bg-destructive/10 text-destructive"
-                          : "bg-muted text-muted-foreground"
-                      } hover:scale-110 transition-transform`}
-                    >
-                      <Heart class={`w-5 h-5 ${isFavorite() ? "fill-current" : ""}`} />
-                    </button>
-                    <button class="p-2 bg-muted text-muted-foreground rounded-lg hover:scale-110 transition-transform">
-                      <Share2 class="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Rating and Price */}
-                <div class="flex items-center gap-4 mb-4">
-                  <div class="flex items-center gap-2">
-                    <div class="flex items-center gap-1">
-                      <Star class="w-5 h-5 text-accent fill-current" />
-                      <span class="font-semibold text-foreground">
-                        {hotel()?.rating}
-                      </span>
-                    </div>
-                    <span class="text-muted-foreground">
-                      ({hotel()?.reviewCount} reviews)
-                    </span>
-                  </div>
-                  <div class="text-2xl font-bold text-primary">
-                    {hotel()?.pricePerNight}
-                  </div>
-                </div>
-
-                {/* Address */}
-                <div class="flex items-center gap-2 mb-6">
-                  <MapPin class="w-5 h-5 text-muted-foreground" />
-                  <span class="text-muted-foreground">{hotel()?.address}</span>
-                </div>
-
-                {/* Quick Amenities */}
-                <div class="mb-6">
-                  <h3 class="font-semibold text-foreground mb-2">
-                    Popular Amenities
-                  </h3>
-                  <div class="flex flex-wrap gap-2">
-                    <For each={hotel()?.amenities?.slice(0, 4)}>
-                      {(amenity) => (
-                        <div class="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-                          {amenity}
-                        </div>
-                      )}
-                    </For>
-                  </div>
-                </div>
-
-                {/* CTA Buttons */}
-                <div class="flex gap-3">
-                  <button class="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium">
-                    Book Now
-                  </button>
-                  <button class="px-6 py-3 border border-border text-muted-foreground rounded-lg hover:bg-muted font-medium">
-                    Contact Hotel
-                  </button>
-                </div>
-              </div>
-            </div>
+                </ul>
+              </section>
+            </Show>
           </div>
-        </div>
+        ),
+      },
+    ];
+    if (h?.amenities?.length) {
+      out.push({
+        id: "amenities",
+        label: "Amenities",
+        content: () => (
+          <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <For each={h.amenities}>
+              {(a) => (
+                <li class="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground">
+                  <span class="text-primary">{amenityIcon(a)}</span>
+                  {a}
+                </li>
+              )}
+            </For>
+          </ul>
+        ),
+      });
+    }
+    if (h?.nearbyAttractions?.length) {
+      out.push({
+        id: "nearby",
+        label: "Nearby",
+        content: () => (
+          <ul class="space-y-2">
+            <For each={h.nearbyAttractions}>
+              {(n) => (
+                <li class="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm">
+                  <span class="text-foreground">
+                    {n.name}
+                    <Show when={n.type}>
+                      <span class="text-muted-foreground"> · {n.type}</span>
+                    </Show>
+                  </span>
+                  <span class="text-muted-foreground">{n.distance}</span>
+                </li>
+              )}
+            </For>
+          </ul>
+        ),
+      });
+    }
+    return out;
+  });
 
-        {/* Tabs */}
-        <div class="bg-card border-b border-border">
-          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex space-x-8 overflow-x-auto">
-              <For each={tabs}>
-                {(tab) => (
-                  <button
-                    onClick={() => setSelectedTab(tab.id)}
-                    class={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                      selectedTab() === tab.id
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                )}
+  return (
+    <PlaceDetail
+      domain="hotels"
+      status={hotelQuery}
+      place={
+        hotel()
+          ? {
+              id: hotel()!.id,
+              name: hotel()!.name,
+              city: hotel()!.city,
+              category: hotel()!.category,
+              description: hotel()!.description,
+              latitude: hotel()!.latitude,
+              longitude: hotel()!.longitude,
+              address: hotel()!.address,
+              rating: hotel()!.rating,
+              reviewCount: hotel()!.reviewCount,
+              images: hotel()!.images,
+              image_credits: hotel()!.image_credits,
+              phone: hotel()!.contact?.phone,
+              website: hotel()!.contact?.website,
+            }
+          : undefined
+      }
+      favorite={favorite()}
+      cityHint={searchParams.cityName as string | undefined}
+      facts={
+        <>
+          <Show when={stars() > 0}>
+            <span
+              class="inline-flex items-center gap-0.5 text-accent"
+              aria-label={`${stars()}-star hotel`}
+            >
+              <For each={Array.from({ length: stars() })}>
+                {() => <Star class="w-4 h-4 fill-current" />}
               </For>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Show when={selectedTab() === "overview"}>{renderOverview()}</Show>
-          <Show when={selectedTab() === "rooms"}>{renderRooms()}</Show>
-          <Show when={selectedTab() === "amenities"}>{renderAmenities()}</Show>
-          <Show when={selectedTab() === "location"}>{renderLocation()}</Show>
-          <Show when={selectedTab() === "reviews"}>{renderReviews()}</Show>
-        </div>
-      </Show>
-    </div>
+            </span>
+          </Show>
+          <Show when={price()}>
+            <span class="font-semibold text-primary">{price()}</span>
+          </Show>
+        </>
+      }
+      tabs={tabs()}
+    />
   );
 }

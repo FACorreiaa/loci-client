@@ -5,33 +5,73 @@ import {
   FavoritesService,
   GetRestaurantDetailsRequestSchema,
   GetNearbyRestaurantsRequestSchema,
+  type RestaurantDetails,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/favorites/v1/favorites_pb.js";
 import { transport } from "../connect-transport";
 import { queryKeys } from "./shared";
-import type { RestaurantDetailedInfo } from "./types";
+import type { POIImageCredit, RestaurantDetailedInfo } from "./types";
 import { useAppQuery } from "./authed-query";
 
 const favoritesClient = createClient(FavoritesService, transport);
 
-// Helper to map proto to client type
-const mapProtoToRestaurant = (proto: any): RestaurantDetailedInfo => ({
-  id: proto.id,
-  name: proto.name,
-  city: proto.city,
-  description: proto.description,
-  latitude: proto.latitude,
-  longitude: proto.longitude,
-  address: proto.address,
-  category: proto.category,
-  rating: proto.rating,
-  cuisine_type: proto.cuisineType,
-  price_level: proto.priceRange,
-  tags: proto.tags || [],
-  images: proto.images || [],
-  phone_number: proto.phone,
-  website: proto.website,
-  llm_interaction_id: proto.llmInteractionId,
-});
+const orUndefined = (v: string | undefined | null): string | undefined =>
+  v?.trim() ? v : undefined;
+
+/**
+ * The wire's RestaurantDetails as the client type.
+ *
+ * cuisineType → cuisine, priceRange → priceRange, hours → hours, phone and
+ * website → contact. The page used to read `cuisine`, `priceRange` and
+ * `hours` while the mapping only wrote `cuisine_type` and `price_level`, so
+ * the page rendered blanks; and it read `isOpen`, which nothing set, so every
+ * restaurant was "Closed". Open-or-not is now derived from today's hours by
+ * the page (see lib/results/domain.ts), never from a flag.
+ *
+ * The proto also declares a menu, reservation and card flags, languages and
+ * an average price the server has never populated; they are carried through
+ * untouched, and the page shows none of them while they are empty.
+ */
+export const mapProtoToRestaurant = (proto: RestaurantDetails): RestaurantDetailedInfo => {
+  const hours = Object.fromEntries(
+    Object.entries(proto.hours ?? {}).filter(([, v]) => typeof v === "string" && v.trim()),
+  );
+  const credits = ((proto as { imageCredits?: POIImageCredit[] }).imageCredits ?? []).filter(
+    (c) => c?.url,
+  );
+  const images = proto.images?.length ? proto.images : credits.map((c) => c.url);
+  return {
+    id: proto.id,
+    name: proto.name,
+    city: proto.city,
+    description: proto.description,
+    latitude: proto.latitude,
+    longitude: proto.longitude,
+    address: orUndefined(proto.address),
+    category: proto.category,
+    rating: proto.rating,
+    cuisine_type: orUndefined(proto.cuisineType),
+    cuisine: orUndefined(proto.cuisineType),
+    price_level: orUndefined(proto.priceRange),
+    priceRange: orUndefined(proto.priceRange),
+    hours: Object.keys(hours).length ? hours : undefined,
+    opening_hours: Object.keys(hours).length ? JSON.stringify(hours) : undefined,
+    tags: proto.tags ?? [],
+    images,
+    image_credits: credits.length ? credits : undefined,
+    phone_number: orUndefined(proto.phone),
+    website: orUndefined(proto.website),
+    contact: {
+      phone: orUndefined(proto.contact?.phone) ?? orUndefined(proto.phone),
+      email: orUndefined(proto.contact?.email),
+      website: orUndefined(proto.contact?.website) ?? orUndefined(proto.website),
+    },
+    llm_interaction_id: proto.llmInteractionId,
+    reviewCount: proto.reviewCount || undefined,
+    features: proto.features ?? [],
+    specialties: proto.specialties ?? [],
+    averagePrice: orUndefined(proto.averagePrice),
+  };
+};
 
 // =====================
 // RESTAURANTS QUERIES (RPC)
@@ -56,6 +96,9 @@ export const useNearbyRestaurants = (lat: number, lng: number, radius?: number) 
   }));
 };
 
+/** Thrown when the service answers without a restaurant: the id names nothing. */
+export const RESTAURANT_NOT_FOUND = "Restaurant not found";
+
 // Get restaurant details
 export const useRestaurantDetails = (restaurantId: string) => {
   return useAppQuery(() => ({
@@ -64,7 +107,7 @@ export const useRestaurantDetails = (restaurantId: string) => {
       const request = create(GetRestaurantDetailsRequestSchema, { restaurantId });
       const response = await favoritesClient.getRestaurantDetails(request);
       if (!response.restaurant) {
-        throw new Error("Restaurant not found");
+        throw new Error(RESTAURANT_NOT_FOUND);
       }
       return mapProtoToRestaurant(response.restaurant);
     },
