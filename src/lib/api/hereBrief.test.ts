@@ -7,7 +7,15 @@ import {
   NewsTickerItemSchema,
   WeatherDaySchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/localcontext/localcontext_pb.js";
-import { hasAnything, placeLabel, roundCoord2, toHereBrief } from "./hereBrief";
+import {
+  hasAnything,
+  hereRefetchInterval,
+  placeLabel,
+  roundCoord2,
+  settledBrief,
+  toHereBrief,
+  type HereBriefData,
+} from "./hereBrief";
 
 const item = (id: string) =>
   create(NewsTickerItemSchema, {
@@ -63,5 +71,40 @@ describe("hereBrief", () => {
       ),
     ).toBe("Minho");
     expect(placeLabel(undefined)).toBe("");
+  });
+});
+
+describe("settledBrief", () => {
+  // Reading .data on a pending solid-query suspends to the app-wide Suspense
+  // and blanks the whole dashboard, so a pending query must not be read.
+  it("never touches data while pending", () => {
+    const q = {
+      isPending: true,
+      get data(): HereBriefData | undefined {
+        throw new Error("read .data while pending");
+      },
+    };
+    expect(settledBrief(q)).toBeUndefined();
+  });
+
+  it("returns data once settled", () => {
+    const d = toHereBrief(create(HereBriefSchema, {}));
+    expect(settledBrief({ isPending: false, data: d })).toBe(d);
+  });
+});
+
+describe("hereRefetchInterval", () => {
+  it("polls while a new town's feeds are warming", () => {
+    expect(hereRefetchInterval(toHereBrief(create(HereBriefSchema, { stale: true })))).toBe(30_000);
+  });
+
+  it("stops once headlines arrive or nothing is stale", () => {
+    expect(
+      hereRefetchInterval(
+        toHereBrief(create(HereBriefSchema, { stale: true, local: [item("a")] })),
+      ),
+    ).toBe(false);
+    expect(hereRefetchInterval(toHereBrief(create(HereBriefSchema, {})))).toBe(false);
+    expect(hereRefetchInterval(undefined)).toBe(false);
   });
 });

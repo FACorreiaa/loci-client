@@ -2,6 +2,7 @@
 // short headline lists, from one GetHereBrief call. Only ever asked with a
 // real position — never the hero's Lisbon stand-in.
 import { createClient } from "@connectrpc/connect";
+import { keepPreviousData } from "@tanstack/solid-query";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import {
@@ -77,6 +78,20 @@ export const hasAnything = (d: HereBriefData): boolean =>
 export const placeLabel = (d: HereBriefData | undefined): string =>
   d?.place.locality || d?.place.region || "";
 
+/**
+ * The brief once the query has settled. Reading `.data` on a pending
+ * solid-query suspends to the app-wide Suspense and blanks the whole
+ * dashboard, so check `isPending` first and only then touch `data`.
+ */
+export const settledBrief = (q: {
+  isPending: boolean;
+  data: HereBriefData | undefined;
+}): HereBriefData | undefined => (q.isPending ? undefined : q.data);
+
+/** Poll while a new town's feeds are still warming on the aggregator. */
+export const hereRefetchInterval = (d: HereBriefData | undefined): number | false =>
+  d?.stale && d.local.length + d.disruption.length + d.whatsOn.length === 0 ? 30_000 : false;
+
 export const useHereBrief = (lat: () => number | undefined, lon: () => number | undefined) =>
   useAppQuery(() => {
     const la = lat();
@@ -87,6 +102,9 @@ export const useHereBrief = (lat: () => number | undefined, lon: () => number | 
       queryKey: ["hereBrief", rla ?? null, rlo ?? null],
       enabled: rla != null && rlo != null,
       staleTime: 15 * 60 * 1000,
+      refetchInterval: (query: { state: { data?: HereBriefData } }) =>
+        hereRefetchInterval(query.state.data),
+      placeholderData: keepPreviousData,
       queryFn: async (): Promise<HereBriefData> =>
         toHereBrief(
           await client.getHereBrief(

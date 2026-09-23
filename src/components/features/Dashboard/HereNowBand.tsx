@@ -3,7 +3,13 @@
 import { For, Show, createMemo } from "solid-js";
 import { TriangleAlert } from "lucide-solid";
 import { useUserLocation } from "~/contexts/LocationContext";
-import { hasAnything, placeLabel, useHereBrief, type HereBriefData } from "~/lib/api/hereBrief";
+import {
+  hasAnything,
+  placeLabel,
+  settledBrief,
+  useHereBrief,
+  type HereBriefData,
+} from "~/lib/api/hereBrief";
 import { conditionIcon, dayLabel } from "~/components/LocalWeather";
 import { colorForSeverity } from "~/lib/theme-colors";
 import { timeAgo, type NewsTickerItem } from "~/lib/news/ticker";
@@ -98,7 +104,10 @@ export default function HereNowBand() {
     () => userLocation()?.latitude,
     () => userLocation()?.longitude,
   );
-  const data = createMemo(() => (query.data && hasAnything(query.data) ? query.data : undefined));
+  const data = createMemo(() => {
+    const d = settledBrief(query);
+    return d && hasAnything(d) ? d : undefined;
+  });
 
   return (
     <Show when={data()}>
