@@ -44,6 +44,7 @@ import TripMoney from "@/components/TripMoney";
 import LayerLegend, { type LayerVisibility } from "@/components/features/Map/LayerLegend";
 import { isLocatedAlert, useLocalContext } from "@/lib/api/localContext";
 import { ActionToolbar } from "@/components/ui/ActionToolbar";
+import { StreamErrorCard } from "@/components/ui/StreamErrorCard";
 import FloatingChat from "@/components/features/Chat/FloatingChat";
 import { useSaveItineraryMutation } from "@/lib/api/itineraries";
 import { useUserSubscription } from "@/lib/api/billing";
@@ -385,13 +386,16 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
 
     [...itineraryPois, ...generalPois].forEach((poi) => {
       if (poi && poi.name) {
-        // Normalize coordinates and ensure ID exists
+        // Normalize coordinates. The id is kept as the server sent it: the
+        // detail modal loads PlaceFacts by it, and this used to overwrite it
+        // with the name, so the facts request was made for "Tower Bridge"
+        // and never found anything. The map keys selection by name on its
+        // own (see mapPois), so nothing here needs the id to be the name.
         const lat = typeof poi.latitude === "string" ? parseFloat(poi.latitude) : poi.latitude;
         const lng = typeof poi.longitude === "string" ? parseFloat(poi.longitude) : poi.longitude;
 
         poiMap.set(poi.name, {
           ...poi,
-          id: poi.name, // Use name as ID since it's unique enough for display
           latitude: lat || 0,
           longitude: lng || 0,
         });
@@ -501,13 +505,18 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       longitude: toNum(full.longitude),
       category: full.category,
       description_poi: full.description_poi || full.description,
+      grounded: full.grounded,
       address: full.address,
       website: full.website,
+      phone_number: full.phone_number,
       opening_hours: full.opening_hours,
       rating: full.rating,
+      price_range: full.price_range || full.price_level,
       budget: full.budget,
       timeToSpend: full.time_to_spend || full.timeToSpend,
       priority: full.priority,
+      distance: typeof full.distance === "number" && full.distance > 0 ? full.distance : undefined,
+      tags: full.tags,
       image_credits: full.image_credits,
     });
     setDetailOpen(true);
@@ -658,13 +667,16 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
         <Show
           when={!store.error || store.data}
           fallback={
-            <div class="loci-card rounded-2xl p-6 text-center space-y-4 mt-8">
-              <p class="font-display text-xl text-foreground">Couldn&apos;t build this itinerary</p>
-              <p class="text-sm text-muted-foreground">{store.error?.message}</p>
-              <button type="button" class="loci-hero__action mx-auto" onClick={() => connect()}>
-                Try again
-              </button>
-              <a href="/chat" class="block text-sm text-primary hover:underline">
+            <div class="mt-8 space-y-4">
+              {/* The shared failure card: it knows a quota error from a
+                  transient one and routes the first to /pricing, where a
+                  plain "Try again" would only spend another request. */}
+              <StreamErrorCard
+                error={store.error?.message ?? ""}
+                title="Couldn't build this itinerary"
+                onRetry={() => connect()}
+              />
+              <a href="/chat" class="block text-center text-sm text-primary hover:underline">
                 Ask Loci in chat instead
               </a>
             </div>

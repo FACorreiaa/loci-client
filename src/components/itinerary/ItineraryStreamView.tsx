@@ -5,6 +5,7 @@ import StopCardSkeleton from "./StopCardSkeleton";
 import type { ItineraryStop, StreamPhase } from "@/lib/itinerary/createItineraryStream";
 import { groupStopsByDay } from "@/lib/trip-kit";
 import { INITIAL_DAYS, windowDays } from "@/lib/itinerary/day-paging";
+import { colorForMapDay } from "@/lib/theme-colors";
 import "@/styles/editorial.css";
 
 /**
@@ -15,18 +16,11 @@ import "@/styles/editorial.css";
  *
  * All reactivity is fine-grained: enrichment patches a single StopCard,
  * the <For> list is never rebuilt.
+ *
+ * Day dots take their colour from the same LOCI_DAY_COLORS the map draws its
+ * markers with. This used to keep its own copy of an older palette, so the
+ * dot next to "Day 2" and the Day 2 pins were two different colours.
  */
-// Mirror of the map's day palette so list day-dots match marker colours.
-const DAY_COLORS = [
-  "#ef4444",
-  "#3b82f6",
-  "#10b981",
-  "#f59e0b",
-  "#8b5cf6",
-  "#ec4899",
-  "#14b8a6",
-  "#f97316",
-];
 
 export interface ItineraryStreamViewProps {
   phase: StreamPhase;
@@ -218,7 +212,7 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
                   <div class="flex items-center gap-2 pt-2">
                     <span
                       class="w-3 h-3 rounded-full shrink-0"
-                      style={{ "background-color": DAY_COLORS[group.day % DAY_COLORS.length] }}
+                      style={{ "background-color": colorForMapDay(group.day) }}
                     />
                     <p class="kicker">{group.label}</p>
                   </div>
