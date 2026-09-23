@@ -1,7 +1,7 @@
 import { createMemo, Show } from "solid-js";
 import { lazyChunk } from "~/lib/lazyChunk";
 import { TOKYO_HOTELS, TOKYO_CITY_DATA } from "~/data/preview-data";
-import HotelResults from "~/components/results/HotelResults";
+import ResultsList from "~/components/results/ResultsList";
 const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 import SplitView from "~/components/layout/SplitView";
 import { CityInfoHeader } from "~/components/ui/CityInfoHeader";
@@ -66,13 +66,7 @@ export default function PreviewHotelsPage() {
             <h3 class="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
               <span class="text-2xl">🏨</span> Hotels ({hotels().length})
             </h3>
-            <HotelResults
-              hotels={hotels()}
-              onFavoriteClick={() => {
-                alert("Sign in to save!");
-              }}
-              favorites={[]}
-            />
+            <ResultsList pois={hotels() as any} domain="hotels" showFavorite={false} />
           </div>
         </Show>
       </div>

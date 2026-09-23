@@ -14,6 +14,14 @@ interface LayerLegendProps {
   onChange: (next: LayerVisibility) => void;
   /** Hides the alerts row entirely when there is nothing located to show. */
   alertCount?: number;
+  /**
+   * Whether the map draws routes at all. A list of hotels has no walking
+   * order, so offering to hide its routes would be a toggle for nothing.
+   * Default true.
+   */
+  hasRoutes?: boolean;
+  /** The label for the stop swatch. Defaults to "Itinerary stop". */
+  stopLabel?: string;
 }
 
 const SEVERITY_KEY = [
@@ -71,9 +79,11 @@ export default function LayerLegend(props: LayerLegendProps) {
         <ToggleGroupItem value="stops" aria-label="Show stops">
           Stops
         </ToggleGroupItem>
-        <ToggleGroupItem value="routes" aria-label="Show routes">
-          Routes
-        </ToggleGroupItem>
+        <Show when={props.hasRoutes ?? true}>
+          <ToggleGroupItem value="routes" aria-label="Show routes">
+            Routes
+          </ToggleGroupItem>
+        </Show>
         <Show when={hasAlerts()}>
           <ToggleGroupItem value="alerts" aria-label="Show alerts">
             Alerts
@@ -109,7 +119,7 @@ export default function LayerLegend(props: LayerLegendProps) {
             style={{ "background-color": LOCI_MAP_CLUSTER_COLOR }}
             aria-hidden="true"
           />
-          Itinerary stop
+          {props.stopLabel ?? "Itinerary stop"}
         </div>
       </Show>
     </div>

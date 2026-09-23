@@ -1,5 +1,5 @@
-import { Show, createSignal, createEffect, on } from "solid-js";
-import { Star, MapPin, Clock, ChevronRight } from "lucide-solid";
+import { Show, createSignal, createEffect, on, type JSX } from "solid-js";
+import { Star, MapPin, Clock, ChevronRight, Copyright } from "lucide-solid";
 import ProgressiveImage from "./ProgressiveImage";
 import type { ItineraryStop } from "@/lib/itinerary/createItineraryStream";
 import { cn } from "@/cn";
@@ -12,6 +12,7 @@ const categoryEmoji = (category = "") => {
   if (c.includes("historic") || c.includes("castle")) return "🏰";
   if (c.includes("church") || c.includes("cathedral")) return "⛪";
   if (c.includes("market")) return "🛒";
+  if (c.includes("hotel") || c.includes("hostel") || c.includes("ryokan")) return "🏨";
   if (c.includes("restaurant") || c.includes("food") || c.includes("bar")) return "🍽️";
   if (c.includes("view") || c.includes("lookout")) return "👁️";
   if (c.includes("shop")) return "🛍️";
@@ -24,6 +25,14 @@ export interface StopCardProps {
   onClick?: (stop: ItineraryStop) => void;
   /** Highlighted + scrolled into view when its map marker is selected. */
   selected?: boolean;
+  /**
+   * Domain facts under the blurb — a hotel's stars and amenities, a
+   * restaurant's cuisine and hours. The card stays one component; what a
+   * kind of place says about itself is the caller's.
+   */
+  meta?: JSX.Element;
+  /** A control at the trailing edge, e.g. a favourite button. */
+  action?: JSX.Element;
 }
 
 /**
@@ -65,6 +74,16 @@ export default function StopCard(props: StopCardProps) {
 
   const interactive = () => Boolean(props.onClick);
 
+  // The picture's credit, as the licence requires it: author and licence,
+  // and the source page when there is one. Shown as a small mark that reads
+  // in full on hover/focus, so the card stays a card.
+  const credit = () => props.stop.imageCredit;
+  const creditText = () => {
+    const c = credit();
+    if (!c) return "";
+    return [c.attribution, c.licence].filter(Boolean).join(" · ");
+  };
+
   return (
     <div
       ref={cardRef}
@@ -105,6 +124,36 @@ export default function StopCard(props: StopCardProps) {
             {props.stop.rating!.toFixed(1)}
           </div>
         </Show>
+        {/* image credit — only when the picture carries one */}
+        <Show when={credit() && props.stop.imageUrl}>
+          <Show
+            when={credit()!.source_page_url}
+            fallback={
+              <span
+                class="absolute bottom-1 left-1 flex h-5 w-5 items-center justify-center rounded-full bg-background/90 text-muted-foreground backdrop-blur"
+                title={creditText()}
+                aria-label={`Image credit: ${creditText()}`}
+                role="img"
+              >
+                <Copyright class="h-3 w-3" />
+              </span>
+            }
+          >
+            {(href) => (
+              <a
+                href={href()}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="absolute bottom-1 left-1 flex h-5 w-5 items-center justify-center rounded-full bg-background/90 text-muted-foreground backdrop-blur hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                title={creditText()}
+                aria-label={`Image credit: ${creditText()} (opens source)`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Copyright class="h-3 w-3" />
+              </a>
+            )}
+          </Show>
+        </Show>
       </div>
 
       {/* Content */}
@@ -121,6 +170,10 @@ export default function StopCard(props: StopCardProps) {
 
         <Show when={props.stop.blurb}>
           <p class="editorial-lead text-sm mt-1 line-clamp-2">{props.stop.blurb}</p>
+        </Show>
+
+        <Show when={props.meta}>
+          <div class="mt-2 text-xs text-muted-foreground">{props.meta}</div>
         </Show>
 
         <div class="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
@@ -141,6 +194,12 @@ export default function StopCard(props: StopCardProps) {
           </Show>
         </div>
       </div>
+
+      <Show when={props.action}>
+        <div class="self-center shrink-0" onClick={(e) => e.stopPropagation()}>
+          {props.action}
+        </div>
+      </Show>
 
       <Show when={interactive()}>
         <ChevronRight class="w-5 h-5 text-muted-foreground self-center shrink-0" />

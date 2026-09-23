@@ -1,10 +1,22 @@
-import { createSignal, JSX } from "solid-js";
-import { Map, List, Sidebar } from "lucide-solid";
+import { createSignal, JSX, Show } from "solid-js";
+import { Map, List, Sidebar, Maximize2, Minimize2 } from "lucide-solid";
 
 interface SplitViewProps {
   listContent: JSX.Element;
   mapContent: JSX.Element;
   initialMode?: "split" | "list" | "map";
+  /**
+   * What a phone gets.
+   *
+   *   toggle  a List / Map switch above one panel at a time (the default, and
+   *           what /itinerary uses).
+   *   hero    the map as a card on top of the list, the page scrolling as one
+   *           column; a tap on the card opens it out. The result pages use
+   *           this: a list of hotels wants the map in view, not behind a tab.
+   *
+   * Neither changes desktop, which keeps the split.
+   */
+  mobile?: "toggle" | "hero";
 }
 
 const toggleActive = "bg-primary text-primary-foreground shadow-sm";
@@ -36,30 +48,64 @@ export default function SplitView(props: SplitViewProps) {
   const [mode, setMode] = createSignal<"split" | "list" | "map">(
     resolveInitialMode(props.initialMode),
   );
+  const hero = () => props.mobile === "hero";
+  // Hero only: whether the map card has been opened out on a phone.
+  const [expanded, setExpanded] = createSignal(false);
+
+  // In hero mode the mode only applies from `md:` up; a phone always shows
+  // both panels, stacked.
+  const listPanelClass = () => {
+    const m = mode();
+    if (hero()) {
+      return m === "map"
+        ? "md:hidden md:w-0"
+        : m === "split"
+          ? "md:w-1/2 md:max-w-[600px] md:border-r md:border-border"
+          : "md:w-full";
+    }
+    return m === "map"
+      ? "hidden w-0"
+      : m === "split"
+        ? "w-1/2 md:max-w-[600px] border-r border-border"
+        : "w-full";
+  };
+  const mapPanelClass = () => {
+    const m = mode();
+    if (hero()) {
+      return m === "list" ? "md:hidden md:w-0" : m === "split" ? "md:w-1/2" : "md:w-full";
+    }
+    return m === "list" ? "hidden w-0" : m === "split" ? "w-1/2" : "w-full";
+  };
 
   return (
-    <div class="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-background">
+    <div
+      class={`flex flex-col h-[calc(100vh-4rem)] bg-background ${
+        hero() ? "overflow-y-auto md:overflow-hidden" : "overflow-hidden"
+      }`}
+    >
       {/* Mobile Toggle Controls */}
-      <div class="flex items-center justify-center p-2 gap-2 md:hidden island-panel border-b border-border z-10 sticky top-0">
-        <button
-          onClick={() => setMode("list")}
-          class={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium motion-settle min-h-[44px] ${
-            mode() === "list" ? toggleActive : toggleIdle
-          }`}
-        >
-          <List class="w-4 h-4" />
-          List
-        </button>
-        <button
-          onClick={() => setMode("map")}
-          class={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium motion-settle min-h-[44px] ${
-            mode() === "map" ? toggleActive : toggleIdle
-          }`}
-        >
-          <Map class="w-4 h-4" />
-          Map
-        </button>
-      </div>
+      <Show when={!hero()}>
+        <div class="flex items-center justify-center p-2 gap-2 md:hidden island-panel border-b border-border z-10 sticky top-0">
+          <button
+            onClick={() => setMode("list")}
+            class={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium motion-settle min-h-[44px] ${
+              mode() === "list" ? toggleActive : toggleIdle
+            }`}
+          >
+            <List class="w-4 h-4" />
+            List
+          </button>
+          <button
+            onClick={() => setMode("map")}
+            class={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium motion-settle min-h-[44px] ${
+              mode() === "map" ? toggleActive : toggleIdle
+            }`}
+          >
+            <Map class="w-4 h-4" />
+            Map
+          </button>
+        </div>
+      </Show>
 
       {/* Desktop Toggle Controls (Top Right Overlay) */}
       <div class="hidden md:flex absolute top-20 right-4 z-20 island-panel rounded-lg p-1">
@@ -92,27 +138,60 @@ export default function SplitView(props: SplitViewProps) {
         </button>
       </div>
 
-      <div class="flex-1 flex overflow-hidden relative">
+      <div
+        class={`flex-1 flex relative ${
+          hero() ? "flex-col md:flex-row overflow-visible md:overflow-hidden" : "overflow-hidden"
+        }`}
+      >
         {/* List Panel */}
         <div
-          class={`flex-1 h-full overflow-y-auto motion-settle ${
-            mode() === "map"
-              ? "hidden w-0"
-              : mode() === "split"
-                ? "w-1/2 md:max-w-[600px] border-r border-border"
-                : "w-full"
-          } bg-background`}
+          class={`flex-1 motion-settle bg-background ${listPanelClass()} ${
+            hero()
+              ? "h-auto overflow-visible md:h-full md:overflow-y-auto"
+              : "h-full overflow-y-auto"
+          }`}
         >
           <div class="h-full relative z-0">{props.listContent}</div>
         </div>
 
-        {/* Map Panel */}
+        {/* Map Panel. In hero mode it is the first thing on a phone: a card
+            of fixed height that opens out on tap, and the map's own resize
+            observer follows the height change. */}
         <div
-          class={`flex-1 h-full motion-settle relative z-0 ${
-            mode() === "list" ? "hidden w-0" : mode() === "split" ? "w-1/2" : "w-full"
+          class={`motion-settle relative z-0 ${mapPanelClass()} ${
+            hero()
+              ? `order-first md:order-none shrink-0 mx-4 mt-4 overflow-hidden rounded-2xl border border-border shadow-sm transition-[height] duration-300 md:mx-0 md:mt-0 md:h-full md:flex-1 md:rounded-none md:border-0 md:shadow-none ${
+                  expanded() ? "h-[70vh]" : "h-56"
+                }`
+              : "flex-1 h-full"
           }`}
         >
           {props.mapContent}
+
+          <Show when={hero()}>
+            {/* Collapsed: a static hero — the whole card is one tap target,
+                so a scroll through the page never gets caught by the map.
+                Opened out: the map is live and the chip closes it again. */}
+            <Show when={!expanded()}>
+              <button
+                type="button"
+                class="absolute inset-0 z-10 md:hidden"
+                aria-label="Expand map"
+                onClick={() => setExpanded(true)}
+              />
+            </Show>
+            <button
+              type="button"
+              class="island-panel absolute bottom-3 right-3 z-20 flex min-h-[40px] items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-foreground md:hidden"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded()}
+            >
+              <Show when={expanded()} fallback={<Maximize2 class="h-3.5 w-3.5" />}>
+                <Minimize2 class="h-3.5 w-3.5" />
+              </Show>
+              {expanded() ? "Collapse map" : "Expand map"}
+            </button>
+          </Show>
         </div>
       </div>
     </div>

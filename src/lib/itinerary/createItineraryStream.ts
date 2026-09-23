@@ -16,7 +16,7 @@
    ============================================================ */
 
 import { createStore, produce } from "solid-js/store";
-import type { AiCityResponse, POIDetailedInfo } from "@/lib/api/types";
+import type { AiCityResponse, POIDetailedInfo, POIImageCredit } from "@/lib/api/types";
 
 export type StreamPhase = "idle" | "skeleton" | "enriching" | "done" | "error";
 
@@ -39,6 +39,11 @@ export interface ItineraryStop {
   /* --- enrichment payload (undefined until phase 2 reaches it) --- */
   placeId?: string;
   imageUrl?: string;
+  /**
+   * The credit for `imageUrl`, when the picture came with one. A card that
+   * shows the picture shows this too; that is the licence, not a courtesy.
+   */
+  imageCredit?: POIImageCredit;
   rating?: number;
   /** true once this stop has received its enrichment chunk. */
   enriched: boolean;
@@ -269,6 +274,38 @@ export function createItineraryStream() {
    backend starts true phased streaming.
    =============================================================== */
 
+/**
+ * One place as the card model. Shared by the itinerary and the domain lists
+ * (/hotels, /restaurants, /activities) so a hotel card and an itinerary stop
+ * are the same component reading the same shape.
+ */
+export function stopFromPoi(poi: POIDetailedInfo, index: number): ItineraryStop {
+  const credit = poi.image_credits?.[0];
+  const imageUrl = poi.images?.[0] || credit?.url;
+  const placeId = poi.id;
+  const enriched = Boolean(imageUrl || placeId);
+  return {
+    key: placeId || `${slug(poi.name) || "stop"}-${index}`,
+    name: poi.name,
+    category: poi.category,
+    blurb: poi.description_poi || poi.description,
+    priority: poi.priority,
+    timeToSpend: poi.time_to_spend,
+    budget: poi.budget,
+    distance: typeof poi.distance === "number" ? poi.distance : undefined,
+    // 1-based on the wire, 0-based here: trip-kit labels `Day ${day + 1}`
+    // and its free-tier gate unlocks day 0. Converting once, here, is what
+    // keeps that gate working untouched.
+    day: typeof poi.day === "number" && poi.day > 0 ? poi.day - 1 : undefined,
+    placeId,
+    imageUrl,
+    // Only the credit for the picture actually shown.
+    imageCredit: credit && credit.url === imageUrl ? credit : undefined,
+    rating: poi.rating,
+    enriched,
+  };
+}
+
 export function stopsFromCityResponse(data: AiCityResponse | null): {
   title: string;
   summary: string;
@@ -289,28 +326,9 @@ export function stopsFromCityResponse(data: AiCityResponse | null): {
 
   let enrichedCount = 0;
   const stops: ItineraryStop[] = sorted.map((poi, i) => {
-    const imageUrl = poi.images?.[0];
-    const placeId = poi.id;
-    const enriched = Boolean(imageUrl || placeId);
-    if (enriched) enrichedCount++;
-    return {
-      key: placeId || `${slug(poi.name) || "stop"}-${i}`,
-      name: poi.name,
-      category: poi.category,
-      blurb: poi.description_poi || poi.description,
-      priority: poi.priority,
-      timeToSpend: poi.time_to_spend,
-      budget: poi.budget,
-      distance: typeof poi.distance === "number" ? poi.distance : undefined,
-      // 1-based on the wire, 0-based here: trip-kit labels `Day ${day + 1}`
-      // and its free-tier gate unlocks day 0. Converting once, here, is what
-      // keeps that gate working untouched.
-      day: typeof poi.day === "number" && poi.day > 0 ? poi.day - 1 : undefined,
-      placeId,
-      imageUrl,
-      rating: poi.rating,
-      enriched,
-    };
+    const stop = stopFromPoi(poi, i);
+    if (stop.enriched) enrichedCount++;
+    return stop;
   });
 
   return {

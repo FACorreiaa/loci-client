@@ -49,11 +49,16 @@ export const buildPoiData = (pois: POI[], index: PoiIndex): PoiData => {
     };
   });
 
-  // Route lines: one LineString per day (or a single line if no day info),
-  // following itinerary order so the path reads as the planned sequence.
+  // Route lines: one LineString per day, following itinerary order so the
+  // path reads as the planned sequence.
+  //
+  // A stop with no day is not on any route. These used to fall into day 0,
+  // so the "More to explore" extras — nearby places that are deliberately
+  // not part of the plan — were drawn as the tail of Day 1's walk.
   const byDay = new Map<number, [number, number][]>();
   valid.forEach((poi) => {
-    const day = typeof poi.day === "number" ? poi.day : 0;
+    if (typeof poi.day !== "number") return;
+    const day = poi.day;
     if (!byDay.has(day)) byDay.set(day, []);
     byDay.get(day)!.push([toNum(poi.longitude), toNum(poi.latitude)]);
   });

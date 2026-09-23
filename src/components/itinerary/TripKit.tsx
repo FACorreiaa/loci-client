@@ -41,6 +41,13 @@ export interface TripKitProps {
   /** Visible when stream is done (or has enough stops to be useful). */
   visible: boolean;
   stopsPerDay?: number;
+  /**
+   * What the free tier gets, said in the page's own words. A one-day list
+   * (hotels, restaurants, activities) is entirely Day 1, so the free plan
+   * exports all of it; the page says so here rather than leaving the Pro
+   * banner to imply something is held back.
+   */
+  note?: string;
 }
 
 export default function TripKit(props: TripKitProps) {
@@ -205,6 +212,9 @@ export default function TripKit(props: TripKitProps) {
                     ? `Day 1 is free. Unlock ${locked()} more day${locked() === 1 ? "" : "s"} with Pro.`
                     : "Open in Maps, add to calendar, or download a PDF."}
               </p>
+              <Show when={props.note}>
+                <p class="text-xs text-muted-foreground mt-1 max-w-prose">{props.note}</p>
+              </Show>
             </div>
             <Show when={!props.isPro && locked() > 0}>
               <span class="shrink-0 inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 border border-primary/20">
