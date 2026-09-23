@@ -19,8 +19,12 @@ let currentFeed: Feed | null = null;
 // Every request the service opened, in order: a reconnect is a second call.
 let calls: Array<Record<string, unknown>> = [];
 
-const { getRunStatuses } = vi.hoisted(() => ({ getRunStatuses: vi.fn() }));
-vi.mock("./api/llm", () => ({ getRunStatuses }));
+const { getRunStatuses, getChatSession, getSessionList } = vi.hoisted(() => ({
+  getRunStatuses: vi.fn(),
+  getChatSession: vi.fn(),
+  getSessionList: vi.fn(),
+}));
+vi.mock("./api/llm", () => ({ getRunStatuses, getChatSession, getSessionList }));
 
 vi.mock("./streaming/chatStream", () => {
   return {
@@ -114,6 +118,8 @@ beforeEach(async () => {
   currentFeed = null;
   calls = [];
   getRunStatuses.mockReset();
+  getChatSession.mockReset();
+  getSessionList.mockReset();
   // No real waiting: backoff and poll intervals collapse to a tick.
   reconnectPolicy.backoffMs = [0, 0, 0];
   reconnectPolicy.pollIntervalMs = 0;
@@ -423,6 +429,51 @@ describe("streamingService → reconnect", () => {
     expect(liveRuns.s1.url).toContain("/itinerary?sessionId=s1");
     expect(manager.onError).not.toHaveBeenCalled();
     expect(readCompletedSession("s1")).toBeNull();
+  });
+
+  it("loads a load_from_session result before finishing, and hands it to the caller", async () => {
+    const hydrated = itineraryEvent().cityResponse;
+    getChatSession.mockResolvedValue(hydrated);
+    const { manager, feed } = start();
+    feed.push({
+      kind: "start",
+      sessionId: "s1",
+      domain: "itinerary",
+      city: "Funchal",
+      eventId: "e1",
+    });
+    await tick();
+    feed.push({
+      kind: "error",
+      userMessage: "x",
+      internalCode: "Unknown",
+      retryable: true,
+      transport: true,
+    });
+    await vi.waitFor(() => expect(calls).toHaveLength(2));
+    currentFeed!.push({ kind: "complete", sessionId: "s1", loadFromSession: true });
+    await vi.waitFor(() => expect(liveRuns.s1.phase).toBe("complete"));
+
+    expect(getChatSession).toHaveBeenCalledWith("s1");
+    expect((liveRuns.s1.data as any)?.itinerary_response?.itinerary_name).toBe("Funchal in a day");
+    expect((manager.onComplete as Mock).mock.calls[0][0].data).toEqual(hydrated);
+    expect(readCompletedSession("s1")).toBeTruthy();
+  });
+
+  it("loads a list domain's load_from_session result from its section", async () => {
+    getSessionList.mockResolvedValue({ city: { city: "Porto" }, pois: [{ name: "Pestana" }] });
+    const session = createStreamingSession("accommodation");
+    const manager = { session, onProgress: vi.fn(), onComplete: vi.fn(), onError: vi.fn() };
+    streamingService.startStream({ message: "hotels in Porto" }, manager);
+    const feed = currentFeed!;
+    feed.push({ kind: "start", sessionId: "h1", domain: "accommodation", eventId: "e1" });
+    await tick();
+    feed.push({ kind: "complete", sessionId: "h1", loadFromSession: true });
+    await vi.waitFor(() => expect(liveRuns.h1.phase).toBe("complete"));
+
+    expect(getSessionList).toHaveBeenCalledWith("h1", "hotels");
+    expect((liveRuns.h1.data as any)?.hotels).toHaveLength(1);
+    expect(manager.onComplete.mock.calls[0][0].data.hotels).toHaveLength(1);
   });
 
   it("fills a settled run's navigation from its RunInfo", () => {

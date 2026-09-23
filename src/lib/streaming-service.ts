@@ -34,6 +34,7 @@ import {
 import { COMPLETED_SESSION_KEY } from "./streaming/restore-session";
 import { responseHasContent } from "./streaming/response-content";
 import { saveCompletedSession } from "./streaming/completed-sessions";
+import { hydrateFinishedSession } from "./streaming/hydrate-session";
 import { logger } from "./logger";
 
 export interface StreamingSessionManager {
@@ -152,7 +153,7 @@ export class StreamingChatService {
       // entry) instead of failing it: see reconnect.ts.
       for await (const event of streamWithReconnect(params, run.controller.signal)) {
         if (run.aborted) break;
-        this.project(event, run);
+        await this.project(event, run);
       }
       this.handleStreamComplete(run);
     } catch (error) {
@@ -199,7 +200,7 @@ export class StreamingChatService {
   }
 
   // Project a normalized event onto the session and fire callbacks.
-  private project(event: LociStreamEvent, run: Run): void {
+  private project(event: LociStreamEvent, run: Run): void | Promise<void> {
     const mgr = run.manager;
     const isCity = mgr.session.domain === "general" || mgr.session.domain === "itinerary";
     // `start` names the run; key it first so its own event id is recorded.
@@ -321,12 +322,14 @@ export class StreamingChatService {
         break;
 
       case "complete":
-        this.handleComplete(event, run);
-        break;
+        return this.handleComplete(event, run);
     }
   }
 
-  private handleComplete(event: Extract<LociStreamEvent, { kind: "complete" }>, run: Run): void {
+  private async handleComplete(
+    event: Extract<LociStreamEvent, { kind: "complete" }>,
+    run: Run,
+  ): Promise<void> {
     const mgr = run.manager;
     if (mgr.session.isComplete) return; // guard double-complete
 
@@ -341,10 +344,25 @@ export class StreamingChatService {
     if (!run.sessionId && mgr.session.sessionId) run.sessionId = mgr.session.sessionId;
     if (event.tripId) mgr.session.tripId = event.tripId;
 
-    this.finalize(run, {
-      url: event.navigation?.url,
-      loadFromSession: event.loadFromSession,
-    });
+    // The result was not on the stream (a resume after the server's buffer
+    // was gone, or a run settled by GetRunStatus): load it before finishing,
+    // so the store, onComplete and onRedirect all get the real result rather
+    // than whatever arrived before the drop. Only when the server has nothing
+    // does the run finish with no data, and pages fall through to their own
+    // fetch.
+    let offStream = Boolean(event.loadFromSession);
+    if (offStream && mgr.session.sessionId) {
+      const stored = await hydrateFinishedSession(mgr.session.sessionId, mgr.session.domain);
+      if (run.aborted || mgr.session.isComplete) return;
+      if (stored) {
+        mgr.session.data = stored;
+        const city = (stored as Partial<AiCityResponse>).general_city_data?.city;
+        if (city) mgr.session.city = city;
+        offStream = false;
+      }
+    }
+
+    this.finalize(run, { url: event.navigation?.url, loadFromSession: offStream });
 
     if (mgr.onRedirect && mgr.session.data) {
       mgr.onRedirect(mgr.session.domain, mgr.session.data as UnifiedChatResponse);

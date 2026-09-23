@@ -6,7 +6,7 @@ import type { LociStreamEvent } from "../streaming/chatStream";
 import { streamWithReconnect } from "../streaming/reconnect";
 import { removeRun, upsertRun } from "../streaming/live-stream-store";
 import { saveCompletedSession } from "../streaming/completed-sessions";
-import { hydrateSession } from "../streaming/hydrate-session";
+import { hydrateSession, sectionFor } from "../streaming/hydrate-session";
 import { getDomainRoute, responseHasContent } from "../streaming-service";
 
 export interface ChatRPCState {
@@ -242,25 +242,6 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
     const params = new URLSearchParams(window.location.search);
     params.set("sessionId", sessionId);
     return `${window.location.pathname}?${params.toString()}`;
-  };
-
-  // Where a finished session's list lives on the server, by domain.
-  const sectionFor = (
-    domain: DomainType,
-  ): [
-    "general" | "hotels" | "restaurants" | "activities",
-    "points_of_interest" | "hotels" | "restaurants" | "activities",
-  ] => {
-    switch (domain) {
-      case "accommodation":
-        return ["hotels", "hotels"];
-      case "dining":
-        return ["restaurants", "restaurants"];
-      case "activities":
-        return ["activities", "activities"];
-      default:
-        return ["general", "points_of_interest"];
-    }
   };
 
   // Shape a domain list event into the streamedData object the UI reads.
