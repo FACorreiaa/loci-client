@@ -34,6 +34,9 @@ export default function ActivitiesPage() {
   // session is the one in the URL, read it live (see live-stream-store.ts).
   const live = useLiveSession(() => searchParams.sessionId as string | undefined);
   const [boundLive, setBoundLive] = createSignal(false);
+  // True while hydrateSession is in flight, so the loading skeleton shows
+  // instead of a blank panel during that fetch.
+  const [hydrating, setHydrating] = createSignal(false);
 
   // Local favorites state
   const [favorites, setFavorites] = createSignal<string[]>([]);
@@ -88,10 +91,13 @@ export default function ActivitiesPage() {
       // empty payload, storage cleared, or a fresh tab the notification
       // opened. Ask the server for the finished session before re-running
       // (and re-paying for) the search.
-      void hydrateSession(sessionIdFromUrl, "activities", "activities").then((fromServer) => {
-        if (fromServer) setRestoredData(normalizeStoredData(fromServer));
-        else if (!state.isConnected) startOrExplain();
-      });
+      setHydrating(true);
+      void hydrateSession(sessionIdFromUrl, "activities", "activities")
+        .then((fromServer) => {
+          if (fromServer) setRestoredData(normalizeStoredData(fromServer));
+          else if (!state.isConnected) startOrExplain();
+        })
+        .finally(() => setHydrating(false));
       return;
     }
 
@@ -102,7 +108,7 @@ export default function ActivitiesPage() {
 
   const liveData = createMemo(() => (boundLive() ? live.data() : null));
   const effectiveData = createMemo(() => restoredData() || liveData() || state.streamedData);
-  const isStreaming = () => (boundLive() ? live.isStreaming() : state.isStreaming);
+  const isStreaming = () => hydrating() || (boundLive() ? live.isStreaming() : state.isStreaming);
   const streamError = () => (boundLive() ? live.error() : state.error);
   const cityData = createMemo(() => effectiveData()?.general_city_data);
 

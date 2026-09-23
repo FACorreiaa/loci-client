@@ -47,6 +47,9 @@ export default function NearmePage() {
   const [restoredData, setRestoredData] = createSignal<any>(null);
   const live = useLiveSession(() => searchParams.sessionId as string | undefined);
   const [boundLive, setBoundLive] = createSignal(false);
+  // True while hydrateSession is in flight, so the loading skeleton shows
+  // instead of a blank panel during that fetch.
+  const [hydrating, setHydrating] = createSignal(false);
 
   const [userLocation, setUserLocation] = createSignal<UserLocation | null>(null);
   const [locationError, setLocationError] = createSignal<string | null>(null);
@@ -159,10 +162,13 @@ export default function NearmePage() {
       }
       // The session id restores nothing locally — ask the server for the
       // finished session before falling back to a fresh geolocation search.
-      void hydrateSession(sessionIdFromUrl, "general", "points_of_interest").then((fromServer) => {
-        if (fromServer) setRestoredData(fromServer);
-        else requestLocation();
-      });
+      setHydrating(true);
+      void hydrateSession(sessionIdFromUrl, "general", "points_of_interest")
+        .then((fromServer) => {
+          if (fromServer) setRestoredData(fromServer);
+          else requestLocation();
+        })
+        .finally(() => setHydrating(false));
       return;
     }
 
@@ -172,7 +178,7 @@ export default function NearmePage() {
   const liveData = createMemo(() => (boundLive() ? live.data() : null));
   // Extract data from streamedData (same pattern as hotels/restaurants pages)
   const effectiveData = createMemo(() => restoredData() || liveData() || state.streamedData);
-  const isStreaming = () => (boundLive() ? live.isStreaming() : state.isStreaming);
+  const isStreaming = () => hydrating() || (boundLive() ? live.isStreaming() : state.isStreaming);
   const streamError = () => (boundLive() ? live.error() : state.error);
 
   // Get all POIs from streamed data
