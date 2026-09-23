@@ -21,7 +21,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@buf/loci_loci-proto.bufbuild_es": "2.15.0-20260922223710-cfd06cf3f134.1",
+    "@buf/loci_loci-proto.bufbuild_es": "2.15.0-20260923100509-61925d6286f8.1",
     "@bufbuild/protobuf": "^2.15.0",
     "@connectrpc/connect": "^2.1.2",
     "@connectrpc/connect-web": "^2.1.2",
