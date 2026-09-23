@@ -18,6 +18,7 @@ import { enablePush, getVapidKey } from "~/lib/push/push-client";
 
 export const PUSH_DEVICE_MESSAGES = {
   blocked: "Notifications are blocked for this site in your browser settings.",
+  unsupported: "This browser can't show notifications.",
   unavailable: "Push isn't available right now.",
   deviceError: "Couldn't turn on notifications on this device.",
   enableAction: "Turn on notifications on this device",
@@ -35,6 +36,9 @@ export type PushDeviceNotice = { kind: "action" | "message"; text: string } | nu
  * - A message left over from a failed `enableOnThisDevice()` attempt wins
  *   over the state-derived read (it is more specific: an actual attempt just
  *   failed, not just "permission is still unasked").
+ * - Denied, then unsupported, both win over a missing key: telling someone
+ *   their browser is the blocker is more useful than telling them push isn't
+ *   configured, when both happen to be true.
  * - Otherwise, purely a function of permission and whether push is
  *   configured server-side at all.
  */
@@ -47,12 +51,14 @@ export function derivePushDeviceNotice(o: {
   if (!o.isOn) return null;
   if (o.actionMessage) return { kind: "message", text: o.actionMessage };
   if (o.permission === "denied") return { kind: "message", text: PUSH_DEVICE_MESSAGES.blocked };
+  if (o.permission === "unsupported") {
+    return { kind: "message", text: PUSH_DEVICE_MESSAGES.unsupported };
+  }
   if (!o.hasKey) return { kind: "message", text: PUSH_DEVICE_MESSAGES.unavailable };
   if (o.permission === "default") {
     return { kind: "action", text: PUSH_DEVICE_MESSAGES.enableAction };
   }
-  // Granted (or unsupported, which the four states this covers do not spell
-  // out a separate line for): nothing extra to say.
+  // Granted: nothing extra to say.
   return null;
 }
 
@@ -74,6 +80,16 @@ export function usePushDeviceState() {
     void getVapidKey().then(setVapidKey);
   });
 
+  /**
+   * Re-reads the browser's current Notification permission into the signal.
+   * Exposed so a consumer that shows its own permission-driven UI (e.g. a
+   * banner, or disabling other controls) can stay in sync with this same
+   * signal instead of keeping a second one that can drift from it.
+   */
+  const refreshPermission = (): void => {
+    setPermission(getNotificationPermission());
+  };
+
   /** Call with the setting's current (persisted or optimistic) value. */
   const deviceNotice = (isOn: boolean): PushDeviceNotice =>
     derivePushDeviceNotice({
@@ -91,7 +107,7 @@ export function usePushDeviceState() {
    */
   const enableOnThisDevice = (): void => {
     void enablePush().then((result) => {
-      setPermission(getNotificationPermission());
+      refreshPermission();
       setActionMessage(
         result === "error" || result === "unsupported" ? PUSH_DEVICE_MESSAGES.deviceError : null,
       );
@@ -106,8 +122,8 @@ export function usePushDeviceState() {
    */
   const onToggle = (next: boolean): void => {
     setActionMessage(null);
-    if (next) setPermission(getNotificationPermission());
+    if (next) refreshPermission();
   };
 
-  return { deviceNotice, enableOnThisDevice, onToggle };
+  return { deviceNotice, enableOnThisDevice, onToggle, permission, refreshPermission };
 }

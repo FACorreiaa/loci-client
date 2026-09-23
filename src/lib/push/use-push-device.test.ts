@@ -90,7 +90,7 @@ describe("derivePushDeviceNotice", () => {
     ).toBeNull();
   });
 
-  it("shows nothing extra for an unsupported browser outside of a failed attempt", () => {
+  it("shows the browser-unsupported line when Notification is not available at all", () => {
     expect(
       derivePushDeviceNotice({
         isOn: true,
@@ -98,6 +98,17 @@ describe("derivePushDeviceNotice", () => {
         permission: "unsupported",
         actionMessage: null,
       }),
-    ).toBeNull();
+    ).toEqual({ kind: "message", text: PUSH_DEVICE_MESSAGES.unsupported });
+  });
+
+  it("unsupported wins over a missing key when both are true", () => {
+    expect(
+      derivePushDeviceNotice({
+        isOn: true,
+        hasKey: false,
+        permission: "unsupported",
+        actionMessage: null,
+      }),
+    ).toEqual({ kind: "message", text: PUSH_DEVICE_MESSAGES.unsupported });
   });
 });

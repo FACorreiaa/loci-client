@@ -10,7 +10,6 @@ import {
 } from "~/lib/api/profiles";
 import {
   ensureNotificationPermission,
-  getNotificationPermission,
   type BrowserNotificationPermission,
 } from "~/lib/notification-prefs";
 import {
@@ -58,9 +57,9 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
     notificationSettingsQuery.isSuccess
       ? notificationSettingsQuery.data
       : { recommendations: false, tripReminders: false, searchFinished: false };
-  const [notifPermission, setNotifPermission] = createSignal<BrowserNotificationPermission>(
-    getNotificationPermission(),
-  );
+  // One source of truth for browser permission: the hook's own signal, used
+  // here for the top-of-section banner and each switch's disabled state, not
+  // just for the "Search finished" notice it was originally added for.
   const pushDevice = usePushDeviceState();
 
   const profiles = () => profilesQuery.data ?? [];
@@ -74,7 +73,7 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
 
   createEffect(() => {
     if (!props.isOpen) return;
-    setNotifPermission(getNotificationPermission());
+    pushDevice.refreshPermission();
   });
 
   const handleLocationUpdate = async () => {
@@ -115,7 +114,7 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
     }
 
     const permission = await ensureNotificationPermission();
-    setNotifPermission(permission);
+    pushDevice.refreshPermission();
     if (permission !== "granted") {
       persistNotifPref(key, false);
       return;
@@ -287,7 +286,7 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
                 <Bell class="w-4 h-4 text-muted-foreground" />
                 <Label>Notifications</Label>
               </div>
-              <p class="text-xs text-muted-foreground">{permissionCopy[notifPermission()]}</p>
+              <p class="text-xs text-muted-foreground">{permissionCopy[pushDevice.permission()]}</p>
               <div class="space-y-2">
                 <div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <span class="text-sm text-foreground">New recommendations</span>
@@ -296,7 +295,7 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
                     onChange={(checked) =>
                       void handleNotificationToggle("recommendations", checked)
                     }
-                    disabled={notifPermission() === "unsupported"}
+                    disabled={pushDevice.permission() === "unsupported"}
                   >
                     <CheckboxControl />
                   </Checkbox>
@@ -306,7 +305,7 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
                   <Checkbox
                     checked={notifPrefs().tripReminders}
                     onChange={(checked) => void handleNotificationToggle("tripReminders", checked)}
-                    disabled={notifPermission() === "unsupported"}
+                    disabled={pushDevice.permission() === "unsupported"}
                   >
                     <CheckboxControl />
                   </Checkbox>
@@ -316,7 +315,7 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
                   <Checkbox
                     checked={notifPrefs().searchFinished}
                     onChange={(checked) => handleSearchFinishedToggle(checked)}
-                    disabled={notifPermission() === "unsupported"}
+                    disabled={pushDevice.permission() === "unsupported"}
                   >
                     <CheckboxControl />
                   </Checkbox>
