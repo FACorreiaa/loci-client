@@ -553,8 +553,15 @@ export interface AiCityResponse {
   general_city_data: GeneralCityData;
   points_of_interest: POIDetailedInfo[];
   itinerary_response: AIItineraryResponse;
-  hotels?: HotelDetailedInfo[];
-  restaurants?: RestaurantDetailedInfo[];
+  /**
+   * The domain lists a hotels, restaurants or activities search produced.
+   * Since proto v5.22.0 the server stores them on the session, so a restored
+   * session carries the same list the stream showed. Older sessions derive
+   * them from points_of_interest by category instead.
+   */
+  hotels?: Array<HotelDetailedInfo | POIDetailedInfo>;
+  restaurants?: Array<RestaurantDetailedInfo | POIDetailedInfo>;
+  activities?: POIDetailedInfo[];
   bars?: RestaurantDetailedInfo[];
   session_id: string;
 }
@@ -575,9 +582,16 @@ export interface HotelDetailedInfo {
   amenities: string[];
   tags: string[];
   images: string[];
+  /** The same pictures with the credit they must be shown with. */
+  image_credits?: POIImageCredit[];
   rating: number;
+  /** Hotel class, 1–5, when the source said. */
+  star_rating?: number;
+  /** "$$" style band; the wire calls it priceRange. */
+  priceRange?: string;
   llm_interaction_id: string;
   recommendation_trace?: RecommendationTrace;
+  grounded?: boolean;
   // Extended fields for detail page
   checkIn?: string;
   checkOut?: string;
@@ -626,9 +640,12 @@ export interface RestaurantDetailedInfo {
   cuisine_type?: string;
   tags: string[];
   images: string[];
+  /** The same pictures with the credit they must be shown with. */
+  image_credits?: POIImageCredit[];
   rating: number;
   llm_interaction_id: string;
   recommendation_trace?: RecommendationTrace;
+  grounded?: boolean;
   // Extended fields for detail page
   reviewCount?: number;
   isOpen?: boolean;

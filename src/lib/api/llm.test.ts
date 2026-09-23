@@ -279,4 +279,46 @@ describe("mapPoi", () => {
       channel: "RECOMMENDATION_CHANNEL_WEB",
     });
   });
+
+  it("keeps the image credits, and shows a credited picture even with no bare URL", () => {
+    const proto = create(POIDetailedInfoSchema, {
+      id: "f6d8ed0a-eade-4a77-a82d-a72d8fa5833e",
+      name: "Miradouro",
+      imageCredits: [
+        {
+          url: "https://upload.wikimedia.org/x.jpg",
+          source: "wikimedia",
+          licence: "CC BY-SA 4.0",
+          attribution: "Jane Doe",
+          sourcePageUrl: "https://commons.wikimedia.org/wiki/File:x.jpg",
+        },
+      ],
+    });
+    const poi = mapPoi(proto);
+    expect(poi.images).toEqual(["https://upload.wikimedia.org/x.jpg"]);
+    expect(poi.image_credits).toEqual([
+      {
+        url: "https://upload.wikimedia.org/x.jpg",
+        source: "wikimedia",
+        licence: "CC BY-SA 4.0",
+        attribution: "Jane Doe",
+        source_page_url: "https://commons.wikimedia.org/wiki/File:x.jpg",
+      },
+    ]);
+  });
+
+  it("keeps grounded tri-state: absent stays undefined, false stays false", () => {
+    expect(mapPoi(create(POIDetailedInfoSchema, { name: "A" })).grounded).toBeUndefined();
+    expect(mapPoi(create(POIDetailedInfoSchema, { name: "A", grounded: false })).grounded).toBe(
+      false,
+    );
+    expect(mapPoi(create(POIDetailedInfoSchema, { name: "A", grounded: true })).grounded).toBe(
+      true,
+    );
+  });
+
+  it("splits the wire's comma-separated amenities", () => {
+    const poi = mapPoi(create(POIDetailedInfoSchema, { name: "A", amenities: "Wifi, Pool ,Spa" }));
+    expect(poi.amenities).toEqual(["Wifi", "Pool", "Spa"]);
+  });
 });

@@ -21,6 +21,7 @@ import {
 import { GeneralCityData as ProtoGeneralCityData } from "@buf/loci_loci-proto.bufbuild_es/loci/city/city_pb.js";
 import {
   POIDetailedInfo as ProtoPOIDetailedInfo,
+  POIImage as ProtoPOIImage,
   RestaurantDetailedInfo as ProtoRestaurantDetailedInfo,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/poi/poi_pb.js";
 import { transport } from "../connect-transport";
@@ -34,6 +35,7 @@ import type {
   AIItineraryResponse,
   AiCityResponse,
   POIDetailedInfo,
+  POIImageCredit,
   RestaurantDetailedInfo,
   SessionPerformanceMetrics,
   SessionContentMetrics,
@@ -125,12 +127,33 @@ export const mapGeneralCityData = (data?: ProtoGeneralCityData): GeneralCityData
   };
 };
 
+/**
+ * A picture with its credit. Wikimedia images are offered under licences that
+ * require naming the author and the licence wherever the picture shows, so
+ * the credit travels with the URL rather than being looked up later.
+ */
+export const mapImageCredit = (image: ProtoPOIImage): POIImageCredit => ({
+  url: image.url,
+  source: image.source || undefined,
+  licence: image.licence,
+  attribution: image.attribution,
+  source_page_url: image.sourcePageUrl || undefined,
+});
+
+/** The wire carries amenities as one comma-separated string. */
+const splitAmenities = (raw?: string): string[] =>
+  (raw ?? "")
+    .split(/[,;|]/)
+    .map((a) => a.trim())
+    .filter(Boolean);
+
 export const mapPoi = (poi: ProtoPOIDetailedInfo): POIDetailedInfo => {
   const placeholderId = poi.id === "00000000-0000-0000-0000-000000000000";
   const safeId =
     !placeholderId && poi.id
       ? poi.id
       : `${poi.name}-${poi.city || "unknown"}`.toLowerCase().replace(/\s+/g, "-");
+  const imageCredits = (poi.imageCredits ?? []).map(mapImageCredit);
 
   return {
     id: safeId,
@@ -153,7 +176,15 @@ export const mapPoi = (poi: ProtoPOIDetailedInfo): POIDetailedInfo => {
     price_range: poi.priceRange || "",
     rating: poi.rating,
     tags: poi.tags || [],
-    images: poi.images || [],
+    // A credited picture is still a picture: keep it in `images` so every
+    // surface that only reads URLs still shows it, and keep the credit beside
+    // it for the surfaces that render one.
+    images: poi.images?.length ? poi.images : imageCredits.map((c) => c.url),
+    image_credits: imageCredits.length ? imageCredits : undefined,
+    amenities: splitAmenities(poi.amenities),
+    // Tri-state: an absent value on the wire is "nothing was checked", which
+    // is not the same claim as "unverified". See POIDetailedInfo.grounded.
+    grounded: poi.grounded,
     llm_interaction_id: poi.llmInteractionId || "",
     cuisine_type: poi.cuisineType || "",
     star_rating:
@@ -254,6 +285,12 @@ export const mapAiCityResponse = (response?: ProtoAiCityResponse): AiCityRespons
 
   const derived = deriveLists();
 
+  // The lists the server stored for a domain search (proto v5.22.0). They win
+  // over anything derived by category: they are what the stream showed.
+  const storedHotels = response.hotels?.map(mapPoi) ?? [];
+  const storedRestaurants = response.restaurants?.map(mapPoi) ?? [];
+  const storedActivities = response.activities?.map(mapPoi) ?? [];
+
   return {
     general_city_data: (mapGeneralCityData(response.generalCityData) as GeneralCityData) || {
       city: "",
@@ -272,10 +309,15 @@ export const mapAiCityResponse = (response?: ProtoAiCityResponse): AiCityRespons
     },
     points_of_interest: response.pointsOfInterest?.map(mapPoi) ?? [],
     itinerary_response: mappedItinerary,
-    hotels: hotelsFromAccommodation || derived.hotels,
-    restaurants: mappedItinerary.restaurants?.length
-      ? mappedItinerary.restaurants
-      : (derived.restaurants as unknown as RestaurantDetailedInfo[]),
+    hotels: storedHotels.length ? storedHotels : hotelsFromAccommodation || derived.hotels,
+    restaurants: storedRestaurants.length
+      ? storedRestaurants
+      : mappedItinerary.restaurants?.length
+        ? mappedItinerary.restaurants
+        : (derived.restaurants as unknown as RestaurantDetailedInfo[]),
+    // Not derived when absent: "everything that is not a hotel or restaurant"
+    // is every itinerary stop, and chat would render the plan twice.
+    activities: storedActivities.length ? storedActivities : undefined,
     bars: mappedItinerary.bars,
     session_id: response.sessionId,
   };
