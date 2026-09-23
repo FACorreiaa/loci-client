@@ -1,4 +1,4 @@
-import { createSignal, createMemo, onMount } from "solid-js";
+import { createSignal, createMemo, onCleanup, onMount } from "solid-js";
 import { useQueryClient } from "@tanstack/solid-query";
 import { detectDomain, useGetChatSessionsQuery } from "~/lib/api/llm";
 import { stripPromptWrapper } from "~/lib/api/prompt-wrapper";
@@ -10,6 +10,13 @@ import { useDefaultSearchProfile, useSearchProfiles } from "~/lib/api/profiles";
 import { useSaveItineraryMutation } from "~/lib/api/itineraries";
 import { logger } from "~/lib/logger";
 import { getCompletionMessage } from "~/lib/chat/completion-message";
+import {
+  initialMuseState,
+  museSettleDelay,
+  nextMuseState,
+  type MuseInput,
+  type MuseState,
+} from "~/lib/chat/museState";
 import { useAppQuery } from "../api/authed-query";
 import { startErrorMessage } from "~/lib/errors";
 
@@ -67,6 +74,22 @@ export function useChat() {
   const [localSessionsVersion, setLocalSessionsVersion] = createSignal(0);
   // id of the assistant message currently being streamed into (live render).
   const [streamingMessageId, setStreamingMessageId] = createSignal<string | null>(null);
+
+  // Muse header avatar state (src/lib/chat/museState.ts). The reducer is pure;
+  // the settle timer that ends a celebration or a snag lives here.
+  const [muse, setMuse] = createSignal<MuseState>(initialMuseState);
+  let museTimer: ReturnType<typeof setTimeout> | undefined;
+  const dispatchMuse = (input: MuseInput) => {
+    const prev = muse();
+    const next = nextMuseState(prev, input);
+    if (next === prev) return;
+    setMuse(next);
+    if (next.phase === prev.phase) return;
+    clearTimeout(museTimer);
+    const delay = museSettleDelay(next.phase);
+    if (delay !== null) museTimer = setTimeout(() => dispatchMuse({ kind: "settle" }), delay);
+  };
+  onCleanup(() => clearTimeout(museTimer));
 
   const { userLocation } = useUserLocation() as any;
   const userLatitude = userLocation()?.latitude || 38.7223;
@@ -156,6 +179,7 @@ export function useChat() {
     setCurrentMessage("");
     setIsLoading(true);
     setStreamProgress("Analyzing your request...");
+    dispatchMuse({ kind: "send" });
 
     try {
       const currentSessionId = sessionId();
@@ -174,10 +198,16 @@ export function useChat() {
   };
 
   const finishWithError = (streamId: string, content: string) => {
+    dispatchMuse({ kind: "error" });
     setIsLoading(false);
     setStreamProgress("");
     setStreamingMessageId(null);
-    patchMessage(streamId, { type: "error", content, streaming: false, streamingData: undefined });
+    patchMessage(streamId, {
+      type: "error",
+      content,
+      streaming: false,
+      streamingData: undefined,
+    });
   };
 
   const persistLocalSession = (completed: any) => {
@@ -200,7 +230,9 @@ export function useChat() {
       localSessions.unshift(summary);
       if (localSessions.length > MAX_LOCAL_SESSIONS) localSessions.splice(MAX_LOCAL_SESSIONS);
       localStorage.setItem("localChatSessions", JSON.stringify(localSessions));
-      queryClient.invalidateQueries({ queryKey: ["chatSessions", activeProfileId()] });
+      queryClient.invalidateQueries({
+        queryKey: ["chatSessions", activeProfileId()],
+      });
       setLocalSessionsVersion((v) => v + 1);
     } catch (error) {
       logger.error("Failed to save session locally:", error);
@@ -238,6 +270,7 @@ export function useChat() {
       {
         session,
         hostPath: chatHostPath(),
+        onEvent: dispatchMuse,
         onProgress: (updated) => {
           setStreamingSession({ ...updated });
           setStreamProgress(progressLabel(updated));
@@ -293,6 +326,7 @@ export function useChat() {
       {
         session,
         hostPath: chatHostPath(),
+        onEvent: dispatchMuse,
         onProgress: (updated) => {
           setStreamingSession({ ...updated });
           setStreamProgress(
@@ -321,6 +355,8 @@ export function useChat() {
 
   /** Finalize the streaming placeholder into a completed assistant message. */
   const finalizeStream = (completed: any, streamId: string) => {
+    // Also covers a stopped stream or one that ended without a complete frame.
+    dispatchMuse({ kind: "complete" });
     setStreamingSession(completed);
     setIsLoading(false);
     setStreamProgress("");
@@ -525,6 +561,10 @@ export function useChat() {
     streamProgress,
     expandedResults,
     streamingMessageId,
+    /** Muse header avatar phase + status line. */
+    muse,
+    /** Composer focus/blur feed the "is listening" state. */
+    setComposerFocused: (focused: boolean) => dispatchMuse({ kind: focused ? "focus" : "blur" }),
     // profiles
     profiles,
     activeProfileName,

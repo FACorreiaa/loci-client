@@ -131,7 +131,13 @@ export default function ChatPage() {
           transcript; pt-[176px] is the contract's transcript top inset (≈150, plus room for the name pill), which
           clears the 110px avatar and its name pill. */}
       <div class="flex-1 flex flex-col order-1 lg:order-2 relative z-10 min-w-0 bg-[var(--muse-canvas)] text-[var(--muse-text)]">
-        <ChatHeader onNewChat={chat.newChat} onToggleSidebar={() => setSidebarOpen(true)} />
+        <ChatHeader
+          name="Loci"
+          status={chat.muse().status}
+          phase={chat.muse().phase}
+          onNewChat={chat.newChat}
+          onToggleSidebar={() => setSidebarOpen(true)}
+        />
 
         {/* Messages */}
         <div
@@ -195,6 +201,7 @@ export default function ChatPage() {
           onSend={chat.sendMessage}
           onStop={chat.stopStreaming}
           onKeyPress={handleKeyPress}
+          onListeningChange={chat.setComposerFocused}
         />
       </div>
 

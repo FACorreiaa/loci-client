@@ -57,6 +57,8 @@ export interface StreamingSessionManager {
    * its result page (/chat). RunWatcher treats it as the run's own page.
    */
   hostPath?: string;
+  /** Every normalized stream event, before it is projected onto the session. */
+  onEvent?: (event: LociStreamEvent) => void;
 }
 
 /** One in-flight stream: its manager and the controller that can stop it. */
@@ -204,6 +206,7 @@ export class StreamingChatService {
     // `start` names the run; key it first so its own event id is recorded.
     if (event.kind === "start" && event.sessionId) run.sessionId = event.sessionId;
     if (event.eventId) this.live(run, { lastEventId: event.eventId });
+    mgr.onEvent?.(event);
 
     switch (event.kind) {
       case "start":

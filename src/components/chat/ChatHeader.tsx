@@ -1,4 +1,5 @@
-import { Component } from "solid-js";
+import { Component, Show } from "solid-js";
+import type { MusePhase } from "~/lib/chat/museState";
 import { Menu, Plus } from "lucide-solid";
 
 export interface ChatHeaderProps {
@@ -7,8 +8,13 @@ export interface ChatHeaderProps {
   onToggleSidebar?: () => void;
   /** Agent name under the avatar. */
   name?: string;
-  /** Status line under the name. Stage A is always "Ready". */
+  /** Status line under the name ("is thinking", "found places", "Ready"). */
   status?: string;
+  /**
+   * Avatar state (src/lib/chat/museState.ts). "working" wears an animated ring
+   * (static under reduced motion); "celebrating" a ring that pops once.
+   */
+  phase?: MusePhase;
 }
 
 const MASCOT_SRC = "/images/brand/mascot.webp";
@@ -31,13 +37,17 @@ const MASCOT_SRCSET = "/images/brand/mascot-sm.webp 303w, /images/brand/mascot.w
 const ChatHeader: Component<ChatHeaderProps> = (props) => {
   const name = () => props.name ?? "Loci";
   const status = () => props.status ?? "Ready";
+  const phase = () => props.phase ?? "idle";
+  const hasRing = () => phase() === "working" || phase() === "celebrating";
 
   return (
     <header class="pointer-events-none absolute inset-x-0 top-0 z-20" data-testid="muse-header">
       <div
         aria-hidden="true"
         class="absolute inset-x-0 top-0 h-[120px]"
-        style={{ background: "linear-gradient(to bottom, var(--muse-canvas), transparent)" }}
+        style={{
+          background: "linear-gradient(to bottom, var(--muse-canvas), transparent)",
+        }}
       />
 
       <div class="relative flex h-14 items-center justify-between px-4">
@@ -62,21 +72,34 @@ const ChatHeader: Component<ChatHeaderProps> = (props) => {
         </button>
       </div>
 
-      <div class="absolute left-1/2 top-1 flex -translate-x-1/2 flex-col items-center">
-        <div class="h-[110px] w-[110px] overflow-hidden rounded-full bg-[var(--muse-pill)] ring-4 ring-[var(--muse-canvas)]">
-          <img
-            src={MASCOT_SRC}
-            srcset={MASCOT_SRCSET}
-            sizes="110px"
-            alt=""
-            width={110}
-            height={110}
-            class="h-full w-full object-cover object-top"
-            data-testid="muse-avatar"
-          />
+      <div
+        class="absolute left-1/2 top-1 flex -translate-x-1/2 flex-col items-center"
+        data-phase={phase()}
+      >
+        <div class="relative h-[110px] w-[110px]">
+          <div class="h-full w-full overflow-hidden rounded-full bg-[var(--muse-pill)] ring-4 ring-[var(--muse-canvas)]">
+            <img
+              src={MASCOT_SRC}
+              srcset={MASCOT_SRCSET}
+              sizes="110px"
+              alt=""
+              width={110}
+              height={110}
+              class="h-full w-full object-cover object-top"
+              data-testid="muse-avatar"
+            />
+          </div>
+          <Show when={hasRing()}>
+            <div
+              aria-hidden="true"
+              class="muse-ring"
+              data-phase={phase()}
+              data-testid="muse-ring"
+            />
+          </Show>
         </div>
         <div
-          class="-mt-3 flex flex-col items-center rounded-full bg-[var(--muse-pill)] px-4 py-1.5 ring-4 ring-[var(--muse-canvas)]"
+          class="relative -mt-3 flex flex-col items-center rounded-full bg-[var(--muse-pill)] px-4 py-1.5 ring-4 ring-[var(--muse-canvas)]"
           role="status"
           aria-live="polite"
         >
