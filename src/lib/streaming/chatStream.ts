@@ -26,6 +26,7 @@ import { parseStreamError } from "@/lib/errors";
 import { mapAiCityResponse, mapGeneralCityData, mapPoi } from "@/lib/api/llm";
 import type { AiCityResponse, GeneralCityData, POIDetailedInfo } from "@/lib/api/types";
 import { capture } from "~/lib/analytics";
+import { logger } from "~/lib/logger";
 
 export interface NavigationInfo {
   url: string;
@@ -90,7 +91,7 @@ export interface ChatStreamParams {
   requestId?: string;
 }
 
-const domainName = (d: DomainType): string => {
+export const domainName = (d: DomainType): string => {
   switch (d) {
     case DomainType.ACCOMMODATION:
       return "accommodation";
@@ -303,6 +304,7 @@ export async function* streamChatEvents(
         if (early) yield early;
         return;
       } catch (retryErr) {
+        reportMapperError(retryErr);
         const re = retryErr instanceof ConnectError ? retryErr : undefined;
         if (!signal?.aborted && isTransportFailure(retryErr)) {
           yield { ...terminalError(re, retryErr), transport: true, retryable: true };
@@ -317,6 +319,7 @@ export async function* streamChatEvents(
         return;
       }
     }
+    reportMapperError(err);
     const final = terminalError(connErr, err);
     // Our own abort is a stop, not a dropped connection.
     if (!signal?.aborted && isTransportFailure(err)) {
@@ -330,16 +333,31 @@ export async function* streamChatEvents(
 /**
  * Whether a thrown stream failure came from the connection rather than from
  * the server's answer. Connect reports a browser-level drop (fetch rejected,
- * HTTP/2 stream reset, body read failed) as Unknown/Internal/Unavailable, or
- * the raw TypeError leaks through. Everything else — Unauthenticated,
- * ResourceExhausted, InvalidArgument, PermissionDenied — is the server's
- * decision and resuming cannot change it.
+ * HTTP/2 stream reset, body read failed) as Unknown/Internal/Unavailable, and
+ * a request cancelled by something other than our own AbortSignal (a proxy,
+ * the browser) as Canceled — callers rule our own abort out first. Everything
+ * else — Unauthenticated, ResourceExhausted, InvalidArgument,
+ * PermissionDenied — is the server's decision and resuming cannot change it.
+ *
+ * A raw TypeError is not one of these: connect-es already wraps a failed
+ * fetch as Unknown, so a TypeError reaching here is our own mapping code
+ * throwing (see reportMapperError). Resuming would replay into the same bug.
  */
 export function isTransportFailure(err: unknown): boolean {
-  if (err instanceof ConnectError) {
-    return err.code === Code.Unavailable || err.code === Code.Unknown || err.code === Code.Internal;
-  }
-  return err instanceof TypeError;
+  if (!(err instanceof ConnectError)) return false;
+  return (
+    err.code === Code.Unavailable ||
+    err.code === Code.Unknown ||
+    err.code === Code.Internal ||
+    err.code === Code.Canceled
+  );
+}
+
+/** A bare TypeError out of the stream is a bug in this file's mapping, not a network drop. */
+function reportMapperError(err: unknown): void {
+  if (!(err instanceof TypeError)) return;
+  logger.error("stream mapper error", err);
+  capture("stream_mapper_error", { message: err.message.slice(0, 200) });
 }
 
 /**

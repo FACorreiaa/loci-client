@@ -15,6 +15,7 @@ vi.mock("~/lib/analytics", () => ({ capture: vi.fn() }));
 
 import { create } from "@bufbuild/protobuf";
 import { StreamEventSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
+import { capture } from "~/lib/analytics";
 import { mapProtoEvent, streamChatEvents, terminalError } from "./chatStream";
 
 const CAP = "You have 3 searches running — wait for one to finish";
@@ -94,11 +95,24 @@ describe("chatStream transport classification", () => {
     expect(events.at(-1)).toMatchObject({ kind: "error", transport: true, retryable: true });
   });
 
-  it("marks a fetch TypeError as transport", async () => {
-    script([], new TypeError("Failed to fetch"));
+  it("marks a Canceled it did not cause as transport", async () => {
+    // A proxy or the browser cancelling the request, not our AbortSignal.
+    script([start], new ConnectError("stream reset", Code.Canceled));
+    const events = await collect(new AbortController().signal);
+    expect(events.at(-1)).toMatchObject({ kind: "error", transport: true });
+  });
+
+  // connect-es wraps a failed fetch as Code.Unknown, so a raw TypeError here is
+  // almost always our own mapping code throwing. Resuming would replay into
+  // the same bug; it surfaces as an ordinary error and is reported.
+  it("surfaces a raw TypeError as a normal error and reports it as a mapper bug", async () => {
+    vi.mocked(capture).mockClear();
+    script([start], new TypeError("Cannot read properties of undefined (reading 'city')"));
     const events = await collect();
-    expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({ kind: "error", transport: true });
+    const err = events.at(-1)!;
+    expect(err).toMatchObject({ kind: "error" });
+    expect((err as { transport?: boolean }).transport).toBeFalsy();
+    expect(capture).toHaveBeenCalledWith("stream_mapper_error", expect.any(Object));
   });
 
   it("reports a stream that ends without a terminal event as a transport error", async () => {
