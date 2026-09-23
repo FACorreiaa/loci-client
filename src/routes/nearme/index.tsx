@@ -1,6 +1,7 @@
-import { createSignal, createMemo, Show, onMount, For } from "solid-js";
+import { createSignal, createMemo, Show, onMount, For, onCleanup } from "solid-js";
 import { lazyChunk } from "@/lib/lazyChunk";
 import { useSearchParams } from "@solidjs/router";
+import { createSessionKey } from "~/lib/runs/session-key";
 import { MapPin, Navigation, Loader2, AlertCircle, ChevronDown } from "lucide-solid";
 import { useChatRPC } from "~/lib/hooks/useChatRPC";
 import { hasListContent, readCompletedSession } from "~/lib/streaming/restore-session";
@@ -36,9 +37,39 @@ interface UserLocation {
   accuracy?: number;
 }
 
+/**
+ * Keyed on the search it shows, so Open from a toast to this same route with
+ * another sessionId remounts the body and its restore logic runs for that
+ * session (Solid Router keeps a route mounted across query changes). See
+ * session-key.ts for why the page's own run naming itself does not remount.
+ */
 export default function NearmePage() {
   const [searchParams] = useSearchParams();
-  const { state, startStream } = useChatRPC();
+  const session = createSessionKey(() => searchParams);
+  return (
+    <Show when={session.key()} keyed>
+      {(_key) => <NearmeView adopt={session.adopt} />}
+    </Show>
+  );
+}
+
+function NearmeView(props: { adopt: (sessionId: string) => void }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  let mounted = true;
+  onCleanup(() => (mounted = false));
+  const { state, startStream } = useChatRPC({
+    // Put the run in the URL the moment the server names it: RunWatcher then
+    // knows you are on its page (no toast here), leaving it offers the push
+    // prompt, and a reload restores it. Adopted first, so the keyed wrapper
+    // does not remount this component mid-stream. The stream outlives this
+    // page, so a `start` that lands after you left must not touch the URL of
+    // wherever you are now.
+    onStart: (sessionId) => {
+      if (!mounted) return;
+      props.adopt(sessionId);
+      setSearchParams({ sessionId }, { replace: true });
+    },
+  });
 
   // A session id in the URL — the server's complete event sends
   // `/nearme?sessionId=...&cityName=...&domain=nearme` — means a run already

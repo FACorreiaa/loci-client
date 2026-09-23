@@ -1,6 +1,7 @@
 import { createSignal, createMemo, createEffect, Show, For, onMount } from "solid-js";
 import { lazyChunk } from "@/lib/lazyChunk";
 import { useSearchParams, useNavigate } from "@solidjs/router";
+import { createSessionKey } from "~/lib/runs/session-key";
 import { useStreamedRpc } from "@/lib/hooks/useStreamedRpc";
 import { useTypedText } from "@/lib/hooks/useTypedText";
 import { readActiveSession, useLiveSession } from "@/lib/streaming/live-stream-store";
@@ -52,7 +53,23 @@ import { useAuth } from "@/contexts/AuthContext";
 import { saveItineraryOffline, getOfflineItinerary } from "@/lib/itinerary-offline-store";
 import { SHARE_HOME_URL, type SharePayload } from "@/lib/share";
 
+/**
+ * Keyed on the search it shows, so Open from a toast to this same route with
+ * another sessionId remounts the body and its restore logic runs for that
+ * session (Solid Router keeps a route mounted across query changes). This
+ * page never writes its own run's id into the URL, so it adopts nothing.
+ */
 export default function ItineraryPage() {
+  const [searchParams] = useSearchParams();
+  const session = createSessionKey(() => searchParams);
+  return (
+    <Show when={session.key()} keyed>
+      {(_key) => <ItineraryView />}
+    </Show>
+  );
+}
+
+function ItineraryView() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [layers, setLayers] = createSignal<LayerVisibility>({
