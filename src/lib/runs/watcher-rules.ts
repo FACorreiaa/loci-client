@@ -16,43 +16,113 @@ const PATH_NOUNS: Record<string, string> = {
   "/nearme": "nearby places",
 };
 
+const pathOf = (url: string): string => new URL(url || "/", "https://x").pathname;
+
 /** The noun for a run's result page, keyed by its URL's path. */
 export function nounFor(url: string): string {
-  const pathname = new URL(url, "https://x").pathname;
-  return PATH_NOUNS[pathname] ?? "itinerary";
+  return PATH_NOUNS[pathOf(url)] ?? "itinerary";
 }
 
-/** Whether the viewer is already looking at this run's result page. */
+/**
+ * Whether the viewer is already looking at this run: its result page (same
+ * path and sessionId), or the page hosting it inline (`hostPath`: same path,
+ * and every query param hostPath names). /chat renders its runs in the
+ * conversation while their url points at /itinerary.
+ */
 export function isOnRunPage(
   pathname: string,
   search: string,
   runUrl: string,
   sessionId: string,
+  hostPath?: string,
 ): boolean {
-  const target = new URL(runUrl, "https://x");
-  return pathname === target.pathname && new URLSearchParams(search).get("sessionId") === sessionId;
+  const current = new URLSearchParams(search);
+  const target = new URL(runUrl || "/", "https://x");
+  if (pathname === target.pathname && current.get("sessionId") === sessionId) return true;
+  if (!hostPath) return false;
+  const host = new URL(hostPath, "https://x");
+  if (pathname !== host.pathname) return false;
+  for (const [key, value] of host.searchParams) {
+    if (current.get(key) !== value) return false;
+  }
+  return true;
 }
 
-export function runToast(run: {
-  sessionId: string;
-  phase: "complete" | "error";
-  city: string;
-  url: string;
-}): Toast {
-  const subject = `${run.city} ${nounFor(run.url)}`.trim();
+/**
+ * Where Retry goes: the run's result route with its original query, which
+ * every result page re-runs on arrival. The run's url is no use for this —
+ * it names a session that failed and carries no query.
+ */
+export function retryHref(run: { url: string; query: string; city: string }): string {
+  const path = pathOf(run.url);
+  const params = new URLSearchParams({ message: run.query });
+  if (run.city) params.set("cityName", run.city);
+  return `${PATH_NOUNS[path] ? path : "/itinerary"}?${params.toString()}`;
+}
+
+/**
+ * The toast for a run that ended. `go` is called with where the action leads
+ * when it is a retry (the watcher unlists the failed run, then navigates):
+ * kept as a callback so these rules stay free of the router and the store.
+ */
+export function runToast(
+  run: {
+    sessionId: string;
+    phase: "complete" | "error";
+    city: string;
+    url: string;
+    /** The original request, when known. A relayed push does not carry it. */
+    query?: string;
+  },
+  go: (href: string) => void,
+): Toast {
+  const noun = nounFor(run.url);
+  const subject = `${run.city} ${noun}`.trim();
   if (run.phase === "complete") {
+    // "itinerary is", but "hotels / restaurants / activities / nearby places are".
+    const verb = noun === "itinerary" ? "is" : "are";
     return {
       id: run.sessionId,
-      title: `Your ${subject} is ready`,
+      title: `Your ${subject} ${verb} ready`,
       action: { label: "Open", href: run.url },
     };
   }
-  // Retry navigates to the run's page: every result page already re-runs the
-  // query when its session restores nothing, and a failed run left nothing
-  // to restore, so no second retry path is needed.
+  const query = run.query?.trim();
+  if (!query) {
+    return {
+      id: run.sessionId,
+      title: `Your ${subject} didn't finish`,
+      action: { label: "New search", run: () => go("/") },
+    };
+  }
+  const href = retryHref({ url: run.url, query, city: run.city });
   return {
     id: run.sessionId,
     title: `Your ${subject} didn't finish`,
-    action: { label: "Retry", href: run.url },
+    action: { label: "Retry", run: () => go(href) },
   };
+}
+
+/**
+ * The runs a reload left behind that nobody resumed, and so must be settled
+ * by asking the server. A run this tab already saw finish (a completed
+ * session is stored for it) is not one: it was announced when it finished.
+ */
+export function orphanedRunIds(
+  pending: string[],
+  resumed: ReadonlySet<string>,
+  finishedHere: (sessionId: string) => boolean,
+): string[] {
+  return pending.filter((id) => !resumed.has(id) && !finishedHere(id));
+}
+
+/** What the push offer's Allow does once enablePush settles. */
+export function pushOutcome(
+  result: "granted" | "denied" | "unsupported" | "off" | "error",
+): "refresh" | Toast | null {
+  if (result === "granted") return "refresh";
+  if (result === "error") {
+    return { id: "push-error", title: "Couldn't turn on notifications on this device." };
+  }
+  return null;
 }
