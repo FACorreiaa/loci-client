@@ -16,10 +16,20 @@ type Feed = {
 };
 
 let currentFeed: Feed | null = null;
+// Every request the service opened, in order: a reconnect is a second call.
+let calls: Array<Record<string, unknown>> = [];
+
+const { getRunStatuses, getChatSession, getSessionList } = vi.hoisted(() => ({
+  getRunStatuses: vi.fn(),
+  getChatSession: vi.fn(),
+  getSessionList: vi.fn(),
+}));
+vi.mock("./api/llm", () => ({ getRunStatuses, getChatSession, getSessionList }));
 
 vi.mock("./streaming/chatStream", () => {
   return {
-    streamChatEvents: (_params: unknown, signal?: AbortSignal) => {
+    streamChatEvents: (params: Record<string, unknown>, signal?: AbortSignal) => {
+      calls.push(params);
       const queue: LociStreamEvent[] = [];
       let done = false;
       let wake: (() => void) | null = null;
@@ -57,6 +67,7 @@ vi.mock("./streaming/chatStream", () => {
 import { streamingService, createStreamingSession } from "./streaming-service";
 import { liveRuns, readActiveSessions, removeRun } from "./streaming/live-stream-store";
 import { COMPLETED_SESSION_KEY, readCompletedSession } from "./streaming/restore-session";
+import { reconnectPolicy, settleEvent } from "./streaming/reconnect";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -105,6 +116,14 @@ beforeEach(async () => {
   for (const id of Object.keys(liveRuns)) removeRun(id);
   sessionStorage.clear();
   currentFeed = null;
+  calls = [];
+  getRunStatuses.mockReset();
+  getChatSession.mockReset();
+  getSessionList.mockReset();
+  // No real waiting: backoff and poll intervals collapse to a tick.
+  reconnectPolicy.backoffMs = [0, 0, 0];
+  reconnectPolicy.pollIntervalMs = 0;
+  reconnectPolicy.pollTimeoutMs = 50;
 });
 
 describe("streamingService → live store", () => {
@@ -334,5 +353,260 @@ describe("streamingService → live store", () => {
     feed.push({ kind: "start", sessionId: "s1", domain: "itinerary" });
     await tick();
     expect(liveRuns.s1.hostPath).toBe("/chat");
+  });
+});
+
+// Production: the browser dropped three StreamChat requests at once, the server
+// finished all three, and the client said "didn't finish". A transport error
+// after `start` now resumes the same run instead of failing it.
+describe("streamingService → reconnect", () => {
+  const transportError = (): LociStreamEvent => ({
+    kind: "error",
+    userMessage: "Connection lost",
+    internalCode: "Unknown",
+    retryable: true,
+    transport: true,
+  });
+
+  // Record every phase the run passes through, so "no error in between" is
+  // checked on the way, not just at the end.
+  const phasesOf = (id: string) => {
+    const seen: string[] = [];
+    const timer = setInterval(() => {
+      const p = liveRuns[id]?.phase;
+      if (p && seen.at(-1) !== p) seen.push(p);
+    }, 0);
+    return { seen, stop: () => clearInterval(timer) };
+  };
+
+  it("resumes with the last event id after a dropped connection, then completes", async () => {
+    const { manager, feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary", eventId: "e1" });
+    feed.push({ ...itineraryEvent(), eventId: "e2" });
+    await tick();
+    const phases = phasesOf("s1");
+
+    feed.push(transportError());
+    await tick();
+    await tick();
+
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).toMatchObject({ sessionId: "s1", resumeToken: "e2" });
+    expect(liveRuns.s1.phase).toBe("streaming");
+    expect(manager.onError).not.toHaveBeenCalled();
+
+    currentFeed!.push({ kind: "complete", sessionId: "s1", eventId: "e3" });
+    await tick();
+    await tick();
+    phases.stop();
+
+    expect(liveRuns.s1.phase).toBe("complete");
+    expect(phases.seen).not.toContain("error");
+    expect(manager.onError).not.toHaveBeenCalled();
+    expect(manager.onComplete).toHaveBeenCalledTimes(1);
+    // The run the page is bound to is still the one it started: onStart once.
+    expect(manager.onStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("finishes a load_from_session resume with its url, and saves no partial result", async () => {
+    const { manager, feed } = start();
+    feed.push({
+      kind: "start",
+      sessionId: "s1",
+      domain: "itinerary",
+      city: "Porto",
+      eventId: "e1",
+    });
+    await tick();
+    feed.push(transportError());
+    await tick();
+    await tick();
+    currentFeed!.push({ kind: "complete", sessionId: "s1", loadFromSession: true });
+    await tick();
+    await tick();
+
+    expect(liveRuns.s1.phase).toBe("complete");
+    expect(liveRuns.s1.url).toContain("/itinerary?sessionId=s1");
+    expect(manager.onError).not.toHaveBeenCalled();
+    expect(readCompletedSession("s1")).toBeNull();
+  });
+
+  it("loads a load_from_session result before finishing, and hands it to the caller", async () => {
+    const hydrated = itineraryEvent().cityResponse;
+    getChatSession.mockResolvedValue(hydrated);
+    const { manager, feed } = start();
+    feed.push({
+      kind: "start",
+      sessionId: "s1",
+      domain: "itinerary",
+      city: "Funchal",
+      eventId: "e1",
+    });
+    await tick();
+    feed.push({
+      kind: "error",
+      userMessage: "x",
+      internalCode: "Unknown",
+      retryable: true,
+      transport: true,
+    });
+    await vi.waitFor(() => expect(calls).toHaveLength(2));
+    currentFeed!.push({ kind: "complete", sessionId: "s1", loadFromSession: true });
+    await vi.waitFor(() => expect(liveRuns.s1.phase).toBe("complete"));
+
+    expect(getChatSession).toHaveBeenCalledWith("s1");
+    expect((liveRuns.s1.data as any)?.itinerary_response?.itinerary_name).toBe("Funchal in a day");
+    expect((manager.onComplete as Mock).mock.calls[0][0].data).toEqual(hydrated);
+    expect(readCompletedSession("s1")).toBeTruthy();
+  });
+
+  it("loads a list domain's load_from_session result from its section", async () => {
+    getSessionList.mockResolvedValue({ city: { city: "Porto" }, pois: [{ name: "Pestana" }] });
+    const session = createStreamingSession("accommodation");
+    const manager = { session, onProgress: vi.fn(), onComplete: vi.fn(), onError: vi.fn() };
+    streamingService.startStream({ message: "hotels in Porto" }, manager);
+    const feed = currentFeed!;
+    feed.push({ kind: "start", sessionId: "h1", domain: "accommodation", eventId: "e1" });
+    await tick();
+    feed.push({ kind: "complete", sessionId: "h1", loadFromSession: true });
+    await vi.waitFor(() => expect(liveRuns.h1.phase).toBe("complete"));
+
+    expect(getSessionList).toHaveBeenCalledWith("h1", "hotels");
+    expect((liveRuns.h1.data as any)?.hotels).toHaveLength(1);
+    expect(manager.onComplete.mock.calls[0][0].data.hotels).toHaveLength(1);
+  });
+
+  it("fills a settled run's navigation from its RunInfo", () => {
+    const e = settleEvent("h1", {
+      status: "done",
+      info: {
+        sessionId: "h1",
+        status: "done",
+        url: "/hotels?sessionId=h1&cityName=Porto",
+        cityName: "Porto",
+        domain: "2", // DomainType.ACCOMMODATION, as getRunStatuses stringifies it
+      },
+    });
+    expect(e).toMatchObject({
+      kind: "complete",
+      loadFromSession: true,
+      navigation: {
+        url: "/hotels?sessionId=h1&cityName=Porto",
+        routeType: "hotels",
+        queryParams: { sessionId: "h1", domain: "accommodation", cityName: "Porto" },
+      },
+    });
+  });
+
+  it("polls the run's status after resume_lost, and completes with the server's url", async () => {
+    getRunStatuses.mockResolvedValueOnce([
+      { sessionId: "s1", status: "running", url: "", cityName: "Porto", domain: "" },
+    ]);
+    getRunStatuses.mockResolvedValue([
+      {
+        sessionId: "s1",
+        status: "done",
+        url: "/itinerary?sessionId=s1&cityName=Porto",
+        cityName: "Porto",
+        domain: "",
+      },
+    ]);
+    const { manager, feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary", eventId: "e1" });
+    await tick();
+    const phases = phasesOf("s1");
+    feed.push(transportError());
+    await tick();
+    await tick();
+    currentFeed!.push({
+      kind: "error",
+      userMessage: "Still running elsewhere",
+      internalCode: "resume_lost",
+      retryable: true,
+    });
+    await vi.waitFor(() => expect(liveRuns.s1.phase).toBe("complete"));
+    phases.stop();
+
+    expect(getRunStatuses).toHaveBeenCalledWith(["s1"]);
+    expect(liveRuns.s1.url).toBe("/itinerary?sessionId=s1&cityName=Porto");
+    expect(phases.seen).not.toContain("error");
+    expect(manager.onError).not.toHaveBeenCalled();
+  });
+
+  it("fails the run when polling says FAILED", async () => {
+    getRunStatuses.mockResolvedValue([
+      { sessionId: "s1", status: "failed", url: "", cityName: "", domain: "" },
+    ]);
+    const { manager, feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary", eventId: "e1" });
+    await tick();
+    feed.push(transportError());
+    await tick();
+    await tick();
+    currentFeed!.push({
+      kind: "error",
+      userMessage: "lost",
+      internalCode: "resume_lost",
+      retryable: true,
+    });
+    await vi.waitFor(() => expect(liveRuns.s1.phase).toBe("error"));
+    expect(manager.onError).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to polling when every resume attempt drops too", async () => {
+    getRunStatuses.mockResolvedValue([
+      { sessionId: "s1", status: "done", url: "/itinerary?sessionId=s1", cityName: "", domain: "" },
+    ]);
+    const { feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary", eventId: "e1" });
+    await tick();
+    feed.push(transportError());
+    for (let i = 0; i < 3; i++) {
+      await vi.waitFor(() => expect(calls).toHaveLength(i + 2));
+      currentFeed!.push(transportError());
+    }
+    await vi.waitFor(() => expect(liveRuns.s1.phase).toBe("complete"));
+    // One original request plus three bounded resume attempts.
+    expect(calls).toHaveLength(4);
+  });
+
+  it("keeps a transport error before `start` a failure: there is nothing to resume", async () => {
+    const { manager, feed } = start();
+    feed.push(transportError());
+    await tick();
+    await tick();
+    expect(calls).toHaveLength(1);
+    expect(manager.onError).toHaveBeenCalledTimes(1);
+    expect(getRunStatuses).not.toHaveBeenCalled();
+  });
+
+  it("fails on a server StreamError without reconnecting", async () => {
+    const { manager, feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary", eventId: "e1" });
+    feed.push({
+      kind: "error",
+      userMessage: "The model failed",
+      internalCode: "llm_failed",
+      retryable: true,
+    });
+    await tick();
+    await tick();
+    expect(calls).toHaveLength(1);
+    expect(liveRuns.s1.phase).toBe("error");
+    expect(manager.onError).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reconnect a run the user stopped", async () => {
+    reconnectPolicy.backoffMs = [20, 20, 20];
+    const { manager, feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary", eventId: "e1" });
+    await tick();
+    feed.push(transportError());
+    await tick();
+    streamingService.stop("s1");
+    await new Promise((r) => setTimeout(r, 60));
+    expect(calls).toHaveLength(1);
+    expect(manager.onError).not.toHaveBeenCalled();
+    expect(liveRuns.s1).toBeUndefined();
   });
 });

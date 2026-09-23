@@ -29,7 +29,17 @@ export type AnalyticsEvent =
   /** A field report was submitted. Metric: scout contributions, and how many corroborate. */
   | "place_claim_submitted"
   /** A new place was proposed. Metric: map growth from scouts. */
-  | "place_submitted";
+  | "place_submitted"
+  /**
+   * A search stream's connection dropped (not a server error). Properties:
+   * `code`, `attempt`. Tells whether reconnects are rare or routine.
+   */
+  | "stream_transport_error"
+  /**
+   * The client's own stream mapping threw (a bare TypeError out of the
+   * StreamChat reader). Property: `message`. A code bug, not a network drop.
+   */
+  | "stream_mapper_error";
 
 export type AnalyticsProperties = Record<string, unknown>;
 

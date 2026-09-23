@@ -15,19 +15,30 @@ let events: LociStreamEvent[] = [];
 // Per-call scripts, for tests that need a stream to stay open; falls back to
 // `events` when empty.
 let scripts: Array<(signal?: AbortSignal) => AsyncGenerator<LociStreamEvent>> = [];
+// Every request opened, in order: a reconnect is a second call.
+let calls: Array<Record<string, unknown>> = [];
+
+const { getRunStatuses, getSessionList } = vi.hoisted(() => ({
+  getRunStatuses: vi.fn(),
+  getSessionList: vi.fn(),
+}));
+vi.mock("../api/llm", () => ({ getRunStatuses, getSessionList }));
 
 vi.mock("../streaming/chatStream", () => ({
-  streamChatEvents: (_params: unknown, signal?: AbortSignal) =>
-    scripts.length
+  streamChatEvents: (params: Record<string, unknown>, signal?: AbortSignal) => {
+    calls.push(params);
+    return scripts.length
       ? scripts.shift()!(signal)
       : (async function* () {
           for (const e of events) yield e;
-        })(),
+        })();
+  },
 }));
 
 import { useChatRPC } from "./useChatRPC";
 import { loadCompletedSession } from "../streaming/completed-sessions";
 import { liveRuns, removeRun } from "../streaming/live-stream-store";
+import { reconnectPolicy } from "../streaming/reconnect";
 
 describe("useChatRPC — completed-session caching", () => {
   beforeEach(() => {
@@ -35,6 +46,12 @@ describe("useChatRPC — completed-session caching", () => {
     for (const id of Object.keys(liveRuns)) removeRun(id);
     events = [];
     scripts = [];
+    calls = [];
+    getRunStatuses.mockReset();
+    getSessionList.mockReset();
+    reconnectPolicy.backoffMs = [0, 0, 0];
+    reconnectPolicy.pollIntervalMs = 0;
+    reconnectPolicy.pollTimeoutMs = 50;
   });
 
   it("does not cache a completed session with no content", async () => {
@@ -124,5 +141,105 @@ describe("useChatRPC — completed-session caching", () => {
     expect(liveRuns.old).toBeUndefined();
     expect(liveRuns.new.phase).toBe("complete");
     expect(state.error).toBeNull();
+  });
+});
+
+// A page-owned run (/hotels, /restaurants, /activities, /nearme) gets the same
+// reconnect policy as the service's runs: a dropped connection resumes.
+describe("useChatRPC — reconnect", () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    for (const id of Object.keys(liveRuns)) removeRun(id);
+    scripts = [];
+    calls = [];
+    getRunStatuses.mockReset();
+    getSessionList.mockReset();
+    reconnectPolicy.backoffMs = [0, 0, 0];
+    reconnectPolicy.pollIntervalMs = 0;
+    reconnectPolicy.pollTimeoutMs = 50;
+  });
+
+  const drop: LociStreamEvent = {
+    kind: "error",
+    userMessage: "Connection lost",
+    internalCode: "Unknown",
+    retryable: true,
+    transport: true,
+  };
+
+  it("resumes a dropped stream with its last event id and finishes it", async () => {
+    const phases: string[] = [];
+    scripts = [
+      async function* () {
+        yield { kind: "start", sessionId: "h1", domain: "accommodation", eventId: "e1" };
+        yield drop;
+      },
+      async function* () {
+        phases.push(liveRuns.h1.phase);
+        yield {
+          kind: "hotels",
+          pois: [{ name: "Pestana" } as any],
+          city: { city: "Porto" } as any,
+          sessionId: "h1",
+          eventId: "e2",
+        };
+        yield { kind: "complete", sessionId: "h1", eventId: "e3" };
+      },
+    ];
+    const onError = vi.fn();
+    const { state, startStream } = useChatRPC({ onError });
+    await startStream("hotels", "Porto");
+
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).toMatchObject({ sessionId: "h1", resumeToken: "e1" });
+    // Still streaming while it reconnected; never flagged failed.
+    expect(phases).toEqual(["streaming"]);
+    expect(onError).not.toHaveBeenCalled();
+    expect(state.error).toBeNull();
+    expect(liveRuns.h1.phase).toBe("complete");
+    expect(state.streamedData?.hotels).toHaveLength(1);
+  });
+
+  it("settles by polling after resume_lost, with the server's url", async () => {
+    getRunStatuses.mockResolvedValue([
+      {
+        sessionId: "h1",
+        status: "done",
+        url: "/hotels?sessionId=h1",
+        cityName: "Porto",
+        domain: "",
+      },
+    ]);
+    getSessionList.mockResolvedValue({ city: { city: "Porto" }, pois: [{ name: "Pestana" }] });
+    scripts = [
+      async function* () {
+        yield { kind: "start", sessionId: "h1", domain: "accommodation", eventId: "e1" };
+        yield drop;
+      },
+      async function* () {
+        yield { kind: "error", userMessage: "lost", internalCode: "resume_lost", retryable: true };
+      },
+    ];
+    const { state, startStream } = useChatRPC();
+    await startStream("hotels", "Porto");
+
+    expect(liveRuns.h1.phase).toBe("complete");
+    expect(liveRuns.h1.url).toBe("/hotels?sessionId=h1");
+    expect(state.error).toBeNull();
+    // The result was not on the stream: it is loaded from the session.
+    expect(getSessionList).toHaveBeenCalledWith("h1", "hotels");
+    expect(state.streamedData?.hotels).toHaveLength(1);
+  });
+
+  it("keeps a drop before `start` an error", async () => {
+    scripts = [
+      async function* () {
+        yield drop;
+      },
+    ];
+    const { state, startStream } = useChatRPC();
+    await startStream("hotels", "Porto");
+    expect(calls).toHaveLength(1);
+    expect(state.error).toBeTruthy();
   });
 });

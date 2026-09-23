@@ -16,7 +16,6 @@ import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
 import {
   ChatRequestSchema,
-  DomainType,
   StreamEventType,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
 import type { StreamEvent as ProtoStreamEvent } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
@@ -26,6 +25,8 @@ import { parseStreamError } from "@/lib/errors";
 import { mapAiCityResponse, mapGeneralCityData, mapPoi } from "@/lib/api/llm";
 import type { AiCityResponse, GeneralCityData, POIDetailedInfo } from "@/lib/api/types";
 import { capture } from "~/lib/analytics";
+import { logger } from "~/lib/logger";
+import { domainName } from "./domain-name";
 
 export interface NavigationInfo {
   url: string;
@@ -53,6 +54,15 @@ export type LociStreamEvent = { eventId?: string } & (
       internalCode: string;
       retryable: boolean;
       retryAfterMs?: number;
+      /**
+       * The connection failed, not the search: the fetch never got through,
+       * or the stream died before a terminal event. The server keeps
+       * generating after a client disconnects, so this run may well finish;
+       * see reconnect.ts. Never set on a StreamError the server sent.
+       */
+      transport?: boolean;
+      /** The transport's own message, for diagnostics. Not shown to people. */
+      detail?: string;
     }
   | {
       kind: "complete";
@@ -60,6 +70,12 @@ export type LociStreamEvent = { eventId?: string } & (
       result?: AiCityResponse;
       navigation?: NavigationInfo;
       tripId?: string;
+      /**
+       * A resume whose server buffer was gone but whose run had finished: the
+       * result is not on this stream. Load it with GetChatSession /
+       * GetSessionPOIs.
+       */
+      loadFromSession?: boolean;
     }
 );
 
@@ -74,23 +90,6 @@ export interface ChatStreamParams {
   /** Client-generated idempotency/correlation id echoed back on events. */
   requestId?: string;
 }
-
-const domainName = (d: DomainType): string => {
-  switch (d) {
-    case DomainType.ACCOMMODATION:
-      return "accommodation";
-    case DomainType.DINING:
-      return "dining";
-    case DomainType.ACTIVITIES:
-      return "activities";
-    case DomainType.ITINERARY:
-      return "itinerary";
-    case DomainType.TRANSPORT:
-      return "transport";
-    default:
-      return "general";
-  }
-};
 
 const mapNavigation = (nav: ProtoStreamEvent["navigation"]): NavigationInfo | undefined =>
   nav ? { url: nav.url, routeType: nav.routeType, queryParams: nav.queryParams ?? {} } : undefined;
@@ -187,6 +186,7 @@ export function mapProtoEvent(ev: ProtoStreamEvent): LociStreamEvent | null {
         result: mapAiCityResponse(p.value.result),
         navigation: mapNavigation(ev.navigation),
         tripId: tripIdFromNavigation(ev.navigation),
+        ...(p.value.loadFromSession ? { loadFromSession: true } : {}),
       };
     default:
       // No structured payload — fall back to the event_type discriminator for
@@ -229,6 +229,10 @@ const buildRequest = (params: ChatStreamParams) =>
  * reopen if the stream fails Unauthenticated before emitting anything. Any other
  * terminal error is surfaced as a final `error` event (never thrown), so callers
  * have a single, total contract to consume.
+ *
+ * A failure of the connection itself — and a stream that simply stops before
+ * `complete` or `error` — is marked `transport: true`, so callers can resume
+ * the run rather than declare it failed (reconnect.ts).
  */
 export async function* streamChatEvents(
   params: ChatStreamParams,
@@ -239,6 +243,7 @@ export async function* streamChatEvents(
 
   const seen = new Set<string>();
   let emitted = false;
+  let terminal = false;
 
   async function* iterate(src: AsyncIterable<ProtoStreamEvent>): AsyncGenerator<LociStreamEvent> {
     for await (const ev of src) {
@@ -249,22 +254,45 @@ export async function* streamChatEvents(
       const mapped = mapProtoEvent(ev);
       if (mapped) {
         emitted = true;
+        if (mapped.kind === "complete" || mapped.kind === "error") terminal = true;
         if (ev.eventId) mapped.eventId = ev.eventId;
         yield mapped;
       }
     }
   }
 
+  // The server always ends a stream on `complete` or `error`. One that just
+  // stops was cut off on the way (a proxy, the browser, the network).
+  const endedEarly = (): Extract<LociStreamEvent, { kind: "error" }> | null =>
+    terminal || signal?.aborted
+      ? null
+      : {
+          kind: "error",
+          userMessage: "The connection dropped before the search finished.",
+          internalCode: "stream_ended",
+          retryable: true,
+          transport: true,
+        };
+
   try {
     yield* iterate(makeStream());
+    const early = endedEarly();
+    if (early) yield early;
   } catch (err) {
     const connErr = err instanceof ConnectError ? err : undefined;
     if (!emitted && connErr?.code === Code.Unauthenticated && (await refreshSession())) {
       try {
         yield* iterate(makeStream());
+        const early = endedEarly();
+        if (early) yield early;
         return;
       } catch (retryErr) {
+        reportMapperError(retryErr);
         const re = retryErr instanceof ConnectError ? retryErr : undefined;
+        if (!signal?.aborted && isTransportFailure(retryErr)) {
+          yield { ...terminalError(re, retryErr), transport: true, retryable: true };
+          return;
+        }
         yield {
           kind: "error",
           userMessage: parseStreamError(re?.rawMessage ?? String(retryErr)).userMessage,
@@ -274,8 +302,45 @@ export async function* streamChatEvents(
         return;
       }
     }
-    yield terminalError(connErr, err);
+    reportMapperError(err);
+    const final = terminalError(connErr, err);
+    // Our own abort is a stop, not a dropped connection.
+    if (!signal?.aborted && isTransportFailure(err)) {
+      yield { ...final, transport: true, retryable: true };
+      return;
+    }
+    yield final;
   }
+}
+
+/**
+ * Whether a thrown stream failure came from the connection rather than from
+ * the server's answer. Connect reports a browser-level drop (fetch rejected,
+ * HTTP/2 stream reset, body read failed) as Unknown/Internal/Unavailable, and
+ * a request cancelled by something other than our own AbortSignal (a proxy,
+ * the browser) as Canceled — callers rule our own abort out first. Everything
+ * else — Unauthenticated, ResourceExhausted, InvalidArgument,
+ * PermissionDenied — is the server's decision and resuming cannot change it.
+ *
+ * A raw TypeError is not one of these: connect-es already wraps a failed
+ * fetch as Unknown, so a TypeError reaching here is our own mapping code
+ * throwing (see reportMapperError). Resuming would replay into the same bug.
+ */
+export function isTransportFailure(err: unknown): boolean {
+  if (!(err instanceof ConnectError)) return false;
+  return (
+    err.code === Code.Unavailable ||
+    err.code === Code.Unknown ||
+    err.code === Code.Internal ||
+    err.code === Code.Canceled
+  );
+}
+
+/** A bare TypeError out of the stream is a bug in this file's mapping, not a network drop. */
+function reportMapperError(err: unknown): void {
+  if (!(err instanceof TypeError)) return;
+  logger.error("stream mapper error", err);
+  capture("stream_mapper_error", { message: err.message.slice(0, 200) });
 }
 
 /**
@@ -301,6 +366,7 @@ export function terminalError(
     userMessage: parseStreamError(raw).userMessage,
     internalCode,
     retryable: connErr?.code === Code.Unavailable || connErr?.code === Code.ResourceExhausted,
+    detail: raw,
   };
 }
 

@@ -3,13 +3,55 @@
 // run finished. The result is stored server-side; load it instead of
 // running (and paying for) the search again.
 
-import { getSessionList, type SessionListSection } from "~/lib/api/llm";
+import { getChatSession, getSessionList, type SessionListSection } from "~/lib/api/llm";
+import type { DomainType, UnifiedChatResponse } from "~/lib/api/types";
 import { saveCompletedSession } from "./completed-sessions";
+import { responseHasContent } from "./response-content";
+
+type ListKey = "activities" | "hotels" | "restaurants" | "points_of_interest";
+
+/** Where a finished session's list lives on the server, and the key the pages read it under. */
+export function sectionFor(domain: DomainType): [SessionListSection, ListKey] {
+  switch (domain) {
+    case "accommodation":
+      return ["hotels", "hotels"];
+    case "dining":
+      return ["restaurants", "restaurants"];
+    case "activities":
+      return ["activities", "activities"];
+    default:
+      return ["general", "points_of_interest"];
+  }
+}
+
+/**
+ * The stored result of a run that finished off-stream (a resume answered
+ * with load_from_session, or settled by GetRunStatus). An itinerary comes
+ * from GetChatSession; a list domain from its GetSessionPOIs section. Null
+ * when the server has nothing to show, or the fetch failed.
+ */
+export async function hydrateFinishedSession(
+  sessionId: string,
+  domain: DomainType,
+): Promise<Partial<UnifiedChatResponse> | null> {
+  if (domain === "itinerary" || domain === "general") {
+    try {
+      const itinerary = await getChatSession(sessionId);
+      return itinerary && responseHasContent(itinerary) ? itinerary : null;
+    } catch {
+      return null;
+    }
+  }
+  return (await hydrateSession(
+    sessionId,
+    ...sectionFor(domain),
+  )) as Partial<UnifiedChatResponse> | null;
+}
 
 export async function hydrateSession(
   sessionId: string,
   section: SessionListSection,
-  listKey: "activities" | "hotels" | "restaurants" | "points_of_interest",
+  listKey: ListKey,
 ): Promise<Record<string, unknown> | null> {
   try {
     const { city, pois } = await getSessionList(sessionId, section);

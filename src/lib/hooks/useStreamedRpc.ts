@@ -1,14 +1,36 @@
 // src/lib/hooks/useStreamedRpc.ts
+//
+// The itinerary page's own search: the one it starts from `?message=…&cityName=…`,
+// which is also where a toast's Retry lands.
+//
+// It used to open a private stream, abort it in onCleanup and never list it,
+// so walking away from the page killed a search the server was still paying
+// for — silently, with no toast. It now runs on the shared streamingService,
+// the way a search from the dashboard does: the run outlives the page, is
+// listed in the live store (so RunWatcher announces how it ended), survives a
+// reload through its resume envelope, and reconnects after a dropped
+// connection (reconnect.ts). This hook only mirrors that run into the store
+// the page renders.
 import { createStore } from "solid-js/store";
-import { onCleanup } from "solid-js";
-import { streamChatEvents } from "@/lib/streaming/chatStream";
+import { createStreamingSession, streamingService } from "@/lib/streaming-service";
+import { upsertRun } from "@/lib/streaming/live-stream-store";
+import { responseHasContent } from "@/lib/streaming/response-content";
 import { AiCityResponse } from "~/lib/api/types";
 
 type StreamedRpcOptions = {
+  /**
+   * The server named the run. The page puts the id in its URL here, so
+   * RunWatcher knows the viewer is on the run's page and a reload restores it.
+   */
+  onStart?: (sessionId: string) => void;
   onData?: (_: AiCityResponse) => void;
   onComplete?: (meta?: { tripId?: string }) => void;
   onError?: (_: Error) => void;
 };
+
+/** The page this run is shown on, whatever url the server names later. */
+export const itineraryHostPath = (sessionId: string): string =>
+  `/itinerary?sessionId=${encodeURIComponent(sessionId)}`;
 
 export function useStreamedRpc(
   message: () => string,
@@ -28,66 +50,69 @@ export function useStreamedRpc(
     tripId: null,
   });
 
-  // Abort the in-flight stream on cleanup so navigating away cancels the RPC.
-  const controller = new AbortController();
+  // This hook's run, by request id. A second connect() (the page's Try again)
+  // supersedes it; unmounting the page does not.
+  let current: string | null = null;
 
   const connect = async () => {
     if (!message() || !cityName()) {
       return;
     }
+    if (current) streamingService.stop(current);
 
     setStore("isLoading", true);
     setStore("error", null);
     setStore("tripId", null);
 
-    let completedTripId: string | undefined;
+    const requestId = `itinerary-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    current = requestId;
+    const mine = () => current === requestId;
 
-    try {
-      // Single canonical reader. profileId is now threaded (was dropped before).
-      for await (const event of streamChatEvents(
-        {
-          message: message(),
-          cityName: cityName(),
-          profileId: profileId() || undefined,
+    const session = createStreamingSession("itinerary");
+    session.query = message();
+    session.city = cityName();
+
+    const mirror = (data: unknown) => {
+      if (!mine() || !responseHasContent(data as AiCityResponse)) return;
+      setStore("data", data as AiCityResponse);
+      opts.onData?.(data as AiCityResponse);
+    };
+
+    streamingService.startStream(
+      {
+        message: message(),
+        cityName: cityName(),
+        profileId: profileId() || undefined,
+        requestId,
+      },
+      {
+        session,
+        onStart: (s) => {
+          if (!mine() || !s.sessionId) return;
+          upsertRun(s.sessionId, { hostPath: itineraryHostPath(s.sessionId) });
+          opts.onStart?.(s.sessionId);
         },
-        controller.signal,
-      )) {
-        switch (event.kind) {
-          case "itinerary":
-            setStore("data", event.cityResponse);
-            opts.onData?.(event.cityResponse);
-            break;
-          case "complete":
-            if (event.result) {
-              setStore("data", event.result);
-              opts.onData?.(event.result);
-            }
-            if (event.tripId) {
-              completedTripId = event.tripId;
-              setStore("tripId", event.tripId);
-            }
-            break;
-          case "error": {
-            const err = new Error(event.userMessage);
-            setStore("error", err);
-            opts.onError?.(err);
-            break;
-          }
-        }
-      }
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      setStore("error", err);
-      opts.onError?.(err);
-    } finally {
-      setStore("isLoading", false);
-      opts.onComplete?.(completedTripId ? { tripId: completedTripId } : undefined);
-    }
+        onProgress: (s) => mirror(s.data),
+        onComplete: (s) => {
+          if (!mine()) return;
+          current = null;
+          mirror(s.data);
+          if (s.tripId) setStore("tripId", s.tripId);
+          setStore("isLoading", false);
+          opts.onComplete?.(s.tripId ? { tripId: s.tripId } : undefined);
+        },
+        onError: (message) => {
+          if (!mine()) return;
+          current = null;
+          const err = new Error(message);
+          setStore("error", err);
+          setStore("isLoading", false);
+          opts.onError?.(err);
+          opts.onComplete?.(undefined);
+        },
+      },
+    );
   };
-
-  onCleanup(() => {
-    controller.abort();
-  });
 
   return { store, connect, setStore };
 }
