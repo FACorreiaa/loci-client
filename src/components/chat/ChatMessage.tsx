@@ -1,9 +1,7 @@
 import { Component, Show, createMemo } from "solid-js";
 import { Heart, Share2, ChevronDown, ChevronUp } from "lucide-solid";
 import { formatMessageContent } from "./format-message-content";
-import HotelResults from "~/components/results/HotelResults";
-import RestaurantResults from "~/components/results/RestaurantResults";
-import ActivityResults from "~/components/results/ActivityResults";
+import ResultsList from "~/components/results/ResultsList";
 import ItineraryStreamView from "~/components/itinerary/ItineraryStreamView";
 import { stopsFromCityResponse } from "~/lib/itinerary/createItineraryStream";
 import Markdown from "~/components/ui/Markdown";
@@ -48,33 +46,30 @@ const StreamingResults: Component<{
   return (
     <div class="space-y-4">
       <Show when={props.streamingData.hotels?.length > 0}>
-        <HotelResults
-          hotels={props.streamingData.hotels}
-          compact={props.compact}
-          showToggle={false}
-          initialLimit={3}
+        <ResultsList
+          pois={props.streamingData.hotels}
+          domain="hotels"
+          cityName={props.streamingData.general_city_data?.city}
           limit={props.compact ? 3 : undefined}
-          onItemClick={(hotel: any) => props.onItemClick(hotel, "hotel")}
+          onSelect={(hotel) => props.onItemClick(hotel, "hotel")}
         />
       </Show>
       <Show when={props.streamingData.restaurants?.length > 0}>
-        <RestaurantResults
-          restaurants={props.streamingData.restaurants}
-          compact={props.compact}
-          showToggle={false}
-          initialLimit={3}
+        <ResultsList
+          pois={props.streamingData.restaurants}
+          domain="restaurants"
+          cityName={props.streamingData.general_city_data?.city}
           limit={props.compact ? 3 : undefined}
-          onItemClick={(restaurant: any) => props.onItemClick(restaurant, "restaurant")}
+          onSelect={(restaurant) => props.onItemClick(restaurant, "restaurant")}
         />
       </Show>
       <Show when={props.streamingData.activities?.length > 0}>
-        <ActivityResults
-          activities={props.streamingData.activities}
-          compact={props.compact}
-          showToggle={false}
-          initialLimit={3}
+        <ResultsList
+          pois={props.streamingData.activities}
+          domain="activities"
+          cityName={props.streamingData.general_city_data?.city}
           limit={props.compact ? 3 : undefined}
-          onItemClick={(activity: any) => props.onItemClick(activity, "activity")}
+          onSelect={(activity) => props.onItemClick(activity, "activity")}
         />
       </Show>
       <Show when={shouldRenderItinerary()}>
