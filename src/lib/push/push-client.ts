@@ -8,6 +8,7 @@ import {
   PushPlatform,
   GetPushConfigRequestSchema,
   RegisterPushDeviceRequestSchema,
+  UnregisterPushDeviceRequestSchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/user/user_pb.js";
 import { transport } from "~/lib/connect-transport";
 import { ensureNotificationPermission, getNotificationPermission } from "~/lib/notification-prefs";
@@ -36,14 +37,26 @@ function toBytes(base64url: string): Uint8Array<ArrayBuffer> {
   return bytes;
 }
 
+function sameKey(a: ArrayBuffer | null | undefined, b: Uint8Array): boolean {
+  if (!a) return false;
+  const x = new Uint8Array(a);
+  return x.length === b.length && x.every((v, i) => v === b[i]);
+}
+
 async function subscribeAndRegister(key: string): Promise<void> {
   const reg = await navigator.serviceWorker.ready;
-  const sub =
-    (await reg.pushManager.getSubscription()) ??
-    (await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: toBytes(key),
-    }));
+  const serverKey = toBytes(key);
+  let sub = await reg.pushManager.getSubscription();
+  // A subscription made under an old VAPID key can't receive pushes signed
+  // with the new one; the browser rejects them. Replace it.
+  if (sub && !sameKey(sub.options?.applicationServerKey, serverKey)) {
+    await sub.unsubscribe();
+    sub = null;
+  }
+  sub ??= await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: serverKey,
+  });
   const json = sub.toJSON();
   await userClient.registerPushDevice(
     create(RegisterPushDeviceRequestSchema, {
@@ -91,4 +104,45 @@ export async function refreshPushRegistration(): Promise<void> {
   if (!pushSupported() || getNotificationPermission() !== "granted") return;
   const key = await getVapidKey();
   if (key) await subscribeAndRegister(key).catch(() => undefined);
+}
+
+/**
+ * Stop this device receiving the signed-in account's pushes: tell the server
+ * to forget it, then drop the browser subscription. Called on logout, while
+ * the token still authenticates the RPC.
+ *
+ * Never rejects and never takes longer than `timeoutMs`: logout must not
+ * hang on a service worker that never became ready or a slow network. If the
+ * server call fails, the local unsubscribe still happens, and the server
+ * deletes the device on the push service's 410 the next time it sends.
+ */
+export async function unregisterPushDevice(timeoutMs = 3000): Promise<void> {
+  if (!pushSupported()) return;
+  const work = (async () => {
+    // getRegistration, not `ready`: `ready` never settles when no worker was
+    // ever registered (dev, or a browser that refused it).
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = await reg?.pushManager.getSubscription();
+    if (!sub) return;
+    try {
+      await userClient.unregisterPushDevice(
+        create(UnregisterPushDeviceRequestSchema, { endpoint: sub.endpoint }),
+      );
+    } finally {
+      await sub.unsubscribe();
+    }
+  })();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, timeoutMs);
+  });
+  try {
+    await Promise.race([work, timeout]);
+  } catch (err) {
+    logger.warn("unregisterPushDevice failed", err);
+  } finally {
+    clearTimeout(timer);
+  }
+  // A late rejection after the timeout must not surface as unhandled.
+  work.catch(() => undefined);
 }

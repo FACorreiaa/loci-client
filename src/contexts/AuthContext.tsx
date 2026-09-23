@@ -15,6 +15,7 @@ import { authAPI } from "~/lib/api";
 import { identify, resetIdentity } from "~/lib/analytics";
 import { clearFavoritesIdentityCache } from "~/lib/api/favorites";
 import { queryUtils } from "~/lib/query-client";
+import { unregisterPushDevice } from "~/lib/push/push-client";
 
 interface User {
   id: string;
@@ -403,6 +404,10 @@ export const AuthProvider = (props: AuthProviderProps) => {
   const logout = async (): Promise<void> => {
     setIsLoading(true);
     try {
+      // Stop this device getting the account's pushes, while the token still
+      // authenticates the call. Bounded and never throws (push-client.ts), so
+      // it cannot hold up or break signing out.
+      await unregisterPushDevice();
       // Call server logout endpoint to invalidate session
       await authAPI.logout();
     } catch (error) {
