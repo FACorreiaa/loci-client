@@ -9,6 +9,7 @@ import type { StreamingSession, AiCityResponse } from "~/lib/api/types";
 import { useUserLocation } from "~/contexts/LocationContext";
 import { useDefaultSearchProfile } from "~/lib/api/profiles";
 import { formatCoord } from "~/lib/dashboard/format";
+import { placeLabel, settledBrief, useHereBrief } from "~/lib/api/hereBrief";
 import { heroPrompt } from "~/lib/dashboard/hero-prompt";
 import { prefersReducedMotion } from "~/lib/hooks/useInView";
 import QuickSettingsModal from "~/components/modals/QuickSettingsModal";
@@ -47,6 +48,11 @@ export default function DeskHero() {
   );
 
   const { userLocation } = useUserLocation();
+  // Same query key as HereNowBand, so this costs no second request.
+  const here = useHereBrief(
+    () => userLocation()?.latitude,
+    () => userLocation()?.longitude,
+  );
   // Streaming needs a position; Lisbon stands in when the browser gives none.
   // It is never rendered: the kicker shows "Plan" instead of a made-up coordinate.
   const userLatitude = () => userLocation()?.latitude ?? 38.7223;
@@ -150,6 +156,7 @@ export default function DeskHero() {
             >
               {(loc) => (
                 <p class="font-coord text-[10px] uppercase tracking-[0.2em] text-primary-foreground/65">
+                  <Show when={placeLabel(settledBrief(here))}>{(name) => <>{name()} · </>}</Show>
                   {formatCoord(loc().latitude, loc().longitude)}
                 </p>
               )}
