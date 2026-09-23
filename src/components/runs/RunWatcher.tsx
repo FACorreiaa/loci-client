@@ -1,7 +1,7 @@
 // Watches every run in the registry. When one ends while you are on some
 // other page, it says so, with a way back. It also settles runs a reload
 // interrupted, by resuming them or asking the server how they ended.
-import { createEffect, on, onMount } from "solid-js";
+import { createEffect, on, onCleanup, onMount } from "solid-js";
 import { useLocation } from "@solidjs/router";
 import {
   clearActiveSession,
@@ -63,14 +63,17 @@ export default function RunWatcher() {
   // entered, so this fires on the transition out of a run's own page.
   const offerPush = async (run: LiveStream) => {
     if (pushOffered) return;
+    // Reserved synchronously, before the await below: two navigations racing
+    // through this same tick must not both pass the check above and both go
+    // on to show (or register) the offer.
+    pushOffered = true;
     const offer = shouldOfferPush({
       permission: getNotificationPermission(),
       hasKey: Boolean(await getVapidKey()),
       dismissedAt: readDismissedAt(),
       now: Date.now(),
     });
-    if (!offer || pushOffered) return;
-    pushOffered = true;
+    if (!offer) return;
     showToast({
       id: "push-offer",
       title: `Searching ${run.city || "for you"}… Want a ping when it's ready?`,
@@ -115,11 +118,18 @@ export default function RunWatcher() {
   // which happens client-side only — SolidStart's SSR render never calls it,
   // so this is safe even though readActiveSessions/getRunStatuses touch
   // sessionStorage and the network.
-  onMount(async () => {
-    const pending = readActiveSessions().map((e) => e.sessionId);
-    const resumed = new Set(resumeAllLive());
-    const orphaned = pending.filter((id) => !resumed.has(id));
-    if (orphaned.length > 0) {
+  //
+  // Kept synchronous (the resume-orphans work below is a fire-and-forget
+  // async task, not an awaited body) so the onCleanup() call further down
+  // still runs inside onMount's own synchronous tick. onCleanup needs Solid's
+  // current reactive owner, which is only available synchronously; calling it
+  // after an `await` would either throw or silently attach to nothing.
+  onMount(() => {
+    void (async () => {
+      const pending = readActiveSessions().map((e) => e.sessionId);
+      const resumed = new Set(resumeAllLive());
+      const orphaned = pending.filter((id) => !resumed.has(id));
+      if (orphaned.length === 0) return;
       try {
         for (const info of await getRunStatuses(orphaned)) {
           if (info.status === "running") continue;
@@ -136,14 +146,14 @@ export default function RunWatcher() {
       } catch {
         /* signed out or offline: the pages still restore on their own */
       }
-    }
+    })();
 
     // The service worker (Task 16) posts one of these when a push arrives
     // while this tab is open. Folding it into `liveRuns` lets the existing
     // `announce` path show the toast, deduped by `announced` like any other
     // run completion.
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.addEventListener("message", (e: MessageEvent) => {
+      const handlePushMessage = (e: MessageEvent) => {
         const payload = (e.data as { lociPush?: LociPushPayload } | undefined)?.lociPush;
         if (!payload?.sessionId || announced.has(payload.sessionId)) return;
         upsertRun(payload.sessionId, {
@@ -154,7 +164,9 @@ export default function RunWatcher() {
           // placeholder domain is enough here too.
           domain: "general",
         });
-      });
+      };
+      navigator.serviceWorker.addEventListener("message", handlePushMessage);
+      onCleanup(() => navigator.serviceWorker.removeEventListener("message", handlePushMessage));
     }
   });
 
