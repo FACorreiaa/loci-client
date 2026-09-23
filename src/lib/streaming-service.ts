@@ -21,11 +21,8 @@ import type {
   HotelDetailedInfo,
   RestaurantDetailedInfo,
 } from "./api/types";
-import {
-  streamChatEvents,
-  type ChatStreamParams,
-  type LociStreamEvent,
-} from "./streaming/chatStream";
+import type { ChatStreamParams, LociStreamEvent } from "./streaming/chatStream";
+import { streamWithReconnect } from "./streaming/reconnect";
 import {
   clearActiveSession,
   liveRuns,
@@ -151,7 +148,9 @@ export class StreamingChatService {
 
   private async consume(params: ChatStreamParams, run: Run): Promise<void> {
     try {
-      for await (const event of streamChatEvents(params, run.controller.signal)) {
+      // A dropped connection resumes this same run (same manager, same store
+      // entry) instead of failing it: see reconnect.ts.
+      for await (const event of streamWithReconnect(params, run.controller.signal)) {
         if (run.aborted) break;
         this.project(event, run);
       }
@@ -340,8 +339,12 @@ export class StreamingChatService {
     }
     if (event.sessionId) mgr.session.sessionId = event.sessionId;
     if (!run.sessionId && mgr.session.sessionId) run.sessionId = mgr.session.sessionId;
+    if (event.tripId) mgr.session.tripId = event.tripId;
 
-    this.finalize(run);
+    this.finalize(run, {
+      url: event.navigation?.url,
+      loadFromSession: event.loadFromSession,
+    });
 
     if (mgr.onRedirect && mgr.session.data) {
       mgr.onRedirect(mgr.session.domain, mgr.session.data as UnifiedChatResponse);
@@ -385,16 +388,22 @@ export class StreamingChatService {
    * (restore-session.ts reads it back). Callers used to each write this
    * themselves — three copies, two key shapes.
    */
-  private finalize(run: Run): void {
+  private finalize(run: Run, end: { url?: string; loadFromSession?: boolean } = {}): void {
     const s = run.manager.session;
     s.isComplete = true;
     // A run that never saw `start` has no url yet; notifications link to it.
+    // The server's own url (a resume settled by GetRunStatus) wins.
+    const url = end.url || (run.sessionId ? getDomainRoute(s.domain, run.sessionId, s.city) : "");
     this.publish(run, {
       phase: "complete",
-      ...(run.sessionId ? { url: getDomainRoute(s.domain, run.sessionId, s.city) } : {}),
+      ...(url ? { url } : {}),
+      // The result was not on the stream (a resume after the server's buffer
+      // was gone): whatever arrived before the drop is partial. Listing no
+      // data makes pages load the session from the server instead.
+      ...(end.loadFromSession ? { data: null } : {}),
     });
     if (run.sessionId) clearActiveSession(run.sessionId);
-    if (s.sessionId) {
+    if (s.sessionId && !end.loadFromSession) {
       try {
         sessionStorage.setItem(COMPLETED_SESSION_KEY, JSON.stringify(s));
       } catch {

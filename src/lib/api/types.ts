@@ -740,6 +740,8 @@ export interface StreamingSession {
   data: Partial<UnifiedChatResponse>;
   isComplete: boolean;
   error?: string;
+  /** The trip the server saved this run as, when it did (from `complete`). */
+  tripId?: string;
 }
 
 // Recent searches and activity types

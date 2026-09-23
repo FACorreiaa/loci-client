@@ -2,9 +2,11 @@ import { createStore } from "solid-js/store";
 import { DomainType } from "../api/types";
 import { getProgressForEventType } from "../utils/chatUtils";
 import { parseStreamError } from "../errors";
-import { streamChatEvents, type LociStreamEvent } from "../streaming/chatStream";
+import type { LociStreamEvent } from "../streaming/chatStream";
+import { streamWithReconnect } from "../streaming/reconnect";
 import { removeRun, upsertRun } from "../streaming/live-stream-store";
 import { saveCompletedSession } from "../streaming/completed-sessions";
+import { hydrateSession } from "../streaming/hydrate-session";
 import { getDomainRoute, responseHasContent } from "../streaming-service";
 
 export interface ChatRPCState {
@@ -81,8 +83,11 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
     try {
       setState({ currentStep: "Processing request...", progress: 10 });
 
-      // Single canonical reader — no bespoke proto/byte parsing here anymore.
-      for await (const event of streamChatEvents(
+      // Single canonical reader, resumed across dropped connections: a
+      // transport failure after `start` reconnects with the session id and
+      // last event id (or settles by polling) and never lands in "error".
+      // The run stays "streaming" meanwhile. See reconnect.ts.
+      for await (const event of streamWithReconnect(
         {
           message,
           cityName,
@@ -165,13 +170,24 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
               state.streamedData?.restaurants?.length > 0 ||
               state.streamedData?.activities?.length > 0;
 
-            const data = event.result ?? null;
+            // A resume that found the server's buffer gone: the result is
+            // not on the stream, and what arrived before the drop is partial.
+            // Load the finished session, the way a reopened page would.
+            const fromSession = event.loadFromSession
+              ? await hydrateSession(sessionId || event.sessionId, ...sectionFor(domain))
+              : null;
+            if (ctrl.signal.aborted) break;
+            const data = fromSession ?? event.result ?? null;
             setState({
               isStreaming: false,
               isConnected: false,
               progress: 100,
               currentStep: "Complete!",
-              streamedData: hasExistingData ? state.streamedData : (data ?? state.streamedData),
+              streamedData: fromSession
+                ? fromSession
+                : hasExistingData
+                  ? state.streamedData
+                  : (data ?? state.streamedData),
             });
             options.onComplete?.(state.streamedData || data);
 
@@ -182,7 +198,8 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
             // A finished run with nothing to show (a zero-valued response, or
             // no data event ever arrived) is not worth caching — it would
             // make a later restore read back as a successful, empty result.
-            if (responseHasContent(state.streamedData)) {
+            // hydrateSession already cached what it loaded.
+            if (!event.loadFromSession && responseHasContent(state.streamedData)) {
               saveCompletedSession(sessionId, { sessionId, data: state.streamedData });
             }
 
@@ -225,6 +242,25 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
     const params = new URLSearchParams(window.location.search);
     params.set("sessionId", sessionId);
     return `${window.location.pathname}?${params.toString()}`;
+  };
+
+  // Where a finished session's list lives on the server, by domain.
+  const sectionFor = (
+    domain: DomainType,
+  ): [
+    "general" | "hotels" | "restaurants" | "activities",
+    "points_of_interest" | "hotels" | "restaurants" | "activities",
+  ] => {
+    switch (domain) {
+      case "accommodation":
+        return ["hotels", "hotels"];
+      case "dining":
+        return ["restaurants", "restaurants"];
+      case "activities":
+        return ["activities", "activities"];
+      default:
+        return ["general", "points_of_interest"];
+    }
   };
 
   // Shape a domain list event into the streamedData object the UI reads.
