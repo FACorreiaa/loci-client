@@ -317,10 +317,14 @@ export function useChat() {
     if (pid) queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
   };
 
-  /** Stop the in-flight stream — finalizes the partial answer, no error. */
+  /**
+   * Stop this chat's stream — finalizes the partial answer, no error. Other
+   * searches running in the background keep going. Before the server's
+   * `start` the id is still empty, and stop() with no id stops every run.
+   */
   const stopStreaming = () => {
     if (!isLoading()) return;
-    streamingService.stop();
+    streamingService.stop(streamingSession()?.sessionId || undefined);
   };
 
   const newChat = () => {

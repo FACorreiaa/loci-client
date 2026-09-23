@@ -1,4 +1,4 @@
-// The in-flight stream, readable from any page.
+// The in-flight streams, readable from any page.
 //
 // A search on `/` starts a stream on the module-level streamingService, which
 // keeps running across navigation. What did NOT survive navigation was the
@@ -8,9 +8,9 @@
 // bind to before then.
 //
 // This store is the handoff. streamingService writes into it on every event;
-// a destination page checks whether the session id in its URL is the one
-// streaming right now and, if so, renders from here instead of waiting for
-// sessionStorage or a server round-trip.
+// a destination page checks whether the session id in its URL is one of the
+// runs streaming right now (up to MAX_RUNS at once) and, if so, renders from
+// here instead of waiting for sessionStorage or a server round-trip.
 
 import { createStore, produce } from "solid-js/store";
 import type { DomainType, UnifiedChatResponse } from "../api/types";
@@ -31,6 +31,10 @@ export interface LiveStream {
   /** Raw token events so far. Never rendered; drives a "writing" pulse. */
   tokenCount: number;
   startedAt: number;
+  /** The page that shows this run's result. */
+  url: string;
+  /** Who reads the stream: the shared service, or a page's own useChatRPC. */
+  source: "service" | "page";
 }
 
 // Not solid-js/web's `isServer`: under vitest the package resolves to its
@@ -38,8 +42,11 @@ export interface LiveStream {
 // no-ops every write. The DOM check answers the question actually being asked.
 const isServer = typeof window === "undefined";
 
-const IDLE: LiveStream = {
-  sessionId: "",
+/** How many searches may stream at once. */
+export const MAX_RUNS = 3;
+
+const blank = (sessionId: string): LiveStream => ({
+  sessionId,
   requestId: "",
   domain: "general",
   city: "",
@@ -49,54 +56,63 @@ const IDLE: LiveStream = {
   error: null,
   lastEventId: "",
   tokenCount: 0,
-  startedAt: 0,
-};
+  startedAt: Date.now(),
+  url: "",
+  source: "service",
+});
 
-const [liveStream, setLiveStream] = createStore<LiveStream>({ ...IDLE });
+// Every run the service (or a page) is reading, keyed by session id. A run
+// with no session id yet (the server has not sent `start`) is not listed.
+const [liveRuns, setLiveRuns] = createStore<Record<string, LiveStream>>({});
 
-export { liveStream };
+export { liveRuns };
 
-/** Replace fields. No-op during SSR: there is no client stream to describe. */
-export function patchLiveStream(patch: Partial<LiveStream>): void {
-  if (isServer) return;
-  setLiveStream(
-    produce((s) => {
-      Object.assign(s, patch);
+/** Create or patch one run. No-op during SSR: there is no client stream. */
+export function upsertRun(sessionId: string, patch: Partial<LiveStream>): void {
+  if (isServer || !sessionId) return;
+  setLiveRuns(
+    produce((runs) => {
+      runs[sessionId] = Object.assign(runs[sessionId] ?? blank(sessionId), patch);
     }),
   );
 }
 
-export function resetLiveStream(): void {
+export function removeRun(sessionId: string): void {
   if (isServer) return;
-  setLiveStream({ ...IDLE });
+  setLiveRuns(produce((runs) => void delete runs[sessionId]));
 }
 
 /**
- * Whether `sessionId` is the stream in flight (or the one that just finished
- * and has not been replaced). A page that lands with this id can render from
- * the store directly.
+ * Whether `sessionId` is a run in flight (or one that finished and is still
+ * listed). A page that lands with this id can render from the store directly.
  */
 export function isLiveSession(sessionId: string | undefined | null): boolean {
   if (!sessionId) return false;
-  return liveStream.sessionId === sessionId && liveStream.phase !== "idle";
+  const run = liveRuns[sessionId];
+  return Boolean(run && run.phase !== "idle");
 }
 
 /** Reactive accessors for one session id. All false/null when it is not live. */
 export function useLiveSession(sessionId: () => string | undefined) {
-  const isLive = () => isLiveSession(sessionId());
+  const run = () => {
+    const id = sessionId();
+    return id && isLiveSession(id) ? liveRuns[id] : null;
+  };
   return {
-    isLive,
-    data: () => (isLive() ? liveStream.data : null),
-    phase: (): LiveStreamPhase => (isLive() ? liveStream.phase : "idle"),
-    error: () => (isLive() ? liveStream.error : null),
+    isLive: () => run() !== null,
+    data: () => run()?.data ?? null,
+    phase: (): LiveStreamPhase => run()?.phase ?? "idle",
+    error: () => run()?.error ?? null,
     /** True while the server is still producing. */
-    isStreaming: () =>
-      isLive() && (liveStream.phase === "connecting" || liveStream.phase === "streaming"),
-    tokenCount: () => (isLive() ? liveStream.tokenCount : 0),
+    isStreaming: () => {
+      const p = run()?.phase;
+      return p === "connecting" || p === "streaming";
+    },
+    tokenCount: () => run()?.tokenCount ?? 0,
   };
 }
 
-/** Key the resume envelope is persisted under (itinerary/index.tsx reads it). */
+/** Key the resume envelopes are persisted under (itinerary/index.tsx reads it). */
 export const ACTIVE_SESSION_KEY = "active_streaming_session";
 
 export interface ActiveSessionEnvelope {
@@ -111,33 +127,52 @@ export interface ActiveSessionEnvelope {
   data?: Partial<UnifiedChatResponse> | null;
 }
 
-/** Persist enough to resume after a reload. Data rides along when present. */
-export function persistActiveSession(envelope: ActiveSessionEnvelope): void {
-  if (isServer) return;
+function readEnvelopes(): ActiveSessionEnvelope[] {
+  if (isServer) return [];
   try {
-    sessionStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(envelope));
+    const raw = sessionStorage.getItem(ACTIVE_SESSION_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    // Before multi-run, one envelope was stored bare.
+    return Array.isArray(parsed) ? parsed : parsed?.sessionId ? [parsed] : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeEnvelopes(list: ActiveSessionEnvelope[]): void {
+  try {
+    sessionStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify(list.slice(-MAX_RUNS)));
   } catch {
     /* private mode / quota: resume is best-effort */
   }
 }
 
-export function readActiveSession(sessionId: string): ActiveSessionEnvelope | null {
-  if (isServer || !sessionId) return null;
-  try {
-    const raw = sessionStorage.getItem(ACTIVE_SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as ActiveSessionEnvelope;
-    return parsed?.sessionId === sessionId ? parsed : null;
-  } catch {
-    return null;
-  }
+/** Persist enough to resume after a reload, one envelope per run. */
+export function persistActiveSession(envelope: ActiveSessionEnvelope): void {
+  if (isServer) return;
+  writeEnvelopes([...readEnvelopes().filter((e) => e.sessionId !== envelope.sessionId), envelope]);
 }
 
-export function clearActiveSession(): void {
+export function readActiveSession(sessionId: string): ActiveSessionEnvelope | null {
+  if (!sessionId) return null;
+  return readEnvelopes().find((e) => e.sessionId === sessionId) ?? null;
+}
+
+export function readActiveSessions(): ActiveSessionEnvelope[] {
+  return readEnvelopes();
+}
+
+/** Drop one run's envelope, or (no id) every one. */
+export function clearActiveSession(sessionId?: string): void {
   if (isServer) return;
-  try {
-    sessionStorage.removeItem(ACTIVE_SESSION_KEY);
-  } catch {
-    /* ignore */
+  if (!sessionId) {
+    try {
+      sessionStorage.removeItem(ACTIVE_SESSION_KEY);
+    } catch {
+      /* ignore */
+    }
+    return;
   }
+  writeEnvelopes(readEnvelopes().filter((e) => e.sessionId !== sessionId));
 }

@@ -27,9 +27,9 @@ import {
   type LociStreamEvent,
 } from "./streaming/chatStream";
 import {
-  liveStream,
-  patchLiveStream,
+  liveRuns,
   persistActiveSession,
+  upsertRun,
   type LiveStream,
 } from "./streaming/live-stream-store";
 import { COMPLETED_SESSION_KEY } from "./streaming/restore-session";
@@ -56,6 +56,8 @@ interface Run {
   manager: StreamingSessionManager;
   controller: AbortController;
   requestId: string;
+  /** Empty until the server's `start` names it (or a resume supplies it). */
+  sessionId: string;
   profileId?: string;
   query: string;
   aborted: boolean;
@@ -89,54 +91,67 @@ export const responseHasContent = (r: Partial<UnifiedChatResponse> | null | unde
 };
 
 export class StreamingChatService {
-  private run: Run | null = null;
+  // Every stream in flight, keyed by request id: a fresh search has no
+  // session id until the server's `start` event mints one.
+  private runs = new Map<string, Run>();
 
   constructor() {}
 
   /**
    * Open a chat stream for the given request and drive the manager callbacks.
-   * A stream already in flight is stopped first: previously a second search
-   * swapped the manager while the old loop kept projecting into it.
+   * Other runs keep going: each has its own manager, controller and store
+   * entry, so a second search no longer stops the first.
    */
   public startStream(params: ChatStreamParams, manager: StreamingSessionManager): void {
-    this.stop();
     const run: Run = {
       manager,
       controller: new AbortController(),
       requestId: params.requestId ?? newRequestId(),
+      sessionId: params.sessionId ?? "",
       profileId: params.profileId,
       query: params.message,
       aborted: false,
       started: false,
     };
-    this.run = run;
+    this.runs.set(run.requestId, run);
 
-    patchLiveStream({
-      sessionId: params.sessionId ?? "",
-      requestId: run.requestId,
-      domain: manager.session.domain,
-      city: manager.session.city ?? "",
-      query: params.message,
-      phase: "connecting",
-      // A resume hands back what the envelope saved, so the page has
-      // something to show while the server replays.
-      data: responseHasContent(manager.session.data) ? manager.session.data : null,
-      error: null,
-      lastEventId: params.resumeToken ?? "",
-      tokenCount: 0,
-      startedAt: Date.now(),
-    });
+    // A fresh search has no key yet; it is listed on `start`. A resume knows
+    // its session id, so the page can bind before the server replays.
+    if (run.sessionId) {
+      upsertRun(run.sessionId, {
+        requestId: run.requestId,
+        domain: manager.session.domain,
+        city: manager.session.city ?? "",
+        query: params.message,
+        phase: "connecting",
+        // A resume hands back what the envelope saved, so the page has
+        // something to show while the server replays.
+        data: responseHasContent(manager.session.data) ? manager.session.data : null,
+        error: null,
+        lastEventId: params.resumeToken ?? "",
+        tokenCount: 0,
+        startedAt: Date.now(),
+        source: "service",
+        url: getDomainRoute(manager.session.domain, run.sessionId, manager.session.city),
+      });
+    }
 
     void this.consume({ ...params, requestId: run.requestId }, run);
   }
 
-  /** Stop the in-flight stream. Finalizes the partial session (onComplete),
-   *  does not surface an error. */
-  public stop(): void {
-    const run = this.run;
-    if (!run) return;
-    run.aborted = true;
-    run.controller.abort();
+  /** Stop one run (by session id), or every run. Finalizes the partial
+   *  session (onComplete), does not surface an error. */
+  public stop(sessionId?: string): void {
+    for (const run of this.runs.values()) {
+      if (sessionId && run.sessionId !== sessionId) continue;
+      run.aborted = true;
+      run.controller.abort();
+    }
+  }
+
+  /** Patch this run's store entry, once it has a session id to key it by. */
+  private live(run: Run, patch: Partial<LiveStream>): void {
+    if (run.sessionId) upsertRun(run.sessionId, patch);
   }
 
   private async consume(params: ChatStreamParams, run: Run): Promise<void> {
@@ -153,33 +168,32 @@ export class StreamingChatService {
       }
       logger.error("Stream processing error:", error);
       run.manager.onError(`Stream error: ${error}`);
-      if (this.run === run) patchLiveStream({ phase: "error", error: String(error) });
+      this.live(run, { phase: "error", error: String(error) });
     } finally {
-      if (this.run === run) this.run = null;
+      this.runs.delete(run.requestId);
     }
   }
 
-  /** Mirror the session into the live store — only for the current run. */
+  /** Mirror the session into this run's store entry and resume envelope. */
   private publish(run: Run, extra: Partial<LiveStream> = {}): void {
-    if (this.run !== run) return;
     const s = run.manager.session;
-    patchLiveStream({
-      sessionId: s.sessionId,
+    this.live(run, {
       domain: s.domain,
       city: s.city ?? "",
       data: s.data ?? null,
       ...extra,
     });
-    if (s.sessionId) {
+    if (run.sessionId) {
+      const entry = liveRuns[run.sessionId];
       persistActiveSession({
-        sessionId: s.sessionId,
+        sessionId: run.sessionId,
         requestId: run.requestId,
         profileId: run.profileId,
-        lastEventId: liveStream.lastEventId,
+        lastEventId: entry?.lastEventId ?? "",
         query: run.query,
         domain: s.domain,
         city: s.city ?? "",
-        startedAt: liveStream.startedAt,
+        startedAt: entry?.startedAt ?? Date.now(),
         data: s.data ?? null,
       });
     }
@@ -189,14 +203,25 @@ export class StreamingChatService {
   private project(event: LociStreamEvent, run: Run): void {
     const mgr = run.manager;
     const isCity = mgr.session.domain === "general" || mgr.session.domain === "itinerary";
-    if (event.eventId && this.run === run) patchLiveStream({ lastEventId: event.eventId });
+    // `start` names the run; key it first so its own event id is recorded.
+    if (event.kind === "start" && event.sessionId) run.sessionId = event.sessionId;
+    if (event.eventId) this.live(run, { lastEventId: event.eventId });
 
     switch (event.kind) {
       case "start":
         if (event.sessionId) mgr.session.sessionId = event.sessionId;
         if (event.domain) mgr.session.domain = event.domain as DomainType;
         if (event.city) mgr.session.city = event.city;
-        this.publish(run, { phase: "streaming" });
+        if (mgr.session.sessionId) run.sessionId = mgr.session.sessionId;
+        this.publish(run, {
+          phase: "streaming",
+          url: getDomainRoute(mgr.session.domain, run.sessionId, mgr.session.city),
+          source: "service",
+          requestId: run.requestId,
+          query: run.query,
+          // A resume keeps the time its entry was created with.
+          startedAt: liveRuns[run.sessionId]?.startedAt ?? Date.now(),
+        });
         if (!run.started) {
           run.started = true;
           mgr.onStart?.(mgr.session);
@@ -209,7 +234,7 @@ export class StreamingChatService {
         // Incremental text is never rendered: three workers stream JSON
         // fragments into one channel with no part label. It only proves the
         // server is still writing.
-        if (this.run === run) patchLiveStream({ tokenCount: liveStream.tokenCount + 1 });
+        this.live(run, { tokenCount: (liveRuns[run.sessionId]?.tokenCount ?? 0) + 1 });
         mgr.onProgress(mgr.session);
         break;
 
@@ -289,7 +314,7 @@ export class StreamingChatService {
 
       case "error":
         mgr.session.error = event.userMessage;
-        if (this.run === run) patchLiveStream({ phase: "error", error: event.userMessage });
+        this.live(run, { phase: "error", error: event.userMessage });
         mgr.onError(event.userMessage);
         break;
 
@@ -311,6 +336,7 @@ export class StreamingChatService {
       }
     }
     if (event.sessionId) mgr.session.sessionId = event.sessionId;
+    if (!run.sessionId && mgr.session.sessionId) run.sessionId = mgr.session.sessionId;
 
     this.finalize(run);
 
@@ -349,7 +375,7 @@ export class StreamingChatService {
   // Clean up resources
   public cleanup(): void {
     this.stop();
-    this.run = null;
+    this.runs.clear();
   }
 }
 
