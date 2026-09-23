@@ -64,7 +64,7 @@ interface Run {
   started: boolean;
 }
 
-const newRequestId = (): string => {
+export const newRequestId = (): string => {
   const c = (globalThis as any).crypto;
   if (c?.randomUUID) return c.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -139,11 +139,12 @@ export class StreamingChatService {
     void this.consume({ ...params, requestId: run.requestId }, run);
   }
 
-  /** Stop one run (by session id), or every run. Finalizes the partial
-   *  session (onComplete), does not surface an error. */
-  public stop(sessionId?: string): void {
+  /** Stop one run (by session id, or by request id before the server has
+   *  named it), or every run. Finalizes the partial session (onComplete),
+   *  does not surface an error. */
+  public stop(id?: string): void {
     for (const run of this.runs.values()) {
-      if (sessionId && run.sessionId !== sessionId) continue;
+      if (id && run.sessionId !== id && run.requestId !== id) continue;
       run.aborted = true;
       run.controller.abort();
     }
@@ -360,7 +361,11 @@ export class StreamingChatService {
   private finalize(run: Run): void {
     const s = run.manager.session;
     s.isComplete = true;
-    this.publish(run, { phase: "complete" });
+    // A run that never saw `start` has no url yet; notifications link to it.
+    this.publish(run, {
+      phase: "complete",
+      ...(run.sessionId ? { url: getDomainRoute(s.domain, run.sessionId, s.city) } : {}),
+    });
     if (s.sessionId) {
       try {
         sessionStorage.setItem(COMPLETED_SESSION_KEY, JSON.stringify(s));

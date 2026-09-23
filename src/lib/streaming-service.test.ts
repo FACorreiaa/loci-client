@@ -252,4 +252,32 @@ describe("streamingService → live store", () => {
     expect(liveRuns.r1.lastEventId).toBe("e7");
     expect(liveRuns.r1.url.startsWith("/restaurants?sessionId=r1")).toBe(true);
   });
+
+  it("stops a run by its request id before the server names it", async () => {
+    const mk = () => ({
+      session: createStreamingSession("itinerary"),
+      onProgress: vi.fn(),
+      onComplete: vi.fn(),
+      onError: vi.fn(),
+    });
+    streamingService.startStream({ message: "one", requestId: "req-1" }, mk());
+    const one = currentFeed!;
+    streamingService.startStream({ message: "two", requestId: "req-2" }, mk());
+    const two = currentFeed!;
+
+    streamingService.stop("req-1");
+    await tick();
+    expect(one.aborted()).toBe(true);
+    expect(two.aborted()).toBe(false);
+  });
+
+  it("gives a run that never saw `start` a url when it finishes", async () => {
+    const { feed } = start();
+    feed.push(itineraryEvent());
+    feed.push({ kind: "complete", sessionId: "s9" });
+    await tick();
+
+    expect(liveRuns.s9.phase).toBe("complete");
+    expect(liveRuns.s9.url.startsWith("/itinerary?sessionId=s9")).toBe(true);
+  });
 });

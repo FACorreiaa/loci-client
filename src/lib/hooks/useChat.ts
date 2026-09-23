@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/solid-query";
 import { detectDomain, useGetChatSessionsQuery } from "~/lib/api/llm";
 import { stripPromptWrapper } from "~/lib/api/prompt-wrapper";
 import { createStreamingSession, streamingService } from "~/lib/chat-stream";
+import { newRequestId } from "~/lib/streaming-service";
 import type { TravelProfile } from "~/components/chat";
 import { useUserLocation } from "~/contexts/LocationContext";
 import { useDefaultSearchProfile, useSearchProfiles } from "~/lib/api/profiles";
@@ -50,6 +51,8 @@ export function useChat() {
   const [showProfileSelector, setShowProfileSelector] = createSignal(false);
   const [selectedSession, setSelectedSession] = createSignal<any | null>(null);
   const [streamingSession, setStreamingSession] = createSignal<any>(null);
+  // This hook's own run, so Stop can name it before the server mints a session id.
+  let activeRequestId = "";
   const [streamProgress, setStreamProgress] = createSignal("");
   const [expandedResults, setExpandedResults] = createSignal<Set<string>>(new Set());
   const [localSessionsVersion, setLocalSessionsVersion] = createSignal(0);
@@ -215,9 +218,11 @@ export function useChat() {
     const profile = activeProfileId();
     if (!profile) throw new Error("No search profile found");
 
+    activeRequestId = newRequestId();
     streamingService.startStream(
       {
         message: messageContent,
+        requestId: activeRequestId,
         profileId: profile,
         userLocation: { userLat: userLatitude, userLon: userLongitude },
       },
@@ -262,9 +267,11 @@ export function useChat() {
     // resumes the existing session instead of minting a new one. An expired
     // session surfaces as an error event (onError), which clears sessionId so the
     // next send starts fresh.
+    activeRequestId = newRequestId();
     streamingService.startStream(
       {
         message: messageContent,
+        requestId: activeRequestId,
         profileId: profile,
         sessionId: existingSessionId,
         cityName: currentCity,
@@ -320,11 +327,11 @@ export function useChat() {
   /**
    * Stop this chat's stream — finalizes the partial answer, no error. Other
    * searches running in the background keep going. Before the server's
-   * `start` the id is still empty, and stop() with no id stops every run.
+   * `start` there is no session id yet, so the request id names the run.
    */
   const stopStreaming = () => {
     if (!isLoading()) return;
-    streamingService.stop(streamingSession()?.sessionId || undefined);
+    streamingService.stop(streamingSession()?.sessionId || activeRequestId || undefined);
   };
 
   const newChat = () => {
