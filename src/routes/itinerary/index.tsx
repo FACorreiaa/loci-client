@@ -1,4 +1,4 @@
-import { createSignal, createMemo, createEffect, Show, For, onMount } from "solid-js";
+import { createSignal, createMemo, createEffect, Show, For, onCleanup, onMount } from "solid-js";
 import { lazyChunk } from "@/lib/lazyChunk";
 import { useSearchParams, useNavigate } from "@solidjs/router";
 import { createSessionKey } from "~/lib/runs/session-key";
@@ -56,21 +56,24 @@ import { SHARE_HOME_URL, type SharePayload } from "@/lib/share";
 /**
  * Keyed on the search it shows, so Open from a toast to this same route with
  * another sessionId remounts the body and its restore logic runs for that
- * session (Solid Router keeps a route mounted across query changes). This
- * page never writes its own run's id into the URL, so it adopts nothing.
+ * session (Solid Router keeps a route mounted across query changes). A search
+ * this page starts itself writes its id into the URL once the server names
+ * it; the page adopts that id first so the step does not remount it.
  */
 export default function ItineraryPage() {
   const [searchParams] = useSearchParams();
   const session = createSessionKey(() => searchParams);
   return (
     <Show when={session.key()} keyed>
-      {(_key) => <ItineraryView />}
+      {(_key) => <ItineraryView adopt={session.adopt} />}
     </Show>
   );
 }
 
-function ItineraryView() {
-  const [searchParams] = useSearchParams();
+function ItineraryView(props: { adopt: (sessionId: string) => void }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  let mounted = true;
+  onCleanup(() => (mounted = false));
   const navigate = useNavigate();
   const [layers, setLayers] = createSignal<LayerVisibility>({
     stops: true,
@@ -88,13 +91,29 @@ function ItineraryView() {
   const [profileId] = createSignal((searchParams.profileId as string) || "");
   const { isAuthenticated } = useAuth();
 
-  const { store, connect, setStore } = useStreamedRpc(message, cityName, profileId);
-
   // The stream that a search on `/` started is still running on the service
   // singleton; if its session id is the one in the URL, render it as it
   // arrives instead of waiting for sessionStorage or the server.
   const live = useLiveSession(() => searchParams.sessionId as string | undefined);
   const [boundLive, setBoundLive] = createSignal(false);
+  // Set once a finished live run has been handed to the server fetch below.
+  let hydratedAfterLive = false;
+
+  // This page's own search runs on that same service (useStreamedRpc), so it
+  // keeps going when you leave and RunWatcher tells you how it ended. The
+  // moment the server names it, put it in the URL — RunWatcher then knows you
+  // are on its page, and a reload or Open from a toast restores it — and
+  // render it from the live store like any other run. A `start` that lands
+  // after you left must not touch the URL of wherever you are now.
+  const { store, connect, setStore } = useStreamedRpc(message, cityName, profileId, {
+    onStart: (sessionId) => {
+      if (!mounted) return;
+      props.adopt(sessionId);
+      setSearchParams({ sessionId }, { replace: true });
+      hydratedAfterLive = false;
+      setBoundLive(true);
+    },
+  });
 
   // Mutation hook for bookmarking
   const saveItineraryMutation = useSaveItineraryMutation();
@@ -240,6 +259,10 @@ function ItineraryView() {
   // Mirror the live stream into the page store. Partial payloads are the
   // point here — city data before stops, stops before photos — so the content
   // guard only applies once the stream has finished.
+  //
+  // A run that finished with no data listed was resumed after the server's
+  // buffer was gone (load_from_session): the result is not in the store, so
+  // load it from the server, once. Only if that finds nothing is it an error.
   createEffect(() => {
     if (!boundLive()) return;
     const data = live.data();
@@ -248,8 +271,18 @@ function ItineraryView() {
     setStore("isLoading", phase === "connecting" || phase === "streaming");
     const err = live.error();
     if (err) setStore("error", new Error(err));
-    if (phase === "complete" && !hasItineraryContent(store.data)) {
-      setStore("error", new Error("This search finished without an itinerary. Try a new search."));
+    if (phase === "complete" && (!data || !hasItineraryContent(store.data))) {
+      const sessionId = searchParams.sessionId as string | undefined;
+      if (hydratedAfterLive || !sessionId) return;
+      hydratedAfterLive = true;
+      void hydrateFromServer(sessionId).then((found) => {
+        if (!found && !hasItineraryContent(store.data)) {
+          setStore(
+            "error",
+            new Error("This search finished without an itinerary. Try a new search."),
+          );
+        }
+      });
     }
   });
 
