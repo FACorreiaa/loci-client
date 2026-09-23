@@ -11,6 +11,7 @@ import {
 } from "@buf/loci_loci-proto.bufbuild_es/loci/user/user_pb.js";
 import { transport } from "~/lib/connect-transport";
 import { ensureNotificationPermission, getNotificationPermission } from "~/lib/notification-prefs";
+import { logger } from "~/lib/logger";
 
 const userClient = createClient(UserService, transport);
 let keyPromise: Promise<string> | null = null;
@@ -55,17 +56,33 @@ async function subscribeAndRegister(key: string): Promise<void> {
 }
 
 /**
- * Ask for notification permission (must be called synchronously from a click
- * handler so the browser counts `Notification.requestPermission()` as
- * user-initiated) and, if granted, subscribe + register this device.
+ * Ask for notification permission and, if granted, subscribe + register this
+ * device.
+ *
+ * Must be called synchronously from a click handler with NOTHING awaited
+ * ahead of `ensureNotificationPermission()` in the call chain. Safari and
+ * Firefox drop the "this came from a user gesture" flag the moment control
+ * yields back to the event loop — even a single `await` on an
+ * already-resolved promise is enough to lose it — and a `Notification.
+ * requestPermission()` call made outside a user gesture is silently denied
+ * forever, with no way to re-prompt. That is why `pushSupported()` (a plain
+ * boolean check, no await) runs first but `getVapidKey()` (a network round
+ * trip) runs only after permission is settled, not before.
  */
-export async function enablePush(): Promise<"granted" | "denied" | "unsupported" | "off"> {
+export async function enablePush(): Promise<
+  "granted" | "denied" | "unsupported" | "off" | "error"
+> {
   if (!pushSupported()) return "unsupported";
-  const key = await getVapidKey();
-  if (!key) return "off";
   const permission = await ensureNotificationPermission();
   if (permission !== "granted") return permission === "unsupported" ? "unsupported" : "denied";
-  await subscribeAndRegister(key);
+  const key = await getVapidKey();
+  if (!key) return "off";
+  try {
+    await subscribeAndRegister(key);
+  } catch (err) {
+    logger.error("enablePush: subscribe/register failed", err);
+    return "error";
+  }
   return "granted";
 }
 
