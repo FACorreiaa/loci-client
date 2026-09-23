@@ -10,6 +10,8 @@ import {
   ContinueChatRequestSchema,
   DomainType as ChatDomainType,
   MessageRole,
+  RunStatus,
+  SessionPOISection,
   StartChatRequestSchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
 import {
@@ -628,4 +630,67 @@ export const useGetChatSessionsQuery = (profileId: string | undefined) => {
     },
     enabled: !!profileId,
   };
+};
+
+export type SessionListSection = "general" | "hotels" | "restaurants" | "activities";
+
+const sectionEnum: Record<SessionListSection, SessionPOISection> = {
+  general: SessionPOISection.SESSION_POI_SECTION_GENERAL,
+  hotels: SessionPOISection.SESSION_POI_SECTION_HOTELS,
+  restaurants: SessionPOISection.SESSION_POI_SECTION_RESTAURANTS,
+  activities: SessionPOISection.SESSION_POI_SECTION_ACTIVITIES,
+};
+
+/** A finished session's list, loaded from the server (first 50). */
+export const getSessionList = async (
+  sessionId: string,
+  section: SessionListSection,
+): Promise<{ city?: GeneralCityData; pois: POIDetailedInfo[] }> => {
+  const [session, list] = await Promise.all([
+    chatClient.getChatSession({ sessionId }),
+    chatClient.getSessionPOIs({
+      sessionId,
+      section: sectionEnum[section],
+      pagination: { page: 1, pageSize: 50 },
+    }),
+  ]);
+  return {
+    city: mapGeneralCityData(session.session?.currentItinerary?.generalCityData),
+    pois: list.pointsOfInterest.map(mapPoi),
+  };
+};
+
+export type RunState = "running" | "done" | "failed";
+export interface RunInfo {
+  sessionId: string;
+  status: RunState;
+  url: string;
+  cityName: string;
+  domain: string;
+}
+
+const runState: Partial<Record<RunStatus, RunState>> = {
+  [RunStatus.RUNNING]: "running",
+  [RunStatus.DONE]: "done",
+  [RunStatus.FAILED]: "failed",
+};
+
+/** Where the caller's runs are. Unknown ids are simply absent. */
+export const getRunStatuses = async (sessionIds: string[]): Promise<RunInfo[]> => {
+  if (sessionIds.length === 0) return [];
+  const res = await chatClient.getRunStatus({ sessionIds: sessionIds.slice(0, 20) });
+  return res.runs.flatMap((r) => {
+    const status = runState[r.status];
+    return status
+      ? [
+          {
+            sessionId: r.sessionId,
+            status,
+            url: r.url,
+            cityName: r.cityName,
+            domain: String(r.domain),
+          },
+        ]
+      : [];
+  });
 };

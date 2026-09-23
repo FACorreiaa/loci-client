@@ -5,6 +5,7 @@ import {
   useUpdateNotificationSettings,
   type NotificationSettings as Settings,
 } from "~/lib/api/notifications";
+import { usePushDeviceState } from "~/lib/push/use-push-device";
 import { Checkbox, CheckboxControl } from "~/ui/checkbox";
 import { Label } from "~/ui/label";
 
@@ -16,20 +17,24 @@ import { Label } from "~/ui/label";
  * follow anyone to a second browser or a phone, and nothing server-side could
  * read them.
  *
- * They record a preference and nothing more. No push or email is sent for
- * either of them yet, and the copy says so rather than letting a switch imply
- * something will arrive.
+ * "Search finished" is the first one that sends something: a web push, once
+ * this device has granted permission and registered. Recommendations and
+ * trip reminders still only record a preference — no push or email is sent
+ * for either of them yet, and the copy says so.
  */
 export default function NotificationSettings(props: {
   onNotification: (message: string, type: "success" | "error") => void;
 }) {
   const settingsQuery = useNotificationSettings();
   const updateSettings = useUpdateNotificationSettings();
+  const pushDevice = usePushDeviceState();
 
   // isSuccess before .data: reading .data on a pending solid-query suspends the
   // app-wide boundary and blanks the whole settings route.
   const settings = (): Settings =>
-    settingsQuery.isSuccess ? settingsQuery.data : { recommendations: false, tripReminders: false };
+    settingsQuery.isSuccess
+      ? settingsQuery.data
+      : { recommendations: false, tripReminders: false, searchFinished: false };
 
   const toggle = async (key: keyof Settings, value: boolean) => {
     try {
@@ -44,6 +49,11 @@ export default function NotificationSettings(props: {
     }
   };
 
+  const toggleSearchFinished = (value: boolean) => {
+    pushDevice.onToggle(value);
+    void toggle("searchFinished", value);
+  };
+
   return (
     <div class="loci-card rounded-3xl p-6 sm:p-8">
       <div class="flex items-center gap-3 mb-2">
@@ -54,8 +64,8 @@ export default function NotificationSettings(props: {
       </div>
 
       <p class="text-sm text-muted-foreground mb-6">
-        These follow your account, not this browser. Nothing is sent for either of them yet — we're
-        recording what you'd want when they start.
+        These follow your account, not this browser. Recommendations and trip reminders don't send
+        anything yet — we're recording what you'd want when they start.
       </p>
 
       <Show
@@ -92,6 +102,38 @@ export default function NotificationSettings(props: {
               <p class="text-sm text-muted-foreground">
                 Nudges about a trip you're planning as the dates get close.
               </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <Checkbox
+              checked={settings().searchFinished}
+              onChange={(value: boolean) => toggleSearchFinished(value)}
+              disabled={updateSettings.isPending}
+            >
+              <CheckboxControl />
+            </Checkbox>
+            <div class="min-w-0">
+              <Label class="font-medium text-foreground">Search finished</Label>
+              <p class="text-sm text-muted-foreground">
+                A notification when a search you left finishes or fails.
+              </p>
+              <Show when={pushDevice.deviceNotice(settings().searchFinished)}>
+                {(notice) => (
+                  <Show
+                    when={notice().kind === "action"}
+                    fallback={<p class="text-sm text-muted-foreground mt-1">{notice().text}</p>}
+                  >
+                    <button
+                      type="button"
+                      class="text-sm text-primary underline-offset-4 hover:underline mt-1"
+                      onClick={() => pushDevice.enableOnThisDevice()}
+                    >
+                      {notice().text}
+                    </button>
+                  </Show>
+                )}
+              </Show>
             </div>
           </div>
         </div>

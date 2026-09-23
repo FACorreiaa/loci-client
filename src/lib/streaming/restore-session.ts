@@ -14,6 +14,8 @@
 //
 // Both are fixed here once rather than three times.
 
+import { loadCompletedSession } from "./completed-sessions";
+
 /** The key streaming-service writes a finished session under. */
 export const COMPLETED_SESSION_KEY = "completedStreamingSession";
 
@@ -43,6 +45,9 @@ export function hasListContent(data: unknown, listKey: string): boolean {
  */
 export function readCompletedSession(sessionId: string): Record<string, unknown> | null {
   if (!sessionId) return null;
+
+  const keyed = loadCompletedSession(sessionId);
+  if (keyed) return (keyed.data ?? keyed) as Record<string, unknown>;
 
   let raw: string | null;
   try {

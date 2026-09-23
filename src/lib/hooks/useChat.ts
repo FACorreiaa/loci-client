@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/solid-query";
 import { detectDomain, useGetChatSessionsQuery } from "~/lib/api/llm";
 import { stripPromptWrapper } from "~/lib/api/prompt-wrapper";
 import { createStreamingSession, streamingService } from "~/lib/chat-stream";
+import { newRequestId } from "~/lib/streaming-service";
 import type { TravelProfile } from "~/components/chat";
 import { useUserLocation } from "~/contexts/LocationContext";
 import { useDefaultSearchProfile, useSearchProfiles } from "~/lib/api/profiles";
@@ -10,6 +11,7 @@ import { useSaveItineraryMutation } from "~/lib/api/itineraries";
 import { logger } from "~/lib/logger";
 import { getCompletionMessage } from "~/lib/chat/completion-message";
 import { useAppQuery } from "../api/authed-query";
+import { startErrorMessage } from "~/lib/errors";
 
 export interface ChatMessage {
   id: string;
@@ -27,6 +29,14 @@ const MAX_LOCAL_SESSIONS = 10;
 const PROFILE_ICONS = ["🎒", "🍽️", "👨‍👩‍👧‍👦", "🎨", "📸", "🏔️", "🌴", "🏛️"];
 
 export { getCompletionMessage };
+
+/**
+ * Where this chat renders its runs: the result lands inline here, not on the
+ * run's /itinerary url, so RunWatcher must not toast it while you are here.
+ * /chat carries no session param, so the path alone names the page.
+ */
+const chatHostPath = (): string =>
+  typeof window === "undefined" ? "/chat" : window.location.pathname;
 
 const welcomeMessage = (profile: string): ChatMessage => ({
   id: "welcome",
@@ -50,6 +60,8 @@ export function useChat() {
   const [showProfileSelector, setShowProfileSelector] = createSignal(false);
   const [selectedSession, setSelectedSession] = createSignal<any | null>(null);
   const [streamingSession, setStreamingSession] = createSignal<any>(null);
+  // This hook's own run, so Stop can name it before the server mints a session id.
+  let activeRequestId = "";
   const [streamProgress, setStreamProgress] = createSignal("");
   const [expandedResults, setExpandedResults] = createSignal<Set<string>>(new Set());
   const [localSessionsVersion, setLocalSessionsVersion] = createSignal(0);
@@ -215,14 +227,17 @@ export function useChat() {
     const profile = activeProfileId();
     if (!profile) throw new Error("No search profile found");
 
+    activeRequestId = newRequestId();
     streamingService.startStream(
       {
         message: messageContent,
+        requestId: activeRequestId,
         profileId: profile,
         userLocation: { userLat: userLatitude, userLon: userLongitude },
       },
       {
         session,
+        hostPath: chatHostPath(),
         onProgress: (updated) => {
           setStreamingSession({ ...updated });
           setStreamProgress(progressLabel(updated));
@@ -233,7 +248,10 @@ export function useChat() {
         onComplete: (completed) => finalizeStream(completed, streamId),
         onError: (error) => {
           logger.error("Streaming error:", error);
-          finishWithError(streamId, `Sorry, there was an error processing your request: ${error}`);
+          finishWithError(
+            streamId,
+            startErrorMessage(error, `Sorry, there was an error processing your request: ${error}`),
+          );
         },
       },
     );
@@ -262,9 +280,11 @@ export function useChat() {
     // resumes the existing session instead of minting a new one. An expired
     // session surfaces as an error event (onError), which clears sessionId so the
     // next send starts fresh.
+    activeRequestId = newRequestId();
     streamingService.startStream(
       {
         message: messageContent,
+        requestId: activeRequestId,
         profileId: profile,
         sessionId: existingSessionId,
         cityName: currentCity,
@@ -272,6 +292,7 @@ export function useChat() {
       },
       {
         session,
+        hostPath: chatHostPath(),
         onProgress: (updated) => {
           setStreamingSession({ ...updated });
           setStreamProgress(
@@ -288,7 +309,10 @@ export function useChat() {
           if (error.includes("not found") || error.includes("expired")) setSessionId(null);
           finishWithError(
             streamId,
-            `Sorry, there was an error: ${error}. Try sending your message again.`,
+            startErrorMessage(
+              error,
+              `Sorry, there was an error: ${error}. Try sending your message again.`,
+            ),
           );
         },
       },
@@ -317,10 +341,14 @@ export function useChat() {
     if (pid) queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
   };
 
-  /** Stop the in-flight stream — finalizes the partial answer, no error. */
+  /**
+   * Stop this chat's stream — finalizes the partial answer, no error. Other
+   * searches running in the background keep going. Before the server's
+   * `start` there is no session id yet, so the request id names the run.
+   */
   const stopStreaming = () => {
     if (!isLoading()) return;
-    streamingService.stop();
+    streamingService.stop(streamingSession()?.sessionId || activeRequestId || undefined);
   };
 
   const newChat = () => {

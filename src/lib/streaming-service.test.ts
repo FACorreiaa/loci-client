@@ -55,8 +55,8 @@ vi.mock("./streaming/chatStream", () => {
 });
 
 import { streamingService, createStreamingSession } from "./streaming-service";
-import { liveStream, resetLiveStream } from "./streaming/live-stream-store";
-import { COMPLETED_SESSION_KEY } from "./streaming/restore-session";
+import { liveRuns, readActiveSessions, removeRun } from "./streaming/live-stream-store";
+import { COMPLETED_SESSION_KEY, readCompletedSession } from "./streaming/restore-session";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -84,6 +84,7 @@ const emptyResult = () =>
 
 function start(overrides: Partial<Parameters<typeof streamingService.startStream>[1]> = {}) {
   const session = createStreamingSession("itinerary");
+  // Each run gets its own feed; capture the signal the service handed it.
   const manager = {
     session,
     onStart: vi.fn(),
@@ -96,24 +97,31 @@ function start(overrides: Partial<Parameters<typeof streamingService.startStream
   return { session, manager, feed: currentFeed! };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  // Abort whatever a previous test left open and let it settle before
+  // wiping the store, so a late finalize cannot write into this test.
+  streamingService.cleanup();
+  await tick();
+  for (const id of Object.keys(liveRuns)) removeRun(id);
   sessionStorage.clear();
-  resetLiveStream();
   currentFeed = null;
 });
 
 describe("streamingService → live store", () => {
   it("publishes the session on `start` and tells the caller once", async () => {
     const { manager, feed } = start();
-    expect(liveStream.phase).toBe("connecting");
+    // A fresh search has no session id to key it by until `start`.
+    expect(Object.keys(liveRuns)).toEqual([]);
 
     feed.push({ kind: "start", sessionId: "s1", domain: "itinerary", city: "Funchal" });
     await tick();
 
-    expect(liveStream.sessionId).toBe("s1");
-    expect(liveStream.domain).toBe("itinerary");
-    expect(liveStream.city).toBe("Funchal");
-    expect(liveStream.phase).toBe("streaming");
+    expect(liveRuns.s1.sessionId).toBe("s1");
+    expect(liveRuns.s1.domain).toBe("itinerary");
+    expect(liveRuns.s1.city).toBe("Funchal");
+    expect(liveRuns.s1.phase).toBe("streaming");
+    expect(liveRuns.s1.query).toBe("Itinerary in Funchal");
+    expect(liveRuns.s1.source).toBe("service");
     expect(manager.onStart).toHaveBeenCalledTimes(1);
     expect((manager.onStart as Mock).mock.calls[0][0].sessionId).toBe("s1");
 
@@ -128,8 +136,8 @@ describe("streamingService → live store", () => {
     feed.push(itineraryEvent());
     await tick();
 
-    expect((liveStream.data as any)?.general_city_data?.city).toBe("Funchal");
-    expect(liveStream.phase).toBe("streaming");
+    expect((liveRuns.s1.data as any)?.general_city_data?.city).toBe("Funchal");
+    expect(liveRuns.s1.phase).toBe("streaming");
   });
 
   it("keeps the itinerary when `complete` carries an empty result", async () => {
@@ -142,8 +150,8 @@ describe("streamingService → live store", () => {
     await tick();
 
     expect((session.data as any).general_city_data.city).toBe("Funchal");
-    expect((liveStream.data as any).general_city_data.city).toBe("Funchal");
-    expect(liveStream.phase).toBe("complete");
+    expect((liveRuns.s1.data as any).general_city_data.city).toBe("Funchal");
+    expect(liveRuns.s1.phase).toBe("complete");
   });
 
   it("prefers a populated `complete` result", async () => {
@@ -176,27 +184,155 @@ describe("streamingService → live store", () => {
     feed.push({ kind: "error", userMessage: "Nope.", internalCode: "x", retryable: true });
     await tick();
 
-    expect(liveStream.phase).toBe("error");
-    expect(liveStream.error).toBe("Nope.");
+    expect(liveRuns.s1.phase).toBe("error");
+    expect(liveRuns.s1.error).toBe("Nope.");
     expect(manager.onError).toHaveBeenCalledWith("Nope.");
   });
 
-  it("aborts the previous stream when a new one starts, and keeps them apart", async () => {
+  it("runs a second search alongside the first, and keeps them apart", async () => {
     const first = start();
     first.feed.push({ kind: "start", sessionId: "s1", domain: "itinerary" });
     await tick();
 
     const second = start();
     await tick();
-    expect(first.feed.aborted()).toBe(true);
+    expect(first.feed.aborted()).toBe(false);
 
     second.feed.push({ kind: "start", sessionId: "s2", domain: "accommodation" });
     await tick();
 
-    expect(liveStream.sessionId).toBe("s2");
-    expect(liveStream.domain).toBe("accommodation");
+    expect(liveRuns.s1.domain).toBe("itinerary");
+    expect(liveRuns.s2.domain).toBe("accommodation");
     // The first manager must not be finalized with the second's session.
     expect(first.manager.onComplete).not.toHaveBeenCalledWith(second.session);
     expect(second.session.isComplete).toBe(false);
+  });
+
+  it("streams two runs at once, stops one by id, and finishes the other", async () => {
+    const a = start();
+    const b = start();
+    a.feed.push({ kind: "start", sessionId: "a", domain: "itinerary", eventId: "a1" });
+    b.feed.push({ kind: "start", sessionId: "b", domain: "itinerary", eventId: "b1" });
+    await tick();
+
+    expect(liveRuns.a.phase).toBe("streaming");
+    expect(liveRuns.b.phase).toBe("streaming");
+    // Each run's own `start` event id is its resume token.
+    expect(liveRuns.a.lastEventId).toBe("a1");
+    expect(
+      readActiveSessions()
+        .map((e) => e.sessionId)
+        .sort(),
+    ).toEqual(["a", "b"]);
+
+    streamingService.stop("a");
+    await tick();
+    expect(a.feed.aborted()).toBe(true);
+    expect(b.feed.aborted()).toBe(false);
+    // A stopped run did not finish: unlisted, envelope dropped, no toast.
+    expect(liveRuns.a).toBeUndefined();
+    expect(readActiveSessions().map((e) => e.sessionId)).toEqual(["b"]);
+
+    b.feed.push(itineraryEvent());
+    b.feed.push({ kind: "complete", sessionId: "b" });
+    await tick();
+
+    expect(liveRuns.b.phase).toBe("complete");
+    expect(liveRuns.b.url.startsWith("/itinerary?sessionId=b")).toBe(true);
+    expect(b.manager.onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists a resume under its session id before the server replays", () => {
+    const session = createStreamingSession("dining");
+    session.sessionId = "r1";
+    session.city = "Porto";
+    streamingService.startStream(
+      { message: "Dinner in Porto", sessionId: "r1", resumeToken: "e7" },
+      { session, onProgress: vi.fn(), onComplete: vi.fn(), onError: vi.fn() },
+    );
+
+    expect(liveRuns.r1.phase).toBe("connecting");
+    expect(liveRuns.r1.lastEventId).toBe("e7");
+    expect(liveRuns.r1.url.startsWith("/restaurants?sessionId=r1")).toBe(true);
+  });
+
+  it("stops a run by its request id before the server names it", async () => {
+    const mk = () => ({
+      session: createStreamingSession("itinerary"),
+      onProgress: vi.fn(),
+      onComplete: vi.fn(),
+      onError: vi.fn(),
+    });
+    streamingService.startStream({ message: "one", requestId: "req-1" }, mk());
+    const one = currentFeed!;
+    streamingService.startStream({ message: "two", requestId: "req-2" }, mk());
+    const two = currentFeed!;
+
+    streamingService.stop("req-1");
+    await tick();
+    expect(one.aborted()).toBe(true);
+    expect(two.aborted()).toBe(false);
+  });
+
+  it("gives a run that never saw `start` a url when it finishes", async () => {
+    const { feed } = start();
+    feed.push(itineraryEvent());
+    feed.push({ kind: "complete", sessionId: "s9" });
+    await tick();
+
+    expect(liveRuns.s9.phase).toBe("complete");
+    expect(liveRuns.s9.url.startsWith("/itinerary?sessionId=s9")).toBe(true);
+  });
+
+  it("drops a finished run's resume envelope, so a reload does not announce it again", async () => {
+    const { feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary", eventId: "e1" });
+    feed.push(itineraryEvent());
+    await tick();
+    expect(readActiveSessions().map((e) => e.sessionId)).toEqual(["s1"]);
+
+    feed.push({ kind: "complete", sessionId: "s1" });
+    await tick();
+    expect(liveRuns.s1.phase).toBe("complete");
+    expect(readActiveSessions()).toEqual([]);
+  });
+
+  it("keeps a run that ended on an error event failed, and saves nothing", async () => {
+    const { manager, feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary" });
+    feed.push(itineraryEvent());
+    feed.push({ kind: "error", userMessage: "Nope.", internalCode: "x", retryable: false });
+    // streamChatEvents returns after yielding its error.
+    feed.end();
+    await tick();
+
+    expect(liveRuns.s1.phase).toBe("error");
+    expect(manager.onComplete).not.toHaveBeenCalled();
+    expect(readCompletedSession("s1")).toBeNull();
+    expect(sessionStorage.getItem(COMPLETED_SESSION_KEY)).toBeNull();
+    expect(readActiveSessions()).toEqual([]);
+  });
+
+  it("hands a stopped run's partial answer to its caller without saving it", async () => {
+    const { manager, feed } = start();
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary" });
+    feed.push(itineraryEvent());
+    await tick();
+
+    streamingService.stop("s1");
+    await tick();
+
+    expect(manager.onComplete).toHaveBeenCalledTimes(1);
+    expect(liveRuns.s1).toBeUndefined();
+    expect(readCompletedSession("s1")).toBeNull();
+    expect(sessionStorage.getItem(COMPLETED_SESSION_KEY)).toBeNull();
+    expect(readActiveSessions()).toEqual([]);
+  });
+
+  it("records the page that hosts a run inline", async () => {
+    const { feed } = start({ hostPath: "/chat" });
+    feed.push({ kind: "start", sessionId: "s1", domain: "itinerary" });
+    await tick();
+    expect(liveRuns.s1.hostPath).toBe("/chat");
   });
 });

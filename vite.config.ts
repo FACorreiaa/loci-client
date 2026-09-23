@@ -69,6 +69,9 @@ const pwa = VitePWA({
     // "index.html" over a missing key. The navigation route below goes to
     // the network and only falls back to /offline when that fails.
     navigateFallback: null,
+    // Push + notificationclick handlers (public/push-sw.js). generateSW stays
+    // in charge of precaching; this only adds listeners.
+    importScripts: ["/push-sw.js"],
     runtimeCaching: [
       {
         urlPattern: ({ request }: { request: Request }) => request.mode === "navigate",

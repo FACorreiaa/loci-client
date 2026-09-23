@@ -10,7 +10,6 @@ import {
 } from "~/lib/api/profiles";
 import {
   ensureNotificationPermission,
-  getNotificationPermission,
   type BrowserNotificationPermission,
 } from "~/lib/notification-prefs";
 import {
@@ -18,6 +17,7 @@ import {
   useUpdateNotificationSettings,
   type NotificationSettings,
 } from "~/lib/api/notifications";
+import { usePushDeviceState } from "~/lib/push/use-push-device";
 import { Button } from "~/ui/button";
 import { Label } from "~/ui/label";
 import { Checkbox, CheckboxControl } from "~/ui/checkbox";
@@ -56,10 +56,11 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
     // the app-wide boundary, and this modal renders over the dashboard.
     notificationSettingsQuery.isSuccess
       ? notificationSettingsQuery.data
-      : { recommendations: false, tripReminders: false };
-  const [notifPermission, setNotifPermission] = createSignal<BrowserNotificationPermission>(
-    getNotificationPermission(),
-  );
+      : { recommendations: false, tripReminders: false, searchFinished: false };
+  // One source of truth for browser permission: the hook's own signal, used
+  // here for the top-of-section banner and each switch's disabled state, not
+  // just for the "Search finished" notice it was originally added for.
+  const pushDevice = usePushDeviceState();
 
   const profiles = () => profilesQuery.data ?? [];
   const profilesLoading = () => profilesQuery.isFetching && profilesQuery.data === undefined;
@@ -72,7 +73,7 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
 
   createEffect(() => {
     if (!props.isOpen) return;
-    setNotifPermission(getNotificationPermission());
+    pushDevice.refreshPermission();
   });
 
   const handleLocationUpdate = async () => {
@@ -113,12 +114,22 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
     }
 
     const permission = await ensureNotificationPermission();
-    setNotifPermission(permission);
+    pushDevice.refreshPermission();
     if (permission !== "granted") {
       persistNotifPref(key, false);
       return;
     }
     persistNotifPref(key, true);
+  };
+
+  // "Search finished" is push-backed, unlike the other two switches above, so
+  // turning it on must not call ensureNotificationPermission() (which asks
+  // for browser permission unconditionally) when push is not even configured
+  // server-side. The account preference still saves either way; pushDevice
+  // renders the right line (or the "turn it on" action) from state.
+  const handleSearchFinishedToggle = (value: boolean) => {
+    pushDevice.onToggle(value);
+    persistNotifPref("searchFinished", value);
   };
 
   const handleOpenFullSettings = () => {
@@ -275,7 +286,7 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
                 <Bell class="w-4 h-4 text-muted-foreground" />
                 <Label>Notifications</Label>
               </div>
-              <p class="text-xs text-muted-foreground">{permissionCopy[notifPermission()]}</p>
+              <p class="text-xs text-muted-foreground">{permissionCopy[pushDevice.permission()]}</p>
               <div class="space-y-2">
                 <div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <span class="text-sm text-foreground">New recommendations</span>
@@ -284,7 +295,7 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
                     onChange={(checked) =>
                       void handleNotificationToggle("recommendations", checked)
                     }
-                    disabled={notifPermission() === "unsupported"}
+                    disabled={pushDevice.permission() === "unsupported"}
                   >
                     <CheckboxControl />
                   </Checkbox>
@@ -294,11 +305,37 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
                   <Checkbox
                     checked={notifPrefs().tripReminders}
                     onChange={(checked) => void handleNotificationToggle("tripReminders", checked)}
-                    disabled={notifPermission() === "unsupported"}
+                    disabled={pushDevice.permission() === "unsupported"}
                   >
                     <CheckboxControl />
                   </Checkbox>
                 </div>
+                <div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <span class="text-sm text-foreground">Search finished</span>
+                  <Checkbox
+                    checked={notifPrefs().searchFinished}
+                    onChange={(checked) => handleSearchFinishedToggle(checked)}
+                    disabled={pushDevice.permission() === "unsupported"}
+                  >
+                    <CheckboxControl />
+                  </Checkbox>
+                </div>
+                <Show when={pushDevice.deviceNotice(notifPrefs().searchFinished)}>
+                  {(notice) => (
+                    <Show
+                      when={notice().kind === "action"}
+                      fallback={<p class="text-xs text-muted-foreground">{notice().text}</p>}
+                    >
+                      <button
+                        type="button"
+                        class="text-xs text-primary underline-offset-4 hover:underline"
+                        onClick={() => pushDevice.enableOnThisDevice()}
+                      >
+                        {notice().text}
+                      </button>
+                    </Show>
+                  )}
+                </Show>
               </div>
             </div>
           </div>

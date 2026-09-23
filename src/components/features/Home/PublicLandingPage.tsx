@@ -4,6 +4,7 @@ import { ArrowRight, Loader2 } from "lucide-solid";
 import { useUserLocation } from "~/contexts/LocationContext";
 import { prefersReducedMotion } from "~/lib/hooks/useInView";
 import { detectDomain } from "~/lib/api/llm";
+import { startErrorMessage } from "~/lib/errors";
 import { createStreamingSession, getDomainRoute, streamingService } from "~/lib/chat-stream";
 import HeroPlot from "./landing/HeroPlot";
 import SvgGlobe from "./landing/SvgGlobe";
@@ -105,7 +106,10 @@ export default function PublicLandingPage() {
           onError: (error) => {
             console.error("Free streaming error:", error);
             setIsLoading(false);
-            setSearchError("That didn't go through. Try again in a moment.");
+            // The concurrent-search cap says what to do; say it verbatim.
+            setSearchError(
+              startErrorMessage(error, "That didn't go through. Try again in a moment."),
+            );
           },
         },
       );

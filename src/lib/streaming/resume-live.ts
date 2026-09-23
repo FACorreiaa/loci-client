@@ -7,7 +7,7 @@
 // the server replays what was missed, then continues live.
 
 import { createStreamingSession, streamingService } from "../streaming-service";
-import { isLiveSession, readActiveSession } from "./live-stream-store";
+import { isLiveSession, readActiveSession, readActiveSessions } from "./live-stream-store";
 import { readCompletedSession } from "./restore-session";
 
 /**
@@ -50,4 +50,11 @@ export function resumeLiveSession(sessionId: string | undefined): boolean {
     },
   );
   return true;
+}
+
+/** Re-attach every run a reload interrupted. Returns the ids resumed. */
+export function resumeAllLive(): string[] {
+  return readActiveSessions()
+    .filter((e) => !readCompletedSession(e.sessionId))
+    .flatMap((e) => (resumeLiveSession(e.sessionId) ? [e.sessionId] : []));
 }

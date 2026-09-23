@@ -1,10 +1,12 @@
-import { createSignal, createMemo, Show, onMount } from "solid-js";
+import { createSignal, createMemo, Show, onMount, onCleanup } from "solid-js";
 import { lazyChunk } from "@/lib/lazyChunk";
 import { useSearchParams } from "@solidjs/router";
+import { createSessionKey } from "~/lib/runs/session-key";
 import { useChatRPC } from "~/lib/hooks/useChatRPC";
 import { hasListContent, readCompletedSession } from "~/lib/streaming/restore-session";
 import { useLiveSession } from "~/lib/streaming/live-stream-store";
 import { resumeLiveSession } from "~/lib/streaming/resume-live";
+import { hydrateSession } from "~/lib/streaming/hydrate-session";
 import { POIDetailedInfo } from "~/lib/api/types";
 import RestaurantResults from "~/components/results/RestaurantResults";
 const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
@@ -16,8 +18,26 @@ import { Skeleton } from "~/ui/skeleton";
 import { Card, CardContent, CardHeader } from "~/ui/card";
 import { StreamErrorCard } from "~/components/ui/StreamErrorCard";
 
+/**
+ * Keyed on the search it shows, so Open from a toast to this same route with
+ * another sessionId remounts the body and its restore logic runs for that
+ * session (Solid Router keeps a route mounted across query changes). See
+ * session-key.ts for why the page's own run naming itself does not remount.
+ */
 export default function RestaurantsPage() {
   const [searchParams] = useSearchParams();
+  const session = createSessionKey(() => searchParams);
+  return (
+    <Show when={session.key()} keyed>
+      {(_key) => <RestaurantsView adopt={session.adopt} />}
+    </Show>
+  );
+}
+
+function RestaurantsView(props: { adopt: (sessionId: string) => void }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  let mounted = true;
+  onCleanup(() => (mounted = false));
   // No defaults. These used to fall back to a generic query and "London", so a
   // lost session id — which happens whenever a payload-less COMPLETE frame maps
   // sessionId to "" — silently streamed London to somebody who had asked about
@@ -25,13 +45,28 @@ export default function RestaurantsPage() {
   const [message] = createSignal((searchParams.message as string) || "");
   const [cityName] = createSignal((searchParams.cityName as string) || "");
 
-  const { state, startStream, setError } = useChatRPC();
+  const { state, startStream, setError } = useChatRPC({
+    // Put the run in the URL the moment the server names it: RunWatcher then
+    // knows you are on its page (no toast here), leaving it offers the push
+    // prompt, and a reload restores it. Adopted first, so the keyed wrapper
+    // does not remount this component mid-stream. The stream outlives this
+    // page, so a `start` that lands after you left must not touch the URL of
+    // wherever you are now.
+    onStart: (sessionId) => {
+      if (!mounted) return;
+      props.adopt(sessionId);
+      setSearchParams({ sessionId }, { replace: true });
+    },
+  });
 
   const [restoredData, setRestoredData] = createSignal<any>(null);
   // A search started on `/` streams on the service singleton; when its
   // session is the one in the URL, read it live (see live-stream-store.ts).
   const live = useLiveSession(() => searchParams.sessionId as string | undefined);
   const [boundLive, setBoundLive] = createSignal(false);
+  // True while hydrateSession is in flight, so the loading skeleton shows
+  // instead of a blank panel during that fetch.
+  const [hydrating, setHydrating] = createSignal(false);
 
   // Local favorites state
   const [favorites, setFavorites] = createSignal<string[]>([]);
@@ -70,7 +105,10 @@ export default function RestaurantsPage() {
     const sessionIdFromUrl = searchParams.sessionId as string;
 
     if (sessionIdFromUrl) {
-      if (resumeLiveSession(sessionIdFromUrl)) {
+      // A live run in phase "error" is still listed (finished runs stay for
+      // the tab's life), but this page must not bind to somebody else's
+      // failure — fall through to the server/re-run path instead.
+      if (resumeLiveSession(sessionIdFromUrl) && live.phase() !== "error") {
         setBoundLive(true);
         return;
       }
@@ -79,10 +117,18 @@ export default function RestaurantsPage() {
         setRestoredData(restored);
         return;
       }
-      // The session id restores nothing — a different search, an empty
-      // payload, or storage cleared. This used to be a bare `return`: no
-      // fetch, no error, no loading flag, and a permanently empty panel. Re-run
-      // the search when we still know what was asked, and say so when we don't.
+      // The session id restores nothing locally — a different search, an
+      // empty payload, storage cleared, or a fresh tab the notification
+      // opened. Ask the server for the finished session before re-running
+      // (and re-paying for) the search.
+      setHydrating(true);
+      void hydrateSession(sessionIdFromUrl, "restaurants", "restaurants")
+        .then((fromServer) => {
+          if (fromServer) setRestoredData(normalizeStoredData(fromServer));
+          else if (!state.isConnected) startOrExplain();
+        })
+        .finally(() => setHydrating(false));
+      return;
     }
 
     if (!state.isConnected) {
@@ -92,7 +138,7 @@ export default function RestaurantsPage() {
 
   const liveData = createMemo(() => (boundLive() ? live.data() : null));
   const effectiveData = createMemo(() => restoredData() || liveData() || state.streamedData);
-  const isStreaming = () => (boundLive() ? live.isStreaming() : state.isStreaming);
+  const isStreaming = () => hydrating() || (boundLive() ? live.isStreaming() : state.isStreaming);
   const streamError = () => (boundLive() ? live.error() : state.error);
   const cityData = createMemo(() => effectiveData()?.general_city_data);
 
