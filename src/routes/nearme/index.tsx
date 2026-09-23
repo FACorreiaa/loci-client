@@ -1,7 +1,12 @@
 import { createSignal, createMemo, Show, onMount, For } from "solid-js";
 import { lazyChunk } from "@/lib/lazyChunk";
+import { useSearchParams } from "@solidjs/router";
 import { MapPin, Navigation, Loader2, AlertCircle, ChevronDown } from "lucide-solid";
 import { useChatRPC } from "~/lib/hooks/useChatRPC";
+import { readCompletedSession } from "~/lib/streaming/restore-session";
+import { useLiveSession } from "~/lib/streaming/live-stream-store";
+import { resumeLiveSession } from "~/lib/streaming/resume-live";
+import { hydrateSession } from "~/lib/streaming/hydrate-session";
 import { POIDetailedInfo } from "~/lib/api/types";
 const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 import SplitView from "@/components/layout/SplitView";
@@ -32,7 +37,16 @@ interface UserLocation {
 }
 
 export default function NearmePage() {
+  const [searchParams] = useSearchParams();
   const { state, startStream } = useChatRPC();
+
+  // A session id in the URL — the server's complete event sends
+  // `/nearme?sessionId=...&cityName=...&domain=nearme` — means a run already
+  // exists for this page: resume it live, restore it from storage, or ask
+  // the server, instead of asking for geolocation and re-running it.
+  const [restoredData, setRestoredData] = createSignal<any>(null);
+  const live = useLiveSession(() => searchParams.sessionId as string | undefined);
+  const [boundLive, setBoundLive] = createSignal(false);
 
   const [userLocation, setUserLocation] = createSignal<UserLocation | null>(null);
   const [locationError, setLocationError] = createSignal<string | null>(null);
@@ -120,13 +134,42 @@ export default function NearmePage() {
     }
   };
 
-  // Request location on mount
+  // Request location on mount — unless the URL already names a session
+  // (opened from a notification, or reloaded after the run finished), in
+  // which case render that run's data instead of asking for geolocation.
   onMount(() => {
+    const sessionIdFromUrl = searchParams.sessionId as string;
+
+    if (sessionIdFromUrl) {
+      // A live run in phase "error" is still listed (finished runs stay for
+      // the tab's life), but this page must not bind to somebody else's
+      // failure — fall through to the server/re-run path instead.
+      if (resumeLiveSession(sessionIdFromUrl) && live.phase() !== "error") {
+        setBoundLive(true);
+        return;
+      }
+      const restored = readCompletedSession(sessionIdFromUrl);
+      if (restored) {
+        setRestoredData(restored);
+        return;
+      }
+      // The session id restores nothing locally — ask the server for the
+      // finished session before falling back to a fresh geolocation search.
+      void hydrateSession(sessionIdFromUrl, "general", "points_of_interest").then((fromServer) => {
+        if (fromServer) setRestoredData(fromServer);
+        else requestLocation();
+      });
+      return;
+    }
+
     requestLocation();
   });
 
+  const liveData = createMemo(() => (boundLive() ? live.data() : null));
   // Extract data from streamedData (same pattern as hotels/restaurants pages)
-  const effectiveData = createMemo(() => state.streamedData);
+  const effectiveData = createMemo(() => restoredData() || liveData() || state.streamedData);
+  const isStreaming = () => (boundLive() ? live.isStreaming() : state.isStreaming);
+  const streamError = () => (boundLive() ? live.error() : state.error);
 
   // Get all POIs from streamed data
   const allPois = createMemo((): POIDetailedInfo[] => {
@@ -239,9 +282,9 @@ export default function NearmePage() {
             {/* The error case must win: showing "grant location access" after a
                 failed stream sent people back to a permission dialog they had
                 already accepted. */}
-            {state.error
+            {streamError()
               ? "Couldn't load nearby places — see the message on the left."
-              : isLoadingLocation() || state.isStreaming
+              : isLoadingLocation() || isStreaming()
                 ? "Getting your location and finding nearby places..."
                 : "Grant location access to find places near you"}
           </div>
@@ -352,14 +395,14 @@ export default function NearmePage() {
         </Show>
 
         {/* Streaming State */}
-        <Show when={state.isStreaming && !allPois().length}>
+        <Show when={isStreaming() && !allPois().length}>
           <NearbyLoadingSkeleton />
         </Show>
 
         {/* Error State */}
-        <Show when={state.error}>
+        <Show when={streamError()}>
           <StreamErrorCard
-            error={state.error!}
+            error={streamError()!}
             title="Unable to find nearby places"
             onRetry={retrySearch}
           />
@@ -443,9 +486,7 @@ export default function NearmePage() {
 
         {/* Empty State */}
         <Show
-          when={
-            !isLoadingLocation() && !state.isStreaming && userLocation() && allPois().length === 0
-          }
+          when={!isLoadingLocation() && !isStreaming() && userLocation() && allPois().length === 0}
         >
           <div class="text-center py-12 text-muted-foreground">
             <MapPin class="w-16 h-16 mx-auto mb-4 opacity-50" />

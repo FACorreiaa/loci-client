@@ -3,6 +3,9 @@ import { DomainType } from "../api/types";
 import { getProgressForEventType } from "../utils/chatUtils";
 import { parseStreamError } from "../errors";
 import { streamChatEvents, type LociStreamEvent } from "../streaming/chatStream";
+import { upsertRun } from "../streaming/live-stream-store";
+import { saveCompletedSession } from "../streaming/completed-sessions";
+import { getDomainRoute } from "../streaming-service";
 
 export interface ChatRPCState {
   isConnected: boolean;
@@ -54,6 +57,12 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
       // But typically this hook manages the *current* streaming session state.
     });
 
+    // Reported to the page-run registry so a result page still knows this
+    // run's status after the tab that started it navigates away or reloads.
+    let sessionId = "";
+    let domain: DomainType = "general";
+    let runCity = "";
+
     try {
       setState({ currentStep: "Processing request...", progress: 10 });
 
@@ -70,6 +79,20 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
             throw new Error(event.userMessage);
 
           case "start":
+            sessionId = event.sessionId ?? "";
+            domain = (event.domain as DomainType) ?? "general";
+            runCity = event.city ?? cityName ?? "";
+            upsertRun(sessionId, {
+              phase: "streaming",
+              domain,
+              city: runCity,
+              query: message,
+              source: "page",
+              startedAt: Date.now(),
+              // Replaced at completion, when the server's navigation tells us
+              // the real result page.
+              url: location.pathname + location.search,
+            });
             handleProgress("start");
             break;
 
@@ -82,10 +105,13 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
             // Incremental text; callers that want it can read state as needed.
             break;
 
-          case "city_data":
-            setState({ streamedData: { general_city_data: event.city } });
-            handleProgress("city_data", { general_city_data: event.city });
+          case "city_data": {
+            const data = { general_city_data: event.city };
+            setState({ streamedData: data });
+            upsertRun(sessionId, { data });
+            handleProgress("city_data", data);
             break;
+          }
 
           case "general_pois":
           case "hotels":
@@ -93,14 +119,18 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
           case "activities": {
             const data = toStreamData(event);
             setState({ streamedData: data });
+            upsertRun(sessionId, { data });
             handleProgress(event.kind === "general_pois" ? "nearby" : event.kind, data);
             break;
           }
 
-          case "itinerary":
-            setState({ streamedData: event.cityResponse });
-            handleProgress("itinerary", event.cityResponse);
+          case "itinerary": {
+            const data = event.cityResponse;
+            setState({ streamedData: data });
+            upsertRun(sessionId, { data });
+            handleProgress("itinerary", data);
             break;
+          }
 
           case "complete": {
             const hasExistingData =
@@ -118,6 +148,12 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
               streamedData: hasExistingData ? state.streamedData : (data ?? state.streamedData),
             });
             options.onComplete?.(state.streamedData || data);
+
+            upsertRun(sessionId, {
+              phase: "complete",
+              url: event.navigation?.url || getDomainRoute(domain, sessionId, runCity),
+            });
+            saveCompletedSession(sessionId, { sessionId, data: state.streamedData });
 
             if (event.navigation && options.onRedirect) {
               const nav = event.navigation;
@@ -142,6 +178,7 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
         isStreaming: false,
         isConnected: false,
       });
+      if (sessionId) upsertRun(sessionId, { phase: "error", error: parsedError.userMessage });
       options.onError?.(parsedError.userMessage);
     }
   };

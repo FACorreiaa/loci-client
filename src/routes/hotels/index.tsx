@@ -5,6 +5,7 @@ import { useChatRPC } from "~/lib/hooks/useChatRPC";
 import { hasListContent, readCompletedSession } from "~/lib/streaming/restore-session";
 import { useLiveSession } from "~/lib/streaming/live-stream-store";
 import { resumeLiveSession } from "~/lib/streaming/resume-live";
+import { hydrateSession } from "~/lib/streaming/hydrate-session";
 import { POIDetailedInfo } from "~/lib/api/types";
 import HotelResults from "~/components/results/HotelResults";
 const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
@@ -72,7 +73,10 @@ export default function HotelsPage() {
     const sessionIdFromUrl = searchParams.sessionId as string;
 
     if (sessionIdFromUrl) {
-      if (resumeLiveSession(sessionIdFromUrl)) {
+      // A live run in phase "error" is still listed (finished runs stay for
+      // the tab's life), but this page must not bind to somebody else's
+      // failure — fall through to the server/re-run path instead.
+      if (resumeLiveSession(sessionIdFromUrl) && live.phase() !== "error") {
         setBoundLive(true);
         return;
       }
@@ -81,10 +85,15 @@ export default function HotelsPage() {
         setRestoredData(restored);
         return;
       }
-      // The session id restores nothing — a different search, an empty
-      // payload, or storage cleared. This used to be a bare `return`: no
-      // fetch, no error, no loading flag, and a permanently empty panel. Re-run
-      // the search when we still know what was asked, and say so when we don't.
+      // The session id restores nothing locally — a different search, an
+      // empty payload, storage cleared, or a fresh tab the notification
+      // opened. Ask the server for the finished session before re-running
+      // (and re-paying for) the search.
+      void hydrateSession(sessionIdFromUrl, "hotels", "hotels").then((fromServer) => {
+        if (fromServer) setRestoredData(normalizeStoredData(fromServer));
+        else if (!state.isConnected) startOrExplain();
+      });
+      return;
     }
 
     if (!state.isConnected) {
