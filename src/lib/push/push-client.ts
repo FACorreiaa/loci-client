@@ -86,6 +86,21 @@ export async function enablePush(): Promise<
   return "granted";
 }
 
+/**
+ * Whether turning a push-backed switch on should call `enablePush()` right
+ * now. Kept pure and separate so the decision is trivial to test: `false`
+ * means the caller must not call `enablePush()` — permission is not
+ * "default" (nothing to ask, or already answered) or there is no VAPID key
+ * (push is not configured server-side, and asking anyway would burn the
+ * browser's one-time permission prompt for nothing).
+ */
+export function shouldEnablePushOnToggle(o: {
+  hasKey: boolean;
+  permission: "default" | "granted" | "denied" | "unsupported";
+}): boolean {
+  return o.hasKey && o.permission === "default";
+}
+
 /** Already-granted browsers re-subscribe + re-register silently, e.g. on sign-in. */
 export async function refreshPushRegistration(): Promise<void> {
   if (!pushSupported() || getNotificationPermission() !== "granted") return;

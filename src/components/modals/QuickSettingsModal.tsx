@@ -1,4 +1,4 @@
-import { createSignal, Show, For, createEffect } from "solid-js";
+import { createSignal, Show, For, createEffect, onMount } from "solid-js";
 import { A, useNavigate } from "@solidjs/router";
 import { X, User, MapPin, Bell, Settings, Loader2 } from "lucide-solid";
 import AppearanceSettings from "~/components/AppearanceSettings";
@@ -18,6 +18,7 @@ import {
   useUpdateNotificationSettings,
   type NotificationSettings,
 } from "~/lib/api/notifications";
+import { enablePush, getVapidKey, shouldEnablePushOnToggle } from "~/lib/push/push-client";
 import { Button } from "~/ui/button";
 import { Label } from "~/ui/label";
 import { Checkbox, CheckboxControl } from "~/ui/checkbox";
@@ -56,10 +57,18 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
     // the app-wide boundary, and this modal renders over the dashboard.
     notificationSettingsQuery.isSuccess
       ? notificationSettingsQuery.data
-      : { recommendations: false, tripReminders: false };
+      : { recommendations: false, tripReminders: false, searchFinished: false };
   const [notifPermission, setNotifPermission] = createSignal<BrowserNotificationPermission>(
     getNotificationPermission(),
   );
+  // Prefetched once, the same way NotificationSettings.tsx does: enablePush()
+  // must run synchronously off the click with nothing awaited ahead of it, so
+  // the key needs to already be in hand before "Search finished" is toggled.
+  const [vapidKey, setVapidKey] = createSignal("");
+  const [pushNotice, setPushNotice] = createSignal<string | null>(null);
+  onMount(() => {
+    void getVapidKey().then(setVapidKey);
+  });
 
   const profiles = () => profilesQuery.data ?? [];
   const profilesLoading = () => profilesQuery.isFetching && profilesQuery.data === undefined;
@@ -119,6 +128,34 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
       return;
     }
     persistNotifPref(key, true);
+  };
+
+  // "Search finished" is push-backed, unlike the other two switches above, so
+  // turning it on must not call ensureNotificationPermission() (which asks
+  // for browser permission unconditionally) when push is not even configured
+  // server-side. The account preference still saves either way.
+  const handleSearchFinishedToggle = (value: boolean) => {
+    setPushNotice(null);
+    if (value) {
+      const permission = getNotificationPermission();
+      if (permission === "denied") {
+        setPushNotice("Notifications are blocked for this site in your browser settings.");
+      } else if (shouldEnablePushOnToggle({ hasKey: Boolean(vapidKey()), permission })) {
+        // Synchronous, nothing awaited ahead of it: keeps this click's
+        // user-gesture window open for Notification.requestPermission().
+        void enablePush().then((result) => {
+          setNotifPermission(getNotificationPermission());
+          if (result === "denied") {
+            setPushNotice("Notifications are blocked for this site in your browser settings.");
+          } else if (result === "error" || result === "unsupported") {
+            setPushNotice("Couldn't turn on notifications on this device.");
+          }
+        });
+      } else if (!vapidKey()) {
+        setPushNotice("Push isn't available right now.");
+      }
+    }
+    persistNotifPref("searchFinished", value);
   };
 
   const handleOpenFullSettings = () => {
@@ -299,6 +336,19 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
                     <CheckboxControl />
                   </Checkbox>
                 </div>
+                <div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <span class="text-sm text-foreground">Search finished</span>
+                  <Checkbox
+                    checked={notifPrefs().searchFinished}
+                    onChange={(checked) => handleSearchFinishedToggle(checked)}
+                    disabled={notifPermission() === "unsupported"}
+                  >
+                    <CheckboxControl />
+                  </Checkbox>
+                </div>
+                <Show when={pushNotice()}>
+                  {(notice) => <p class="text-xs text-muted-foreground">{notice()}</p>}
+                </Show>
               </div>
             </div>
           </div>

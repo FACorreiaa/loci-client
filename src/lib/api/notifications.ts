@@ -20,12 +20,15 @@ const userClient = createClient(UserService, transport);
  * anyone to a second browser or a phone, and nothing server-side could read
  * them — which meant nothing could ever act on them either.
  *
- * This carries the preference only. Delivery is separate work that does not
- * exist yet, so the UI must not imply a toggle sends anything.
+ * `searchFinished` is delivered as a web push (see ~/lib/push/push-client).
+ * `recommendations` and `tripReminders` still only record a preference —
+ * delivery for those is separate work that does not exist yet, so the UI
+ * must not imply that either of them sends anything.
  */
 export type NotificationSettings = {
   recommendations: boolean;
   tripReminders: boolean;
+  searchFinished: boolean;
 };
 
 export const useNotificationSettings = () => {
@@ -38,6 +41,7 @@ export const useNotificationSettings = () => {
       return {
         recommendations: response.recommendations,
         tripReminders: response.tripReminders,
+        searchFinished: response.searchFinished,
       };
     },
     staleTime: 5 * 60 * 1000,
@@ -55,11 +59,13 @@ export const useUpdateNotificationSettings = () => {
         create(UpdateNotificationSettingsRequestSchema, {
           recommendations: changes.recommendations,
           tripReminders: changes.tripReminders,
+          searchFinished: changes.searchFinished,
         }),
       );
       return {
         recommendations: response.recommendations,
         tripReminders: response.tripReminders,
+        searchFinished: response.searchFinished,
       };
     },
     onSuccess: (settings) => {

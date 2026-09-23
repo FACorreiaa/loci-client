@@ -1,10 +1,12 @@
-import { Show } from "solid-js";
+import { createSignal, onMount, Show } from "solid-js";
 import { Bell } from "lucide-solid";
 import {
   useNotificationSettings,
   useUpdateNotificationSettings,
   type NotificationSettings as Settings,
 } from "~/lib/api/notifications";
+import { getNotificationPermission } from "~/lib/notification-prefs";
+import { enablePush, getVapidKey, shouldEnablePushOnToggle } from "~/lib/push/push-client";
 import { Checkbox, CheckboxControl } from "~/ui/checkbox";
 import { Label } from "~/ui/label";
 
@@ -16,9 +18,10 @@ import { Label } from "~/ui/label";
  * follow anyone to a second browser or a phone, and nothing server-side could
  * read them.
  *
- * They record a preference and nothing more. No push or email is sent for
- * either of them yet, and the copy says so rather than letting a switch imply
- * something will arrive.
+ * "Search finished" is the first one that sends something: a web push, once
+ * this device has granted permission and registered. Recommendations and
+ * trip reminders still only record a preference — no push or email is sent
+ * for either of them yet, and the copy says so.
  */
 export default function NotificationSettings(props: {
   onNotification: (message: string, type: "success" | "error") => void;
@@ -26,10 +29,21 @@ export default function NotificationSettings(props: {
   const settingsQuery = useNotificationSettings();
   const updateSettings = useUpdateNotificationSettings();
 
+  // Prefetched on mount rather than inside the click handler: enablePush()
+  // must run synchronously off the click with nothing awaited ahead of it
+  // (see push-client.ts), so the key needs to already be in hand by then.
+  const [vapidKey, setVapidKey] = createSignal("");
+  const [pushNotice, setPushNotice] = createSignal<string | null>(null);
+  onMount(() => {
+    void getVapidKey().then(setVapidKey);
+  });
+
   // isSuccess before .data: reading .data on a pending solid-query suspends the
   // app-wide boundary and blanks the whole settings route.
   const settings = (): Settings =>
-    settingsQuery.isSuccess ? settingsQuery.data : { recommendations: false, tripReminders: false };
+    settingsQuery.isSuccess
+      ? settingsQuery.data
+      : { recommendations: false, tripReminders: false, searchFinished: false };
 
   const toggle = async (key: keyof Settings, value: boolean) => {
     try {
@@ -44,6 +58,33 @@ export default function NotificationSettings(props: {
     }
   };
 
+  // enablePush() asks the browser for permission before it knows whether
+  // push is even configured server-side, so this switch must not call it
+  // when there is no VAPID key — the account preference still saves, this
+  // device just won't get a push for it.
+  const toggleSearchFinished = (value: boolean) => {
+    setPushNotice(null);
+    if (value) {
+      const permission = getNotificationPermission();
+      if (permission === "denied") {
+        setPushNotice("Notifications are blocked for this site in your browser settings.");
+      } else if (shouldEnablePushOnToggle({ hasKey: Boolean(vapidKey()), permission })) {
+        // Synchronous, nothing awaited ahead of it: keeps this click's
+        // user-gesture window open for Notification.requestPermission().
+        void enablePush().then((result) => {
+          if (result === "denied") {
+            setPushNotice("Notifications are blocked for this site in your browser settings.");
+          } else if (result === "error" || result === "unsupported") {
+            setPushNotice("Couldn't turn on notifications on this device.");
+          }
+        });
+      } else if (!vapidKey()) {
+        setPushNotice("Push isn't available right now.");
+      }
+    }
+    void toggle("searchFinished", value);
+  };
+
   return (
     <div class="loci-card rounded-3xl p-6 sm:p-8">
       <div class="flex items-center gap-3 mb-2">
@@ -54,8 +95,8 @@ export default function NotificationSettings(props: {
       </div>
 
       <p class="text-sm text-muted-foreground mb-6">
-        These follow your account, not this browser. Nothing is sent for either of them yet — we're
-        recording what you'd want when they start.
+        These follow your account, not this browser. Recommendations and trip reminders don't send
+        anything yet — we're recording what you'd want when they start.
       </p>
 
       <Show
@@ -92,6 +133,25 @@ export default function NotificationSettings(props: {
               <p class="text-sm text-muted-foreground">
                 Nudges about a trip you're planning as the dates get close.
               </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <Checkbox
+              checked={settings().searchFinished}
+              onChange={(value: boolean) => toggleSearchFinished(value)}
+              disabled={updateSettings.isPending}
+            >
+              <CheckboxControl />
+            </Checkbox>
+            <div class="min-w-0">
+              <Label class="font-medium text-foreground">Search finished</Label>
+              <p class="text-sm text-muted-foreground">
+                A notification when a search you left finishes or fails.
+              </p>
+              <Show when={pushNotice()}>
+                {(notice) => <p class="text-sm text-muted-foreground mt-1">{notice()}</p>}
+              </Show>
             </div>
           </div>
         </div>
