@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseStreamError } from "./errors";
+import { parseStreamError, startErrorMessage } from "./errors";
 
 describe("parseStreamError", () => {
   // The server rejects over-quota users with a resource_exhausted Connect error.
@@ -30,5 +30,28 @@ describe("parseStreamError", () => {
     expect(parsed.type).toBe("rate_limit");
     expect(parsed.canRetry).toBe(true);
     expect(parsed.retryAfter).toBe(30);
+  });
+});
+
+describe("parseStreamError — concurrent search cap", () => {
+  const cap = "You have 3 searches running — wait for one to finish";
+
+  it("passes the server's cap message through, not as a rate limit", () => {
+    const parsed = parseStreamError(cap);
+    expect(parsed.type).toBe("run_cap");
+    expect(parsed.userMessage).toBe(cap);
+    expect(parsed.canRetry).toBe(false);
+  });
+
+  it("still words a real rate limit as one", () => {
+    expect(parseStreamError("resource_exhausted: rate limit").type).toBe("rate_limit");
+  });
+});
+
+describe("startErrorMessage", () => {
+  it("shows the cap verbatim and anything else as the fallback", () => {
+    const cap = "You have 3 searches running — wait for one to finish";
+    expect(startErrorMessage(cap, "fallback")).toBe(cap);
+    expect(startErrorMessage("Stream error: boom", "fallback")).toBe("fallback");
   });
 });

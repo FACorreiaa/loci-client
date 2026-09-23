@@ -3,7 +3,14 @@
  */
 
 export interface ParsedError {
-  type: "quota_exhausted" | "rate_limit" | "network" | "validation" | "server" | "unknown";
+  type:
+    | "quota_exhausted"
+    | "run_cap"
+    | "rate_limit"
+    | "network"
+    | "validation"
+    | "server"
+    | "unknown";
   userMessage: string;
   technicalMessage: string;
   retryAfter?: number;
@@ -12,10 +19,37 @@ export interface ParsedError {
 }
 
 /**
+ * The server's refusal of a 4th concurrent search: ResourceExhausted with
+ * "You have 3 searches running — wait for one to finish". It is already
+ * written for people, so it passes through as-is. The number is the server's
+ * to change, so only the wording around it is matched.
+ */
+export const isRunCapMessage = (error: string): boolean =>
+  /searches running/i.test(error) && /wait for one to finish/i.test(error);
+
+/**
+ * What a search box says when its search could not start: the cap refusal
+ * verbatim (it tells you what to do), anything else as `fallback`.
+ */
+export const startErrorMessage = (error: string, fallback: string): string =>
+  isRunCapMessage(error) ? error.trim() : fallback;
+
+/**
  * Parse error messages from stream events or RPC errors
  */
 export const parseStreamError = (error: string): ParsedError => {
   const errorLower = error.toLowerCase();
+
+  // Checked before the rate-limit branch: retrying in 60s is the wrong advice
+  // when what frees a slot is one of your own searches finishing.
+  if (isRunCapMessage(error)) {
+    return {
+      type: "run_cap",
+      userMessage: error.trim(),
+      technicalMessage: error,
+      canRetry: false,
+    };
+  }
 
   // Your own daily plan quota, which is NOT the same thing as the upstream AI
   // provider being busy: retrying in 60s cannot help, the counter resets at

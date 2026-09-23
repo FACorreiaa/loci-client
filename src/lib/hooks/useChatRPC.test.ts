@@ -57,4 +57,15 @@ describe("useChatRPC — completed-session caching", () => {
 
     expect(loadCompletedSession("full-1")).toBeTruthy();
   });
+
+  it("shows the server's concurrent-search refusal as the page error", async () => {
+    const cap = "You have 3 searches running — wait for one to finish";
+    events = [
+      { kind: "error", userMessage: cap, internalCode: "ResourceExhausted", retryable: false },
+    ];
+    const { state, startStream } = useChatRPC();
+    await startStream("hello", "Crete");
+
+    expect(state.error).toBe(cap);
+  });
 });

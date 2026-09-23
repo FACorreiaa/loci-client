@@ -11,6 +11,7 @@ import { useSaveItineraryMutation } from "~/lib/api/itineraries";
 import { logger } from "~/lib/logger";
 import { getCompletionMessage } from "~/lib/chat/completion-message";
 import { useAppQuery } from "../api/authed-query";
+import { startErrorMessage } from "~/lib/errors";
 
 export interface ChatMessage {
   id: string;
@@ -247,7 +248,10 @@ export function useChat() {
         onComplete: (completed) => finalizeStream(completed, streamId),
         onError: (error) => {
           logger.error("Streaming error:", error);
-          finishWithError(streamId, `Sorry, there was an error processing your request: ${error}`);
+          finishWithError(
+            streamId,
+            startErrorMessage(error, `Sorry, there was an error processing your request: ${error}`),
+          );
         },
       },
     );
@@ -305,7 +309,10 @@ export function useChat() {
           if (error.includes("not found") || error.includes("expired")) setSessionId(null);
           finishWithError(
             streamId,
-            `Sorry, there was an error: ${error}. Try sending your message again.`,
+            startErrorMessage(
+              error,
+              `Sorry, there was an error: ${error}. Try sending your message again.`,
+            ),
           );
         },
       },

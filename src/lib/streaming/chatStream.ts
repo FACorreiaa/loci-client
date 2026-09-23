@@ -274,13 +274,34 @@ export async function* streamChatEvents(
         return;
       }
     }
-    yield {
-      kind: "error",
-      userMessage: parseStreamError(connErr?.rawMessage ?? String(err)).userMessage,
-      internalCode: connErr ? Code[connErr.code] : "unknown",
-      retryable: connErr?.code === Code.Unavailable || connErr?.code === Code.ResourceExhausted,
-    };
+    yield terminalError(connErr, err);
   }
+}
+
+/**
+ * The final `error` event for a stream that failed to open or died.
+ *
+ * ResourceExhausted means two different things here. About quota or a rate
+ * limit, parseStreamError words it. Otherwise it is the server's concurrent
+ * search cap, whose message is already written for people ("You have 3
+ * searches running — wait for one to finish"): it passes through verbatim,
+ * and retrying cannot help until one of those searches ends.
+ */
+export function terminalError(
+  connErr: ConnectError | undefined,
+  err: unknown,
+): Extract<LociStreamEvent, { kind: "error" }> {
+  const raw = connErr?.rawMessage ?? String(err);
+  const internalCode = connErr ? Code[connErr.code] : "unknown";
+  if (connErr?.code === Code.ResourceExhausted && !/quota|rate.?limit|429/i.test(raw)) {
+    return { kind: "error", userMessage: raw.trim(), internalCode, retryable: false };
+  }
+  return {
+    kind: "error",
+    userMessage: parseStreamError(raw).userMessage,
+    internalCode,
+    retryable: connErr?.code === Code.Unavailable || connErr?.code === Code.ResourceExhausted,
+  };
 }
 
 export interface ChatStreamHandlers {

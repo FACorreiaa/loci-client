@@ -3,6 +3,7 @@ import { createEffect, createSignal, on, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { Send, Loader2, Settings } from "lucide-solid";
 import { detectDomain } from "~/lib/api/llm";
+import { startErrorMessage } from "~/lib/errors";
 import { createStreamingSession, getDomainRoute, streamingService } from "~/lib/chat-stream";
 import type { StreamingSession, AiCityResponse } from "~/lib/api/types";
 import { useUserLocation } from "~/contexts/LocationContext";
@@ -18,6 +19,10 @@ export default function DeskHero() {
   const [currentMessage, setCurrentMessage] = createSignal("");
   const [isLoading, setIsLoading] = createSignal(false);
   const [streamProgress, setStreamProgress] = createSignal("");
+  // Said inline under the box. Most failures happen after the hand-off to the
+  // result page; the one that doesn't is the server refusing a 4th concurrent
+  // search, and until this existed that refusal just stopped the spinner.
+  const [searchError, setSearchError] = createSignal("");
   const [_streamingSession, setStreamingSession] = createSignal<StreamingSession | null>(null);
   const [isQuickSettingsOpen, setIsQuickSettingsOpen] = createSignal(false);
   let textareaRef: HTMLTextAreaElement | undefined;
@@ -55,6 +60,7 @@ export default function DeskHero() {
     if (!message || isLoading()) return;
 
     setIsLoading(true);
+    setSearchError("");
     setStreamProgress("Reading the request...");
 
     try {
@@ -116,6 +122,9 @@ export default function DeskHero() {
             console.error("Streaming error:", error);
             setIsLoading(false);
             setStreamProgress("");
+            setSearchError(
+              startErrorMessage(error, "That didn't go through. Try again in a moment."),
+            );
           },
         },
       );
@@ -201,6 +210,11 @@ export default function DeskHero() {
               </Show>
             </button>
           </div>
+          <Show when={searchError()}>
+            <p role="alert" class="mt-3 text-sm text-primary-foreground/90">
+              {searchError()}
+            </p>
+          </Show>
         </div>
       </section>
 
