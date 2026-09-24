@@ -4,6 +4,7 @@ import { Button } from "@/ui/button";
 import { Wifi, RefreshCw, Map, Trash2, Bookmark } from "lucide-solid";
 import {
   clearOfflineTripCache,
+  currentOfflineUserId,
   listCachedTrips,
   type CachedTripSummary,
 } from "~/lib/trip-offline-cache";
@@ -29,7 +30,7 @@ const OfflinePage: Component = () => {
   };
 
   const handleClear = () => {
-    clearOfflineTripCache();
+    clearOfflineTripCache(currentOfflineUserId());
     refresh();
   };
 

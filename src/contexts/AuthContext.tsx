@@ -16,6 +16,7 @@ import { identify, resetIdentity } from "~/lib/analytics";
 import { clearFavoritesIdentityCache } from "~/lib/api/favorites";
 import { queryUtils } from "~/lib/query-client";
 import { unregisterPushDevice } from "~/lib/push/push-client";
+import { clearOfflineTripCache } from "~/lib/trip-offline-cache";
 
 interface User {
   id: string;
@@ -419,6 +420,9 @@ export const AuthProvider = (props: AuthProviderProps) => {
       // this browser is not merged into their session.
       resetIdentity();
       forgetUserScopedData();
+      // Offline trips are per account, but a deliberate sign-out should leave
+      // nothing of this account's trips on the machine.
+      clearOfflineTripCache();
       setUser(null);
       setIsLoading(false);
       setAuthError(null);
