@@ -18,12 +18,14 @@ export function appendTranscript(existing: string, text: string): string {
   return head === "" ? tail : `${head} ${tail}`;
 }
 
-// Once the server has said it has no speech service, every microphone on every
-// page would say the same thing again. So the answer is kept for the session
+// Once the server has said it has no speech configured, every microphone on
+// every page would say the same thing again. Only that answer counts: a speech
+// service that is merely failing right now is worth another try, so its error
+// is shown and the button stays. So the answer is kept for the session
 // (until a reload) and the buttons stop being offered.
 const [serverUnavailable, setServerUnavailable] = createSignal(false);
 
-/** Whether the server has told this session it cannot transcribe. */
+/** Whether the server has told this session it has no speech configured. */
 export const dictationUnavailable = serverUnavailable;
 
 /** Forgets that the server was unavailable. For tests. */
@@ -78,7 +80,7 @@ export default function DictationButton(props: DictationButtonProps) {
     on(
       () => dictation.errorKind(),
       (kind) => {
-        if (kind === "unavailable") setServerUnavailable(true);
+        if (kind === "not-configured") setServerUnavailable(true);
       },
       { defer: true },
     ),

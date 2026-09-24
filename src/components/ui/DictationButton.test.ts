@@ -135,14 +135,14 @@ describe("DictationButton", () => {
     expect(states).toEqual(["recording", "transcribing", "idle"]);
   });
 
-  it("stops offering dictation anywhere once the server says it is unavailable", async () => {
+  it("stops offering dictation anywhere once the server says speech is not configured", async () => {
     mocks.canRecord.mockReturnValue(true);
     mocks.startRecording.mockResolvedValue({
       stop: () => Promise.resolve({ audio: new Uint8Array([1]), mimeType: "audio/webm" }),
       cancel: vi.fn(),
     });
     mocks.transcribe.mockRejectedValue(
-      new mocks.TranscribeError("unavailable", "Dictation is not available on this server."),
+      new mocks.TranscribeError("not-configured", "Dictation is not available on this server."),
     );
     const errors: Array<string | null> = [];
     const first = mount({ onStatusChange: (s) => errors.push(s.error) });
@@ -162,6 +162,28 @@ describe("DictationButton", () => {
     const third = mount();
     await settle();
     expect(third.host.querySelector("button")).toBeNull();
+  });
+
+  it("keeps offering dictation, with the server's words, when speech is only down for now", async () => {
+    mocks.canRecord.mockReturnValue(true);
+    mocks.startRecording.mockResolvedValue({
+      stop: () => Promise.resolve({ audio: new Uint8Array([1]), mimeType: "audio/webm" }),
+      cancel: vi.fn(),
+    });
+    mocks.transcribe.mockRejectedValue(
+      new mocks.TranscribeError("unavailable", "Transcription is behind. Try again shortly."),
+    );
+    const errors: Array<string | null> = [];
+    const { host } = mount({ onStatusChange: (s) => errors.push(s.error) });
+    await settle();
+
+    host.querySelector("button")!.click();
+    await settle();
+    host.querySelector("button")!.click();
+    await settle();
+
+    expect(host.querySelector("button")).not.toBeNull();
+    expect(errors).toContain("Transcription is behind. Try again shortly.");
   });
 
   it("keeps offering dictation after an ordinary failure", async () => {

@@ -525,9 +525,9 @@ export default function DiscoverPage() {
                         class="w-full pl-10 py-3 rounded-xl border-2 border-border focus:ring-2 focus:ring-ring focus:border-ring bg-card/95 text-foreground placeholder:text-muted-foreground text-base transition-all disabled:cursor-not-allowed disabled:opacity-70"
                         classList={{ "pr-12": isAuthenticated(), "pr-4": !isAuthenticated() }}
                       />
-                      {/* Signed-in only: the server hints the transcript
-                          with the account's own place names, and a guest's
-                          recording would be transcribed blind. The words
+                      {/* Signed-in only: Transcribe is not one of the
+                          server's public procedures, so its auth interceptor
+                          rejects a guest's recording outright. The words
                           land in the box rather than searching straight away,
                           because place names come back misheard often enough
                           to need a look first. */}

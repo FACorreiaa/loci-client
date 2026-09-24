@@ -7,12 +7,19 @@ export type DictationState = "idle" | "recording" | "transcribing";
 /**
  * What kind of thing went wrong, for code that acts on it rather than showing it.
  *
- * "unavailable" is the server having no working speech service. It is the one
+ * "not-configured" is the server having no speech set up at all. It is the one
  * that decides whether a microphone should be offered again, because trying
- * again will not help. A browser without a microphone is "no-microphone", not
- * this: that one is about the device, not the deployment.
+ * again will not help. "unavailable" is the speech service failing for now,
+ * which a later try may get past. A browser without a microphone is
+ * "no-microphone": that one is about the device, not the deployment.
  */
-export type DictationErrorKind = "unavailable" | "denied" | "no-microphone" | "silent" | "failed";
+export type DictationErrorKind =
+  | "not-configured"
+  | "unavailable"
+  | "denied"
+  | "no-microphone"
+  | "silent"
+  | "failed";
 
 export interface Dictation {
   /**
@@ -125,7 +132,10 @@ function failureFor(failure: unknown): { message: string; kind: DictationErrorKi
   if (failure instanceof TranscribeError) {
     return {
       message: failure.message,
-      kind: failure.reason === "unavailable" ? "unavailable" : "failed",
+      kind:
+        failure.reason === "not-configured" || failure.reason === "unavailable"
+          ? failure.reason
+          : "failed",
     };
   }
   if (failure instanceof RecorderError) {
