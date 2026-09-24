@@ -236,6 +236,82 @@ describe("ChatMessage (Muse restyle)", () => {
   });
 });
 
+describe("ChatMessage proactive caption (stage C)", () => {
+  let dispose: (() => void) | undefined;
+  afterEach(() => {
+    dispose?.();
+    dispose = undefined;
+    document.body.innerHTML = "";
+  });
+
+  const mount = (message: Partial<ChatMessageType>) => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    dispose = render(
+      () =>
+        createComponent(ChatMessage, {
+          message: {
+            id: "p1",
+            type: "assistant",
+            content: "Got it — I'll watch rain in Lisbon and ping you when it's forecast.",
+            timestamp: new Date("2026-09-23T10:00:00Z"),
+            ...message,
+          } as ChatMessageType,
+          expanded: false,
+          onToggle: () => {},
+          onItemClick: () => {},
+        }),
+      host,
+    );
+    return host;
+  };
+  const caption = (host: HTMLElement) =>
+    host.querySelector<HTMLElement>('[data-testid="proactive-caption"]');
+
+  it("puts the source label above a proactive agent bubble", () => {
+    const host = mount({ origin: "proactive", sourceLabel: "Standing task" });
+    const el = caption(host)!;
+    expect(el.textContent).toBe("Standing task");
+    // Caption sits directly above the bubble, in the same column.
+    expect(el.nextElementSibling?.getAttribute("data-testid")).toBe("chat-bubble");
+    expect(host.querySelector("[data-origin]")!.getAttribute("data-origin")).toBe("proactive");
+  });
+
+  it("styles the caption 11px uppercase in the secondary text colour", () => {
+    const host = mount({ origin: "proactive", sourceLabel: "Briefing · 07:00" });
+    const cls = caption(host)!.className;
+    expect(cls).toContain("text-[11px]");
+    expect(cls).toContain("uppercase");
+    expect(cls).toContain("text-[var(--muse-text-secondary)]");
+    expect(caption(host)!.textContent).toBe("Briefing · 07:00");
+  });
+
+  it("keeps the agent bubble itself unchanged", () => {
+    const host = mount({ origin: "proactive", sourceLabel: "Standing task" });
+    const b = host.querySelector<HTMLElement>('[data-testid="chat-bubble"]')!;
+    expect(b.className).toContain("bg-[var(--muse-agent-bubble)]");
+    expect(b.className).toContain("rounded-[24px]");
+  });
+
+  it("falls back to a generic label when a proactive message has none", () => {
+    const host = mount({ origin: "proactive", sourceLabel: "  " });
+    expect(caption(host)!.textContent).toBe("From Loci");
+  });
+
+  it("shows no caption on replies, or when origin is unset (older messages)", () => {
+    expect(caption(mount({ origin: "reply", sourceLabel: "Standing task" }))).toBeNull();
+    dispose?.();
+    document.body.innerHTML = "";
+    const host = mount({});
+    expect(caption(host)).toBeNull();
+    expect(host.querySelector("[data-origin]")!.getAttribute("data-origin")).toBe("reply");
+  });
+
+  it("never captions a user bubble", () => {
+    expect(caption(mount({ type: "user", origin: "proactive", sourceLabel: "x" }))).toBeNull();
+  });
+});
+
 describe("ChatHeader (Muse restyle)", () => {
   afterEach(() => {
     document.body.innerHTML = "";

@@ -5,6 +5,7 @@ import ResultsList from "~/components/results/ResultsList";
 import ItineraryStreamView from "~/components/itinerary/ItineraryStreamView";
 import { stopsFromCityResponse } from "~/lib/itinerary/createItineraryStream";
 import Markdown from "~/components/ui/Markdown";
+import { ProactiveCaption } from "./ProactiveCaption";
 import type { ChatMessage as ChatMessageType } from "~/lib/hooks/useChat";
 
 export interface ChatMessageProps {
@@ -98,6 +99,12 @@ const ChatMessage: Component<ChatMessageProps> = (props) => {
   const isError = () => props.message.type === "error";
   const displayText = createMemo(() => formatMessageContent(props.message.content));
   const cityData = () => props.message.streamingData?.general_city_data;
+  // Posted by the agent on its own (standing task, briefing): same bubble,
+  // captioned with where it came from.
+  const proactiveLabel = () =>
+    !isUser() && props.message.origin === "proactive"
+      ? props.message.sourceLabel?.trim() || "From Loci"
+      : null;
 
   const itineraryName = () => {
     const raw = props.message.streamingData?.itinerary_response?.itinerary_name;
@@ -122,8 +129,10 @@ const ChatMessage: Component<ChatMessageProps> = (props) => {
       class={`flex ${isUser() ? "justify-end" : "justify-start"}`}
       data-testid="chat-message"
       data-role={isUser() ? "user" : "agent"}
+      data-origin={proactiveLabel() ? "proactive" : "reply"}
     >
       <div class={isUser() ? "max-w-[85%]" : "max-w-[94%] min-w-0"}>
+        <Show when={proactiveLabel()}>{(label) => <ProactiveCaption label={label()} />}</Show>
         <Show when={props.message.content.trim().length > 0 || !props.message.streaming}>
           <div
             data-testid="chat-bubble"

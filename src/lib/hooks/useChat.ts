@@ -19,10 +19,20 @@ import {
 } from "~/lib/chat/museState";
 import { useAppQuery } from "../api/authed-query";
 import { startErrorMessage } from "~/lib/errors";
+import { looksLikeWatchRequest } from "~/lib/chat/watchIntent";
+import {
+  browserTimeZone,
+  invalidateWatches,
+  toChatMessage,
+  watchApi,
+  type WatchProposal,
+} from "~/lib/api/watches";
+import type { ConversationMessage } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
 
 export interface ChatMessage {
   id: string;
-  type: "user" | "assistant" | "error";
+  /** "watch-proposal" renders a standing-task card instead of a bubble. */
+  type: "user" | "assistant" | "error" | "watch-proposal";
   content: string;
   timestamp: Date;
   hasItinerary?: boolean;
@@ -30,6 +40,12 @@ export interface ChatMessage {
   showResults?: boolean;
   /** true only while this message is being streamed (drives typewriter). */
   streaming?: boolean;
+  /** "proactive" when the agent posted without a user turn; else a reply. */
+  origin?: "reply" | "proactive";
+  /** Caption above a proactive bubble: "Standing task", "Briefing · 07:00". */
+  sourceLabel?: string;
+  /** Set on "watch-proposal" messages: what ProposeWatch understood. */
+  watchProposal?: WatchProposal;
 }
 
 const MAX_LOCAL_SESSIONS = 10;
@@ -180,6 +196,7 @@ export function useChat() {
     setIsLoading(true);
     setStreamProgress("Analyzing your request...");
     dispatchMuse({ kind: "send" });
+    offerStandingTask(messageContent);
 
     try {
       const currentSessionId = sessionId();
@@ -196,6 +213,45 @@ export function useChat() {
       );
     }
   };
+
+  /**
+   * "Tell me when…", "every morning…": ask the server what standing task it
+   * would make of the message and offer it as a card after the answer. Stores
+   * nothing. The message still goes to the chat as usual, and a failed
+   * proposal just means no card — the user never asked for one outright.
+   */
+  const offerStandingTask = (text: string) => {
+    if (!looksLikeWatchRequest(text)) return;
+    watchApi
+      .propose(text, browserTimeZone())
+      .then((proposal) =>
+        appendMessage({
+          id: `watch-proposal-${Date.now()}`,
+          type: "watch-proposal",
+          content: proposal.title,
+          timestamp: new Date(),
+          watchProposal: proposal,
+        }),
+      )
+      .catch((error) => logger.warn("No standing-task proposal:", error));
+  };
+
+  /** The thread a confirmed watch posts into; the stream mints it on start. */
+  const watchSessionId = (): string | undefined =>
+    sessionId() || streamingSession()?.sessionId || undefined;
+
+  /** CreateWatch succeeded: the card gives way to the agent's confirmation. */
+  const confirmStandingTask = (proposalMessageId: string, confirmation?: ConversationMessage) => {
+    setMessages((prev) => {
+      const rest = prev.filter((m) => m.id !== proposalMessageId);
+      return confirmation ? [...rest, toChatMessage(confirmation)] : rest;
+    });
+    void invalidateWatches(queryClient);
+  };
+
+  /** "Not now": drop the card, no call. */
+  const dismissStandingTask = (proposalMessageId: string) =>
+    setMessages((prev) => prev.filter((m) => m.id !== proposalMessageId));
 
   const finishWithError = (streamId: string, content: string) => {
     dispatchMuse({ kind: "error" });
@@ -443,6 +499,8 @@ export function useChat() {
           hasItinerary: msg.role === "assistant" && !!(msg.data || msg.streaming_data),
           streamingData: msg.data || msg.streaming_data || null,
           showResults: msg.role === "assistant" && !!(msg.data || msg.streaming_data),
+          origin: msg.origin,
+          sourceLabel: msg.sourceLabel,
         }));
       } else {
         conversationMessages = [
@@ -580,5 +638,9 @@ export function useChat() {
     toggleResultExpansion,
     saveMessage,
     shareMessage,
+    // standing tasks
+    watchSessionId,
+    confirmStandingTask,
+    dismissStandingTask,
   };
 }

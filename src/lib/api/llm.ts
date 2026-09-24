@@ -9,6 +9,7 @@ import {
   ChatSession as ProtoChatSession,
   ContinueChatRequestSchema,
   DomainType as ChatDomainType,
+  MessageOrigin,
   MessageRole,
   RunStatus,
   SessionPOISection,
@@ -625,6 +626,10 @@ const mapProtoChatSession = (session: ProtoChatSession): ChatSessionSummary => {
           : "assistant",
     content: message.content,
     timestamp: timestampToDate(message.timestamp),
+    // Standing tasks and briefings post without a user turn; the bubble
+    // wears their label as a caption. UNSPECIFIED (older rows) is a reply.
+    origin: message.origin === MessageOrigin.PROACTIVE ? "proactive" : "reply",
+    sourceLabel: message.sourceLabel || undefined,
   })) as ChatMessage[];
   const lastMessage = messages[messages.length - 1];
 

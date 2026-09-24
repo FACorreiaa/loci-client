@@ -1,4 +1,4 @@
-import { For, Show, Component } from "solid-js";
+import { For, Show, Component, type JSX } from "solid-js";
 import { MapPin, Sparkles, MessageCircle, Loader2, Plus, X } from "lucide-solid";
 
 export interface ChatSessionSummary {
@@ -48,6 +48,8 @@ export interface ChatSidebarProps {
   /** Drawer open state on mobile (always visible as a rail on lg+). */
   open?: boolean;
   onClose?: () => void;
+  /** Standing tasks section, shown above the conversation list. */
+  standingTasks?: JSX.Element;
 }
 
 const formatTimestamp = (timestamp: string) => {
@@ -146,6 +148,7 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
         {/* Chat Sessions List */}
         <div class="flex-1 overflow-y-auto">
           <div class="p-3 sm:p-4">
+            {props.standingTasks}
             <h3 class="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">
               Recent Conversations
             </h3>
