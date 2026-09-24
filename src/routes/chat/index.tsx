@@ -6,6 +6,8 @@ import {
   ChatInput,
   ChatQuickPrompts,
   ChatSidebar,
+  StandingTasksList,
+  WatchProposalCard,
   type QuickPrompt,
 } from "~/components/chat";
 import ChatMessage from "~/components/chat/ChatMessage";
@@ -124,6 +126,7 @@ export default function ChatPage() {
         onToggleProfileSelector={() => chat.setShowProfileSelector(!chat.showProfileSelector())}
         onRefetch={() => chat.chatSessionsQuery.refetch()}
         isSessionLoading={chat.isLoading()}
+        standingTasks={<StandingTasksList />}
       />
 
       {/* Main Chat Area */}
@@ -148,14 +151,30 @@ export default function ChatPage() {
           <div class="max-w-3xl mx-auto space-y-3 sm:space-y-4">
             <For each={chat.messages()}>
               {(message) => (
-                <ChatMessage
-                  message={message}
-                  expanded={chat.expandedResults().has(message.id)}
-                  onToggle={chat.toggleResultExpansion}
-                  onItemClick={handleItemClick}
-                  onSave={chat.saveMessage}
-                  onShare={chat.shareMessage}
-                />
+                <Show
+                  when={message.type === "watch-proposal" && message.watchProposal}
+                  fallback={
+                    <ChatMessage
+                      message={message}
+                      expanded={chat.expandedResults().has(message.id)}
+                      onToggle={chat.toggleResultExpansion}
+                      onItemClick={handleItemClick}
+                      onSave={chat.saveMessage}
+                      onShare={chat.shareMessage}
+                    />
+                  }
+                >
+                  {(proposal) => (
+                    <WatchProposalCard
+                      proposal={proposal()}
+                      sessionId={chat.watchSessionId()}
+                      onCreated={(confirmation) =>
+                        chat.confirmStandingTask(message.id, confirmation)
+                      }
+                      onDismiss={() => chat.dismissStandingTask(message.id)}
+                    />
+                  )}
+                </Show>
               )}
             </For>
 

@@ -9,3 +9,6 @@ export type { ChatSidebarProps, ChatSessionSummary, TravelProfile } from "./Chat
 export type { ChatHeaderProps } from "./ChatHeader";
 export type { ChatInputProps } from "./ChatInput";
 export type { ChatQuickPromptsProps, QuickPrompt } from "./ChatQuickPrompts";
+export { default as WatchProposalCard } from "./WatchProposalCard";
+export { default as StandingTasksList } from "./StandingTasksList";
+export type { WatchProposalCardProps } from "./WatchProposalCard";

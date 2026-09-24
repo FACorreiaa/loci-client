@@ -159,6 +159,10 @@ export interface ChatMessage {
   timestamp: Date;
   hasItinerary?: boolean;
   itinerary?: AIItineraryResponse;
+  /** "proactive" when the agent posted on its own (standing task, briefing). */
+  origin?: "reply" | "proactive";
+  /** Caption for a proactive bubble, e.g. "Standing task". */
+  sourceLabel?: string;
   metadata?: {
     session_id?: string;
     domain?: DomainType;
