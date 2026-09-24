@@ -17,6 +17,7 @@ import { useAppQuery } from "./authed-query";
 import { useAuthGate } from "../auth/useAuthGate";
 import type { ItineraryStop } from "../itinerary/createItineraryStream";
 import { pointsFromDays, type PackPoint } from "../bundles/points";
+import { purchasePollInterval } from "../bundles/purchase-poll";
 
 const bundleClient = createClient(BundleService, transport);
 
@@ -143,10 +144,16 @@ export function usePacks(filters: () => PackFilters = () => ({})) {
 }
 
 /** One pack, with only the days the caller is entitled to. */
-export function usePack(slug: () => string | undefined) {
+export function usePack(
+  slug: () => string | undefined,
+  justPurchased: () => boolean = () => false,
+) {
   return useAppQuery(() => ({
     queryKey: ["packs", "detail", slug()],
     enabled: !!slug(),
+    refetchInterval: (query: {
+      state: { data: PackDetail | null | undefined; dataUpdateCount: number };
+    }) => purchasePollInterval(justPurchased(), query.state.data, query.state.dataUpdateCount),
     queryFn: async (): Promise<PackDetail | null> => {
       const s = slug();
       if (!s) return null;

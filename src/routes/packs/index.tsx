@@ -3,6 +3,7 @@ import { Title, Meta } from "@solidjs/meta";
 import { useSearchParams } from "@solidjs/router";
 import SectionHeader from "~/components/ui/SectionHeader";
 import PackCard from "~/components/packs/PackCard";
+import { ErrorView } from "~/components/ErrorView";
 import { usePacks } from "~/lib/api/bundles";
 import { PACK_THEMES, PACK_THEME_META, isPackTheme } from "~/lib/bundles/themes";
 
@@ -150,18 +151,29 @@ export default function PacksPage() {
         }
       >
         <Show
-          when={packs().length > 0}
+          when={!packsQuery.isError}
           fallback={
-            <p class="mt-8 text-sm text-muted-foreground">
-              {hasFilters()
-                ? "No packs match those filters yet."
-                : "No packs published yet. They are written and checked by hand, so they arrive a few at a time."}
-            </p>
+            <ErrorView
+              class="mt-8"
+              error={packsQuery.error}
+              onRetry={() => void packsQuery.refetch()}
+            />
           }
         >
-          <ul class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <For each={packs()}>{(pack) => <PackCard pack={pack} />}</For>
-          </ul>
+          <Show
+            when={packs().length > 0}
+            fallback={
+              <p class="mt-8 text-sm text-muted-foreground">
+                {hasFilters()
+                  ? "No packs match those filters yet."
+                  : "No packs published yet. They are written and checked by hand, so they arrive a few at a time."}
+              </p>
+            }
+          >
+            <ul class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <For each={packs()}>{(pack) => <PackCard pack={pack} />}</For>
+            </ul>
+          </Show>
         </Show>
       </Show>
     </main>
