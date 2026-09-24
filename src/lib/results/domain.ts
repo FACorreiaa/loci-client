@@ -6,6 +6,7 @@
 // activities_response at all, and every favourite was saved under the place's
 // name instead of its id. Pure functions, no framework, so all of it is
 // testable without a DOM.
+import type { StopState } from "~/lib/streaming/multi-city";
 import type { FavoriteItem } from "~/lib/api/favorites";
 import type { SessionListSection } from "~/lib/api/llm";
 import type { GeneralCityData, POIDetailedInfo } from "~/lib/api/types";
@@ -128,6 +129,16 @@ export function unwrapDomainResults(data: unknown, domain: ResultsDomain): Unwra
   const seen = new Set(list.map(identity));
   const extras = general.filter((poi) => !seen.has(identity(poi)));
   return { list, extras, city, sessionId };
+}
+
+/** One city's list in a multi-city run, or null when that city has nothing yet. */
+export function stopResults(
+  stops: StopState[] | undefined,
+  active: number,
+  domain: ResultsDomain,
+): UnwrappedResults | null {
+  const stop = stops?.find((s) => s.index === active);
+  return stop?.data ? unwrapDomainResults(stop.data, domain) : null;
 }
 
 /** Whether a payload has anything a domain page could render. */
