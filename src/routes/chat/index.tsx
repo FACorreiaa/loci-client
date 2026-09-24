@@ -40,19 +40,19 @@ const QUICK_PROMPTS: QuickPrompt[] = [
     domain: "itinerary",
   },
   {
-    id: "4",
+    id: "5",
     text: "Family weekend in Amsterdam",
     description: "Kid-friendly activities and places",
     domain: "activities",
   },
   {
-    id: "5",
+    id: "6",
     text: "Photogenic spots in Santorini",
     description: "Calm viewpoints and walking routes",
     domain: "general",
   },
   {
-    id: "6",
+    id: "7",
     text: "Nightlife in Berlin",
     description: "Bars, clubs, and evening culture",
     domain: "activities",
