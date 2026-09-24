@@ -146,6 +146,9 @@ export function useLiveSession(sessionId: () => string | undefined) {
       return p === "connecting" || p === "streaming";
     },
     tokenCount: () => run()?.tokenCount ?? 0,
+    /** A multi-city run's route and cities; null / empty for one city. */
+    route: () => run()?.route ?? null,
+    stops: () => run()?.stops ?? [],
   };
 }
 
