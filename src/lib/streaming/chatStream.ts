@@ -286,6 +286,9 @@ function mapPayload(ev: ProtoStreamEvent): LociStreamEvent | null {
   }
 }
 
+/** What this client can render, sent on every stream (server: featuresHeader). */
+export const CLIENT_FEATURES = { "Loci-Features": "multi-city" } as const;
+
 export const buildRequest = (params: ChatStreamParams) =>
   // These are `optional` fields with a min_len:1 validator. Sending "" POPULATES
   // them (proto3 optional tracks presence), so the server rejects the request on
@@ -320,7 +323,9 @@ export async function* streamChatEvents(
   signal?: AbortSignal,
 ): AsyncGenerator<LociStreamEvent> {
   const req = buildRequest(params);
-  const makeStream = () => chatService.streamChat(req, signal ? { signal } : undefined);
+  // Tells the server this client renders multi-city streams (ROUTE and
+  // stop_index); without it free text naming several cities stays one city.
+  const makeStream = () => chatService.streamChat(req, { signal, headers: CLIENT_FEATURES });
 
   const seen = new Set<string>();
   let emitted = false;

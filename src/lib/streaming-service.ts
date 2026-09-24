@@ -17,7 +17,12 @@ import type {
   AiCityResponse,
 } from "./api/types";
 import type { ChatStreamParams, LociStreamEvent } from "./streaming/chatStream";
-import { applyCityEvent, applyStopEvent, stopsFromRoute } from "./streaming/multi-city";
+import {
+  applyCityEvent,
+  applyStopEvent,
+  finishStops,
+  stopsFromRoute,
+} from "./streaming/multi-city";
 import { streamWithReconnect } from "./streaming/reconnect";
 import {
   clearActiveSession,
@@ -310,6 +315,7 @@ export class StreamingChatService {
         break;
 
       case "complete":
+        if (mgr.session.stops) mgr.session.stops = finishStops(mgr.session.stops);
         return this.handleComplete(event, run);
     }
   }

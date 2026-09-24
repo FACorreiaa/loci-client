@@ -265,3 +265,13 @@ describe("multi-city events", () => {
     expect(out[1]).toMatchObject({ kind: "error", transport: true, internalCode: "stream_ended" });
   });
 });
+
+describe("capabilities", () => {
+  it("tells the server it renders multi-city streams", async () => {
+    streamChat.mockReset();
+    streamChat.mockReturnValue({ async *[Symbol.asyncIterator]() {} });
+    for await (const _ of streamChatEvents({ message: "trip" })) void _;
+    const opts = streamChat.mock.calls[0][1] as { headers?: Record<string, string> };
+    expect(opts?.headers?.["Loci-Features"]).toContain("multi-city");
+  });
+});

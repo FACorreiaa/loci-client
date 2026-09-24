@@ -47,6 +47,7 @@ import {
   multiShareText,
   parseStopsParam,
   routeFromTrip,
+  tripIdToAdopt,
   tripWideResponse,
 } from "@/components/features/MultiCity/multi-city-view";
 import { fetchTrip } from "@/lib/api/trips";
@@ -403,6 +404,12 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     return fromLive.length > 0 ? fromLive : store.stops;
   });
   const isMulti = createMemo(() => cityStops().length >= 2);
+  // Once the server has saved the trip, name it in the URL: a reload then
+  // reopens every city rather than the first city's session alone.
+  createEffect(() => {
+    const tripId = tripIdToAdopt(searchParams.tripId as string | undefined, route()?.tripId);
+    if (tripId && mounted) setSearchParams({ tripId }, { replace: true });
+  });
   const [activeStop, setActiveStop] = createSignal<number | "all">("all");
   const activeCity = createMemo(() => {
     const a = activeStop();

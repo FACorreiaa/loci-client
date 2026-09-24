@@ -67,7 +67,7 @@ vi.mock("./streaming/chatStream", () => {
 import { streamingService, createStreamingSession } from "./streaming-service";
 import { liveRuns, readActiveSessions, removeRun } from "./streaming/live-stream-store";
 import { COMPLETED_SESSION_KEY, readCompletedSession } from "./streaming/restore-session";
-import { reconnectPolicy, settleEvent } from "./streaming/reconnect";
+import { reconnectPolicy, reconnectPolicyDefaults, settleEvent } from "./streaming/reconnect";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -663,5 +663,39 @@ describe("streamingService — multi-city runs", () => {
     await tick();
     expect(session.tripId).toBe("t1");
     feed.end();
+  });
+});
+
+describe("streamingService — multi-city completion", () => {
+  it("a city still planning when the run completes is marked failed, not left spinning", async () => {
+    const { session, feed } = start();
+    feed.push({ kind: "start", sessionId: "s0", domain: "itinerary", city: "Lisbon" });
+    feed.push({
+      kind: "route",
+      route: {
+        stops: [
+          { index: 0, cityName: "Lisbon", sessionId: "s0", dayNumbers: [1] },
+          { index: 1, cityName: "Porto", sessionId: "s1", dayNumbers: [2] },
+        ],
+        legs: [],
+        outline: "",
+        warnings: [],
+        dropped: [],
+        totalTravelMins: 0,
+      },
+    });
+    feed.push({ ...itineraryEvent(), stopIndex: 0 });
+    feed.push({ kind: "complete", sessionId: "s0" });
+    await tick();
+    await tick();
+    expect(session.stops?.[0].error).toBeUndefined();
+    expect(session.stops?.[1].done).toBe(true);
+    expect(session.stops?.[1].error).toBeTruthy();
+    feed.end();
+  });
+
+  it("waits long enough for a multi-city run to finish", () => {
+    // The server keeps a multi-city run going for up to nine minutes.
+    expect(reconnectPolicyDefaults.pollTimeoutMs).toBeGreaterThanOrEqual(9 * 60 * 1000);
   });
 });

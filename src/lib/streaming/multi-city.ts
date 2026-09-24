@@ -113,3 +113,15 @@ export function applyStopEvent(
     return { ...s, data, done: s.done || done };
   });
 }
+
+/**
+ * The run completed: a city still planning never will. It is marked failed
+ * rather than left spinning — its error may have been lost with its own
+ * deadline.
+ */
+export const finishStops = (stops: StopState[]): StopState[] =>
+  stops.map((s) =>
+    s.done || s.error
+      ? s
+      : { ...s, done: true, error: `We couldn't plan ${s.cityName} this time.` },
+  );

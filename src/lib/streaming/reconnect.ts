@@ -36,11 +36,27 @@ import { domainName } from "./domain-name";
 type ErrorEvent = Extract<LociStreamEvent, { kind: "error" }>;
 
 /** Timings. Mutable so tests can collapse them; nothing else should. */
-export const reconnectPolicy = {
+export const reconnectPolicyDefaults = Object.freeze({
   /** Wait before each resume attempt; its length is the number of attempts. */
   backoffMs: [1000, 2000, 4000],
   pollIntervalMs: 5000,
-  pollTimeoutMs: 5 * 60 * 1000,
+  /**
+   * The run store's staleness window (runs.StaleAfter, 10 min): a multi-city
+   * trip can work for up to nine minutes, and a poll that gave up at five
+   * reported a trip that was still being planned as lost. A single city is
+   * DONE well before this, and polling stops the moment it is.
+   */
+  pollTimeoutMs: 10 * 60 * 1000,
+});
+
+export const reconnectPolicy: {
+  backoffMs: number[];
+  pollIntervalMs: number;
+  pollTimeoutMs: number;
+} = {
+  backoffMs: [...reconnectPolicyDefaults.backoffMs],
+  pollIntervalMs: reconnectPolicyDefaults.pollIntervalMs,
+  pollTimeoutMs: reconnectPolicyDefaults.pollTimeoutMs,
 };
 
 /** The server's code for "that run is live on another pod; try again later". */

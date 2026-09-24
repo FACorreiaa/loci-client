@@ -251,3 +251,14 @@ describe("saving and reopening a multi-city trip", () => {
     expect(isMultiPayload(null)).toBe(false);
   });
 });
+
+import { tripIdToAdopt } from "./multi-city-view";
+
+describe("the trip in the URL", () => {
+  it("adopts the parent trip once the server has saved it, so a reload reopens every city", () => {
+    expect(tripIdToAdopt(undefined, "t1")).toBe("t1");
+    expect(tripIdToAdopt("t1", "t1")).toBeUndefined();
+    expect(tripIdToAdopt(undefined, undefined)).toBeUndefined();
+    expect(tripIdToAdopt("t0", "t1")).toBe("t1");
+  });
+});

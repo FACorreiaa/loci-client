@@ -223,3 +223,13 @@ export function routeFromTrip(trip: SavedTripLike): { route: RouteInfo; stops: S
     stops,
   };
 }
+
+/**
+ * The trip id the page should put in its URL, if any: the parent trip once
+ * the server has saved it. A reload, a push link or a resume whose buffer is
+ * gone then reopens every city (restoreFromTrip), not just the first.
+ */
+export const tripIdToAdopt = (
+  inUrl: string | undefined,
+  fromRoute: string | undefined,
+): string | undefined => (fromRoute && fromRoute !== inUrl ? fromRoute : undefined);
