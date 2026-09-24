@@ -174,3 +174,94 @@ describe("chatStream transport classification", () => {
     expect(e).toMatchObject({ kind: "complete", sessionId: "s1", loadFromSession: true });
   });
 });
+
+import {
+  RoutePayloadSchema,
+  StreamEventType,
+} from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
+import { TripLegSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
+import { buildRequest } from "./chatStream";
+
+describe("multi-city events", () => {
+  it("maps ROUTE", () => {
+    const ev = create(StreamEventSchema, {
+      eventType: StreamEventType.ROUTE,
+      payload: {
+        case: "route",
+        value: create(RoutePayloadSchema, {
+          stops: [
+            { index: 0, cityName: "Lisbon", sessionId: "s0", dayNumbers: [1, 2] },
+            { index: 1, cityName: "Porto", sessionId: "s1", dayNumbers: [3] },
+          ],
+          legs: [
+            create(TripLegSchema, {
+              afterDay: 2,
+              fromName: "Lisbon",
+              toName: "Porto",
+              distanceKm: 274,
+              durationMins: 194,
+              mode: "train",
+            }),
+          ],
+          outline: "Lisbon (2 days) → Porto (1 day)",
+          dropped: [{ cityName: "Atlantis", reason: "we couldn't find this city" }],
+          tripId: "t1",
+        }),
+      },
+    });
+    const out = mapProtoEvent(ev);
+    expect(out?.kind).toBe("route");
+    if (out?.kind !== "route") return;
+    expect(out.route.stops.map((s) => s.cityName)).toEqual(["Lisbon", "Porto"]);
+    expect(out.route.stops[1].dayNumbers).toEqual([3]);
+    expect(out.route.legs[0]).toMatchObject({ afterDay: 2, mode: "train", durationMins: 194 });
+    expect(out.route.dropped[0].cityName).toBe("Atlantis");
+    expect(out.route.tripId).toBe("t1");
+  });
+
+  it("carries stopIndex on per-city events and keeps single-city events untagged", () => {
+    const tagged = mapProtoEvent(
+      create(StreamEventSchema, {
+        stopIndex: 1,
+        payload: { case: "progress", value: { stage: "x" } },
+      }),
+    );
+    expect(tagged?.stopIndex).toBe(1);
+    const plain = mapProtoEvent(
+      create(StreamEventSchema, { payload: { case: "progress", value: { stage: "x" } } }),
+    );
+    expect(plain?.stopIndex).toBeUndefined();
+  });
+
+  it("sends stops and suggestOrder", () => {
+    const req = buildRequest({
+      message: "trip",
+      stops: [{ cityName: "Lisbon", nights: 3 }, { cityName: "Porto" }],
+      suggestOrder: true,
+    });
+    expect(req.stops.map((s) => [s.cityName, s.nights])).toEqual([
+      ["Lisbon", 3],
+      ["Porto", undefined],
+    ]);
+    expect(req.suggestOrder).toBe(true);
+  });
+
+  it("a city's error does not end the stream; a drop after it is still caught", async () => {
+    const events = [
+      create(StreamEventSchema, {
+        eventId: "a",
+        stopIndex: 1,
+        payload: { case: "error", value: { userMessage: "Porto failed" } },
+      }),
+    ];
+    streamChat.mockReturnValue({
+      async *[Symbol.asyncIterator]() {
+        yield* events;
+      },
+    });
+    const out = [];
+    for await (const e of streamChatEvents({ message: "trip" })) out.push(e);
+    expect(out).toHaveLength(2);
+    expect(out[1]).toMatchObject({ kind: "error", transport: true, internalCode: "stream_ended" });
+  });
+});
