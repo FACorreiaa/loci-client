@@ -4,6 +4,7 @@ import mapboxgl from "mapbox-gl";
 import { useTheme } from "~/contexts/ThemeContext";
 import { apply3DConfig } from "./atmosphere";
 import { fitToData, moveCameraTo, startItineraryFlyThrough } from "./camera";
+import { shouldRefit, type CameraFollow } from "./refit";
 import {
   DEFAULT_MAP_STYLE,
   FALLBACK_CENTER,
@@ -49,6 +50,8 @@ const MapComponent = (_props: MapComponentProps) => {
   let routeAnimFrame: number | undefined;
   let cancelFlyThrough: (() => void) | undefined;
   let handlersBound = false;
+  // What the camera last fitted, and whether the user has steered since. See refit.ts.
+  let follow: CameraFollow | null = null;
   // Decided once at creation from the container width: phones get a gentler
   // pitch and no terrain.
   let isMobileMap = false;
@@ -197,7 +200,12 @@ const MapComponent = (_props: MapComponentProps) => {
       buildSignalData(props.alerts ?? []),
     );
     applyVisibility(map);
-    if (fit) fitToData(map, valid, mapContainer);
+    // Follow the pins only while the user is not steering (refit.ts): a city
+    // still streaming must not cancel the pan they just started.
+    const ids = valid.map((p) => String(p.id ?? p.name));
+    const refit = fit && shouldRefit(follow, ids);
+    if (refit) fitToData(map, valid, mapContainer);
+    follow = { ids: new Set(ids), userMoved: refit ? false : (follow?.userMoved ?? false) };
     // Re-apply selection if the selected POI is still present.
     applySelection(props.selectedId);
   };
@@ -259,6 +267,11 @@ const MapComponent = (_props: MapComponentProps) => {
         "top-right",
       );
       popup = new mapboxgl.Popup({ offset: 18, closeButton: true, closeOnClick: false });
+      // A gesture or a control button carries originalEvent; our own fits and
+      // fly-throughs do not, so they never count as the user steering.
+      map.on("movestart", (e) => {
+        if (e.originalEvent && follow) follow = { ...follow, userMoved: true };
+      });
     },
     applyConfig: (map) => {
       if (props.enable3D) apply3DConfig(map, theme.isDark(), { terrain: !isMobileMap });
