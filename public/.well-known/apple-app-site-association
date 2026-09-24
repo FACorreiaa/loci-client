@@ -1,0 +1,20 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [
+          "84X9WYBF36.com.fernandocorreia.loci",
+          "84X9WYBF36.com.fernandocorreia.loci.beta"
+        ],
+        "components": [
+          { "/": "/itinerary*", "comment": "A finished itinerary search, ?sessionId=" },
+          { "/": "/hotels*", "comment": "A hotels list, ?sessionId=" },
+          { "/": "/restaurants*", "comment": "A restaurants list, ?sessionId=" },
+          { "/": "/activities*", "comment": "An activities list, ?sessionId=" },
+          { "/": "/nearme*", "comment": "A nearby search, ?sessionId=" }
+        ]
+      }
+    ]
+  }
+}
