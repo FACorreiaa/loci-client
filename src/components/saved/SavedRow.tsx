@@ -27,7 +27,6 @@ interface Props {
  */
 export default function SavedRow(props: Props) {
   const item = () => props.item;
-  const cloudOnly = () => item().kind === "itinerary" && !item().href;
 
   const body = (): JSX.Element => (
     <>
@@ -56,11 +55,6 @@ export default function SavedRow(props: Props) {
             </span>
           </Show>
         </div>
-        <Show when={cloudOnly()}>
-          <p class="mt-1 text-xs text-muted-foreground">
-            Saved on another device — open it there to keep a copy.
-          </p>
-        </Show>
       </div>
       <span class={`${meta} shrink-0`}>{item().typeLabel}</span>
     </>

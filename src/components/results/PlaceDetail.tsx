@@ -50,7 +50,7 @@ export interface PlaceTab {
 }
 
 export interface PlaceDetailProps {
-  domain: Exclude<ResultsDomain, "activities">;
+  domain: ResultsDomain;
   /** The query's state; the page renders one of loading, not found, error, or the place. */
   status: {
     isPending: boolean;
@@ -65,13 +65,15 @@ export interface PlaceDetailProps {
   tabs: PlaceTab[];
   /** The city to fall back to for the Back link when no list session is known. */
   cityHint?: string;
+  /** Where Back goes when the page was not opened from a results list, e.g. /saved. */
+  backTo?: { href: string; label: string };
 }
 
 const isNotFound = (err: unknown): boolean =>
   /not found/i.test(err instanceof Error ? err.message : String(err ?? ""));
 
 /**
- * The frame of /hotels/[id] and /restaurants/[id]: Back to the list it came
+ * The frame of /hotels/[id], /restaurants/[id] and /places/[id]: Back to where it came
  * from, pictures with their credits, name and actions, tabs. It renders a
  * skeleton while loading, a not-found card for an id that names nothing, and
  * an error card with retry otherwise — the pages used to render nothing at
@@ -82,7 +84,9 @@ export default function PlaceDetail(props: PlaceDetailProps) {
   const [tab, setTab] = createSignal(props.tabs[0]?.id ?? "overview");
   const [heroIndex, setHeroIndex] = createSignal(0);
 
-  const backHref = () => backToResultsHref(props.domain, props.cityHint || props.place?.city);
+  const backHref = () =>
+    props.backTo?.href ?? backToResultsHref(props.domain, props.cityHint || props.place?.city);
+  const backLabel = () => props.backTo?.label ?? `Back to ${meta().label.toLowerCase()}`;
   const images = () => props.place?.images ?? [];
   const hero = () => images()[heroIndex()] ?? images()[0];
   const credit = createMemo(() => props.place?.image_credits?.find((c) => c.url === hero()));
@@ -127,7 +131,7 @@ export default function PlaceDetail(props: PlaceDetailProps) {
           class="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 mb-4"
         >
           <ArrowLeft class="w-4 h-4" />
-          Back to {meta().label.toLowerCase()}
+          {backLabel()}
         </A>
 
         <Show when={props.status.isPending}>
@@ -162,7 +166,7 @@ export default function PlaceDetail(props: PlaceDetailProps) {
                   It may have been removed, or the link is from a list that has since changed.
                 </p>
                 <A href={backHref()} class="loci-hero__action mx-auto">
-                  Back to {meta().label.toLowerCase()}
+                  {backLabel()}
                 </A>
               </div>
             }

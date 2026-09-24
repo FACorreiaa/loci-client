@@ -4,6 +4,7 @@ import { Star, Wifi, Car, Coffee, Utensils, Check } from "lucide-solid";
 import { useHotelDetails } from "~/lib/api/hotels";
 import type { FavoriteItem } from "~/lib/api/favorites";
 import PlaceDetail, { type PlaceTab } from "~/components/results/PlaceDetail";
+import { backFromSaved, decodeParam } from "~/lib/saved/collect";
 
 const amenityIcon = (amenity: string) => {
   const a = amenity.toLowerCase();
@@ -22,7 +23,7 @@ const amenityIcon = (amenity: string) => {
 export default function HotelDetailPage() {
   const params = useParams();
   const [searchParams] = useSearchParams();
-  const hotelQuery = useHotelDetails(params.id ?? "");
+  const hotelQuery = useHotelDetails(decodeParam(params.id));
   const hotel = () => hotelQuery.data;
 
   const stars = () => {
@@ -175,6 +176,7 @@ export default function HotelDetailPage() {
       }
       favorite={favorite()}
       cityHint={searchParams.cityName as string | undefined}
+      backTo={backFromSaved(searchParams.from)}
       facts={
         <>
           <Show when={stars() > 0}>

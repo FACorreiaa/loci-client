@@ -8,6 +8,8 @@ export interface CloudBookmark {
   title: string;
   description?: string;
   primary_city_id?: string;
+  /** The session it was saved from, when the server kept one. */
+  session_id?: string;
   created_at?: string;
 }
 
@@ -23,12 +25,22 @@ export interface SavedItinerary {
   offlineId?: string;
   /** Set when the account has a bookmark for it. */
   cloudId?: string;
-  /** Where to open it. Absent for a cloud-only bookmark: the server holds no content yet. */
+  /** Where to open it. */
   href?: string;
 }
 
 export const savedItineraryHref = (sessionId: string, cityName: string): string =>
   `/itinerary?sessionId=${encodeURIComponent(sessionId)}&cityName=${encodeURIComponent(cityName)}&domain=itinerary`;
+
+/**
+ * Where an account bookmark with no copy on this device opens. With a session
+ * the planner fetches the whole plan from the server, as it does on any
+ * device; without one, the bookmark's own page shows what the server kept.
+ */
+export const cloudItineraryHref = (c: CloudBookmark): string =>
+  c.session_id
+    ? savedItineraryHref(c.session_id, "")
+    : `/itinerary/saved/${encodeURIComponent(c.id)}`;
 
 const norm = (s: string | undefined) => (s ?? "").trim().toLowerCase();
 const ms = (iso: string | undefined) => {
@@ -47,8 +59,9 @@ const ms = (iso: string | undefined) => {
  * the cities to match therefore guaranteed a miss, and every saved itinerary
  * showed up twice: once as a device copy, once as a cloud row with a blank city.
  *
- * Cloud-only bookmarks stay visible so nothing a person saved goes missing, but
- * they cannot open until the server stores content.
+ * A bookmark that kept its session folds into the device copy of that session
+ * first, whatever the titles say. Cloud-only bookmarks stay visible and open
+ * through cloudItineraryHref.
  */
 export function mergeSavedItineraries(
   offline: OfflineItinerary[],
@@ -76,6 +89,15 @@ export function mergeSavedItineraries(
   }
 
   for (const c of cloud) {
+    const sameSession = c.session_id
+      ? items.find((i) => i.offlineId === c.session_id && !i.cloudId)
+      : undefined;
+    if (sameSession) {
+      sameSession.cloudId = c.id;
+      if (ms(c.created_at) > ms(sameSession.savedAt))
+        sameSession.savedAt = c.created_at ?? sameSession.savedAt;
+      continue;
+    }
     const candidates = byTitle.get(norm(c.title)) ?? [];
     const cloudCity = norm(c.primary_city_id);
     const existing = candidates.find(
@@ -98,6 +120,7 @@ export function mergeSavedItineraries(
       description: c.description || undefined,
       savedAt: c.created_at ?? "",
       cloudId: c.id,
+      href: cloudItineraryHref(c),
     });
   }
 
