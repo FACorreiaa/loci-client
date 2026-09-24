@@ -4,6 +4,23 @@ import { transcribe, TranscribeError } from "~/lib/api/speech";
 
 export type DictationState = "idle" | "recording" | "transcribing";
 
+/**
+ * What kind of thing went wrong, for code that acts on it rather than showing it.
+ *
+ * "not-configured" is the server having no speech set up at all. It is the one
+ * that decides whether a microphone should be offered again, because trying
+ * again will not help. "unavailable" is the speech service failing for now,
+ * which a later try may get past. A browser without a microphone is
+ * "no-microphone": that one is about the device, not the deployment.
+ */
+export type DictationErrorKind =
+  | "not-configured"
+  | "unavailable"
+  | "denied"
+  | "no-microphone"
+  | "silent"
+  | "failed";
+
 export interface Dictation {
   /**
    * Whether this browser can record.
@@ -17,6 +34,8 @@ export interface Dictation {
   state: () => DictationState;
   /** What went wrong, for the person to read. Cleared when they try again. */
   error: () => string | null;
+  /** The kind of {@link error}, or null when there is none. */
+  errorKind: () => DictationErrorKind | null;
   /** Starts recording, or stops and transcribes if already recording. */
   toggle: () => void;
   /** Abandons a recording without transcribing it. */
@@ -35,7 +54,12 @@ export interface Dictation {
  */
 export function useDictation(onTranscript: (text: string) => void): Dictation {
   const [state, setState] = createSignal<DictationState>("idle");
-  const [error, setError] = createSignal<string | null>(null);
+  const [problem, setProblem] = createSignal<{ message: string; kind: DictationErrorKind } | null>(
+    null,
+  );
+  const error = () => problem()?.message ?? null;
+  const errorKind = () => problem()?.kind ?? null;
+  const setError = (value: unknown) => setProblem(value === null ? null : failureFor(value));
   const [supported, setSupported] = createSignal(false);
 
   onMount(() => setSupported(canRecord()));
@@ -59,7 +83,7 @@ export function useDictation(onTranscript: (text: string) => void): Dictation {
     } catch (failure) {
       recorder = null;
       setState("idle");
-      setError(messageFor(failure));
+      setError(failure);
     }
   };
 
@@ -76,12 +100,12 @@ export function useDictation(onTranscript: (text: string) => void): Dictation {
       const { audio, mimeType } = await current.stop();
       const text = await transcribe(audio, mimeType);
       if (text === "") {
-        setError("I could not hear anything in that.");
+        setProblem({ message: "I could not hear anything in that.", kind: "silent" });
       } else {
         onTranscript(text);
       }
     } catch (failure) {
-      setError(messageFor(failure));
+      setError(failure);
     } finally {
       setState("idle");
     }
@@ -91,6 +115,7 @@ export function useDictation(onTranscript: (text: string) => void): Dictation {
     supported,
     state,
     error,
+    errorKind,
     toggle: () => {
       if (state() === "transcribing") return;
       void (state() === "recording" ? finish() : begin());
@@ -103,9 +128,24 @@ export function useDictation(onTranscript: (text: string) => void): Dictation {
   };
 }
 
-function messageFor(failure: unknown): string {
-  if (failure instanceof RecorderError || failure instanceof TranscribeError) {
-    return failure.message;
+function failureFor(failure: unknown): { message: string; kind: DictationErrorKind } {
+  if (failure instanceof TranscribeError) {
+    return {
+      message: failure.message,
+      kind:
+        failure.reason === "not-configured" || failure.reason === "unavailable"
+          ? failure.reason
+          : "failed",
+    };
   }
-  return "That recording could not be used.";
+  if (failure instanceof RecorderError) {
+    const kind =
+      failure.reason === "denied"
+        ? "denied"
+        : failure.reason === "unavailable"
+          ? "no-microphone"
+          : "failed";
+    return { message: failure.message, kind };
+  }
+  return { message: "That recording could not be used.", kind: "failed" };
 }

@@ -13,11 +13,12 @@ const client = createClient(SpeechService, transport);
 /**
  * Why a recording could not be turned into words.
  *
- * "unavailable" is the server having no speech configured, which is a
- * deployment state rather than a fault, and the difference decides whether the
- * microphone should be offered at all.
+ * "not-configured" is the server having no speech set up at all, which is a
+ * deployment state rather than a fault, and decides whether the microphone
+ * should be offered at all. "unavailable" is the speech service failing right
+ * now, which is worth trying again later, so it does not.
  */
-export type TranscribeFailure = "unavailable" | "rejected" | "busy" | "failed";
+export type TranscribeFailure = "not-configured" | "unavailable" | "rejected" | "busy" | "failed";
 
 export class TranscribeError extends Error {
   readonly reason: TranscribeFailure;
@@ -51,7 +52,7 @@ function asTranscribeError(error: unknown): TranscribeError {
   }
   switch (error.code) {
     case Code.FailedPrecondition:
-      return new TranscribeError("unavailable", "Dictation is not available on this server.");
+      return new TranscribeError("not-configured", "Dictation is not available on this server.");
     case Code.Unavailable:
       // The server says which of these it was; its own wording is better than
       // anything guessed here, because it knows whether the service is down or

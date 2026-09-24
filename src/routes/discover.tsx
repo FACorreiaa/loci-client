@@ -30,6 +30,11 @@ import { deriveWhyThis } from "~/lib/why-this";
 import { useDiscoverPageData, fetchRecentDiscoveries } from "~/lib/api/discover";
 import type { TrendingDiscovery, POI, DomainType, ChatSession } from "~/lib/api/types";
 import { useAuth } from "~/contexts/AuthContext";
+import DictationButton, {
+  appendTranscript,
+  DictationHint,
+  type DictationStatus,
+} from "~/components/ui/DictationButton";
 import RegisterBanner from "~/components/ui/RegisterBanner";
 import { streamChatEvents } from "~/lib/streaming/chatStream";
 import FavoriteButton from "~/components/shared/FavoriteButton";
@@ -58,6 +63,10 @@ export default function DiscoverPage() {
   const isPro = () => isProPlan(subscriptionQuery.data?.plan);
   const localResultCache = new Map<string, POI[]>();
   const [searchQuery, setSearchQuery] = createSignal("");
+  // The search box is locked while a recording is in flight, so nothing typed
+  // during it races the transcript that lands afterwards.
+  const [dictation, setDictation] = createSignal<DictationStatus>({ state: "idle", error: null });
+  const dictating = () => dictation().state !== "idle";
   const [searchLocation, setSearchLocation] = createSignal("");
   const [isNearbyMode, setIsNearbyMode] = createSignal(false);
   const [searchResults, setSearchResults] = createSignal<POI[]>([]);
@@ -173,7 +182,7 @@ export default function DiscoverPage() {
 
   const handleSearch = async (e?: Event) => {
     e?.preventDefault();
-    if (!searchQuery().trim()) return;
+    if (!searchQuery().trim() || dictating()) return;
     const filterSuffix = isPro() ? advancedFilterPromptSuffix(advancedFilters()) : "";
     const message = `${searchQuery().trim()}${filterSuffix}`;
     const cacheKey = `${streamDomain()}:${message.toLowerCase()}:${searchLocation().trim().toLowerCase()}`;
@@ -512,8 +521,27 @@ export default function DiscoverPage() {
                         placeholder="What are you looking for? (e.g., 'best ramen in Tokyo')"
                         value={searchQuery()}
                         onInput={(e) => setSearchQuery(e.currentTarget.value)}
-                        class="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-border focus:ring-2 focus:ring-ring focus:border-ring bg-card/95 text-foreground placeholder:text-muted-foreground text-base transition-all"
+                        disabled={dictating()}
+                        class="w-full pl-10 py-3 rounded-xl border-2 border-border focus:ring-2 focus:ring-ring focus:border-ring bg-card/95 text-foreground placeholder:text-muted-foreground text-base transition-all disabled:cursor-not-allowed disabled:opacity-70"
+                        classList={{ "pr-12": isAuthenticated(), "pr-4": !isAuthenticated() }}
                       />
+                      {/* Signed-in only: Transcribe is not one of the
+                          server's public procedures, so its auth interceptor
+                          rejects a guest's recording outright. The words
+                          land in the box rather than searching straight away,
+                          because place names come back misheard often enough
+                          to need a look first. */}
+                      <Show when={isAuthenticated()}>
+                        <DictationButton
+                          label="Dictate a search"
+                          class="absolute right-1.5 top-1/2 -translate-y-1/2"
+                          disabled={isSearching()}
+                          onTranscript={(text) =>
+                            setSearchQuery((cur) => appendTranscript(cur, text))
+                          }
+                          onStatusChange={setDictation}
+                        />
+                      </Show>
                     </div>
                     <div class="flex gap-2">
                       <input
@@ -523,13 +551,22 @@ export default function DiscoverPage() {
                         onInput={(e) => setSearchLocation(e.currentTarget.value)}
                         class="px-4 py-3 rounded-xl border-2 border-border focus:ring-2 focus:ring-ring focus:border-ring bg-card/95 text-foreground placeholder:text-muted-foreground w-40 md:w-48 backdrop-blur transition-all"
                       />
-                      <Button type="submit" disabled={!searchQuery().trim()} class="gap-2">
+                      <Button
+                        type="submit"
+                        disabled={!searchQuery().trim() || dictating()}
+                        class="gap-2"
+                      >
                         <Search class="w-5 h-5" />
                         Search
                       </Button>
                     </div>
                   </div>
                 </form>
+                <DictationHint
+                  status={dictation()}
+                  class="mt-2 text-xs text-muted-foreground"
+                  errorClass="text-destructive"
+                />
                 <div class="mt-4">
                   <AdvancedFiltersBar
                     isPro={isPro()}
