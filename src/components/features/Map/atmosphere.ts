@@ -1,19 +1,60 @@
 import type mapboxgl from "mapbox-gl";
+import { lightPresetFor } from "./style";
+
+export const SOURCE_TERRAIN_DEM = "mapbox-dem";
+const TERRAIN_DEM_URL = "mapbox://mapbox.mapbox-terrain-dem-v1";
+const TERRAIN_EXAGGERATION = 1.2;
+
+export interface Apply3DOptions {
+  /** Raster-DEM terrain. Off on phones, where it costs the most GPU. */
+  terrain?: boolean;
+}
 
 /**
- * Turns the flat Standard basemap into a 3D city — light preset, 3D objects
- * (buildings), and atmospheric fog for the globe.
- *
- * Both blocks are individually try/caught because the config properties only
- * exist on Standard-family styles and fog only applies to some projections.
- * A wrong guess is a silent no-op rather than a thrown error mid-render.
+ * Sets Standard's light preset. Its own call so a colour-mode change can flip
+ * day/night in place instead of reloading the style and re-attaching layers.
  */
-export const apply3DConfig = (map: mapboxgl.Map, isDark: boolean) => {
+export const applyLightPreset = (map: mapboxgl.Map, isDark: boolean) => {
   try {
-    map.setConfigProperty("basemap", "lightPreset", isDark ? "night" : "day");
+    map.setConfigProperty("basemap", "lightPreset", lightPresetFor(isDark));
+  } catch {
+    // Non-Standard style — config properties don't apply.
+  }
+};
+
+/**
+ * Turns the Standard basemap into a 3D city — light preset, 3D objects
+ * (buildings and landmarks), terrain, and atmospheric fog.
+ *
+ * Only does anything on Standard-family styles: `resolveMapStyle` guarantees a
+ * 3D map gets one. Each block is individually try/caught because a wrong guess
+ * (a classic style, a projection without fog) should be a silent no-op rather
+ * than a thrown error mid-render.
+ *
+ * Idempotent: it re-runs on every `style.load` and on colour-mode changes, so
+ * the DEM source is only added when absent.
+ */
+export const apply3DConfig = (map: mapboxgl.Map, isDark: boolean, options: Apply3DOptions = {}) => {
+  applyLightPreset(map, isDark);
+  try {
     map.setConfigProperty("basemap", "show3dObjects", true);
   } catch {
     // Non-Standard style — config properties don't apply.
+  }
+  if (options.terrain) {
+    try {
+      if (!map.getSource(SOURCE_TERRAIN_DEM)) {
+        map.addSource(SOURCE_TERRAIN_DEM, {
+          type: "raster-dem",
+          url: TERRAIN_DEM_URL,
+          tileSize: 512,
+          maxzoom: 14,
+        });
+      }
+      map.setTerrain({ source: SOURCE_TERRAIN_DEM, exaggeration: TERRAIN_EXAGGERATION });
+    } catch {
+      /* style not ready or terrain unsupported — stay flat */
+    }
   }
   try {
     map.setFog({

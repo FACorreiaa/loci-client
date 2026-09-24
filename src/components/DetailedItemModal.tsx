@@ -401,6 +401,8 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                   zoom={15}
                   minZoom={10}
                   maxZoom={22}
+                  // Small single-place map: a pitched 3D camera looks odd here.
+                  enable3D={false}
                   pointsOfInterest={[
                     {
                       id: props.item!.name, // Fallback ID

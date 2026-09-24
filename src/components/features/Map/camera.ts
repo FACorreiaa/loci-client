@@ -1,4 +1,5 @@
 import mapboxgl from "mapbox-gl";
+import { prefersReducedMotion } from "~/lib/hooks/useInView";
 import { isValidPoi, toNum } from "./geo";
 import type { POI } from "./types";
 
@@ -24,9 +25,14 @@ export const fitToData = (map: mapboxgl.Map, valid: POI[], container?: HTMLEleme
  * as the user touches the map — a camera that keeps flying while someone is
  * trying to pan is the whole reason this needs a cancel path.
  *
+ * Does not start at all under `prefers-reduced-motion`: a camera that sweeps
+ * on its own for several seconds is exactly what that setting asks us not to do.
+ *
  * Returns a cancel function so the caller can also stop it on unmount.
  */
 export const startItineraryFlyThrough = (map: mapboxgl.Map, pois: POI[]): (() => void) => {
+  if (prefersReducedMotion()) return () => {};
+
   const stops = pois
     .filter(isValidPoi)
     .slice()
@@ -56,7 +62,6 @@ export const startItineraryFlyThrough = (map: mapboxgl.Map, pois: POI[]): (() =>
       bearing: (map.getBearing() + 55) % 360,
       speed: 0.6,
       curve: 1.5,
-      essential: true,
     });
     i += 1;
     timer = setTimeout(step, 3400);
@@ -65,4 +70,23 @@ export const startItineraryFlyThrough = (map: mapboxgl.Map, pois: POI[]): (() =>
   timer = setTimeout(step, 900);
 
   return cancel;
+};
+
+/**
+ * Moves the camera to a point: animated normally, an instant jump under
+ * `prefers-reduced-motion`. Mapbox also skips non-essential animations on its
+ * own, but saying so here keeps the behaviour explicit and testable.
+ */
+export const moveCameraTo = (
+  map: mapboxgl.Map,
+  target: { center: [number, number]; zoom: number },
+  kind: "fly" | "ease",
+) => {
+  if (prefersReducedMotion()) {
+    map.jumpTo(target);
+  } else if (kind === "fly") {
+    map.flyTo({ ...target, speed: 1.2 });
+  } else {
+    map.easeTo(target);
+  }
 };
