@@ -94,3 +94,10 @@ describe("share links", () => {
     expect(telegramShareUrl(payload)).toContain(encodeURIComponent(text));
   });
 });
+
+describe("a prepared share text", () => {
+  it("is used as-is (a multi-city trip writes its own, grouped by city)", () => {
+    const text = "Lisbon → Porto\n\nLisbon\nDay 1 — Belém\n\nGenerated from Loci";
+    expect(buildShareText({ cityName: "Lisbon + Porto", title: "t", url: "u", text })).toBe(text);
+  });
+});

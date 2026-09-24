@@ -163,3 +163,91 @@ describe("multi-city data for the existing views", () => {
     expect(mapView([]).zoom).toBe(12);
   });
 });
+
+import { isMultiPayload, multiShareText, routeFromTrip } from "./multi-city-view";
+
+describe("saving and reopening a multi-city trip", () => {
+  it("share text groups by city, then day, and credits Loci", () => {
+    const text = multiShareText(
+      {
+        stops: [],
+        legs: [
+          {
+            afterDay: 1,
+            fromName: "Lisbon",
+            toName: "Porto",
+            distanceKm: 274,
+            durationMins: 194,
+            mode: "train",
+          },
+        ],
+        outline: "Lisbon (1 day) → Porto (1 day)",
+        warnings: [],
+        dropped: [],
+        totalTravelMins: 194,
+      },
+      [
+        {
+          index: 0,
+          cityName: "Lisbon",
+          sessionId: "s0",
+          dayNumbers: [1],
+          done: true,
+          data: { itinerary_response: { points_of_interest: [{ name: "Belém", day: 1 }] } } as any,
+        },
+        {
+          index: 1,
+          cityName: "Porto",
+          sessionId: "s1",
+          dayNumbers: [2],
+          done: true,
+          data: {
+            itinerary_response: { points_of_interest: [{ name: "Ribeira", day: 1 }] },
+          } as any,
+        },
+      ],
+    );
+    expect(text).toMatch(/^Lisbon \(1 day\) → Porto \(1 day\)/);
+    expect(text.indexOf("\nLisbon\n")).toBeGreaterThan(-1);
+    expect(text.indexOf("Train")).toBeLessThan(text.indexOf("\nPorto\n"));
+    expect(text).toContain("Day 2 — Ribeira");
+    expect(text.trim().endsWith("Generated from Loci")).toBe(true);
+  });
+
+  it("rebuilds the route from a saved trip", () => {
+    const { route, stops } = routeFromTrip({
+      title: "Lisbon + Porto",
+      cities: [
+        { cityName: "Lisbon", sessionId: "s0", nights: 2, orderIndex: 0 },
+        { cityName: "Porto", sessionId: "s1", nights: 1, orderIndex: 1 },
+      ],
+      days: [
+        { dayNumber: 1, cityName: "Lisbon" },
+        { dayNumber: 2, cityName: "Lisbon" },
+        { dayNumber: 3, cityName: "Porto" },
+      ],
+      legs: [
+        {
+          afterDay: 2,
+          fromName: "Lisbon",
+          toName: "Porto",
+          distanceKm: 274,
+          durationMins: 194,
+          mode: "train",
+        },
+      ],
+    } as any);
+    expect(stops.map((s) => `${s.cityName}:${s.dayNumbers.join("")}:${s.sessionId}`)).toEqual([
+      "Lisbon:12:s0",
+      "Porto:3:s1",
+    ]);
+    expect(route.legs[0].mode).toBe("train");
+    expect(route.outline).toBe("Lisbon + Porto");
+  });
+
+  it("recognises a multi-city offline copy", () => {
+    expect(isMultiPayload({ kind: "multi", route: {} as any, stops: [] })).toBe(true);
+    expect(isMultiPayload({ itinerary_response: {} })).toBe(false);
+    expect(isMultiPayload(null)).toBe(false);
+  });
+});

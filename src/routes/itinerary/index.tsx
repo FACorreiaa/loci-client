@@ -41,11 +41,15 @@ import SplitView from "@/components/layout/SplitView";
 import { StopSwitcher } from "@/components/features/MultiCity/StopSwitcher";
 import { LegRow } from "@/components/features/MultiCity/LegRow";
 import {
+  isMultiPayload,
   mapView,
   mergedResponse,
+  multiShareText,
   parseStopsParam,
+  routeFromTrip,
   tripWideResponse,
 } from "@/components/features/MultiCity/multi-city-view";
+import { fetchTrip } from "@/lib/api/trips";
 import { CityInfoHeader } from "@/components/ui/CityInfoHeader";
 import LocalWeather from "@/components/LocalWeather";
 import TripMoney from "@/components/TripMoney";
@@ -229,6 +233,15 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   const restoreFromDevice = async (sessionIdFromUrl: string): Promise<boolean> => {
     try {
       const saved = await getOfflineItinerary(sessionIdFromUrl);
+      if (saved && isMultiPayload(saved.payload)) {
+        // A multi-city trip: every city's result was kept, so it opens whole.
+        setStore("route", saved.payload.route);
+        setStore("stops", saved.payload.stops);
+        const first = saved.payload.stops[0]?.data;
+        if (first) setStore("data", normalizeItineraryPayload(first) ?? (first as any));
+        setSavedOffline(true);
+        return true;
+      }
       const normalized = saved ? normalizeItineraryPayload(saved.payload) : null;
       if (!normalized || !hasItineraryContent(normalized)) return false;
       setStore("data", normalized);
@@ -240,11 +253,48 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     }
   };
 
+  // A multi-city trip saved to the account: its cities come from the trip,
+  // and each city's result from that city's own session.
+  const restoreFromTrip = async (tripId: string): Promise<boolean> => {
+    try {
+      const trip = await fetchTrip(tripId);
+      if ((trip.cities?.length ?? 0) < 2) return false;
+      const { route: r, stops } = routeFromTrip(trip);
+      setStore("isLoading", true);
+      const loaded = await Promise.all(
+        stops.map(async (st) => {
+          if (!st.sessionId) return { ...st, error: "This city's plan is no longer available." };
+          try {
+            const res = await getChatSession(st.sessionId);
+            return { ...st, data: res ? (normalizeItineraryPayload(res) ?? (res as any)) : null };
+          } catch {
+            return { ...st, error: "Could not load this city's plan." };
+          }
+        }),
+      );
+      setStore("route", { ...r, tripId });
+      setStore("stops", loaded);
+      const first = loaded.find((st) => st.data)?.data;
+      if (first) setStore("data", first as any);
+      setStore("tripId", tripId);
+      return true;
+    } catch (e) {
+      console.warn("Could not reopen the trip:", e);
+      return false;
+    } finally {
+      setStore("isLoading", false);
+    }
+  };
+
   const restoreOrHydrateSession = async (sessionIdFromUrl: string) => {
     if (restoreFromSessionStorage(sessionIdFromUrl)) {
       return;
     }
     if (await restoreFromDevice(sessionIdFromUrl)) {
+      return;
+    }
+    const tripIdFromUrl = searchParams.tripId as string | undefined;
+    if (tripIdFromUrl && (await restoreFromTrip(tripIdFromUrl))) {
       return;
     }
     if (await hydrateFromServer(sessionIdFromUrl)) {
@@ -563,12 +613,20 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   };
 
   const handleDownload = () => {
-    const data = JSON.stringify(store.data, null, 2);
+    const data = JSON.stringify(
+      isMulti() ? { route: route(), stops: cityStops() } : store.data,
+      null,
+      2,
+    );
     const blob = new Blob([data], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `itinerary-${cityName()}.json`;
+    a.download = isMulti()
+      ? `trip-${cityStops()
+          .map((st) => st.cityName)
+          .join("-")}.json`
+      : `itinerary-${cityName()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -582,6 +640,8 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     url: SHARE_HOME_URL,
     stopCount: itineraryModel().stops.length,
     stops: itineraryModel().stops.map((s, i) => ({ name: s.name, day: dayOf(s, i) })),
+    // A multi-city trip writes its own text: its days grouped by city.
+    ...(isMulti() && route() ? { text: multiShareText(route()!, cityStops()) } : {}),
   }));
 
   const [saving, setSaving] = createSignal(false);
@@ -593,12 +653,58 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     statusTimer = setTimeout(() => setSaveStatus(""), 4000);
   };
 
+  // A multi-city trip is already in the account as its parent trip, so Save
+  // keeps the whole thing — route and every city — on this device, keyed on
+  // the first city's session (the one its URL names).
+  const saveMultiCity = async () => {
+    const stops = cityStops();
+    const r = route();
+    const id = stops[0]?.sessionId;
+    if (!id || !r || !stops.some((st) => st.data)) {
+      showStatus("Nothing to save yet");
+      return;
+    }
+    const names = stops.map((st) => st.cityName).join(" + ");
+    setSaving(true);
+    try {
+      await saveItineraryOffline({
+        id,
+        cityName: names,
+        title: names,
+        description: r.outline,
+        payload: { kind: "multi", route: r, stops: stops.map((st) => ({ ...st })) },
+        stopCount: stops.reduce(
+          (n, st) =>
+            n + (tripWideResponse(st)?.itinerary_response?.points_of_interest?.length ?? 0),
+          0,
+        ),
+        savedAt: new Date().toISOString(),
+        sourceUrl:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/itinerary?sessionId=${encodeURIComponent(id)}${r.tripId ? `&tripId=${encodeURIComponent(r.tripId)}` : ""}`
+            : "",
+      });
+      setSavedOffline(true);
+      showStatus(
+        r.tripId && isAuthenticated()
+          ? "Saved on this device · also in your trips"
+          : "Saved on this device",
+      );
+    } catch (error) {
+      console.error("Failed to save on this device:", error);
+      showStatus("Could not save on this device");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // One Save. The device copy is the point — it is what makes the itinerary
   // open with no network — so it is written first and counts as success on
   // its own. The account bookmark follows when signed in; the server keeps
   // only title and city (its session id is not accepted), so a failure there
   // is reported, not treated as losing the save.
   const handleSave = async () => {
+    if (isMulti()) return saveMultiCity();
     const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
     const city = cityData();
     if (!sessionId || !store.data || !hasItineraryContent(store.data)) {

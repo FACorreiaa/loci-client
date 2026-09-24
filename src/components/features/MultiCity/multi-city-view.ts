@@ -1,6 +1,7 @@
 // Pure helpers for showing a multi-city trip. iOS renders the same strings
 // (MultiCityFormat.swift), so both apps read alike.
-import type { RouteLeg } from "~/lib/streaming/chatStream";
+import type { RouteInfo, RouteLeg } from "~/lib/streaming/chatStream";
+import { SIGNATURE } from "~/lib/share";
 import type { StopState } from "~/lib/streaming/multi-city";
 import type { POIDetailedInfo } from "~/lib/api/types";
 
@@ -152,4 +153,73 @@ export function mapView(points: { latitude: number; longitude: number }[]): {
   const span = Math.max(maxLat - minLat, maxLon - minLon);
   const zoom = span < 0.2 ? 12 : span < 1 ? 9 : span < 3 ? 7 : span < 8 ? 5 : 4;
   return { center: [(minLon + maxLon) / 2, (minLat + maxLat) / 2], zoom };
+}
+
+/** Share text for a multi-city trip: the route, then each city by day. */
+export function multiShareText(route: RouteInfo, stops: StopState[]): string {
+  const lines: string[] = [route.outline, ""];
+  let city = "";
+  for (const item of allDaysTimeline(stops, route.legs)) {
+    if (item.kind === "leg") {
+      lines.push("", `${item.leg.fromName} → ${item.leg.toName}: ${formatLeg(item.leg)}`, "");
+      continue;
+    }
+    if (item.cityName !== city) {
+      city = item.cityName;
+      lines.push(city);
+    }
+    lines.push(`Day ${item.day} — ${item.pois.map((p) => p.name).join(", ") || "Free day"}`);
+  }
+  lines.push("", SIGNATURE);
+  return lines.join("\n");
+}
+
+/** A multi-city trip as kept on this device: the route and every city's result. */
+export interface MultiOfflinePayload {
+  kind: "multi";
+  route: RouteInfo;
+  stops: StopState[];
+}
+
+export const isMultiPayload = (p: unknown): p is MultiOfflinePayload =>
+  !!p && typeof p === "object" && (p as { kind?: unknown }).kind === "multi";
+
+/** The slice of a saved trip a multi-city reopen needs. */
+export interface SavedTripLike {
+  title: string;
+  cities?: { cityName: string; sessionId?: string; nights: number; orderIndex: number }[];
+  days: { dayNumber: number; cityName?: string }[];
+  legs?: (Omit<RouteLeg, "mode"> & { mode?: string })[];
+}
+
+/**
+ * A saved multi-city trip back into a route and its cities (no results yet —
+ * each city's is loaded from its own session).
+ */
+export function routeFromTrip(trip: SavedTripLike): { route: RouteInfo; stops: StopState[] } {
+  const cities = [...(trip.cities ?? [])].sort((a, b) => a.orderIndex - b.orderIndex);
+  const stops: StopState[] = cities.map((c, i) => ({
+    index: i,
+    cityName: c.cityName,
+    sessionId: c.sessionId ?? "",
+    dayNumbers: trip.days.filter((d) => d.cityName === c.cityName).map((d) => d.dayNumber),
+    data: null,
+    done: true,
+  }));
+  return {
+    route: {
+      stops: stops.map((s) => ({
+        index: s.index,
+        cityName: s.cityName,
+        sessionId: s.sessionId,
+        dayNumbers: s.dayNumbers,
+      })),
+      legs: (trip.legs ?? []).map((l) => ({ ...l, mode: l.mode || "drive" })),
+      outline: trip.title,
+      warnings: [],
+      dropped: [],
+      totalTravelMins: (trip.legs ?? []).reduce((n, l) => n + (l.durationMins || 0), 0),
+    },
+    stops,
+  };
 }

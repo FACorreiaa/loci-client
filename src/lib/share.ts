@@ -33,6 +33,11 @@ export interface SharePayload {
    * plan and "Day 1" would say it was.
    */
   items?: string[];
+  /**
+   * The whole text, already written — a multi-city trip groups its days by
+   * city, which the day grouping below cannot. Carries its own signature.
+   */
+  text?: string;
 }
 
 export const SIGNATURE = "Generated from Loci";
@@ -64,6 +69,7 @@ const dayLine = (n: number, names: string[]): string => {
 };
 
 export function buildShareText(payload: SharePayload): string {
+  if (payload.text) return payload.text;
   const lines: string[] = [payload.title];
   const stops = payload.stops ?? [];
 
