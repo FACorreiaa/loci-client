@@ -14,6 +14,11 @@ import { heroPrompt } from "~/lib/dashboard/hero-prompt";
 import { prefersReducedMotion } from "~/lib/hooks/useInView";
 import QuickSettingsModal from "~/components/modals/QuickSettingsModal";
 import ProfileQuickSelect from "./ProfileQuickSelect";
+import DictationButton, {
+  appendTranscript,
+  DictationHint,
+  type DictationStatus,
+} from "~/components/ui/DictationButton";
 
 export default function DeskHero() {
   const navigate = useNavigate();
@@ -26,6 +31,10 @@ export default function DeskHero() {
   const [searchError, setSearchError] = createSignal("");
   const [_streamingSession, setStreamingSession] = createSignal<StreamingSession | null>(null);
   const [isQuickSettingsOpen, setIsQuickSettingsOpen] = createSignal(false);
+  // The box is locked while a recording is in flight, so what is typed during
+  // it cannot race the transcript that lands afterwards.
+  const [dictation, setDictation] = createSignal<DictationStatus>({ state: "idle", error: null });
+  const dictating = () => dictation().state !== "idle";
   let textareaRef: HTMLTextAreaElement | undefined;
 
   // The in-season strip writes a request here; the person still presses
@@ -63,7 +72,7 @@ export default function DeskHero() {
 
   const sendMessage = async (override?: string) => {
     const message = (override ?? currentMessage()).trim();
-    if (!message || isLoading()) return;
+    if (!message || isLoading() || dictating()) return;
 
     setIsLoading(true);
     setSearchError("");
@@ -183,24 +192,36 @@ export default function DeskHero() {
           </div>
 
           <div class="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
-            <textarea
-              ref={textareaRef}
-              value={currentMessage()}
-              onInput={(e) => setCurrentMessage(e.target.value)}
-              placeholder="Lisbon for two days, walking, late dinners"
-              class="min-h-12 w-full flex-1 resize-none rounded-xl border border-primary-foreground/20 bg-primary-foreground/95 px-4 py-3 text-primary placeholder:text-primary/45 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
-              rows="1"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-            />
+            <div class="flex flex-1 items-end gap-2">
+              <textarea
+                ref={textareaRef}
+                value={currentMessage()}
+                onInput={(e) => setCurrentMessage(e.target.value)}
+                placeholder="Lisbon for two days, walking, late dinners"
+                class="min-h-12 w-full flex-1 resize-none rounded-xl border border-primary-foreground/20 bg-primary-foreground/95 px-4 py-3 text-primary placeholder:text-primary/45 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+                rows="1"
+                disabled={dictating()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
+              />
+              {/* The words land in the box, not straight into a search: place
+                  names come back misheard often enough that they need a look. */}
+              <DictationButton
+                variant="hero"
+                label="Dictate a trip"
+                disabled={isLoading()}
+                onTranscript={(text) => setCurrentMessage((cur) => appendTranscript(cur, text))}
+                onStatusChange={setDictation}
+              />
+            </div>
             <button
               type="button"
               onClick={() => sendMessage()}
-              disabled={!currentMessage().trim() || isLoading()}
+              disabled={!currentMessage().trim() || isLoading() || dictating()}
               class="loci-hero__cta shrink-0 rounded-xl px-6 py-3 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]"
             >
               <Show
@@ -217,6 +238,11 @@ export default function DeskHero() {
               </Show>
             </button>
           </div>
+          <DictationHint
+            status={dictation()}
+            class="mt-2 text-xs text-primary-foreground/75"
+            errorClass="text-sm text-primary-foreground/90"
+          />
           <Show when={searchError()}>
             <p role="alert" class="mt-3 text-sm text-primary-foreground/90">
               {searchError()}
