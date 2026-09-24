@@ -12,7 +12,12 @@
           { "/": "/hotels*", "comment": "A hotels list, ?sessionId=" },
           { "/": "/restaurants*", "comment": "A restaurants list, ?sessionId=" },
           { "/": "/activities*", "comment": "An activities list, ?sessionId=" },
-          { "/": "/nearme*", "comment": "A nearby search, ?sessionId=" }
+          { "/": "/nearme*", "comment": "A nearby search, ?sessionId=" },
+          { "/": "/lists/*", "comment": "One list, /lists/{id}" },
+          { "/": "/packs/*", "comment": "A City Pack, /packs/{slug}" },
+          { "/": "/trips/*", "comment": "A saved trip, /trips/{id}" },
+          { "/": "/recents*", "comment": "Recent activity, optionally /recents/{city}" },
+          { "/": "/contribute*", "comment": "Contribute: verify places and add missing ones" }
         ]
       }
     ]
