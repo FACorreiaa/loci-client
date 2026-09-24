@@ -2,7 +2,11 @@ import { createMemo, createSignal, Show } from "solid-js";
 import { lazyChunk } from "~/lib/lazyChunk";
 import { Title } from "@solidjs/meta";
 import type mapboxgl from "mapbox-gl";
+import { A } from "@solidjs/router";
+import { X } from "lucide-solid";
 import { useGlobeData } from "~/lib/api/travel-history";
+import { legIds } from "~/lib/globe/leg-id";
+import { ErrorView } from "~/components/ErrorView";
 import type { GlobeLeg, GlobeNode } from "~/components/features/Map/Globe";
 import GlobeRail from "~/components/features/Globe/GlobeRail";
 import StatsRail from "~/components/features/Globe/StatsRail";
@@ -27,6 +31,7 @@ export default function GlobePage() {
   const [zoom, setZoom] = createSignal(1.4);
   const [selectedLegId, setSelectedLegId] = createSignal<string>();
   const [map, setMap] = createSignal<mapboxgl.Map>();
+  const [selectedCityId, setSelectedCityId] = createSignal<string>();
 
   const cities = () => globeData.data?.cities ?? [];
   const arcs = () => globeData.data?.arcs ?? [];
@@ -40,19 +45,24 @@ export default function GlobePage() {
     })),
   );
 
-  // Leg ids are positional because a GlobeArc has no id of its own; the drawer
-  // derives the same key so selection stays in sync between the two.
-  const legs = createMemo<GlobeLeg[]>(() =>
-    arcs().map((a, i) => ({
-      id: `${a.tripId ?? "leg"}-${i}`,
+  // A GlobeArc has no id of its own, so both this page and the drawer key a
+  // leg on what it is (trip, endpoints, when) — not its position, which
+  // shifted every id after a leg added by a refetch.
+  const legs = createMemo<GlobeLeg[]>(() => {
+    const ids = legIds(arcs());
+    return arcs().map((a, i) => ({
+      id: ids[i],
       fromName: a.fromName,
       toName: a.toName,
       from: [a.fromLon, a.fromLat] as [number, number],
       to: [a.toLon, a.toLat] as [number, number],
       distanceKm: a.distanceKm,
       mode: a.mode,
-    })),
-  );
+    }));
+  });
+
+  const selectedCity = () => cities().find((c) => c.id === selectedCityId());
+  const dateFmt = new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" });
 
   const hasData = () => nodes().length > 0 || legs().length > 0;
 
@@ -83,18 +93,25 @@ export default function GlobePage() {
                   fallback={<p class="text-sm text-muted-foreground">Loading your travels…</p>}
                 >
                   <Show
-                    when={globeData.data?.backfilled}
+                    when={!globeData.isError}
                     fallback={
-                      <p class="text-sm text-muted-foreground">
-                        We haven&rsquo;t worked out your travel history yet. Check back shortly.
-                      </p>
+                      <ErrorView error={globeData.error} onRetry={() => void globeData.refetch()} />
                     }
                   >
-                    <h2 class="font-serif text-2xl">No travels recorded yet</h2>
-                    <p class="mt-2 text-sm text-muted-foreground">
-                      Cities appear here once a trip has real dates in the past, or once you mark a
-                      stop as visited. We don&rsquo;t guess from plans.
-                    </p>
+                    <Show
+                      when={globeData.data?.backfilled}
+                      fallback={
+                        <p class="text-sm text-muted-foreground">
+                          We haven&rsquo;t worked out your travel history yet. Check back shortly.
+                        </p>
+                      }
+                    >
+                      <h2 class="font-serif text-2xl">No travels recorded yet</h2>
+                      <p class="mt-2 text-sm text-muted-foreground">
+                        Cities appear here once a trip has real dates in the past, or once you mark
+                        a stop as visited. We don&rsquo;t guess from plans.
+                      </p>
+                    </Show>
                   </Show>
                 </Show>
               </div>
@@ -107,6 +124,7 @@ export default function GlobePage() {
               legs={legs()}
               projection={projection()}
               selectedLegId={selectedLegId()}
+              onSelectNode={(node) => setSelectedCityId(node.id)}
               onMove={(c, z) => {
                 setCentre(c);
                 setZoom(z);
@@ -117,6 +135,43 @@ export default function GlobePage() {
         </Show>
 
         <GlobeRail />
+
+        {/* The city a marker tap picked: how often, how recently, and the way
+            into everything done there. */}
+        <Show when={selectedCity()}>
+          {(city) => (
+            <div class="absolute left-1/2 top-20 z-20 w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-xl">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="truncate font-serif text-xl">{city().cityName}</p>
+                  <Show when={city().country}>
+                    <p class="text-xs text-muted-foreground">{city().country}</p>
+                  </Show>
+                </div>
+                <button
+                  type="button"
+                  class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted"
+                  aria-label="Close"
+                  onClick={() => setSelectedCityId(undefined)}
+                >
+                  <X class="h-4 w-4" />
+                </button>
+              </div>
+              <p class="mt-2 text-sm text-muted-foreground">
+                {city().visitCount} {city().visitCount === 1 ? "visit" : "visits"}
+                <Show when={city().lastVisitAt}>
+                  {(last) => <> · last {dateFmt.format(last())}</>}
+                </Show>
+              </p>
+              <A
+                href={`/recents/${encodeURIComponent(city().cityName)}`}
+                class="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+              >
+                What you did there
+              </A>
+            </div>
+          )}
+        </Show>
 
         {/* Hero copy */}
         <div class="pointer-events-none absolute left-6 top-1/2 hidden -translate-y-1/2 lg:block xl:left-24">

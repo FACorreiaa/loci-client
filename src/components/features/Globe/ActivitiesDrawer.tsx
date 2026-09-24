@@ -1,7 +1,8 @@
-import { createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "~/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/ui/table";
 import type { GlobeArc, VisitedCity } from "~/lib/api/travel-history";
+import { legIds } from "~/lib/globe/leg-id";
 
 interface ActivitiesDrawerProps {
   cities: VisitedCity[];
@@ -29,6 +30,8 @@ const nf = new Intl.NumberFormat();
  * not an omission.
  */
 export default function ActivitiesDrawer(props: ActivitiesDrawerProps) {
+  // Same ids as the globe page derives, so a row and its arc stay paired.
+  const ids = createMemo(() => legIds(props.arcs));
   const [expanded, setExpanded] = createSignal<string[]>([]);
   let triggerRef: HTMLButtonElement | undefined;
 
@@ -95,7 +98,7 @@ export default function ActivitiesDrawer(props: ActivitiesDrawerProps) {
                 <TableBody>
                   <For each={props.arcs}>
                     {(arc, i) => {
-                      const id = () => `${arc.tripId ?? "leg"}-${i()}`;
+                      const id = () => ids()[i()];
                       return (
                         <TableRow
                           class={`cursor-pointer ${
