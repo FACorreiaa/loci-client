@@ -36,14 +36,31 @@ describe("mergeSavedItineraries", () => {
     expect(item.href).toBe("/itinerary?sessionId=s1&cityName=London&domain=itinerary");
   });
 
-  it("keeps a cloud-only bookmark visible but not openable", () => {
+  it("opens a cloud-only bookmark with no session on its own page", () => {
     const [item] = mergeSavedItineraries(
       [],
       [cloud("c1", "Porto weekend", "Porto", "2026-09-01T00:00:00Z")],
     );
     expect(item.cloudId).toBe("c1");
     expect(item.offlineId).toBeUndefined();
-    expect(item.href).toBeUndefined();
+    expect(item.href).toBe("/itinerary/saved/c1");
+  });
+
+  it("opens a cloud-only bookmark that kept its session in the planner", () => {
+    const [item] = mergeSavedItineraries(
+      [],
+      [{ ...cloud("c1", "Porto weekend", "", "2026-09-01T00:00:00Z"), session_id: "s9" }],
+    );
+    expect(item.href).toBe("/itinerary?sessionId=s9&cityName=&domain=itinerary");
+  });
+
+  it("folds a bookmark into the device copy of its session even when the titles differ", () => {
+    const items = mergeSavedItineraries(
+      [offline("s1", "London in 3 days", "London", "2026-09-10T10:00:00Z")],
+      [{ ...cloud("c1", "Renamed trip", "", "2026-09-09T00:00:00Z"), session_id: "s1" }],
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ offlineId: "s1", cloudId: "c1" });
   });
 
   it("folds a cloud bookmark into the offline copy with the same title and city", () => {

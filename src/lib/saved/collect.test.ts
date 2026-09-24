@@ -3,6 +3,8 @@ import { ContentType } from "@buf/loci_loci-proto.bufbuild_es/loci/favorites/v1/
 import {
   countSaved,
   filterSaved,
+  backFromSaved,
+  decodeParam,
   isOpenableId,
   itinerariesToSaved,
   placeHref,
@@ -44,17 +46,43 @@ describe("isOpenableId", () => {
 });
 
 describe("placeHref", () => {
-  it("links hotels and restaurants, which have detail routes", () => {
-    expect(placeHref(UUID, ContentType.HOTEL)).toBe(`/hotels/${UUID}`);
-    expect(placeHref(UUID, ContentType.RESTAURANT)).toBe(`/restaurants/${UUID}`);
+  it("opens every kind of place, marked as coming from /saved", () => {
+    expect(placeHref(UUID, ContentType.HOTEL)).toBe(`/hotels/${UUID}?from=saved`);
+    expect(placeHref(UUID, ContentType.RESTAURANT)).toBe(`/restaurants/${UUID}?from=saved`);
+    expect(placeHref(UUID, ContentType.POI)).toBe(`/places/${UUID}?from=saved`);
   });
 
-  it("does not link a POI: the app has no POI detail route", () => {
-    expect(placeHref(UUID, ContentType.POI)).toBeUndefined();
+  it("opens a name-keyed row too, escaped: the page falls back to the saved snapshot", () => {
+    expect(placeHref("Casa do Largo|38.71|-9.14", ContentType.HOTEL)).toBe(
+      "/hotels/Casa%20do%20Largo%7C38.71%7C-9.14?from=saved",
+    );
+    expect(placeHref("a/b", ContentType.POI)).toBe("/places/a%2Fb?from=saved");
   });
 
-  it("does not link a name-keyed row", () => {
-    expect(placeHref("hotel-avenida-palace", ContentType.HOTEL)).toBeUndefined();
+  it("does not link an empty id or an itinerary", () => {
+    expect(placeHref("  ", ContentType.HOTEL)).toBeUndefined();
+    expect(placeHref(UUID, ContentType.ITINERARY)).toBeUndefined();
+  });
+});
+
+describe("backFromSaved", () => {
+  it("returns to /saved only when the page was opened from there", () => {
+    expect(backFromSaved("saved")).toEqual({ href: "/saved?view=places", label: "Back to Saved" });
+    expect(backFromSaved(undefined)).toBeUndefined();
+    expect(backFromSaved("hotels")).toBeUndefined();
+  });
+});
+
+describe("decodeParam", () => {
+  it("round-trips what placeHref escaped", () => {
+    expect(decodeParam(encodeURIComponent("Casa do Largo|38.71|-9.14"))).toBe(
+      "Casa do Largo|38.71|-9.14",
+    );
+  });
+
+  it("passes through a value that is not valid escaping", () => {
+    expect(decodeParam("100%")).toBe("100%");
+    expect(decodeParam(undefined)).toBe("");
   });
 });
 
@@ -63,7 +91,7 @@ describe("placesToSaved", () => {
     const [row] = placesToSaved([fav({ contentType: ContentType.HOTEL })]);
     expect(row.contentType).toBe(ContentType.HOTEL);
     expect(row.typeLabel).toBe("hotel");
-    expect(row.href).toBe(`/hotels/${UUID}`);
+    expect(row.href).toBe(`/hotels/${UUID}?from=saved`);
   });
 
   it("keys rows by content type as well as id", () => {

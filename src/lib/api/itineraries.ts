@@ -28,6 +28,7 @@ const mapProtoToItinerary = (proto: any): UserSavedItinerary => ({
   user_id: proto.userId,
   source_llm_interaction_id: proto.sourceLlmInteractionId,
   primary_city_id: proto.primaryCityId,
+  session_id: proto.sessionId || undefined,
   title: proto.title,
   description: proto.description || "",
   markdown_content: proto.markdownContent,

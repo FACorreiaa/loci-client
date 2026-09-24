@@ -8,23 +8,49 @@ import type { SavedItem, SavedItineraryItem, SavedPlace, SavedView } from "./typ
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Favourites were saved keyed by display name for a long time, so an id is only
- * an id when it looks like one. A name-keyed row still lists and still unsaves;
- * it just has nowhere to link to.
+ * Favourites were saved keyed by display name for a long time, and iOS still
+ * keys a place with no id as "name|lat|lon", so an id is only a database id
+ * when it looks like one.
  */
 export const isOpenableId = (itemId: string): boolean => UUID_RE.test(itemId.trim());
 
-/** Where a saved place opens, when the app has a page for that kind at all. */
+/** Marks a detail page as opened from /saved, so its Back link returns there. */
+export const FROM_SAVED = "saved";
+
+/**
+ * Where a saved place opens. Every place opens, whatever its id: the detail
+ * pages fall back to the saved snapshot when the id names nothing stored.
+ */
 export function placeHref(itemId: string, contentType: ContentType): string | undefined {
-  if (!isOpenableId(itemId)) return undefined;
+  const id = itemId.trim();
+  if (!id) return undefined;
+  const path = encodeURIComponent(id);
   switch (contentType) {
     case ContentType.HOTEL:
-      return `/hotels/${itemId}`;
+      return `/hotels/${path}?from=${FROM_SAVED}`;
     case ContentType.RESTAURANT:
-      return `/restaurants/${itemId}`;
-    default:
-      // There is no POI detail route yet, and itineraries do not arrive here.
+      return `/restaurants/${path}?from=${FROM_SAVED}`;
+    case ContentType.ITINERARY:
+      // Itineraries arrive through their own source, not as favourites.
       return undefined;
+    default:
+      // POIs and activities share one page.
+      return `/places/${path}?from=${FROM_SAVED}`;
+  }
+}
+
+/** The Back link of a detail page opened from /saved; undefined otherwise. */
+export function backFromSaved(from: unknown): { href: string; label: string } | undefined {
+  return from === FROM_SAVED ? { href: "/saved?view=places", label: "Back to Saved" } : undefined;
+}
+
+/** A route param as the id it was built from; a value that is not valid escaping passes through. */
+export function decodeParam(raw: string | undefined): string {
+  if (!raw) return "";
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
   }
 }
 

@@ -5,6 +5,7 @@ import { useRestaurantDetails } from "~/lib/api/restaurants";
 import type { FavoriteItem } from "~/lib/api/favorites";
 import { isOpenNow, todayHours } from "~/lib/results/domain";
 import PlaceDetail, { type PlaceTab } from "~/components/results/PlaceDetail";
+import { backFromSaved, decodeParam } from "~/lib/saved/collect";
 
 const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
@@ -18,7 +19,7 @@ const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "satu
 export default function RestaurantDetailPage() {
   const params = useParams();
   const [searchParams] = useSearchParams();
-  const restaurantQuery = useRestaurantDetails(params.id ?? "");
+  const restaurantQuery = useRestaurantDetails(decodeParam(params.id));
   const restaurant = () => restaurantQuery.data;
 
   const today = () => todayHours(restaurant()?.hours);
@@ -179,6 +180,7 @@ export default function RestaurantDetailPage() {
       }
       favorite={favorite()}
       cityHint={searchParams.cityName as string | undefined}
+      backTo={backFromSaved(searchParams.from)}
       facts={
         <>
           <Show when={cuisine()}>

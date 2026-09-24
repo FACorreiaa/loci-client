@@ -246,6 +246,8 @@ export interface UserSavedItinerary {
   user_id: string;
   source_llm_interaction_id?: string; // Optional UUID for the source LLM interaction
   primary_city_id?: string; // Optional UUID for the primary city
+  /** The chat session it was saved from; opens the full plan on any device. */
+  session_id?: string;
   title: string;
   description: string;
   markdown_content: string;
