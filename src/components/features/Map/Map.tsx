@@ -2,9 +2,8 @@ import { Show, createEffect, mergeProps, onCleanup } from "solid-js";
 import type { Point } from "geojson";
 import mapboxgl from "mapbox-gl";
 import { useTheme } from "~/contexts/ThemeContext";
-import { mapStyleForColorMode } from "~/lib/theme-colors";
 import { apply3DConfig } from "./atmosphere";
-import { fitToData, startItineraryFlyThrough } from "./camera";
+import { fitToData, moveCameraTo, startItineraryFlyThrough } from "./camera";
 import {
   DEFAULT_MAP_STYLE,
   FALLBACK_CENTER,
@@ -26,6 +25,7 @@ import { buildSignalData, ensureSignalLayers } from "./layers/signalLayers";
 import { buildPopupContent } from "./popup";
 import type { MapComponentProps, POI } from "./types";
 import { MapErrorBoundary, MapUnavailable } from "./MapErrorBoundary";
+import { MOBILE_MAP_WIDTH, resolveMapStyle } from "./style";
 import { useMapLifecycle } from "./useMapLifecycle";
 
 const MapComponent = (_props: MapComponentProps) => {
@@ -49,11 +49,19 @@ const MapComponent = (_props: MapComponentProps) => {
   let routeAnimFrame: number | undefined;
   let cancelFlyThrough: (() => void) | undefined;
   let handlersBound = false;
+  // Decided once at creation from the container width: phones get a gentler
+  // pitch and no terrain.
+  let isMobileMap = false;
   const index = createPoiIndex();
   let selectedFeatureId: number | null = null;
 
-  const resolveMapStyle = () =>
-    props.followColorMode ? mapStyleForColorMode(theme.isDark()) : props.style;
+  const currentStyle = () =>
+    resolveMapStyle({
+      style: props.style,
+      enable3D: props.enable3D,
+      followColorMode: props.followColorMode,
+      isDark: theme.isDark(),
+    });
 
   const setFeatureSelected = (map: mapboxgl.Map, fid: number | null, selected: boolean) => {
     if (fid == null) return;
@@ -77,7 +85,7 @@ const MapComponent = (_props: MapComponentProps) => {
       const entry = index.poiByFeatureId.get(nextId);
       if (entry) {
         const lngLat: [number, number] = [toNum(entry.poi.longitude), toNum(entry.poi.latitude)];
-        map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), 14), speed: 1.2 });
+        moveCameraTo(map, { center: lngLat, zoom: Math.max(map.getZoom(), 14) }, "fly");
         popup
           ?.setLngLat(lngLat)
           .setDOMContent(
@@ -105,10 +113,14 @@ const MapComponent = (_props: MapComponentProps) => {
       if (clusterId == null) return;
       source.getClusterExpansionZoom(clusterId, (err, zoom) => {
         if (err) return;
-        map.easeTo({
-          center: (feature!.geometry as Point).coordinates as [number, number],
-          zoom: zoom ?? map.getZoom() + 1,
-        });
+        moveCameraTo(
+          map,
+          {
+            center: (feature!.geometry as Point).coordinates as [number, number],
+            zoom: zoom ?? map.getZoom() + 1,
+          },
+          "ease",
+        );
       });
     });
 
@@ -214,18 +226,20 @@ const MapComponent = (_props: MapComponentProps) => {
     container: () => mapContainer,
     sentinelSourceId: SOURCE_POIS,
     mapOptions: () => {
-      const initialStyle = resolveMapStyle();
+      const initialStyle = currentStyle();
       activeStyleUrl = initialStyle;
+      isMobileMap = (mapContainer?.offsetWidth ?? 0) < MOBILE_MAP_WIDTH;
       return {
         style: initialStyle,
         center: initialCenter(),
         zoom: props.zoom || 12,
         minZoom: props.minZoom || 2,
         maxZoom: props.maxZoom || 20,
-        pitch: props.pitch ?? (props.enable3D ? 48 : 0),
+        pitch: props.pitch ?? (props.enable3D ? (isMobileMap ? 40 : 48) : 0),
         bearing: props.enable3D ? -18 : 0,
         // Globe projection for a rounded-earth discovery view; antialias smooths
-        // the Standard style's 3D building edges.
+        // the edges of Standard's 3D buildings (a 3D map always loads Standard —
+        // see resolveMapStyle).
         projection: props.enable3D ? "globe" : "mercator",
         antialias: true,
       };
@@ -247,7 +261,7 @@ const MapComponent = (_props: MapComponentProps) => {
       popup = new mapboxgl.Popup({ offset: 18, closeButton: true, closeOnClick: false });
     },
     applyConfig: (map) => {
-      if (props.enable3D) apply3DConfig(map, theme.isDark());
+      if (props.enable3D) apply3DConfig(map, theme.isDark(), { terrain: !isMobileMap });
     },
     ensureLayers,
     onStyleReady: (map) => {
@@ -260,12 +274,21 @@ const MapComponent = (_props: MapComponentProps) => {
     onReattach: () => updateData(props.pointsOfInterest, false),
   });
 
-  // Swap basemap when color mode changes.
+  // Follow color mode. A 3D map stays on Standard and flips its light preset
+  // (day/night) in place — no style reload, so our layers never have to re-attach. Only a
+  // flat map swaps between the classic light/dark styles.
   createEffect(() => {
-    if (!props.followColorMode) return;
-    const nextStyle = mapStyleForColorMode(theme.isDark());
+    const isDark = theme.isDark();
     const map = lifecycle.map();
-    if (!map || activeStyleUrl === nextStyle) return;
+    if (!map) return;
+    if (props.enable3D) {
+      // Re-runs the whole (idempotent) config so the fog tint follows too.
+      apply3DConfig(map, isDark, { terrain: !isMobileMap });
+      return;
+    }
+    if (!props.followColorMode) return;
+    const nextStyle = currentStyle();
+    if (activeStyleUrl === nextStyle) return;
     activeStyleUrl = nextStyle;
     map.setStyle(nextStyle);
   });
