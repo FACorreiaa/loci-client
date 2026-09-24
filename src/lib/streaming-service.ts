@@ -15,13 +15,14 @@ import type {
   DomainType,
   UnifiedChatResponse,
   AiCityResponse,
-  AccommodationResponse,
-  DiningResponse,
-  ActivitiesResponse,
-  HotelDetailedInfo,
-  RestaurantDetailedInfo,
 } from "./api/types";
 import type { ChatStreamParams, LociStreamEvent } from "./streaming/chatStream";
+import {
+  applyCityEvent,
+  applyStopEvent,
+  finishStops,
+  stopsFromRoute,
+} from "./streaming/multi-city";
 import { streamWithReconnect } from "./streaming/reconnect";
 import {
   clearActiveSession,
@@ -177,6 +178,7 @@ export class StreamingChatService {
       domain: s.domain,
       city: s.city ?? "",
       data: s.data ?? null,
+      ...(s.route ? { route: s.route, stops: s.stops } : {}),
       ...extra,
     });
     // A finished run has nothing to resume. Writing its envelope here, after
@@ -195,6 +197,7 @@ export class StreamingChatService {
         city: s.city ?? "",
         startedAt: entry?.startedAt ?? Date.now(),
         data: s.data ?? null,
+        ...(s.route ? { route: s.route, stops: s.stops } : {}),
       });
     }
   }
@@ -207,6 +210,26 @@ export class StreamingChatService {
     if (event.kind === "start" && event.sessionId) run.sessionId = event.sessionId;
     if (event.eventId) this.live(run, { lastEventId: event.eventId });
     mgr.onEvent?.(event);
+
+    if (event.kind === "route") {
+      mgr.session.route = event.route;
+      mgr.session.stops = stopsFromRoute(event.route, mgr.session.stops);
+      if (event.route.tripId) mgr.session.tripId = event.route.tripId;
+      this.publish(run);
+      mgr.onProgress(mgr.session);
+      return;
+    }
+    if (event.stopIndex !== undefined && mgr.session.stops) {
+      // A city of a multi-city trip. Its error is that city's, not the run's.
+      mgr.session.stops = applyStopEvent(mgr.session.stops, event, isCity);
+      // The first city stands in for `data` so every existing reader of
+      // session.data keeps rendering something.
+      const first = mgr.session.stops[0]?.data;
+      if (first) mgr.session.data = first;
+      this.publish(run);
+      mgr.onProgress(mgr.session);
+      return;
+    }
 
     switch (event.kind) {
       case "start":
@@ -241,31 +264,27 @@ export class StreamingChatService {
         break;
 
       case "city_data":
-        if (isCity && event.city) {
-          const data = (mgr.session.data ?? {}) as Partial<AiCityResponse>;
-          data.general_city_data = event.city;
-          data.session_id = mgr.session.sessionId;
-          mgr.session.data = { ...data };
-        }
+        mgr.session.data =
+          applyCityEvent(mgr.session.data, event, isCity, mgr.session.sessionId) ??
+          mgr.session.data;
         if (event.city?.city) mgr.session.city = event.city.city;
         this.publish(run);
         mgr.onProgress(mgr.session);
         break;
 
       case "general_pois":
-        if (isCity) {
-          const data = (mgr.session.data ?? {}) as Partial<AiCityResponse>;
-          data.points_of_interest = event.pois;
-          if (event.city) data.general_city_data = event.city;
-          mgr.session.data = { ...data };
-        }
+        mgr.session.data =
+          applyCityEvent(mgr.session.data, event, isCity, mgr.session.sessionId) ??
+          mgr.session.data;
         this.publish(run);
         mgr.onProgress(mgr.session);
         break;
 
       case "itinerary":
         // The itinerary event carries the full aggregate city response.
-        mgr.session.data = event.cityResponse;
+        mgr.session.data =
+          applyCityEvent(mgr.session.data, event, isCity, mgr.session.sessionId) ??
+          mgr.session.data;
         if (event.cityResponse.general_city_data?.city) {
           mgr.session.city = event.cityResponse.general_city_data.city;
         }
@@ -274,38 +293,12 @@ export class StreamingChatService {
         break;
 
       case "hotels":
-        if (event.city?.city) mgr.session.city = event.city.city;
-        mgr.session.data = {
-          general_city_data: event.city,
-          // Slice 1: hotels are POI-shaped end-to-end (see chatStream.ts).
-          hotels: event.pois as unknown as HotelDetailedInfo[],
-          domain: "accommodation",
-          session_id: event.sessionId || mgr.session.sessionId,
-        } as AccommodationResponse;
-        this.publish(run);
-        mgr.onProgress(mgr.session);
-        break;
-
       case "restaurants":
-        if (event.city?.city) mgr.session.city = event.city.city;
-        mgr.session.data = {
-          general_city_data: event.city,
-          restaurants: event.pois as unknown as RestaurantDetailedInfo[],
-          domain: "dining",
-          session_id: event.sessionId || mgr.session.sessionId,
-        } as DiningResponse;
-        this.publish(run);
-        mgr.onProgress(mgr.session);
-        break;
-
       case "activities":
         if (event.city?.city) mgr.session.city = event.city.city;
-        mgr.session.data = {
-          general_city_data: event.city,
-          activities: event.pois,
-          domain: "activities",
-          session_id: event.sessionId || mgr.session.sessionId,
-        } as ActivitiesResponse;
+        mgr.session.data =
+          applyCityEvent(mgr.session.data, event, isCity, mgr.session.sessionId) ??
+          mgr.session.data;
         this.publish(run);
         mgr.onProgress(mgr.session);
         break;
@@ -322,6 +315,7 @@ export class StreamingChatService {
         break;
 
       case "complete":
+        if (mgr.session.stops) mgr.session.stops = finishStops(mgr.session.stops);
         return this.handleComplete(event, run);
     }
   }

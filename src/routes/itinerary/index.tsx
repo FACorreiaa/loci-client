@@ -38,6 +38,19 @@ const dayOf = (stop: { day?: number }, index: number): number =>
 const toNum = (v: unknown): number =>
   typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : 0;
 import SplitView from "@/components/layout/SplitView";
+import { StopSwitcher } from "@/components/features/MultiCity/StopSwitcher";
+import { LegRow } from "@/components/features/MultiCity/LegRow";
+import {
+  isMultiPayload,
+  mapView,
+  mergedResponse,
+  multiShareText,
+  parseStopsParam,
+  routeFromTrip,
+  tripIdToAdopt,
+  tripWideResponse,
+} from "@/components/features/MultiCity/multi-city-view";
+import { fetchTrip } from "@/lib/api/trips";
 import { CityInfoHeader } from "@/components/ui/CityInfoHeader";
 import LocalWeather from "@/components/LocalWeather";
 import TripMoney from "@/components/TripMoney";
@@ -106,15 +119,25 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // are on its page, and a reload or Open from a toast restores it — and
   // render it from the live store like any other run. A `start` that lands
   // after you left must not touch the URL of wherever you are now.
-  const { store, connect, setStore } = useStreamedRpc(message, cityName, profileId, {
-    onStart: (sessionId) => {
-      if (!mounted) return;
-      props.adopt(sessionId);
-      setSearchParams({ sessionId }, { replace: true });
-      hydratedAfterLive = false;
-      setBoundLive(true);
+  // A multi-city search from the stop builder: ?stops=Lisbon:3,Porto:2&suggest=1
+  const [stopsParam] = createSignal(parseStopsParam(searchParams.stops as string | undefined));
+  const [suggestOrder] = createSignal(searchParams.suggest === "1");
+  const { store, connect, setStore } = useStreamedRpc(
+    message,
+    cityName,
+    profileId,
+    {
+      onStart: (sessionId) => {
+        if (!mounted) return;
+        props.adopt(sessionId);
+        setSearchParams({ sessionId }, { replace: true });
+        hydratedAfterLive = false;
+        setBoundLive(true);
+      },
     },
-  });
+    stopsParam,
+    suggestOrder,
+  );
 
   // Mutation hook for bookmarking
   const saveItineraryMutation = useSaveItineraryMutation();
@@ -211,6 +234,15 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   const restoreFromDevice = async (sessionIdFromUrl: string): Promise<boolean> => {
     try {
       const saved = await getOfflineItinerary(sessionIdFromUrl);
+      if (saved && isMultiPayload(saved.payload)) {
+        // A multi-city trip: every city's result was kept, so it opens whole.
+        setStore("route", saved.payload.route);
+        setStore("stops", saved.payload.stops);
+        const first = saved.payload.stops[0]?.data;
+        if (first) setStore("data", normalizeItineraryPayload(first) ?? (first as any));
+        setSavedOffline(true);
+        return true;
+      }
       const normalized = saved ? normalizeItineraryPayload(saved.payload) : null;
       if (!normalized || !hasItineraryContent(normalized)) return false;
       setStore("data", normalized);
@@ -222,11 +254,48 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     }
   };
 
+  // A multi-city trip saved to the account: its cities come from the trip,
+  // and each city's result from that city's own session.
+  const restoreFromTrip = async (tripId: string): Promise<boolean> => {
+    try {
+      const trip = await fetchTrip(tripId);
+      if ((trip.cities?.length ?? 0) < 2) return false;
+      const { route: r, stops } = routeFromTrip(trip);
+      setStore("isLoading", true);
+      const loaded = await Promise.all(
+        stops.map(async (st) => {
+          if (!st.sessionId) return { ...st, error: "This city's plan is no longer available." };
+          try {
+            const res = await getChatSession(st.sessionId);
+            return { ...st, data: res ? (normalizeItineraryPayload(res) ?? (res as any)) : null };
+          } catch {
+            return { ...st, error: "Could not load this city's plan." };
+          }
+        }),
+      );
+      setStore("route", { ...r, tripId });
+      setStore("stops", loaded);
+      const first = loaded.find((st) => st.data)?.data;
+      if (first) setStore("data", first as any);
+      setStore("tripId", tripId);
+      return true;
+    } catch (e) {
+      console.warn("Could not reopen the trip:", e);
+      return false;
+    } finally {
+      setStore("isLoading", false);
+    }
+  };
+
   const restoreOrHydrateSession = async (sessionIdFromUrl: string) => {
     if (restoreFromSessionStorage(sessionIdFromUrl)) {
       return;
     }
     if (await restoreFromDevice(sessionIdFromUrl)) {
+      return;
+    }
+    const tripIdFromUrl = searchParams.tripId as string | undefined;
+    if (tripIdFromUrl && (await restoreFromTrip(tripIdFromUrl))) {
       return;
     }
     if (await hydrateFromServer(sessionIdFromUrl)) {
@@ -325,8 +394,36 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     connect();
   });
 
-  const itineraryData = createMemo(() => store.data?.itinerary_response);
-  const cityData = createMemo(() => store.data?.general_city_data);
+  // --- Multi-city ------------------------------------------------------
+  // A multi-city run is one result per city. The page's views all read
+  // viewData(): the chosen city's result, or — on "All days" — every city in
+  // one response with its days numbered across the trip.
+  const route = createMemo(() => (boundLive() ? live.route() : null) ?? store.route);
+  const cityStops = createMemo(() => {
+    const fromLive = boundLive() ? live.stops() : [];
+    return fromLive.length > 0 ? fromLive : store.stops;
+  });
+  const isMulti = createMemo(() => cityStops().length >= 2);
+  // Once the server has saved the trip, name it in the URL: a reload then
+  // reopens every city rather than the first city's session alone.
+  createEffect(() => {
+    const tripId = tripIdToAdopt(searchParams.tripId as string | undefined, route()?.tripId);
+    if (tripId && mounted) setSearchParams({ tripId }, { replace: true });
+  });
+  const [activeStop, setActiveStop] = createSignal<number | "all">("all");
+  const activeCity = createMemo(() => {
+    const a = activeStop();
+    return a === "all" ? undefined : cityStops().find((s) => s.index === a);
+  });
+  const viewData = createMemo<any>(() => {
+    if (!isMulti()) return store.data;
+    const city = activeCity();
+    if (city) return tripWideResponse(city);
+    return mergedResponse(cityStops()) ?? store.data;
+  });
+
+  const itineraryData = createMemo(() => viewData()?.itinerary_response);
+  const cityData = createMemo(() => viewData()?.general_city_data);
 
   // Structured text types out while the stream is live; restored sessions
   // show it whole. Nothing token-level is ever rendered.
@@ -335,23 +432,23 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     () => boundLive() && live.isStreaming(),
   );
   const typedSummary = useTypedText(
-    () => store.data?.itinerary_response?.overall_description,
+    () => viewData()?.itinerary_response?.overall_description,
     () => boundLive() && live.isStreaming(),
   );
-  const pointsOfInterest = createMemo(() => store.data?.points_of_interest || []);
+  const pointsOfInterest = createMemo(() => viewData()?.points_of_interest || []);
 
   // --- Editorial streaming model -------------------------------------
   // Derives the skeleton → enrichment shape from whatever the backend
   // has delivered so far. Works today with single-shot AiCityResponse;
   // swap in createItineraryStream().consumeSSE when the Go backend ships
   // true phased events — the view below does not change.
-  const itineraryModel = createMemo(() => stopsFromCityResponse(store.data));
+  const itineraryModel = createMemo(() => stopsFromCityResponse(viewData()));
 
   const streamPhase = createMemo<StreamPhase>(() => {
     if (store.error) return "error";
-    if (store.isLoading && !store.data) return "skeleton";
+    if (store.isLoading && !viewData()) return "skeleton";
     const m = itineraryModel();
-    if (!store.data || m.stops.length === 0) return "skeleton";
+    if (!viewData() || m.stops.length === 0) return "skeleton";
     if (store.isLoading) return "enriching";
     return m.enrichedCount >= m.stops.length ? "done" : "enriching";
   });
@@ -369,10 +466,10 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
 
   // General POIs that aren't part of the itinerary, as static cards.
   const extraStops = createMemo<ItineraryStop[]>(() => {
-    if (!store.data) return [];
+    if (!viewData()) return [];
     const itinNames = new Set(itineraryModel().stops.map((s) => s.name));
     return stopsFromCityResponse({
-      ...(store.data as any),
+      ...(viewData() as any),
       itinerary_response: undefined,
     } as any).stops.filter((s) => !itinNames.has(s.name));
   });
@@ -523,12 +620,20 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   };
 
   const handleDownload = () => {
-    const data = JSON.stringify(store.data, null, 2);
+    const data = JSON.stringify(
+      isMulti() ? { route: route(), stops: cityStops() } : store.data,
+      null,
+      2,
+    );
     const blob = new Blob([data], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `itinerary-${cityName()}.json`;
+    a.download = isMulti()
+      ? `trip-${cityStops()
+          .map((st) => st.cityName)
+          .join("-")}.json`
+      : `itinerary-${cityName()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -542,6 +647,8 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     url: SHARE_HOME_URL,
     stopCount: itineraryModel().stops.length,
     stops: itineraryModel().stops.map((s, i) => ({ name: s.name, day: dayOf(s, i) })),
+    // A multi-city trip writes its own text: its days grouped by city.
+    ...(isMulti() && route() ? { text: multiShareText(route()!, cityStops()) } : {}),
   }));
 
   const [saving, setSaving] = createSignal(false);
@@ -553,12 +660,58 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     statusTimer = setTimeout(() => setSaveStatus(""), 4000);
   };
 
+  // A multi-city trip is already in the account as its parent trip, so Save
+  // keeps the whole thing — route and every city — on this device, keyed on
+  // the first city's session (the one its URL names).
+  const saveMultiCity = async () => {
+    const stops = cityStops();
+    const r = route();
+    const id = stops[0]?.sessionId;
+    if (!id || !r || !stops.some((st) => st.data)) {
+      showStatus("Nothing to save yet");
+      return;
+    }
+    const names = stops.map((st) => st.cityName).join(" + ");
+    setSaving(true);
+    try {
+      await saveItineraryOffline({
+        id,
+        cityName: names,
+        title: names,
+        description: r.outline,
+        payload: { kind: "multi", route: r, stops: stops.map((st) => ({ ...st })) },
+        stopCount: stops.reduce(
+          (n, st) =>
+            n + (tripWideResponse(st)?.itinerary_response?.points_of_interest?.length ?? 0),
+          0,
+        ),
+        savedAt: new Date().toISOString(),
+        sourceUrl:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/itinerary?sessionId=${encodeURIComponent(id)}${r.tripId ? `&tripId=${encodeURIComponent(r.tripId)}` : ""}`
+            : "",
+      });
+      setSavedOffline(true);
+      showStatus(
+        r.tripId && isAuthenticated()
+          ? "Saved on this device · also in your trips"
+          : "Saved on this device",
+      );
+    } catch (error) {
+      console.error("Failed to save on this device:", error);
+      showStatus("Could not save on this device");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // One Save. The device copy is the point — it is what makes the itinerary
   // open with no network — so it is written first and counts as success on
   // its own. The account bookmark follows when signed in; the server keeps
   // only title and city (its session id is not accepted), so a failure there
   // is reported, not treated as losing the save.
   const handleSave = async () => {
+    if (isMulti()) return saveMultiCity();
     const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
     const city = cityData();
     if (!sessionId || !store.data || !hasItineraryContent(store.data)) {
@@ -624,9 +777,27 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
         }
       >
         <MapComponent
-          center={[toNum(mapPois()[0]?.longitude), toNum(mapPois()[0]?.latitude)]}
+          center={
+            isMulti()
+              ? mapView(
+                  mapPois().map((p) => ({
+                    latitude: toNum(p.latitude),
+                    longitude: toNum(p.longitude),
+                  })),
+                ).center
+              : [toNum(mapPois()[0]?.longitude), toNum(mapPois()[0]?.latitude)]
+          }
           pointsOfInterest={mapPois()}
-          zoom={12}
+          zoom={
+            isMulti()
+              ? mapView(
+                  mapPois().map((p) => ({
+                    latitude: toNum(p.latitude),
+                    longitude: toNum(p.longitude),
+                  })),
+                ).zoom
+              : 12
+          }
           selectedId={selectedId()}
           onSelect={(poi) => setSelectedId(poi.name)}
           onActivate={(poi) => openDetail(poi)}
@@ -682,6 +853,28 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
             </div>
           }
         >
+          <Show when={isMulti()}>
+            <div class="mb-5 space-y-2">
+              <StopSwitcher
+                stops={cityStops()}
+                active={activeStop()}
+                onSelect={setActiveStop}
+                showAll
+              />
+              <Show when={route()?.outline}>
+                <p class="text-sm text-muted-foreground">{route()!.outline}</p>
+              </Show>
+              <Show when={(route()?.dropped.length ?? 0) > 0}>
+                <p class="text-xs text-muted-foreground">
+                  Left out:{" "}
+                  {route()!
+                    .dropped.map((d) => `${d.cityName} (${d.reason})`)
+                    .join("; ")}
+                </p>
+              </Show>
+            </div>
+          </Show>
+
           <CityInfoHeader
             cityData={cityData()}
             isLoading={store.isLoading && !cityData()}
@@ -704,19 +897,82 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
             </div>
           </Show>
 
-          <ItineraryStreamView
-            phase={streamPhase()}
-            title={itineraryModel().title}
-            summary={typedSummary() || itineraryModel().summary}
-            stops={itineraryModel().stops}
-            enrichedCount={itineraryModel().enrichedCount}
-            error={store.error?.message}
-            onRetry={searchParams.sessionId ? handleRetryHydrate : undefined}
-            onBack={searchParams.sessionId ? handleBackToDiscover : undefined}
-            stopsPerDay={STOPS_PER_DAY}
-            selectedKey={selectedId()}
-            onStopClick={(stop) => setSelectedId(stop.name)}
-          />
+          <Show
+            when={isMulti() && activeStop() === "all"}
+            fallback={
+              <Show
+                when={activeCity()?.error}
+                fallback={
+                  <ItineraryStreamView
+                    phase={streamPhase()}
+                    title={itineraryModel().title}
+                    summary={typedSummary() || itineraryModel().summary}
+                    stops={itineraryModel().stops}
+                    enrichedCount={itineraryModel().enrichedCount}
+                    error={store.error?.message}
+                    onRetry={searchParams.sessionId ? handleRetryHydrate : undefined}
+                    onBack={searchParams.sessionId ? handleBackToDiscover : undefined}
+                    stopsPerDay={STOPS_PER_DAY}
+                    selectedKey={selectedId()}
+                    onStopClick={(stop) => setSelectedId(stop.name)}
+                  />
+                }
+              >
+                <StreamErrorCard
+                  error={activeCity()!.error!}
+                  title={`Couldn't plan ${activeCity()!.cityName}`}
+                  onRetry={() =>
+                    navigate(
+                      `/itinerary?message=${encodeURIComponent(message() || "trip")}&cityName=${encodeURIComponent(activeCity()!.cityName)}`,
+                    )
+                  }
+                />
+              </Show>
+            }
+          >
+            {/* Every day of the trip, city by city, with the move between them. */}
+            <For each={cityStops()}>
+              {(stop) => {
+                const model = createMemo(() =>
+                  stopsFromCityResponse(tripWideResponse(stop) as any),
+                );
+                const leg = () =>
+                  route()?.legs.find(
+                    (l) =>
+                      l.fromName === stop.cityName &&
+                      l.afterDay === stop.dayNumbers[stop.dayNumbers.length - 1],
+                  );
+                return (
+                  <section class="mb-6">
+                    <SectionHeader
+                      title={stop.cityName}
+                      subtitle={`Day ${stop.dayNumbers[0]}${stop.dayNumbers.length > 1 ? `–${stop.dayNumbers[stop.dayNumbers.length - 1]}` : ""}`}
+                    />
+                    <Show
+                      when={!stop.error}
+                      fallback={<p class="text-sm text-muted-foreground">{stop.error}</p>}
+                    >
+                      <ItineraryStreamView
+                        phase={
+                          model().stops.length === 0 ? "skeleton" : stop.done ? "done" : "enriching"
+                        }
+                        title={model().title}
+                        summary={model().summary}
+                        stops={model().stops}
+                        enrichedCount={model().enrichedCount}
+                        stopsPerDay={STOPS_PER_DAY}
+                        selectedKey={selectedId()}
+                        onStopClick={(s) => setSelectedId(s.name)}
+                      />
+                    </Show>
+                    <Show when={leg()}>
+                      <LegRow leg={leg()!} />
+                    </Show>
+                  </section>
+                );
+              }}
+            </For>
+          </Show>
 
           <TripKit
             title={itineraryModel().title}

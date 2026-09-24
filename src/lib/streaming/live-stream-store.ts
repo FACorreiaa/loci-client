@@ -12,6 +12,8 @@
 // runs streaming right now (up to MAX_RUNS at once) and, if so, renders from
 // here instead of waiting for sessionStorage or a server round-trip.
 
+import type { RouteInfo } from "./chatStream";
+import type { StopState } from "./multi-city";
 import { createStore, produce } from "solid-js/store";
 import type { DomainType, UnifiedChatResponse } from "../api/types";
 import { responseHasContent } from "./response-content";
@@ -42,6 +44,9 @@ export interface LiveStream {
    * RunWatcher counts it as the run's own page, so no toast fires there.
    */
   hostPath?: string;
+  /** A multi-city run's route and cities; absent for one city. */
+  route?: RouteInfo;
+  stops?: StopState[];
 }
 
 // Not solid-js/web's `isServer`: under vitest the package resolves to its
@@ -141,6 +146,9 @@ export function useLiveSession(sessionId: () => string | undefined) {
       return p === "connecting" || p === "streaming";
     },
     tokenCount: () => run()?.tokenCount ?? 0,
+    /** A multi-city run's route and cities; null / empty for one city. */
+    route: () => run()?.route ?? null,
+    stops: () => run()?.stops ?? [],
   };
 }
 
@@ -157,6 +165,8 @@ export interface ActiveSessionEnvelope {
   city: string;
   startedAt: number;
   data?: Partial<UnifiedChatResponse> | null;
+  route?: RouteInfo;
+  stops?: StopState[];
 }
 
 function readEnvelopes(): ActiveSessionEnvelope[] {

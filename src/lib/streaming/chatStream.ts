@@ -37,7 +37,45 @@ export interface NavigationInfo {
 // Normalized, UI-facing stream event. One shape per proto oneof case.
 // `eventId` is the server's frame id when it sent one — the resume token a
 // reconnect hands back so the server replays from there.
-export type LociStreamEvent = { eventId?: string } & (
+/** One city of a multi-city stream (proto StopRef). */
+export interface RouteStop {
+  index: number;
+  cityName: string;
+  cityId?: string;
+  sessionId: string;
+  /** Trip-wide day numbers spent in this city. */
+  dayNumbers: number[];
+}
+
+/** Travel between two cities of a multi-city trip (proto TripLeg). An estimate. */
+export interface RouteLeg {
+  afterDay: number;
+  fromName: string;
+  toName: string;
+  distanceKm: number;
+  durationMins: number;
+  mode: string;
+  fromLat?: number;
+  fromLon?: number;
+  toLat?: number;
+  toLon?: number;
+}
+
+/** A multi-city stream's route (proto RoutePayload). */
+export interface RouteInfo {
+  stops: RouteStop[];
+  legs: RouteLeg[];
+  outline: string;
+  warnings: string[];
+  dropped: { cityName: string; reason: string }[];
+  totalTravelMins: number;
+  /** The parent trip, once the server has saved it. */
+  tripId?: string;
+}
+
+// `stopIndex` is set on every per-city event of a multi-city stream; an
+// `error` carrying it failed that city only.
+export type LociStreamEvent = { eventId?: string; stopIndex?: number } & (
   | { kind: "start"; sessionId: string; domain: string; city?: string }
   | { kind: "token"; text: string }
   | { kind: "partial"; text: string }
@@ -48,6 +86,7 @@ export type LociStreamEvent = { eventId?: string } & (
   | { kind: "restaurants"; pois: POIDetailedInfo[]; city?: GeneralCityData; sessionId: string }
   | { kind: "activities"; pois: POIDetailedInfo[]; city?: GeneralCityData; sessionId: string }
   | { kind: "progress"; stage: string; percent?: number }
+  | { kind: "route"; route: RouteInfo }
   | {
       kind: "error";
       userMessage: string;
@@ -89,6 +128,10 @@ export interface ChatStreamParams {
   resumeToken?: string;
   /** Client-generated idempotency/correlation id echoed back on events. */
   requestId?: string;
+  /** A multi-city trip from the stop builder, in the traveller's order. */
+  stops?: { cityName: string; nights?: number }[];
+  /** Let the server reorder `stops` into a sensible route. */
+  suggestOrder?: boolean;
 }
 
 const mapNavigation = (nav: ProtoStreamEvent["navigation"]): NavigationInfo | undefined =>
@@ -110,8 +153,44 @@ function tripIdFromNavigation(nav: ProtoStreamEvent["navigation"]): string | und
  * never kills the stream.
  */
 export function mapProtoEvent(ev: ProtoStreamEvent): LociStreamEvent | null {
+  const out = mapPayload(ev);
+  if (out && ev.stopIndex !== undefined) out.stopIndex = ev.stopIndex;
+  return out;
+}
+
+function mapPayload(ev: ProtoStreamEvent): LociStreamEvent | null {
   const p = ev.payload;
   switch (p.case) {
+    case "route":
+      return {
+        kind: "route",
+        route: {
+          stops: p.value.stops.map((s) => ({
+            index: s.index,
+            cityName: s.cityName,
+            cityId: s.cityId || undefined,
+            sessionId: s.sessionId,
+            dayNumbers: [...s.dayNumbers],
+          })),
+          legs: p.value.legs.map((l) => ({
+            afterDay: l.afterDay,
+            fromName: l.fromName,
+            toName: l.toName,
+            distanceKm: l.distanceKm,
+            durationMins: l.durationMins,
+            mode: l.mode,
+            fromLat: l.fromLat,
+            fromLon: l.fromLon,
+            toLat: l.toLat,
+            toLon: l.toLon,
+          })),
+          outline: p.value.outline,
+          warnings: [...p.value.warnings],
+          dropped: p.value.dropped.map((d) => ({ cityName: d.cityName, reason: d.reason })),
+          totalTravelMins: p.value.totalTravelMins,
+          tripId: p.value.tripId || undefined,
+        },
+      };
     case "start":
       return {
         kind: "start",
@@ -207,7 +286,10 @@ export function mapProtoEvent(ev: ProtoStreamEvent): LociStreamEvent | null {
   }
 }
 
-const buildRequest = (params: ChatStreamParams) =>
+/** What this client can render, sent on every stream (server: featuresHeader). */
+export const CLIENT_FEATURES = { "Loci-Features": "multi-city" } as const;
+
+export const buildRequest = (params: ChatStreamParams) =>
   // These are `optional` fields with a min_len:1 validator. Sending "" POPULATES
   // them (proto3 optional tracks presence), so the server rejects the request on
   // validation. Omit empties (undefined) so they stay unpopulated and are skipped.
@@ -218,6 +300,8 @@ const buildRequest = (params: ChatStreamParams) =>
     sessionId: params.sessionId || undefined,
     resumeToken: params.resumeToken || undefined,
     requestId: params.requestId || undefined,
+    stops: (params.stops ?? []).map((s) => ({ cityName: s.cityName, nights: s.nights })),
+    suggestOrder: params.suggestOrder ?? false,
     userLocation: params.userLocation
       ? { latitude: params.userLocation.userLat, longitude: params.userLocation.userLon }
       : undefined,
@@ -239,7 +323,9 @@ export async function* streamChatEvents(
   signal?: AbortSignal,
 ): AsyncGenerator<LociStreamEvent> {
   const req = buildRequest(params);
-  const makeStream = () => chatService.streamChat(req, signal ? { signal } : undefined);
+  // Tells the server this client renders multi-city streams (ROUTE and
+  // stop_index); without it free text naming several cities stays one city.
+  const makeStream = () => chatService.streamChat(req, { signal, headers: CLIENT_FEATURES });
 
   const seen = new Set<string>();
   let emitted = false;
@@ -254,7 +340,12 @@ export async function* streamChatEvents(
       const mapped = mapProtoEvent(ev);
       if (mapped) {
         emitted = true;
-        if (mapped.kind === "complete" || mapped.kind === "error") terminal = true;
+        // A city's error in a multi-city stream is not the end of it.
+        if (
+          mapped.kind === "complete" ||
+          (mapped.kind === "error" && mapped.stopIndex === undefined)
+        )
+          terminal = true;
         if (ev.eventId) mapped.eventId = ev.eventId;
         yield mapped;
       }

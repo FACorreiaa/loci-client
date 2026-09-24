@@ -16,6 +16,11 @@ import { createStreamingSession, streamingService } from "@/lib/streaming-servic
 import { upsertRun } from "@/lib/streaming/live-stream-store";
 import { responseHasContent } from "@/lib/streaming/response-content";
 import { AiCityResponse } from "~/lib/api/types";
+import type { RouteInfo } from "~/lib/streaming/chatStream";
+import type { StopState } from "~/lib/streaming/multi-city";
+
+/** One city of a multi-city search, as the stop builder hands it over. */
+export type StopInput = { cityName: string; nights?: number };
 
 type StreamedRpcOptions = {
   /**
@@ -37,17 +42,25 @@ export function useStreamedRpc(
   cityName: () => string,
   profileId: () => string,
   opts: StreamedRpcOptions = {},
+  // A multi-city search from the stop builder; two or more stops need no city.
+  stops: () => StopInput[] | undefined = () => undefined,
+  suggestOrder: () => boolean = () => false,
 ) {
   const [store, setStore] = createStore<{
     data: AiCityResponse | null;
     error: Error | null;
     isLoading: boolean;
     tripId: string | null;
+    /** A multi-city run's route and cities; null / empty for one city. */
+    route: RouteInfo | null;
+    stops: StopState[];
   }>({
     data: null,
     error: null,
     isLoading: false,
     tripId: null,
+    route: null,
+    stops: [],
   });
 
   // This hook's run, by request id. A second connect() (the page's Try again)
@@ -55,7 +68,8 @@ export function useStreamedRpc(
   let current: string | null = null;
 
   const connect = async () => {
-    if (!message() || !cityName()) {
+    const multi = (stops()?.length ?? 0) >= 2;
+    if (!message() || (!cityName() && !multi)) {
       return;
     }
     if (current) streamingService.stop(current);
@@ -63,6 +77,8 @@ export function useStreamedRpc(
     setStore("isLoading", true);
     setStore("error", null);
     setStore("tripId", null);
+    setStore("route", null);
+    setStore("stops", []);
 
     const requestId = `itinerary-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     current = requestId;
@@ -71,6 +87,12 @@ export function useStreamedRpc(
     const session = createStreamingSession("itinerary");
     session.query = message();
     session.city = cityName();
+
+    const mirrorRoute = (s: { route?: RouteInfo; stops?: StopState[] }) => {
+      if (!mine() || !s.route) return;
+      setStore("route", s.route);
+      setStore("stops", s.stops ?? []);
+    };
 
     const mirror = (data: unknown) => {
       if (!mine() || !responseHasContent(data as AiCityResponse)) return;
@@ -81,9 +103,11 @@ export function useStreamedRpc(
     streamingService.startStream(
       {
         message: message(),
-        cityName: cityName(),
+        cityName: cityName() || undefined,
         profileId: profileId() || undefined,
         requestId,
+        stops: multi ? stops() : undefined,
+        suggestOrder: multi ? suggestOrder() : undefined,
       },
       {
         session,
@@ -92,10 +116,14 @@ export function useStreamedRpc(
           upsertRun(s.sessionId, { hostPath: itineraryHostPath(s.sessionId) });
           opts.onStart?.(s.sessionId);
         },
-        onProgress: (s) => mirror(s.data),
+        onProgress: (s) => {
+          mirrorRoute(s);
+          mirror(s.data);
+        },
         onComplete: (s) => {
           if (!mine()) return;
           current = null;
+          mirrorRoute(s);
           mirror(s.data);
           if (s.tripId) setStore("tripId", s.tripId);
           setStore("isLoading", false);

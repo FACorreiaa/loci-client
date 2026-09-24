@@ -86,6 +86,16 @@ export interface TripLeg {
   bookingUrl?: string;
 }
 
+/** One city of a multi-city trip. */
+export interface TripCity {
+  cityName: string;
+  cityId?: string;
+  /** The chat session this city's places were generated in. */
+  sessionId?: string;
+  nights: number;
+  orderIndex: number;
+}
+
 export interface TripConstraint {
   budgetLevel?: number;
   pace: TripPace;
@@ -105,6 +115,8 @@ export interface Trip {
   days: TripDay[];
   /** Travel between cities. Empty for a single-city trip. */
   legs?: TripLeg[];
+  /** A multi-city trip's cities in visiting order, each with its chat session. */
+  cities?: TripCity[];
   version: bigint;
   sourceSessionId?: string;
   createdAt: string;
@@ -147,6 +159,13 @@ const mapTrip = (p: ProtoTripDraft): Trip => ({
     mode: l.mode,
     bookingUrl: l.bookingUrl,
   })),
+  cities: (p.cities ?? []).map((c) => ({
+    cityName: c.cityName,
+    cityId: c.cityId || undefined,
+    sessionId: c.sessionId || undefined,
+    nights: c.nights,
+    orderIndex: c.orderIndex,
+  })),
   days: (p.days ?? []).map((d) => ({
     id: d.id,
     dayNumber: d.dayNumber,
@@ -186,7 +205,7 @@ const toProtoStop = (s: TripStop) =>
     recommendationTrace: toProtoRecommendationTrace(s.recommendationTrace),
   });
 
-const toProtoTrip = (t: Trip) =>
+export const toProtoTrip = (t: Trip) =>
   create(TripDraftSchema, {
     id: t.id || "",
     userId: t.userId || "self",
@@ -232,6 +251,15 @@ const toProtoTrip = (t: Trip) =>
       mode: l.mode || "drive",
       bookingUrl: l.bookingUrl,
     })),
+    // The server replaces a trip's cities on every save: leaving them out
+    // would erase a multi-city trip's link to each city's results.
+    cities: (t.cities ?? []).map((c) => ({
+      cityName: c.cityName,
+      cityId: c.cityId ?? "",
+      sessionId: c.sessionId ?? "",
+      nights: c.nights,
+      orderIndex: c.orderIndex,
+    })),
   });
 
 // ---- query keys ----
@@ -255,6 +283,12 @@ export const useTrips = () =>
       return res.trips.map(mapTrip);
     },
   }));
+
+/** One trip, outside a query: the itinerary page's multi-city reopen. */
+export async function fetchTrip(id: string): Promise<Trip> {
+  const res = await tripClient.getTrip(create(GetTripRequestSchema, { tripId: id }));
+  return mapTrip(res);
+}
 
 export const useTrip = (id: () => string | undefined) =>
   useAppQuery(() => ({

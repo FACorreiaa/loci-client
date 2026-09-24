@@ -29,7 +29,14 @@ import type { TripStop } from "~/lib/trip-kit";
 import type { ItineraryStop } from "~/lib/itinerary/createItineraryStream";
 import type { POIDetailedInfo } from "~/lib/api/types";
 import type { POI } from "~/components/features/Map/types";
-import { DOMAINS, listTitle, unwrapDomainResults, type ResultsDomain } from "~/lib/results/domain";
+import {
+  DOMAINS,
+  listTitle,
+  stopResults,
+  unwrapDomainResults,
+  type ResultsDomain,
+} from "~/lib/results/domain";
+import { StopSwitcher } from "~/components/features/MultiCity/StopSwitcher";
 import { rememberResultsSession } from "~/lib/results/last-session";
 import SplitView from "~/components/layout/SplitView";
 import { CityInfoHeader } from "~/components/ui/CityInfoHeader";
@@ -229,9 +236,20 @@ export default function ResultsPage(props: ResultsPageProps) {
   const isStreaming = () => hydrating() || (boundLive() ? live.isStreaming() : state.isStreaming);
   const streamError = () => (boundLive() ? live.error() : state.error);
 
-  const results = createMemo(() => unwrapDomainResults(effectiveData(), props.domain));
+  // "hotels in Lisbon and Porto": one list per city, picked with the switcher.
+  const cityStops = createMemo(() => (boundLive() ? live.stops() : []));
+  const isMulti = () => cityStops().length >= 2;
+  const [activeStop, setActiveStop] = createSignal(0);
+  const activeCityName = () => cityStops().find((st) => st.index === activeStop())?.cityName;
+
+  const results = createMemo(() =>
+    isMulti()
+      ? stopResults(cityStops(), activeStop(), props.domain)
+      : unwrapDomainResults(effectiveData(), props.domain),
+  );
   const cityData = createMemo(() => results()?.city ?? effectiveData()?.general_city_data);
-  const resolvedCity = () => cityData()?.city || cityName();
+  const resolvedCity = () =>
+    (isMulti() ? activeCityName() : undefined) || cityData()?.city || cityName();
   const list = createMemo<POIDetailedInfo[]>(() => results()?.list ?? []);
   const extras = createMemo<POIDetailedInfo[]>(() => results()?.extras ?? []);
   const title = () => listTitle(props.domain, resolvedCity());
@@ -532,6 +550,16 @@ export default function ResultsPage(props: ResultsPageProps) {
             title={`Unable to load ${meta().label.toLowerCase()}`}
             onRetry={startOrExplain}
           />
+        </Show>
+
+        <Show when={isMulti()}>
+          <div class="mb-4">
+            <StopSwitcher
+              stops={cityStops()}
+              active={activeStop()}
+              onSelect={(i) => typeof i === "number" && setActiveStop(i)}
+            />
+          </div>
         </Show>
 
         <header class="mb-4">

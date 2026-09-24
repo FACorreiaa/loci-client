@@ -1,5 +1,8 @@
 import { createSignal, For, Show, onCleanup, createEffect, onMount } from "solid-js";
-import { useSearchParams } from "@solidjs/router";
+import { useNavigate, useSearchParams } from "@solidjs/router";
+import { StopBuilder } from "~/components/features/MultiCity/StopBuilder";
+import { formatStopsParam } from "~/components/features/MultiCity/multi-city-view";
+import type { RouteInfo } from "~/lib/streaming/chatStream";
 import { Title, Meta } from "@solidjs/meta";
 import { useUserLocation } from "~/contexts/LocationContext";
 import {
@@ -80,6 +83,11 @@ export default function DiscoverPage() {
   const [recentHasMore, setRecentHasMore] = createSignal(true);
   const [recentLoadingMore, setRecentLoadingMore] = createSignal(false);
   const [persistedTripId, setPersistedTripId] = createSignal<string | null>(null);
+  const navigate = useNavigate();
+  // A typed request that named several cities: the run's route, and the page
+  // that shows the whole plan once it is done.
+  const [multiRoute, setMultiRoute] = createSignal<RouteInfo | null>(null);
+  const [multiPlanHref, setMultiPlanHref] = createSignal<string | null>(null);
   const [persistedTripCity, setPersistedTripCity] = createSignal<string>("");
   const [advancedFilters, setAdvancedFilters] = createSignal<AdvancedFilterId[]>([]);
 
@@ -207,6 +215,8 @@ export default function DiscoverPage() {
     setSearchResults([]);
     setPersistedTripId(null);
     setPersistedTripCity("");
+    setMultiRoute(null);
+    setMultiPlanHref(null);
 
     try {
       const loc = userLocation();
@@ -223,6 +233,12 @@ export default function DiscoverPage() {
         controller.signal,
       )) {
         switch (event.kind) {
+          case "route":
+            // Several cities: the outline is the progress line, and each
+            // city's places are added to the list as they arrive.
+            setMultiRoute(event.route);
+            setProgressMessage(event.route.outline || "Planning several cities...");
+            break;
           case "start":
             setProgressMessage("Detecting what you need...");
             if (event.domain) setStreamDomain(event.domain as DomainType);
@@ -240,6 +256,11 @@ export default function DiscoverPage() {
           case "hotels":
           case "activities": {
             const list = attributeResults(event.pois);
+            if (event.stopIndex !== undefined) {
+              // One city of several: keep the others' places.
+              setSearchResults((prev) => [...prev, ...list]);
+              break;
+            }
             setSearchResults(list);
             localResultCache.set(cacheKey, list);
             setProgressMessage("Found places you might like");
@@ -247,11 +268,38 @@ export default function DiscoverPage() {
           }
           case "itinerary": {
             const pois = attributeResults(event.cityResponse.points_of_interest || []);
+            if (event.stopIndex !== undefined) {
+              if (pois.length > 0) {
+                const have = new Set(searchResults().map((p) => p.id || p.name));
+                setSearchResults((prev) => [
+                  ...prev,
+                  ...pois.filter((p) => !have.has(p.id || p.name)),
+                ]);
+              }
+              setProgressMessage(
+                `Drafting ${multiRoute()?.stops[event.stopIndex]?.cityName ?? "the next city"}...`,
+              );
+              break;
+            }
             if (pois.length > 0) setSearchResults(pois);
             setProgressMessage("Drafting an itinerary...");
             break;
           }
           case "complete": {
+            const mr = multiRoute();
+            if (mr) {
+              const tripId = event.tripId || mr.tripId;
+              if (tripId) {
+                setPersistedTripId(tripId);
+                setPersistedTripCity(mr.stops.map((st) => st.cityName).join(" + "));
+              }
+              const first = mr.stops[0]?.sessionId;
+              if (first) {
+                setMultiPlanHref(
+                  `/itinerary?sessionId=${encodeURIComponent(first)}${tripId ? `&tripId=${encodeURIComponent(tripId)}` : ""}`,
+                );
+              }
+            }
             if (event.navigation?.routeType) {
               setStreamDomain(event.navigation.routeType as DomainType);
             }
@@ -577,6 +625,13 @@ export default function DiscoverPage() {
                 <Show when={progressMessage()}>
                   <p class="mt-3 text-sm text-primary font-medium">{progressMessage()}</p>
                 </Show>
+                <StopBuilder
+                  onPlan={(stops, suggest) =>
+                    navigate(
+                      `/itinerary?message=${encodeURIComponent(searchQuery().trim() || "trip")}&stops=${encodeURIComponent(formatStopsParam(stops))}${suggest ? "&suggest=1" : ""}`,
+                    )
+                  }
+                />
               </div>
               <div class="flex flex-wrap items-center gap-3">
                 <a href="/compare" class="loci-hero__action text-sm">
@@ -609,6 +664,14 @@ export default function DiscoverPage() {
                 <div class="text-xs text-primary mb-3">Mode: {streamDomain()}</div>
               </Show>
               <EditTripCTA tripId={persistedTripId()} cityName={persistedTripCity()} />
+              <Show when={multiPlanHref()}>
+                <a
+                  href={multiPlanHref()!}
+                  class="mb-3 inline-block text-sm font-medium text-primary hover:underline"
+                >
+                  Open the full plan
+                </a>
+              </Show>
               <Show when={searchError()}>
                 <p class="text-sm text-destructive mb-3">{searchError()}</p>
               </Show>

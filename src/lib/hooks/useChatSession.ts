@@ -60,7 +60,12 @@ function toLegacyEvent(ev: LociStreamEvent): LegacyStreamEvent {
       return { Type: "itinerary", Data: ev.cityResponse };
     case "complete":
       return { Type: "complete", Navigation: ev.navigation, SessionId: ev.sessionId };
+    case "route":
+      // A multi-city trip: the outline is the progress line.
+      return { Type: "progress", Data: ev.route.outline };
     case "error":
+      // One city of a multi-city trip failing is not the conversation's end.
+      if (ev.stopIndex !== undefined) return { Type: "progress", Data: ev.userMessage };
       return { Type: "error", Error: ev.userMessage };
   }
 }

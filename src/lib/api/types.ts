@@ -765,6 +765,10 @@ export interface StreamingSession {
   error?: string;
   /** The trip the server saved this run as, when it did (from `complete`). */
   tripId?: string;
+  /** A multi-city run's route; absent for one city. */
+  route?: import("~/lib/streaming/chatStream").RouteInfo;
+  /** A multi-city run's cities, each with its own result. */
+  stops?: import("~/lib/streaming/multi-city").StopState[];
 }
 
 // Recent searches and activity types

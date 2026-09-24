@@ -176,3 +176,31 @@ describe("isOpenNow", () => {
     expect(isOpenNow("Open 24 hours", at(3))).toBe(true);
   });
 });
+
+import { stopResults } from "./domain";
+
+describe("stopResults", () => {
+  it("unwraps the active city's list", () => {
+    const stops = [
+      {
+        index: 0,
+        cityName: "Lisbon",
+        sessionId: "s0",
+        dayNumbers: [1],
+        done: true,
+        data: { hotels: [{ id: "h1", name: "Lisbon Inn" }] } as any,
+      },
+      {
+        index: 1,
+        cityName: "Porto",
+        sessionId: "s1",
+        dayNumbers: [2],
+        done: true,
+        data: { hotels: [{ id: "h2", name: "Porto Inn" }] } as any,
+      },
+    ];
+    expect(stopResults(stops, 1, "hotels")?.list[0]?.name).toBe("Porto Inn");
+    expect(stopResults(stops, 7, "hotels")).toBeNull();
+    expect(stopResults(undefined, 0, "hotels")).toBeNull();
+  });
+});

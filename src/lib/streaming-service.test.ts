@@ -67,7 +67,7 @@ vi.mock("./streaming/chatStream", () => {
 import { streamingService, createStreamingSession } from "./streaming-service";
 import { liveRuns, readActiveSessions, removeRun } from "./streaming/live-stream-store";
 import { COMPLETED_SESSION_KEY, readCompletedSession } from "./streaming/restore-session";
-import { reconnectPolicy, settleEvent } from "./streaming/reconnect";
+import { reconnectPolicy, reconnectPolicyDefaults, settleEvent } from "./streaming/reconnect";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -608,5 +608,94 @@ describe("streamingService → reconnect", () => {
     expect(calls).toHaveLength(1);
     expect(manager.onError).not.toHaveBeenCalled();
     expect(liveRuns.s1).toBeUndefined();
+  });
+});
+
+describe("streamingService — multi-city runs", () => {
+  const route = {
+    kind: "route" as const,
+    route: {
+      stops: [
+        { index: 0, cityName: "Lisbon", sessionId: "s0", dayNumbers: [1, 2] },
+        { index: 1, cityName: "Porto", sessionId: "s1", dayNumbers: [3] },
+      ],
+      legs: [],
+      outline: "Lisbon (2 days) → Porto (1 day)",
+      warnings: [],
+      dropped: [],
+      totalTravelMins: 0,
+    },
+  };
+
+  it("projects each city into its own state and a city's error does not fail the run", async () => {
+    const { session, manager, feed } = start();
+    feed.push({ kind: "start", sessionId: "s0", domain: "itinerary", city: "Lisbon" });
+    feed.push(route);
+    feed.push({ ...itineraryEvent(), stopIndex: 0 });
+    feed.push({
+      kind: "error",
+      userMessage: "Porto failed",
+      internalCode: "x",
+      retryable: true,
+      stopIndex: 1,
+    });
+    await tick();
+    await tick();
+
+    expect(session.route?.outline).toBe("Lisbon (2 days) → Porto (1 day)");
+    expect(session.stops?.map((s) => s.cityName)).toEqual(["Lisbon", "Porto"]);
+    expect((session.stops?.[0].data as any)?.itinerary_response?.itinerary_name).toBe(
+      "Funchal in a day",
+    );
+    expect(session.stops?.[1].error).toBe("Porto failed");
+    expect(manager.onError).not.toHaveBeenCalled();
+    expect(session.error).toBeUndefined();
+    // The first city stands in for `data`, so single-city readers render it.
+    expect((session.data as any)?.itinerary_response?.itinerary_name).toBe("Funchal in a day");
+    feed.end();
+  });
+
+  it("the ROUTE carrying tripId sets the run's trip", async () => {
+    const { session, feed } = start();
+    feed.push({ kind: "start", sessionId: "s0", domain: "itinerary", city: "Lisbon" });
+    feed.push(route);
+    feed.push({ ...route, route: { ...route.route, tripId: "t1" } });
+    await tick();
+    expect(session.tripId).toBe("t1");
+    feed.end();
+  });
+});
+
+describe("streamingService — multi-city completion", () => {
+  it("a city still planning when the run completes is marked failed, not left spinning", async () => {
+    const { session, feed } = start();
+    feed.push({ kind: "start", sessionId: "s0", domain: "itinerary", city: "Lisbon" });
+    feed.push({
+      kind: "route",
+      route: {
+        stops: [
+          { index: 0, cityName: "Lisbon", sessionId: "s0", dayNumbers: [1] },
+          { index: 1, cityName: "Porto", sessionId: "s1", dayNumbers: [2] },
+        ],
+        legs: [],
+        outline: "",
+        warnings: [],
+        dropped: [],
+        totalTravelMins: 0,
+      },
+    });
+    feed.push({ ...itineraryEvent(), stopIndex: 0 });
+    feed.push({ kind: "complete", sessionId: "s0" });
+    await tick();
+    await tick();
+    expect(session.stops?.[0].error).toBeUndefined();
+    expect(session.stops?.[1].done).toBe(true);
+    expect(session.stops?.[1].error).toBeTruthy();
+    feed.end();
+  });
+
+  it("waits long enough for a multi-city run to finish", () => {
+    // The server keeps a multi-city run going for up to nine minutes.
+    expect(reconnectPolicyDefaults.pollTimeoutMs).toBeGreaterThanOrEqual(9 * 60 * 1000);
   });
 });
