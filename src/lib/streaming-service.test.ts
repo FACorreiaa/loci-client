@@ -610,3 +610,58 @@ describe("streamingService → reconnect", () => {
     expect(liveRuns.s1).toBeUndefined();
   });
 });
+
+describe("streamingService — multi-city runs", () => {
+  const route = {
+    kind: "route" as const,
+    route: {
+      stops: [
+        { index: 0, cityName: "Lisbon", sessionId: "s0", dayNumbers: [1, 2] },
+        { index: 1, cityName: "Porto", sessionId: "s1", dayNumbers: [3] },
+      ],
+      legs: [],
+      outline: "Lisbon (2 days) → Porto (1 day)",
+      warnings: [],
+      dropped: [],
+      totalTravelMins: 0,
+    },
+  };
+
+  it("projects each city into its own state and a city's error does not fail the run", async () => {
+    const { session, manager, feed } = start();
+    feed.push({ kind: "start", sessionId: "s0", domain: "itinerary", city: "Lisbon" });
+    feed.push(route);
+    feed.push({ ...itineraryEvent(), stopIndex: 0 });
+    feed.push({
+      kind: "error",
+      userMessage: "Porto failed",
+      internalCode: "x",
+      retryable: true,
+      stopIndex: 1,
+    });
+    await tick();
+    await tick();
+
+    expect(session.route?.outline).toBe("Lisbon (2 days) → Porto (1 day)");
+    expect(session.stops?.map((s) => s.cityName)).toEqual(["Lisbon", "Porto"]);
+    expect((session.stops?.[0].data as any)?.itinerary_response?.itinerary_name).toBe(
+      "Funchal in a day",
+    );
+    expect(session.stops?.[1].error).toBe("Porto failed");
+    expect(manager.onError).not.toHaveBeenCalled();
+    expect(session.error).toBeUndefined();
+    // The first city stands in for `data`, so single-city readers render it.
+    expect((session.data as any)?.itinerary_response?.itinerary_name).toBe("Funchal in a day");
+    feed.end();
+  });
+
+  it("the ROUTE carrying tripId sets the run's trip", async () => {
+    const { session, feed } = start();
+    feed.push({ kind: "start", sessionId: "s0", domain: "itinerary", city: "Lisbon" });
+    feed.push(route);
+    feed.push({ ...route, route: { ...route.route, tripId: "t1" } });
+    await tick();
+    expect(session.tripId).toBe("t1");
+    feed.end();
+  });
+});
