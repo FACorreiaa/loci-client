@@ -9,6 +9,7 @@ import { useRegisterMutation } from "~/lib/api/auth";
 import { useGoogleLoginMutation, useAppleLoginMutation } from "~/lib/api/custom-auth";
 import { type AuthErrorField, describeAuthError } from "~/lib/auth/auth-errors";
 import { capture } from "~/lib/analytics";
+import { useAuth } from "~/contexts/AuthContext";
 
 interface FormData {
   email: string;
@@ -22,6 +23,7 @@ const inputBase =
 
 const SignUp: Component = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = createSignal<Partial<FormData>>({
     username: "",
     email: "",
@@ -130,10 +132,22 @@ const SignUp: Component = () => {
       // fired it: its only call site was AuthContext.register, which no
       // component uses. Registration succeeded and went uncounted.
       capture("signup_completed", { method: "password" });
-
-      navigate("/auth/signin");
     } catch (err: unknown) {
       showAuthError(err, "sign-up");
+      return;
+    }
+
+    // Register issues no tokens, and sending a new user to the sign-in form to
+    // type the same password again is where a first trip was being lost. Sign
+    // them in with what they just entered; login navigates on success, honouring
+    // any auth_return_to a guest search left behind. A brand-new account has no
+    // second factor, so the MFA branch cannot come back here.
+    try {
+      await login(data.email, data.password);
+    } catch {
+      // The account exists; only the automatic sign-in failed. Fall back to
+      // the old path rather than showing a sign-up error for a sign-up that worked.
+      navigate("/auth/signin");
     }
   };
 
