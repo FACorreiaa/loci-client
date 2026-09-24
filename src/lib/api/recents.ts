@@ -54,97 +54,96 @@ const getCurrentUserId = async (): Promise<string | null> => {
   return null;
 };
 
-// Fetch recent interactions via RPC
-async function fetchRecentInteractions(limit: number = 10): Promise<RecentInteractionsResponse> {
-  console.log("🕐 fetchRecentInteractions: Starting...");
-  const userId = await getCurrentUserId();
-  console.log("🕐 fetchRecentInteractions: User ID:", userId);
+type RecentsClient = Pick<typeof recentsClient, "getRecentInteractions">;
 
-  if (!userId) {
-    console.warn("🕐 No user ID available for recents");
-    return { cities: [], total: 0, offset: 0, limit };
-  }
+/**
+ * Recent interactions grouped by city.
+ *
+ * A failure is NOT swallowed. This used to catch everything and return an
+ * empty list, so an API outage read as "you have no recent cities" and the
+ * page's error state (with its retry) could never show. It throws now, like
+ * `fetchActivityHistory` below. Only "nobody is signed in" is a real empty.
+ *
+ * `deps` exists for tests.
+ */
+export async function fetchRecentInteractions(
+  limit: number = 10,
+  deps: { client?: RecentsClient; userId?: () => Promise<string | null> } = {},
+): Promise<RecentInteractionsResponse> {
+  const client = deps.client ?? recentsClient;
+  const userId = await (deps.userId ?? getCurrentUserId)();
+  if (!userId) return { cities: [], total: 0, offset: 0, limit };
 
-  try {
-    console.log("🕐 fetchRecentInteractions: Making RPC call to GetRecentInteractions");
-    const response = await recentsClient.getRecentInteractions(
-      create(GetRecentInteractionsRequestSchema, {
-        userId: userId,
-        limit: limit,
-        offset: 0,
-        groupByCity: true,
-      }),
-    );
-
-    console.log("🕐 fetchRecentInteractions: Response received", response);
-
-    // Helper to extract clean message from "Unified Chat Stream - Domain: X, Message: Y" format
-    const extractMessage = (description: string, cityName: string): string => {
-      if (!description) return cityName;
-
-      // Unwrap the prompt the server built around the user's message
-      const message = stripPromptWrapper(description);
-      if (message !== description) {
-        // If message ends with just the city name, include it
-        if (message && message !== cityName) {
-          return message.endsWith(cityName) ? message : `${message} ${cityName}`;
-        }
-        return message || cityName;
-      }
-
-      // If no match, check if it's a POI lookup prompt (starts with "Return ONLY")
-      if (description.startsWith("Return ONLY")) {
-        const poiMatch = description.match(/for "([^"]+)" in ([^.]+)/);
-        if (poiMatch) {
-          return `Looking up ${poiMatch[1]} in ${poiMatch[2]}`;
-        }
-      }
-
-      // Fallback to first 50 chars or city name
-      return description.length > 50 ? description.slice(0, 50) + "..." : description || cityName;
-    };
-
-    // Map proto response to frontend types
-    const cities: CityInteractions[] = (response.citySummaries || []).map((summary) => ({
-      city_name: summary.cityName || "",
-      city_id: summary.cityId || null,
-      interactions: (summary.recentInteractions || []).map((interaction) => ({
-        id: interaction.id || "",
-        user_id: interaction.userId || "",
-        city_name: summary.cityName || "",
-        city_id: null,
-        prompt: extractMessage(interaction.description || "", summary.cityName || ""),
-        response_text: "",
-        model_used: "",
-        latency_ms: 0,
-        created_at: interaction.createdAt
-          ? new Date(Number(interaction.createdAt.seconds) * 1000).toISOString()
-          : new Date().toISOString(),
-        pois: [],
-        hotels: [],
-        restaurants: [],
-      })),
-      poi_count: Number(summary.interactionCount || 0),
-      last_activity: summary.latestInteraction
-        ? new Date(Number(summary.latestInteraction.seconds) * 1000).toISOString()
-        : new Date().toISOString(),
-      total_interactions: Number(summary.interactionCount || 0),
-      total_favorites: 0,
-      total_itineraries: 0,
-    }));
-
-    console.log("🕐 fetchRecentInteractions: Mapped cities", cities.length, cities);
-
-    return {
-      cities,
-      total: Number(response.totalCount || 0),
+  const response = await client.getRecentInteractions(
+    create(GetRecentInteractionsRequestSchema, {
+      userId: userId,
+      limit: limit,
       offset: 0,
-      limit,
-    };
-  } catch (error) {
-    console.error("🕐 Failed to fetch recent interactions via RPC:", error);
-    return { cities: [], total: 0, offset: 0, limit };
-  }
+      groupByCity: true,
+    }),
+  );
+
+  // Helper to extract clean message from "Unified Chat Stream - Domain: X, Message: Y" format
+  const extractMessage = (description: string, cityName: string): string => {
+    if (!description) return cityName;
+
+    // Unwrap the prompt the server built around the user's message
+    const message = stripPromptWrapper(description);
+    if (message !== description) {
+      // If message ends with just the city name, include it
+      if (message && message !== cityName) {
+        return message.endsWith(cityName) ? message : `${message} ${cityName}`;
+      }
+      return message || cityName;
+    }
+
+    // If no match, check if it's a POI lookup prompt (starts with "Return ONLY")
+    if (description.startsWith("Return ONLY")) {
+      const poiMatch = description.match(/for "([^"]+)" in ([^.]+)/);
+      if (poiMatch) {
+        return `Looking up ${poiMatch[1]} in ${poiMatch[2]}`;
+      }
+    }
+
+    // Fallback to first 50 chars or city name
+    return description.length > 50 ? description.slice(0, 50) + "..." : description || cityName;
+  };
+
+  // Map proto response to frontend types
+  const cities: CityInteractions[] = (response.citySummaries || []).map((summary) => ({
+    city_name: summary.cityName || "",
+    city_id: summary.cityId || null,
+    interactions: (summary.recentInteractions || []).map((interaction) => ({
+      id: interaction.id || "",
+      user_id: interaction.userId || "",
+      city_name: summary.cityName || "",
+      city_id: null,
+      prompt: extractMessage(interaction.description || "", summary.cityName || ""),
+      response_text: "",
+      model_used: "",
+      latency_ms: 0,
+      created_at: interaction.createdAt
+        ? new Date(Number(interaction.createdAt.seconds) * 1000).toISOString()
+        : new Date().toISOString(),
+      pois: [],
+      hotels: [],
+      restaurants: [],
+    })),
+    poi_count: Number(summary.interactionCount || 0),
+    last_activity: summary.latestInteraction
+      ? new Date(Number(summary.latestInteraction.seconds) * 1000).toISOString()
+      : new Date().toISOString(),
+    total_interactions: Number(summary.interactionCount || 0),
+    total_favorites: 0,
+    total_itineraries: 0,
+  }));
+
+  return {
+    cities,
+    total: Number(response.totalCount || 0),
+    offset: 0,
+    limit,
+  };
 }
 
 // Hook for recent interactions (RPC-based)
@@ -263,7 +262,7 @@ export const ACTIVITY_PAGE_SIZE = 40;
 /**
  * The feed, one page at a time.
  *
- * Unlike `fetchRecentInteractions` above, a failure here is not swallowed into
+ * As with `fetchRecentInteractions` above, a failure here is not swallowed into
  * an empty result: a feed that silently shows "no recent activity" when the API
  * is down is indistinguishable from a feed that is genuinely empty, and the two
  * call for very different things from the reader.
