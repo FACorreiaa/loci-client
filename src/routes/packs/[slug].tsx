@@ -30,7 +30,10 @@ export default function PackDetailPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  const packQuery = usePack(() => params.slug);
+  const packQuery = usePack(
+    () => params.slug,
+    () => search.purchased === "1",
+  );
   const checkout = useCreatePackCheckout();
   const claim = useClaimPack();
 

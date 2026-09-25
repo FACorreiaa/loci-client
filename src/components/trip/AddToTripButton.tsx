@@ -1,7 +1,8 @@
 import { createEffect, createSignal, For, Show } from "solid-js";
 import { A } from "@solidjs/router";
 import { CalendarPlus, Check } from "lucide-solid";
-import { useAddStop, useTrips } from "~/lib/api/trips";
+import { useQueryClient } from "@tanstack/solid-query";
+import { fetchTrip, tripKeys, useAddStop, useTrips } from "~/lib/api/trips";
 import type { POI } from "~/lib/api/types";
 
 interface AddToTripButtonProps {
@@ -11,6 +12,8 @@ interface AddToTripButtonProps {
 export default function AddToTripButton(props: AddToTripButtonProps) {
   const tripsQuery = useTrips();
   const addStop = useAddStop();
+  const qc = useQueryClient();
+  const [fetching, setFetching] = createSignal(false);
   const [open, setOpen] = createSignal(false);
   const [tripID, setTripID] = createSignal("");
   const [dayID, setDayID] = createSignal("");
@@ -29,12 +32,30 @@ export default function AddToTripButton(props: AddToTripButtonProps) {
     if (trip && !trip.days.some((day) => day.id === dayID())) setDayID(trip.days[0]?.id ?? "");
   });
 
-  const add = () => {
-    const trip = selectedTrip();
-    const day = trip?.days.find((candidate) => candidate.id === dayID());
-    if (!trip || !day) return;
+  const add = async () => {
+    const listed = selectedTrip();
+    if (!listed || !dayID()) return;
     setError(null);
     setMessage(null);
+    // The trips list can be minutes old (and AddStop does not refresh it), so
+    // its version is stale after any edit — including the previous add from
+    // this very button. Read the trip fresh and send that version instead.
+    setFetching(true);
+    let trip;
+    try {
+      trip = await fetchTrip(listed.id);
+    } catch {
+      setError("We couldn't load that trip. Try again.");
+      return;
+    } finally {
+      setFetching(false);
+    }
+    const day = trip.days.find((candidate) => candidate.id === dayID());
+    if (!day) {
+      setError("That day is no longer on the trip. Pick another.");
+      void qc.invalidateQueries({ queryKey: tripKeys.list() });
+      return;
+    }
     addStop.mutate(
       {
         tripId: trip.id,
@@ -54,6 +75,9 @@ export default function AddToTripButton(props: AddToTripButtonProps) {
       },
       {
         onSuccess: () => {
+          // The list carries each trip's days, stops and version; keep it in
+          // step so the next add (or the /trips page) is not a version behind.
+          void qc.invalidateQueries({ queryKey: tripKeys.list() });
           setMessage(`Added to Day ${day.dayNumber}`);
           setOpen(false);
         },
@@ -133,10 +157,10 @@ export default function AddToTripButton(props: AddToTripButtonProps) {
               <button
                 type="button"
                 class="mt-3 w-full rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-transform hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
-                disabled={!dayID() || addStop.isPending}
-                onClick={add}
+                disabled={!dayID() || addStop.isPending || fetching()}
+                onClick={() => void add()}
               >
-                {addStop.isPending ? "Adding…" : "Add to this day"}
+                {addStop.isPending || fetching() ? "Adding…" : "Add to this day"}
               </button>
             </Show>
           </Show>

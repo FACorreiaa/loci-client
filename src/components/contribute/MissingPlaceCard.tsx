@@ -1,6 +1,7 @@
 import { createSignal, For, Show } from "solid-js";
 import { Compass, MapPin, Search } from "lucide-solid";
 import { searchPOIs } from "~/lib/api/pois";
+import { missingPlaceSearchFilters } from "~/lib/contribute/missing-place-search";
 import type { POI } from "~/lib/api/types";
 import { useUserLocation } from "~/contexts/LocationContext";
 import { Button } from "~/ui/button";
@@ -21,6 +22,7 @@ export function MissingPlaceCard(props: {
 }) {
   const location = useUserLocation();
   const [query, setQuery] = createSignal("");
+  const [city, setCity] = createSignal("");
   const [results, setResults] = createSignal<POI[]>([]);
   const [searching, setSearching] = createSignal(false);
   const [searched, setSearched] = createSignal(false);
@@ -30,21 +32,16 @@ export function MissingPlaceCard(props: {
     event.preventDefault();
     const value = query().trim();
     if (!value || searching()) return;
+    const filters = missingPlaceSearchFilters(location.userLocation(), city());
+    if (!filters) {
+      setError("Add the city it's in — we don't know where you are.");
+      return;
+    }
     setSearching(true);
     setSearched(true);
     setError(null);
     try {
-      const here = location.userLocation();
-      setResults(
-        (
-          await searchPOIs(value, {
-            latitude: here?.latitude,
-            longitude: here?.longitude,
-            radiusKm: here ? 25 : undefined,
-            searchType: here ? "hybrid" : "semantic",
-          })
-        ).slice(0, 5),
-      );
+      setResults((await searchPOIs(value, filters)).slice(0, 5));
     } catch {
       setResults([]);
       setError("We couldn't search places. Try again.");
@@ -66,7 +63,21 @@ export function MissingPlaceCard(props: {
           autocomplete="off"
         />
       </label>
-      <Button type="submit" class="h-11 shrink-0" disabled={!query().trim() || searching()}>
+      <label class="min-w-0 sm:w-40">
+        <span class="sr-only">City</span>
+        <input
+          class="h-11 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring"
+          value={city()}
+          onInput={(event) => setCity(event.currentTarget.value)}
+          placeholder={location.userLocation() ? "City (optional)" : "City"}
+          autocomplete="address-level2"
+        />
+      </label>
+      <Button
+        type="submit"
+        class="h-11 shrink-0"
+        disabled={!query().trim() || searching() || (!location.userLocation() && !city().trim())}
+      >
         {searching() ? "Searching…" : "Look up"}
       </Button>
     </form>

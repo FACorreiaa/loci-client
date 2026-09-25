@@ -1,7 +1,34 @@
 import type { Trip } from "~/lib/api/trips";
+import { getAuthToken } from "~/lib/auth/tokens";
 
-const STORAGE_KEY = "loci.offline.trips.v1";
+// Per account. The cache used to be one key for the whole browser, so after a
+// sign-out (or on a shared machine) the next person's /offline listed — and
+// /trips/{id} placeholder-rendered — the previous person's trips. Each account
+// now has its own key, nothing is read or written without one, and signing
+// out clears them all.
+const KEY_PREFIX = "loci.offline.trips.v2:";
+/** The old, unscoped key. Never read; removed on the next write or sign-out. */
+const LEGACY_KEY = "loci.offline.trips.v1";
 const MAX_TRIPS = 12;
+
+/** The signed-in account's id, read from the access token's payload. */
+export function currentOfflineUserId(): string | null {
+  const token = getAuthToken();
+  const payload = token?.split(".")[1];
+  if (!payload) return null;
+  try {
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/"))) as {
+      user_id?: unknown;
+      sub?: unknown;
+    };
+    const id = json.user_id ?? json.sub;
+    return typeof id === "string" && id ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+export const offlineCacheKey = (userId: string) => `${KEY_PREFIX}${userId}`;
 
 export interface CachedTripSummary {
   id: string;
@@ -16,10 +43,10 @@ interface CacheFile {
   order: string[]; // newest-first ids
 }
 
-function read(): CacheFile {
-  if (typeof localStorage === "undefined") return { trips: {}, order: [] };
+function read(userId: string | null): CacheFile {
+  if (typeof localStorage === "undefined" || !userId) return { trips: {}, order: [] };
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(offlineCacheKey(userId));
     if (!raw) return { trips: {}, order: [] };
     const parsed = JSON.parse(raw) as CacheFile;
     if (!parsed?.trips || !Array.isArray(parsed.order)) return { trips: {}, order: [] };
@@ -29,10 +56,11 @@ function read(): CacheFile {
   }
 }
 
-function write(file: CacheFile): void {
+function write(userId: string, file: CacheFile): void {
   if (typeof localStorage === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(file));
+    localStorage.removeItem(LEGACY_KEY);
+    localStorage.setItem(offlineCacheKey(userId), JSON.stringify(file));
   } catch (e) {
     console.warn("offline trip cache write failed", e);
   }
@@ -53,23 +81,24 @@ function deserializeTrip(raw: unknown): Trip | undefined {
 }
 
 /** Persist a full trip for offline reopen. Keeps last MAX_TRIPS. */
-export function cacheTripOffline(trip: Trip): void {
-  const file = read();
+export function cacheTripOffline(trip: Trip, userId = currentOfflineUserId()): void {
+  if (!userId) return;
+  const file = read(userId);
   file.trips[trip.id] = serializeTrip(trip);
   file.order = [trip.id, ...file.order.filter((id) => id !== trip.id)].slice(0, MAX_TRIPS);
   for (const id of Object.keys(file.trips)) {
     if (!file.order.includes(id)) delete file.trips[id];
   }
-  write(file);
+  write(userId, file);
 }
 
-export function getCachedTrip(id: string): Trip | undefined {
+export function getCachedTrip(id: string, userId = currentOfflineUserId()): Trip | undefined {
   if (!id) return undefined;
-  return deserializeTrip(read().trips[id]);
+  return deserializeTrip(read(userId).trips[id]);
 }
 
-export function listCachedTrips(): CachedTripSummary[] {
-  const file = read();
+export function listCachedTrips(userId = currentOfflineUserId()): CachedTripSummary[] {
+  const file = read(userId);
   return file.order
     .map((id) => deserializeTrip(file.trips[id]))
     .filter((t): t is Trip => !!t)
@@ -82,7 +111,21 @@ export function listCachedTrips(): CachedTripSummary[] {
     }));
 }
 
-export function clearOfflineTripCache(): void {
+/**
+ * Forget offline trips. With a user id, just that account's (the /offline
+ * page's "clear" button); without one, every account's and the old unscoped
+ * key (sign-out).
+ */
+export function clearOfflineTripCache(userId?: string | null): void {
   if (typeof localStorage === "undefined") return;
-  localStorage.removeItem(STORAGE_KEY);
+  if (userId) {
+    localStorage.removeItem(offlineCacheKey(userId));
+    return;
+  }
+  const doomed: string[] = [LEGACY_KEY];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(KEY_PREFIX)) doomed.push(key);
+  }
+  for (const key of doomed) localStorage.removeItem(key);
 }

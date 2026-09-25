@@ -1,4 +1,5 @@
 import { createSignal, For, Show } from "solid-js";
+import { compareCities } from "~/lib/recents/city-sort";
 import { A, useNavigate } from "@solidjs/router";
 import {
   Search,
@@ -117,30 +118,7 @@ export default function CitiesView() {
     const currentSortBy = sortBy();
     const currentSortOrder = sortOrder();
 
-    filtered.sort((a, b) => {
-      let aVal, bVal;
-      switch (currentSortBy) {
-        case "alphabetical":
-          aVal = a.city_name.toLowerCase();
-          bVal = b.city_name.toLowerCase();
-          break;
-        case "activity_count":
-          aVal = a.interactions.length;
-          bVal = b.interactions.length;
-          break;
-        case "recent":
-        default:
-          aVal = new Date(a.last_activity);
-          bVal = new Date(b.last_activity);
-          break;
-      }
-
-      if (currentSortOrder === "asc") {
-        return aVal > bVal ? 1 : -1;
-      } else {
-        return aVal < bVal ? 1 : -1;
-      }
-    });
+    filtered.sort(compareCities(currentSortBy, currentSortOrder));
 
     return filtered;
   };

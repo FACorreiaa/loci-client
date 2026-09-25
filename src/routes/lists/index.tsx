@@ -12,7 +12,6 @@ import {
   X,
   FolderPlus,
   ChevronRight,
-  MapPin,
   Calendar,
   Bookmark,
   CheckSquare,
@@ -29,6 +28,7 @@ import { Button } from "~/ui/button";
 import { useSelection, type SelectionItem } from "~/lib/hooks/useSelection";
 import { SelectionToolbar } from "~/components/ui/SelectionToolbar";
 import { ErrorView } from "~/components/ErrorView";
+import { friendlyError } from "~/lib/connect-errors";
 
 export default function ListsPage() {
   // State
@@ -40,6 +40,8 @@ export default function ListsPage() {
   const [formIsItinerary, setFormIsItinerary] = createSignal(false);
   const [activeTab, setActiveTab] = createSignal<"all" | "custom" | "itineraries">("all");
   const [deleteConfirmId, setDeleteConfirmId] = createSignal<string | null>(null);
+  const [formError, setFormError] = createSignal<string | null>(null);
+  const [deleteError, setDeleteError] = createSignal<string | null>(null);
 
   // Queries & Mutations
   const listsQuery = useLists();
@@ -95,6 +97,7 @@ export default function ListsPage() {
     setFormDescription("");
     setFormIsPublic(false);
     setFormIsItinerary(false);
+    setFormError(null);
     setShowModal(true);
   };
 
@@ -104,6 +107,7 @@ export default function ListsPage() {
     setFormDescription(list.description || "");
     setFormIsPublic(list.isPublic || false);
     setFormIsItinerary(list.isItinerary || false);
+    setFormError(null);
     setShowModal(true);
   };
 
@@ -123,6 +127,7 @@ export default function ListsPage() {
       isItinerary: formIsItinerary(),
     };
 
+    setFormError(null);
     try {
       if (editingList()) {
         await updateMutation.mutateAsync({
@@ -134,16 +139,20 @@ export default function ListsPage() {
       }
       closeModal();
     } catch (error) {
-      console.error("Failed to save list:", error);
+      // A free account's sixth list is refused as an entitlement error, which
+      // also opens the upgrade sheet; everything else needs saying here, or
+      // the modal just sits there looking like it ignored the click.
+      setFormError(friendlyError(error).message);
     }
   };
 
   const handleDelete = async (listId: string) => {
+    setDeleteError(null);
     try {
       await deleteMutation.mutateAsync(listId);
       setDeleteConfirmId(null);
     } catch (error) {
-      console.error("Failed to delete list:", error);
+      setDeleteError(`Couldn't delete that list. ${friendlyError(error).message}`);
     }
   };
 
@@ -240,6 +249,12 @@ export default function ListsPage() {
             </button>
           </div>
 
+          <Show when={deleteError()}>
+            <p class="mb-4 text-sm text-destructive" role="alert">
+              {deleteError()}
+            </p>
+          </Show>
+
           {/* Loading State */}
           <Show when={isLoading()}>
             <div class="flex items-center justify-center py-16">
@@ -327,8 +342,10 @@ export default function ListsPage() {
                         </Show>
                       </div>
 
-                      {/* Action Buttons */}
-                      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Action Buttons. Hidden until hover only where hovering
+                          exists: on a touch screen there is no hover, so they
+                          were unreachable. Focus reveals them for keyboards. */}
+                      <div class="flex items-center gap-1 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 group-focus-within:opacity-100">
                         <button
                           onClick={(e) => handleListSelect(list, e)}
                           class="p-2 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/10"
@@ -365,12 +382,6 @@ export default function ListsPage() {
 
                     <div class="flex items-center justify-between text-xs text-muted-foreground mb-4">
                       <div class="flex items-center gap-3">
-                        <Show when={list.cityId}>
-                          <span class="flex items-center gap-1">
-                            <MapPin class="w-3 h-3" />
-                            {list.cityId}
-                          </span>
-                        </Show>
                         <span>{list.itemCount || 0} items</span>
                       </div>
                       <Show when={list.createdAt}>
@@ -456,6 +467,12 @@ export default function ListsPage() {
                     <span class="text-sm text-foreground">Make public</span>
                   </label>
                 </div>
+
+                <Show when={formError()}>
+                  <p class="text-sm text-destructive" role="alert">
+                    {formError()}
+                  </p>
+                </Show>
 
                 <div class="flex justify-end gap-3 pt-4">
                   <Button type="button" variant="ghost" onClick={closeModal}>

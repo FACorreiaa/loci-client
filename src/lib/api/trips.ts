@@ -263,7 +263,7 @@ export const toProtoTrip = (t: Trip) =>
   });
 
 // ---- query keys ----
-const tripKeys = {
+export const tripKeys = {
   all: ["trips"] as const,
   list: () => ["trips", "list"] as const,
   detail: (id: string) => ["trips", "detail", id] as const,

@@ -1,71 +1,81 @@
-import { createSignal, createEffect, For, onMount, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { Check, Plus, Printer, Trash2, Wallet, Luggage, Sparkles, Info, X } from "lucide-solid";
 import { useSuggestPacking, type PackingSuggestion } from "~/lib/api/packing";
+import {
+  importLegacyChecklist,
+  useDeleteChecklistItem,
+  useDismissPackingSuggestion,
+  useTripChecklist,
+  useUpsertChecklistItem,
+  useUpsertChecklistItems,
+} from "~/lib/api/checklist";
+import {
+  clipText,
+  fromMinor,
+  newChecklistId,
+  nextPosition,
+  toMinor,
+  totalsByCurrency,
+  type ChecklistEntry,
+} from "~/lib/trip-checklist/checklist";
+import { useLocale } from "~/contexts/LocaleContext";
+import { formatPrice } from "~/lib/locale";
 
 // Packing + expenditure checklists for a trip, plus a print button.
 //
-// The user's own list stays client-only, in localStorage per trip: it is theirs,
-// it works offline, and it needs no backend surface. What the server contributes
-// is *suggestions* derived from the trip — its length, its cities' forecasts, the
-// driving, the stated interests — which is the part a notes app cannot do.
+// The lists are the user's own and sync through the server (TripService's
+// checklist RPCs), so a box ticked on the phone is ticked here. They used to
+// live only in this browser's localStorage; the first visit after this change
+// imports that copy once and then clears it.
 //
-// Suggestions are offered rather than imposed: nothing is added to the list until
-// the user says so, and a dismissed suggestion stays dismissed (also locally, so
-// the server does not need to track it).
-
-interface PackItem {
-  id: string;
-  text: string;
-  done: boolean;
-}
-interface Expense {
-  id: string;
-  label: string;
-  amount: number;
-}
-
-const uid = () => Math.random().toString(36).slice(2, 10);
-
-function load<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
+// The server also contributes *suggestions* derived from the trip — its length,
+// its cities' forecasts, the driving, the stated interests. They are offered
+// rather than imposed: nothing is added until the user says so, and a dismissed
+// suggestion stays dismissed (on every device).
 
 export default function TripChecklists(props: { tripId: string }) {
-  const packKey = () => `trip-packing-${props.tripId}`;
-  const expKey = () => `trip-expenses-${props.tripId}`;
-  const dismissedKey = () => `trip-packing-dismissed-${props.tripId}`;
+  const tripId = () => props.tripId;
+  const locale = useLocale();
 
-  const [pack, setPack] = createSignal<PackItem[]>([]);
-  const [expenses, setExpenses] = createSignal<Expense[]>([]);
+  const checklist = useTripChecklist(tripId);
+  const upsertItem = useUpsertChecklistItem(tripId);
+  const upsertItems = useUpsertChecklistItems(tripId);
+  const deleteItem = useDeleteChecklistItem(tripId);
+  const dismissSuggestionRpc = useDismissPackingSuggestion(tripId);
+
   const [packInput, setPackInput] = createSignal("");
   const [expLabel, setExpLabel] = createSignal("");
   const [expAmount, setExpAmount] = createSignal("");
-  const [dismissed, setDismissed] = createSignal<string[]>([]);
+  const [writeError, setWriteError] = createSignal<string | null>(null);
 
-  const suggested = useSuggestPacking(() => props.tripId);
+  const suggested = useSuggestPacking(tripId);
 
-  onMount(() => {
-    setPack(load<PackItem[]>(packKey(), []));
-    setExpenses(load<Expense[]>(expKey(), []));
-    setDismissed(load<string[]>(dismissedKey(), []));
+  const items = () => checklist.data?.items ?? [];
+  const pack = () => items().filter((i) => i.kind === "packing");
+  const expenses = () => items().filter((i) => i.kind === "expense");
+  const dismissed = () => checklist.data?.dismissed ?? [];
+
+  // One-time import of the localStorage lists an older build kept for this
+  // trip. Waits for the server copy so it can skip what is already there.
+  let importedFor: string | undefined;
+  createEffect(() => {
+    const data = checklist.data;
+    const id = props.tripId;
+    if (!data || importedFor === id) return;
+    importedFor = id;
+    importLegacyChecklist(id, data, locale.currency())
+      .then((uploaded) => {
+        if (uploaded) void checklist.refetch();
+      })
+      .catch((err) => {
+        // Keys stay in localStorage; the next visit tries again.
+        console.warn("checklist import failed", err);
+      });
   });
 
-  createEffect(() => {
-    if (typeof window !== "undefined") localStorage.setItem(packKey(), JSON.stringify(pack()));
-  });
-  createEffect(() => {
-    if (typeof window !== "undefined") localStorage.setItem(expKey(), JSON.stringify(expenses()));
-  });
-  createEffect(() => {
-    if (typeof window !== "undefined")
-      localStorage.setItem(dismissedKey(), JSON.stringify(dismissed()));
-  });
+  const onWriteError = () =>
+    setWriteError("That change didn't save. Check your connection and try again.");
+  const write = { onError: onWriteError, onSuccess: () => setWriteError(null) };
 
   // Hide anything the user has already added or waved away, so the panel empties
   // out as they work through it rather than nagging.
@@ -77,38 +87,60 @@ export default function TripChecklists(props: { tripId: string }) {
     );
   };
 
-  const acceptSuggestion = (s: PackingSuggestion) => {
-    setPack((p) => [...p, { id: uid(), text: s.text, done: false }]);
-  };
-  const dismissSuggestion = (s: PackingSuggestion) => {
-    setDismissed((d) => [...d, s.text]);
-  };
+  const packingEntry = (text: string, position: number): ChecklistEntry => ({
+    id: newChecklistId(),
+    kind: "packing",
+    text: clipText(text),
+    done: false,
+    amountMinor: 0,
+    currency: "",
+    position,
+  });
+
+  const acceptSuggestion = (s: PackingSuggestion) =>
+    upsertItem.mutate(packingEntry(s.text, nextPosition(items(), "packing")), write);
+  const dismissSuggestion = (s: PackingSuggestion) =>
+    dismissSuggestionRpc.mutate(clipText(s.text), write);
   const acceptAll = () => {
-    const items = openSuggestions().map((s) => ({ id: uid(), text: s.text, done: false }));
-    if (items.length > 0) setPack((p) => [...p, ...items]);
+    const start = nextPosition(items(), "packing");
+    const batch = openSuggestions().map((s, i) => packingEntry(s.text, start + i));
+    if (batch.length > 0) upsertItems.mutate(batch, write);
   };
 
   const addPack = () => {
-    const t = packInput().trim();
+    const t = clipText(packInput());
     if (!t) return;
-    setPack((p) => [...p, { id: uid(), text: t, done: false }]);
+    upsertItem.mutate(packingEntry(t, nextPosition(items(), "packing")), write);
     setPackInput("");
   };
-  const togglePack = (id: string) =>
-    setPack((p) => p.map((i) => (i.id === id ? { ...i, done: !i.done } : i)));
-  const removePack = (id: string) => setPack((p) => p.filter((i) => i.id !== id));
+  const togglePack = (item: ChecklistEntry) =>
+    upsertItem.mutate({ ...item, done: !item.done }, write);
+  const removeItem = (id: string) => deleteItem.mutate(id, write);
 
   const addExpense = () => {
-    const label = expLabel().trim();
-    const amount = parseFloat(expAmount());
-    if (!label || Number.isNaN(amount)) return;
-    setExpenses((e) => [...e, { id: uid(), label, amount }]);
+    const label = clipText(expLabel());
+    const currency = locale.currency();
+    const minor = toMinor(parseFloat(expAmount()), currency);
+    if (!label || minor === null) return;
+    upsertItem.mutate(
+      {
+        id: newChecklistId(),
+        kind: "expense",
+        text: label,
+        done: false,
+        amountMinor: minor,
+        currency,
+        position: nextPosition(items(), "expense"),
+      },
+      write,
+    );
     setExpLabel("");
     setExpAmount("");
   };
-  const removeExpense = (id: string) => setExpenses((e) => e.filter((i) => i.id !== id));
 
-  const total = () => expenses().reduce((s, e) => s + e.amount, 0);
+  const money = (minor: number, currency: string) =>
+    currency ? formatPrice(fromMinor(minor, currency), currency) : (minor / 100).toFixed(2);
+  const totals = () => [...totalsByCurrency(expenses())];
   const packedCount = () => pack().filter((i) => i.done).length;
 
   return (
@@ -179,6 +211,20 @@ export default function TripChecklists(props: { tripId: string }) {
         </section>
       </Show>
 
+      <Show when={checklist.isError}>
+        <p class="no-print text-sm text-destructive md:col-span-2" role="alert">
+          Your checklists didn&apos;t load.{" "}
+          <button class="underline" onClick={() => void checklist.refetch()}>
+            Try again
+          </button>
+        </p>
+      </Show>
+      <Show when={writeError()}>
+        <p class="no-print text-sm text-destructive md:col-span-2" role="alert">
+          {writeError()}
+        </p>
+      </Show>
+
       {/* Packing */}
       <section class="rounded-lg border p-4">
         <div class="mb-3 flex items-center justify-between">
@@ -209,7 +255,7 @@ export default function TripChecklists(props: { tripId: string }) {
               <li class="flex items-center gap-2 text-sm">
                 <button
                   class={`grid h-5 w-5 place-items-center rounded border ${item.done ? "bg-primary text-primary-foreground" : ""}`}
-                  onClick={() => togglePack(item.id)}
+                  onClick={() => togglePack(item)}
                   aria-label={item.done ? "Uncheck" : "Check"}
                 >
                   <Show when={item.done}>
@@ -221,7 +267,7 @@ export default function TripChecklists(props: { tripId: string }) {
                 </span>
                 <button
                   class="text-muted-foreground hover:text-destructive"
-                  onClick={() => removePack(item.id)}
+                  onClick={() => removeItem(item.id)}
                   aria-label="Remove"
                 >
                   <Trash2 class="h-3.5 w-3.5" />
@@ -238,7 +284,13 @@ export default function TripChecklists(props: { tripId: string }) {
           <h3 class="flex items-center gap-2 font-medium">
             <Wallet class="h-4 w-4 text-primary" /> Expenses
           </h3>
-          <span class="text-sm font-semibold">{total().toFixed(2)}</span>
+          <span class="text-sm font-semibold tabular-nums">
+            <Show when={totals().length > 0} fallback={money(0, locale.currency())}>
+              {totals()
+                .map(([currency, minor]) => money(minor, currency))
+                .join(" + ")}
+            </Show>
+          </span>
         </div>
         <div class="mb-3 flex gap-2">
           <input
@@ -268,11 +320,11 @@ export default function TripChecklists(props: { tripId: string }) {
           <For each={expenses()}>
             {(e) => (
               <li class="flex items-center gap-2 text-sm">
-                <span class="flex-1">{e.label}</span>
-                <span class="tabular-nums">{e.amount.toFixed(2)}</span>
+                <span class="flex-1">{e.text}</span>
+                <span class="tabular-nums">{money(e.amountMinor, e.currency)}</span>
                 <button
                   class="text-muted-foreground hover:text-destructive"
-                  onClick={() => removeExpense(e.id)}
+                  onClick={() => removeItem(e.id)}
                   aria-label="Remove"
                 >
                   <Trash2 class="h-3.5 w-3.5" />

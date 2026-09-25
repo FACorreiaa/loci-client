@@ -14,7 +14,8 @@ import {
 } from "@buf/loci_loci-proto.bufbuild_es/loci/list/list_pb.js";
 import { create } from "@bufbuild/protobuf";
 import { transport } from "../connect-transport";
-import { getAuthToken, authAPI } from "../api";
+import { useAuthGate } from "../auth/useAuthGate";
+import { mapListDetail, type ListDetail } from "../lists/list-detail";
 import { handleEntitlementError } from "../entitlement-error";
 import {
   recordRecommendationEvents,
@@ -35,32 +36,9 @@ async function withEntitlementGuard<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-// Cache for user ID
-let cachedUserId: string | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-const getUserId = async (): Promise<string | null> => {
-  const now = Date.now();
-  if (cachedUserId && now - cacheTimestamp < CACHE_TTL) {
-    return cachedUserId;
-  }
-
-  const token = getAuthToken();
-  if (!token) return null;
-
-  try {
-    const session = await authAPI.validateSession();
-    if (session.valid && session.user_id) {
-      cachedUserId = session.user_id;
-      cacheTimestamp = now;
-      return cachedUserId;
-    }
-  } catch (e) {
-    console.warn("Failed to get user ID:", e);
-  }
-  return null;
-};
+// No user id is sent: every ListService RPC acts as the authenticated caller
+// and the field is optional (proto v5.28.0). This used to call
+// validateSession first just to fill it in.
 
 // Helper to map content type string to proto enum
 export const contentTypeToProto = (type: string): ContentType => {
@@ -83,18 +61,13 @@ export const contentTypeToProto = (type: string): ContentType => {
 // ===============
 
 export const useLists = () => {
+  const gate = useAuthGate();
   return useAppQuery(() => ({
     queryKey: ["lists"],
+    enabled: gate(),
     queryFn: async () => {
-      const userId = await getUserId();
-      if (!userId) return [];
-
       const response = await listClient.getLists(
-        create(GetListsRequestSchema, {
-          userId,
-          limit: 100,
-          offset: 0,
-        }),
+        create(GetListsRequestSchema, { limit: 100, offset: 0 }),
       );
       // Extract the list object from ListWithItems
       return (response.lists || []).map((item: any) => item.list || item);
@@ -103,23 +76,18 @@ export const useLists = () => {
   }));
 };
 
-export const useList = (listId: string) => {
+/** One list with its items resolved to places (GetList include_detailed_items). */
+export const useList = (listId: () => string | undefined) => {
+  const gate = useAuthGate();
   return useAppQuery(() => ({
-    queryKey: ["list", listId],
-    queryFn: async () => {
-      const userId = await getUserId();
-      if (!userId) return null;
-
+    queryKey: ["list", listId() ?? ""],
+    enabled: gate() && !!listId(),
+    queryFn: async (): Promise<ListDetail | null> => {
       const response = await listClient.getList(
-        create(GetListRequestSchema, {
-          userId,
-          listId,
-          includeDetailedItems: true,
-        }),
+        create(GetListRequestSchema, { listId: listId()!, includeDetailedItems: true }),
       );
-      return response.list;
+      return response.list ? mapListDetail(response.list) : null;
     },
-    enabled: !!listId,
   }));
 };
 
@@ -141,12 +109,8 @@ export const useCreateListMutation = () => {
   return useMutation(() => ({
     mutationFn: async (data: CreateListData) =>
       withEntitlementGuard(async () => {
-        const userId = await getUserId();
-        if (!userId) throw new Error("Not authenticated");
-
         const response = await listClient.createList(
           create(CreateListRequestSchema, {
-            userId,
             name: data.name,
             description: data.description || "",
             cityId: data.cityId || "",
@@ -169,16 +133,17 @@ export const useUpdateListMutation = () => {
 
   return useMutation(() => ({
     mutationFn: async ({ listId, data }: { listId: string; data: Partial<CreateListData> }) => {
-      const userId = await getUserId();
-      if (!userId) throw new Error("Not authenticated");
-
       const response = await listClient.updateList(
         create(UpdateListRequestSchema, {
-          userId,
           listId,
           name: data.name,
           description: data.description,
           isPublic: data.isPublic,
+          // Optional on the wire: unset leaves it alone, so only send it when
+          // the form actually carries it. It was never sent before, so the
+          // "This is an itinerary" checkbox did nothing on edit.
+          isItinerary: data.isItinerary,
+          cityId: data.cityId,
         }),
       );
       return { list: response.list, listId };
@@ -199,15 +164,7 @@ export const useDeleteListMutation = () => {
 
   return useMutation(() => ({
     mutationFn: async (listId: string) => {
-      const userId = await getUserId();
-      if (!userId) throw new Error("Not authenticated");
-
-      await listClient.deleteList(
-        create(DeleteListRequestSchema, {
-          userId,
-          listId,
-        }),
-      );
+      await listClient.deleteList(create(DeleteListRequestSchema, { listId }));
     },
     onMutate: async (listId: string) => {
       await queryClient.cancelQueries({ queryKey: ["lists"] });
@@ -252,12 +209,8 @@ export const useAddToListMutation = () => {
   return useMutation(() => ({
     mutationFn: async ({ listId, itemData }: { listId: string; itemData: AddListItemData }) =>
       withEntitlementGuard(async () => {
-        const userId = await getUserId();
-        if (!userId) throw new Error("Not authenticated");
-
         const response = await listClient.addListItem(
           create(AddListItemRequestSchema, {
-            userId,
             listId,
             itemId: itemData.itemId,
             contentType: contentTypeToProto(itemData.contentType),
@@ -265,6 +218,7 @@ export const useAddToListMutation = () => {
             notes: itemData.notes || "",
             dayNumber: itemData.dayNumber || 0,
             durationMinutes: itemData.durationMinutes || 0,
+            itemAiDescription: (itemData.itemAiDescription || "").slice(0, 4000),
             recommendationTrace: toProtoRecommendationTrace(itemData.recommendationTrace),
           }),
         );
@@ -288,23 +242,44 @@ export const useAddToListMutation = () => {
   }));
 };
 
+export interface RemoveListItemInput {
+  listId: string;
+  itemId: string;
+  contentType?: AddListItemData["contentType"];
+}
+
 export const useRemoveFromListMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation(() => ({
-    mutationFn: async ({ listId, itemId }: { listId: string; itemId: string }) => {
-      const userId = await getUserId();
-      if (!userId) throw new Error("Not authenticated");
-
+    mutationFn: async ({ listId, itemId, contentType }: RemoveListItemInput) => {
       await listClient.removeListItem(
         create(RemoveListItemRequestSchema, {
-          userId,
           listId,
           itemId,
+          contentType: contentType ? contentTypeToProto(contentType) : ContentType.UNSPECIFIED,
         }),
       );
     },
-    onSuccess: (_, { listId }) => {
+    onMutate: async ({ listId, itemId }: RemoveListItemInput) => {
+      await queryClient.cancelQueries({ queryKey: ["list", listId] });
+      const previous = queryClient.getQueryData<ListDetail | null>(["list", listId]);
+      if (previous) {
+        queryClient.setQueryData<ListDetail>(["list", listId], {
+          ...previous,
+          items: previous.items.filter((i) => i.itemId !== itemId),
+        });
+      }
+      return { previous };
+    },
+    onError: (
+      _err: unknown,
+      { listId }: RemoveListItemInput,
+      ctx: { previous?: ListDetail | null } | undefined,
+    ) => {
+      if (ctx?.previous) queryClient.setQueryData(["list", listId], ctx.previous);
+    },
+    onSettled: (_: unknown, __: unknown, { listId }: RemoveListItemInput) => {
       queryClient.invalidateQueries({ queryKey: ["list", listId] });
       queryClient.invalidateQueries({ queryKey: ["lists"] });
     },

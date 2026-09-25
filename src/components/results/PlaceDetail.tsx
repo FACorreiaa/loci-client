@@ -13,6 +13,7 @@ import {
 import { lazyChunk } from "~/lib/lazyChunk";
 import ProgressiveImage from "~/components/itinerary/ProgressiveImage";
 import FavoriteButton from "~/components/shared/FavoriteButton";
+import AddToListButton from "~/components/lists/AddToListButton";
 import { ShareMenu } from "~/components/ShareMenu";
 import { Skeleton } from "~/ui/skeleton";
 import type { FavoriteItem } from "~/lib/api/favorites";
@@ -279,6 +280,12 @@ export default function PlaceDetail(props: PlaceDetailProps) {
                       <Show when={props.favorite}>
                         {(item) => <FavoriteButton item={item()} size="md" />}
                       </Show>
+                      <AddToListButton
+                        itemId={p().id}
+                        itemName={p().name}
+                        contentType={meta().contentType}
+                        aiDescription={p().description}
+                      />
                       <ShareMenu payload={sharePayload()} />
                     </div>
                   </div>
