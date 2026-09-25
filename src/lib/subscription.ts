@@ -21,6 +21,20 @@ export function isProPlan(plan?: string | null): boolean {
   );
 }
 
+/**
+ * Plan gating is off until the product has users to gate (owner decision,
+ * 2026-09-25; server: PLAN_GATING, docs/pricing.md; iOS: PlanGating.enabled).
+ * Feature gates ask `canUsePro`, never `isProPlan`: with gating off every plan
+ * gets the Pro feature set, while `isProPlan` keeps saying what the plan is
+ * for the badge, billing and pricing.
+ */
+export const PLAN_GATING_ENABLED = false;
+
+/** Whether this plan gets the Pro feature set right now. */
+export function canUsePro(plan?: string | null, gating: boolean = PLAN_GATING_ENABLED): boolean {
+  return !gating || isProPlan(plan);
+}
+
 export function planKind(plan?: string | null): PlanKind {
   return isProPlan(plan) ? "pro" : "free";
 }

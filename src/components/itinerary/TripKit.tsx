@@ -19,6 +19,7 @@ import {
   tripDateRange,
   type TripStop,
 } from "~/lib/trip-kit";
+import { PLAN_GATING_ENABLED } from "~/lib/subscription";
 import { exportItineraryToPDF } from "~/lib/api/export";
 import { create } from "@bufbuild/protobuf";
 import { ExportItinerarySchema } from "@buf/loci_loci-proto.bufbuild_es/loci/export/export_pb.js";
@@ -57,7 +58,8 @@ export default function TripKit(props: TripKitProps) {
   const planState = () => props.planState ?? "known";
   // Exporting while the plan is still being fetched is what silently truncated
   // a Pro user's calendar, so the actions wait rather than guess.
-  const planPending = () => planState() === "loading";
+  // With gating off there is no plan to wait for.
+  const planPending = () => PLAN_GATING_ENABLED && planState() === "loading";
 
   const perDay = () => props.stopsPerDay ?? FREE_STOPS_PER_DAY;
   const days = createMemo(() => groupStopsByDay(props.stops, perDay()));

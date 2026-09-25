@@ -61,7 +61,7 @@ import { StreamErrorCard } from "@/components/ui/StreamErrorCard";
 import FloatingChat from "@/components/features/Chat/FloatingChat";
 import { useSaveItineraryMutation } from "@/lib/api/itineraries";
 import { useUserSubscription } from "@/lib/api/billing";
-import { isProPlan } from "@/lib/subscription";
+import { canUsePro } from "@/lib/subscription";
 import type { TripStop } from "@/lib/trip-kit";
 import { useAuth } from "@/contexts/AuthContext";
 import { saveItineraryOffline, getOfflineItinerary } from "@/lib/itinerary-offline-store";
@@ -142,7 +142,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // Mutation hook for bookmarking
   const saveItineraryMutation = useSaveItineraryMutation();
   const subscriptionQuery = useUserSubscription(() => isAuthenticated());
-  const isPro = createMemo(() => isProPlan(subscriptionQuery.data?.plan));
+  const isPro = createMemo(() => canUsePro(subscriptionQuery.data?.plan));
   const [savedOffline, setSavedOffline] = createSignal(false);
   // isPro is derived from a query, so "not loaded yet" and "genuinely free"
   // both read as false. The trip kit needs to tell them apart: exporting on the
