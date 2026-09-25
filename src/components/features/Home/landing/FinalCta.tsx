@@ -1,5 +1,6 @@
 import { A } from "@solidjs/router";
 import RouteStop from "./RouteStop";
+import AppButtons from "./AppButtons";
 
 export default function FinalCta() {
   return (
@@ -27,6 +28,7 @@ export default function FinalCta() {
             See Pro plans
           </A>
         </div>
+        <AppButtons class="mt-4 justify-center" />
       </div>
     </RouteStop>
   );

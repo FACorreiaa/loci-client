@@ -12,6 +12,7 @@ import HowItWorks from "./landing/HowItWorks";
 import WhatItFinds from "./landing/WhatItFinds";
 import AgentSection from "./landing/AgentSection";
 import FinalCta from "./landing/FinalCta";
+import AppButtons from "./landing/AppButtons";
 import MascotScene from "~/components/brand/MascotScene";
 import "~/styles/landing.css";
 
@@ -209,6 +210,8 @@ export default function PublicLandingPage() {
                       )}
                     </For>
                   </div>
+
+                  <AppButtons class="mt-6" />
                 </div>
 
                 <HeroPlot />
