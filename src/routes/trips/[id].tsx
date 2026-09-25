@@ -18,7 +18,7 @@ import {
   type TripConstraint,
 } from "~/lib/api/trips";
 import { useUserSubscription } from "~/lib/api/billing";
-import { isProPlan } from "~/lib/subscription";
+import { canUsePro } from "~/lib/subscription";
 import { cacheTripOffline } from "~/lib/trip-offline-cache";
 import {
   recordRecommendationEvents,
@@ -48,7 +48,7 @@ export default function TripEditor() {
   const params = useParams();
   const tripQuery = useTrip(() => params.id!);
   const subscriptionQuery = useUserSubscription();
-  const isPro = () => isProPlan(subscriptionQuery.data?.plan);
+  const isPro = () => canUsePro(subscriptionQuery.data?.plan);
 
   const reorder = useReorderStops();
   const rename = useRenameStop();

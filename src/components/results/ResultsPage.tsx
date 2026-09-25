@@ -21,7 +21,7 @@ import { persistCompletedSession } from "~/lib/utils/chatUtils";
 import { getOfflineItinerary, saveItineraryOffline } from "~/lib/itinerary-offline-store";
 import { useSaveItineraryMutation } from "~/lib/api/itineraries";
 import { useUserSubscription } from "~/lib/api/billing";
-import { isProPlan } from "~/lib/subscription";
+import { canUsePro } from "~/lib/subscription";
 import { useAuth } from "~/contexts/AuthContext";
 import { isLocatedAlert, useLocalContext } from "~/lib/api/localContext";
 import { SHARE_HOME_URL, type SharePayload } from "~/lib/share";
@@ -125,7 +125,7 @@ export default function ResultsPage(props: ResultsPageProps) {
 
   const saveItineraryMutation = useSaveItineraryMutation();
   const subscriptionQuery = useUserSubscription(() => isAuthenticated());
-  const isPro = createMemo(() => isProPlan(subscriptionQuery.data?.plan));
+  const isPro = createMemo(() => canUsePro(subscriptionQuery.data?.plan));
   const planState = createMemo<"loading" | "known" | "unknown">(() => {
     if (!isAuthenticated()) return "known";
     if (subscriptionQuery.isPending || subscriptionQuery.isLoading) return "loading";

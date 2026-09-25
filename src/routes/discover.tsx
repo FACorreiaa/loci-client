@@ -53,7 +53,7 @@ import AdvancedFiltersBar, {
   type AdvancedFilterId,
 } from "~/components/filters/AdvancedFiltersBar";
 import { useUserSubscription } from "~/lib/api/billing";
-import { isProPlan } from "~/lib/subscription";
+import { canUsePro } from "~/lib/subscription";
 import {
   normalizeRecommendationTrace,
   recordRecommendationEvents,
@@ -64,7 +64,7 @@ export default function DiscoverPage() {
   const [searchParams] = useSearchParams();
   const { userLocation, requestLocation } = useUserLocation();
   const subscriptionQuery = useUserSubscription(() => !!isAuthenticated());
-  const isPro = () => isProPlan(subscriptionQuery.data?.plan);
+  const isPro = () => canUsePro(subscriptionQuery.data?.plan);
   const localResultCache = new Map<string, POI[]>();
   const [searchQuery, setSearchQuery] = createSignal("");
   // The search box is locked while a recording is in flight, so nothing typed

@@ -2,7 +2,7 @@ import { createMemo, createSignal, Show } from "solid-js";
 import { Loader2, GitCompare } from "lucide-solid";
 import { Button } from "~/ui/button";
 import { useEntitlements } from "~/lib/api/entitlements";
-import { isProPlan } from "~/lib/subscription";
+import { PLAN_GATING_ENABLED, isProPlan } from "~/lib/subscription";
 import { defaultWeekend, type DateWindow } from "~/lib/compare-defaults";
 import type { CompareWeekendInput } from "~/lib/api/compare";
 import { buildCompareInput } from "~/lib/compare-input";
@@ -30,7 +30,10 @@ interface CompareFormProps {
 export function CompareForm(props: CompareFormProps) {
   const entitlements = useEntitlements();
   // Guarded: `.data` suspends while pending, up to the router-level <Suspense>.
-  const isPro = () => entitlements.isSuccess && isProPlan(entitlements.data?.plan);
+  // With gating off nobody waits for the entitlements query; with it on, an
+  // unresolved query must not read as Pro.
+  const isPro = () =>
+    PLAN_GATING_ENABLED ? entitlements.isSuccess && isProPlan(entitlements.data?.plan) : true;
   const maxCandidates = () => (isPro() ? PRO_MAX_CANDIDATES : FREE_MAX_CANDIDATES);
 
   const [origin, setOrigin] = createSignal<CitySelection | null>(props.initialOrigin ?? null);
