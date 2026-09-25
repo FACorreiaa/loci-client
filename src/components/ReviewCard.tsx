@@ -1,17 +1,33 @@
 import { createSignal, For, Show } from "solid-js";
-import { Calendar, Pencil, Star, ThumbsUp, Trash2 } from "lucide-solid";
+import { A } from "@solidjs/router";
+import { Calendar, Flag, Pencil, Star, ThumbsUp, Trash2 } from "lucide-solid";
 import type { ReviewItem } from "~/lib/api/reviews";
-import { foldText, needsFold, ratingLabel } from "~/lib/reviews/model";
+import {
+  REPORT_REASONS,
+  foldText,
+  needsFold,
+  ratingLabel,
+  visitLabel,
+  type ReportReason,
+} from "~/lib/reviews/model";
 
 export interface ReviewCardProps {
   review: ReviewItem;
   /** The place's name above the text, for lists that mix places (My reviews). */
   showPlace?: boolean;
-  /** This browser has marked it helpful. */
+  /** Where the place's name links to (My reviews → the place). */
+  placeHref?: string;
+  /** You marked it helpful (the server's voted_by_me, or your tap since). */
   voted?: boolean;
-  /** The signed-in user wrote it: Edit and Delete instead of Helpful. */
+  /** A vote is in flight; the button ignores taps until it settles. */
+  votePending?: boolean;
+  /** The signed-in user wrote it: Edit and Delete instead of Helpful and Report. */
   mine?: boolean;
+  /** Signed in: Helpful and Report are offered (never on your own review). */
+  canInteract?: boolean;
   onHelpful?: (review: ReviewItem) => void;
+  /** Resolves when the report was taken; rejects with a message to show. */
+  onReport?: (review: ReviewItem, reason: ReportReason) => Promise<void>;
   onEdit?: (review: ReviewItem) => void;
   onDelete?: (review: ReviewItem) => void;
 }
@@ -26,13 +42,45 @@ export default function ReviewCard(props: ReviewCardProps) {
   const [expanded, setExpanded] = createSignal(false);
   const r = () => props.review;
   const text = () => (expanded() || !needsFold(r().content) ? r().content : foldText(r().content));
+  const [reporting, setReporting] = createSignal(false);
+  const [reason, setReason] = createSignal<ReportReason>("spam");
+  const [reportState, setReportState] = createSignal<"idle" | "sending" | "sent">("idle");
+  const [reportError, setReportError] = createSignal<string | null>(null);
+
+  const sendReport = async () => {
+    if (!props.onReport || reportState() === "sending") return;
+    setReportState("sending");
+    setReportError(null);
+    try {
+      await props.onReport(r(), reason());
+      setReportState("sent");
+      setReporting(false);
+    } catch (e) {
+      setReportState("idle");
+      setReportError(e instanceof Error ? e.message : "We couldn't send the report.");
+    }
+  };
 
   return (
     <article class="rounded-2xl border border-border bg-card p-5">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
-          <Show when={props.showPlace && r().poiName}>
-            <p class="truncate text-sm font-medium text-foreground">{r().poiName}</p>
+          <Show when={props.showPlace}>
+            <Show
+              when={props.placeHref}
+              fallback={
+                <p class="truncate text-sm font-medium text-foreground">
+                  {r().poiName || "A place"}
+                </p>
+              }
+            >
+              <A
+                href={props.placeHref!}
+                class="block truncate text-sm font-medium text-foreground hover:text-primary hover:underline"
+              >
+                {r().poiName || "Open the place"}
+              </A>
+            </Show>
           </Show>
           <div class="mt-1 flex items-center gap-2">
             <span class="flex" aria-label={`${r().rating} out of 5`}>
@@ -49,12 +97,12 @@ export default function ReviewCard(props: ReviewCardProps) {
             <span class="text-xs text-muted-foreground">· {formatDate(r().createdAt)}</span>
           </div>
           <p class="mt-1 text-xs text-muted-foreground">
-            {props.mine ? "You" : r().reviewerName || "A traveller"}
+            {props.mine ? "Your review" : r().reviewerName || "A traveller"}
             <Show when={r().verified}> · Verified</Show>
             <Show when={r().visitDate}>
               <span class="ml-2 inline-flex items-center gap-1">
                 <Calendar class="h-3 w-3" aria-hidden="true" />
-                Visited {formatDate(r().visitDate)}
+                {visitLabel(r().visitDate)}
               </span>
             </Show>
           </p>
@@ -79,20 +127,61 @@ export default function ReviewCard(props: ReviewCardProps) {
         <Show
           when={props.mine}
           fallback={
-            <button
-              type="button"
-              onClick={() => props.onHelpful?.(r())}
-              aria-pressed={props.voted ?? false}
-              class={`inline-flex items-center gap-1 rounded-lg px-3 py-1 text-sm transition-colors ${
-                props.voted ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent"
-              }`}
-            >
-              <ThumbsUp class="h-4 w-4" aria-hidden="true" />
-              Helpful
-              <Show when={r().helpful > 0}>
-                <span class="text-xs">({r().helpful})</span>
+            <>
+              <Show
+                when={props.canInteract}
+                fallback={
+                  <Show when={r().helpful > 0}>
+                    <span class="text-xs text-muted-foreground">
+                      {r().helpful} found this helpful
+                    </span>
+                  </Show>
+                }
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!props.votePending) props.onHelpful?.(r());
+                  }}
+                  aria-pressed={props.voted ?? false}
+                  aria-busy={props.votePending ?? false}
+                  class={`inline-flex items-center gap-1 rounded-lg px-3 py-1 text-sm transition-colors ${
+                    props.voted
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-accent"
+                  }`}
+                >
+                  <ThumbsUp
+                    class={`h-4 w-4 ${props.voted ? "fill-current" : ""}`}
+                    aria-hidden="true"
+                  />
+                  Helpful
+                  <Show when={r().helpful > 0}>
+                    <span class="text-xs tabular-nums">({r().helpful})</span>
+                  </Show>
+                </button>
+                <Show when={props.onReport}>
+                  <Show
+                    when={reportState() !== "sent"}
+                    fallback={
+                      <span class="ml-auto text-xs text-muted-foreground" role="status">
+                        Reported. Thanks for telling us.
+                      </span>
+                    }
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setReporting(!reporting())}
+                      aria-expanded={reporting()}
+                      class="ml-auto inline-flex items-center gap-1 rounded-lg px-3 py-1 text-sm text-muted-foreground hover:bg-accent"
+                    >
+                      <Flag class="h-4 w-4" aria-hidden="true" />
+                      Report
+                    </button>
+                  </Show>
+                </Show>
               </Show>
-            </button>
+            </>
           }
         >
           <button
@@ -118,6 +207,49 @@ export default function ReviewCard(props: ReviewCardProps) {
           </Show>
         </Show>
       </div>
+
+      <Show when={reporting()}>
+        <div class="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-muted/50 p-3">
+          <label class="text-sm text-foreground" for={`report-${r().id}`}>
+            Why are you reporting this review?
+          </label>
+          <select
+            id={`report-${r().id}`}
+            class="rounded-lg border border-input bg-background px-2 py-1 text-sm text-foreground"
+            value={reason()}
+            onChange={(e) => setReason(e.currentTarget.value as ReportReason)}
+          >
+            <For each={REPORT_REASONS}>
+              {(option) => <option value={option.value}>{option.label}</option>}
+            </For>
+          </select>
+          <div class="ml-auto flex gap-2">
+            <button
+              type="button"
+              class="rounded-lg px-3 py-1 text-sm text-muted-foreground hover:bg-accent"
+              onClick={() => {
+                setReporting(false);
+                setReportError(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="rounded-lg bg-destructive px-3 py-1 text-sm text-destructive-foreground disabled:opacity-50"
+              disabled={reportState() === "sending"}
+              onClick={() => void sendReport()}
+            >
+              {reportState() === "sending" ? "Sending…" : "Send report"}
+            </button>
+          </div>
+          <Show when={reportError()}>
+            <p role="alert" class="w-full text-sm text-destructive">
+              {reportError()}
+            </p>
+          </Show>
+        </div>
+      </Show>
     </article>
   );
 }

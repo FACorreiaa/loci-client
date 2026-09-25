@@ -22,28 +22,6 @@ export interface ChatMessage {
   id?: string;
 }
 
-// Review Types
-export interface ReviewData {
-  rating: number;
-  title: string;
-  content: string;
-  visitDate: string;
-  travelType: string;
-  photos: UploadedPhoto[];
-  poiId?: string;
-}
-
-export interface UploadedPhoto {
-  id: string;
-  file: File;
-  preview: string;
-}
-
-// Event Types
-export interface PhotoUploadEvent {
-  target: HTMLInputElement & { files: FileList | null };
-}
-
 // Filter Types
 export interface FilterState {
   categories: string[];

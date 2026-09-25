@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  REPORT_REASONS,
+  beginVote,
+  breakdownShares,
   clampRating,
+  isReportReason,
+  mineSummary,
+  rollbackVote,
+  settleVote,
+  shownVote,
+  visitDayFromISO,
+  visitDayToDate,
+  visitLabel,
   foldText,
   formIssues,
   formIssueMessage,
@@ -93,13 +104,108 @@ describe("text and votes", () => {
     });
   });
 
-  it("summarises my reviews from the rows, since the server leaves statistics empty", () => {
-    expect(summariseMine([])).toEqual({ count: 0, averageGiven: 0, helpfulReceived: 0 });
+  it("summarises my reviews from the rows when the server sends no statistics", () => {
+    const none = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    expect(summariseMine([])).toEqual({
+      count: 0,
+      averageGiven: 0,
+      helpfulReceived: 0,
+      distribution: none,
+    });
     expect(
       summariseMine([
         { rating: 4, helpful: 2 },
         { rating: 5, helpful: 0 },
       ]),
-    ).toEqual({ count: 2, averageGiven: 4.5, helpfulReceived: 2 });
+    ).toEqual({
+      count: 2,
+      averageGiven: 4.5,
+      helpfulReceived: 2,
+      distribution: { ...none, 4: 1, 5: 1 },
+    });
+  });
+
+  it("prefers the server's statistics, which cover every page", () => {
+    const server = {
+      count: 30,
+      averageGiven: 4.26,
+      helpfulReceived: 9,
+      distribution: { 1: 1, 2: 2, 3: 3, 4: 10, 5: 14 },
+    };
+    expect(mineSummary(server, [{ rating: 1, helpful: 0 }])).toEqual({
+      ...server,
+      averageGiven: 4.3,
+    });
+    expect(mineSummary(undefined, [{ rating: 3, helpful: 1 }]).count).toBe(1);
+    expect(mineSummary({ ...server, count: 0 }, [{ rating: 3, helpful: 1 }]).averageGiven).toBe(3);
+  });
+});
+
+describe("vote state", () => {
+  const review = { votedByMe: true, helpful: 5 };
+
+  it("starts from the server's voted_by_me", () => {
+    expect(shownVote(review, undefined)).toEqual({ voted: true, helpful: 5, pending: false });
+    expect(shownVote({ votedByMe: false, helpful: 0 }, undefined).voted).toBe(false);
+  });
+
+  it("a tap on a voted review un-votes (isLike false) and is optimistic", () => {
+    const next = beginVote(shownVote(review, undefined));
+    expect(next).toEqual({ voted: false, helpful: 4, pending: true, isLike: false });
+  });
+
+  it("ignores a second tap while a vote is in flight", () => {
+    const next = beginVote({ voted: false, helpful: 1, pending: false })!;
+    expect(next.isLike).toBe(true);
+    expect(beginVote(next)).toBeNull();
+  });
+
+  it("settles on the server's count, and rolls back on failure", () => {
+    const before = { voted: false, helpful: 1, pending: false };
+    const next = beginVote(before)!;
+    expect(settleVote(next, 7)).toEqual({ voted: true, helpful: 7, pending: false });
+    expect(settleVote(next, -1).helpful).toBe(0);
+    expect(rollbackVote(before)).toEqual(before);
+  });
+});
+
+describe("visit day", () => {
+  it("sends the picked day at noon UTC", () => {
+    expect(visitDayToDate("2026-03-05")?.toISOString()).toBe("2026-03-05T12:00:00.000Z");
+    expect(visitDayToDate("")).toBeUndefined();
+    expect(visitDayToDate("05/03/2026")).toBeUndefined();
+  });
+
+  it("reads it back as the same day and month in UTC", () => {
+    expect(visitDayFromISO("2026-03-05T12:00:00.000Z")).toBe("2026-03-05");
+    expect(visitDayFromISO(undefined)).toBe("");
+    expect(visitLabel("2026-03-01T12:00:00.000Z", "en-GB")).toBe("Visited March 2026");
+    // Late on the last day in UTC is still that month, wherever the reader is.
+    expect(visitLabel("2026-03-31T23:30:00.000Z", "en-GB")).toBe("Visited March 2026");
+  });
+});
+
+describe("statistics", () => {
+  it("bars are shares of the breakdown's own sum", () => {
+    expect(breakdownShares({ 1: 0, 2: 0, 3: 1, 4: 1, 5: 2 })).toEqual({
+      1: 0,
+      2: 0,
+      3: 25,
+      4: 25,
+      5: 50,
+    });
+    expect(breakdownShares({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 })[5]).toBe(0);
+  });
+
+  it("report reasons are the five the server accepts", () => {
+    expect(REPORT_REASONS.map((r) => r.value)).toEqual([
+      "spam",
+      "inappropriate",
+      "fake",
+      "offensive",
+      "other",
+    ]);
+    expect(isReportReason("fake")).toBe(true);
+    expect(isReportReason("rude")).toBe(false);
   });
 });
