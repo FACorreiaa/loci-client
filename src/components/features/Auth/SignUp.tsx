@@ -64,12 +64,19 @@ const SignUp: Component = () => {
   const googleLoginMutation = useGoogleLoginMutation();
   const appleLoginMutation = useAppleLoginMutation();
 
+  // Continue where the user was headed; a brand-new account (the server says
+  // so, as the provider may map to an existing one) sees the questionnaire once.
+  const afterSocialSignUp = (result: { userId: string; isNewUser: boolean }) => {
+    const returnTo = sessionStorage.getItem("auth_return_to");
+    if (returnTo) sessionStorage.removeItem("auth_return_to");
+    return afterSignInTarget({ ...result, returnTo });
+  };
+
   const handleGoogleLogin = async () => {
     setSocialLoading("google");
     clearErrors();
     try {
-      await googleLoginMutation.mutateAsync();
-      navigate(await afterSignInTarget());
+      navigate(await afterSocialSignUp(await googleLoginMutation.mutateAsync()));
     } catch (err: unknown) {
       showAuthError(err, "google");
     } finally {
@@ -81,8 +88,7 @@ const SignUp: Component = () => {
     setSocialLoading("apple");
     clearErrors();
     try {
-      await appleLoginMutation.mutateAsync();
-      navigate(await afterSignInTarget());
+      navigate(await afterSocialSignUp(await appleLoginMutation.mutateAsync()));
     } catch (err: unknown) {
       showAuthError(err, "apple");
     } finally {
@@ -144,7 +150,7 @@ const SignUp: Component = () => {
     // any auth_return_to a guest search left behind. A brand-new account has no
     // second factor, so the MFA branch cannot come back here.
     try {
-      await login(data.email, data.password);
+      await login(data.email, data.password, false, { isNewUser: true });
     } catch {
       // The account exists; only the automatic sign-in failed. Fall back to
       // the old path rather than showing a sign-up error for a sign-up that worked.

@@ -1,8 +1,19 @@
-import { createMemo, createSignal, For, onMount, Show } from "solid-js";
-import { useNavigate } from "@solidjs/router";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+import { useNavigate, useSearchParams } from "@solidjs/router";
+import { useAuth } from "~/contexts/AuthContext";
 import { useInterests } from "~/lib/api/interests";
-import { useCreateSearchProfileMutation } from "~/lib/api/profiles";
-import { TRIP_SETUP_INTERESTS, markTripSetupSeen, tripSetupProfile } from "~/lib/trip-setup";
+import {
+  fetchPreferenceProfilesRPC,
+  useCreateSearchProfileMutation,
+  useSearchProfiles,
+  useUpdateSearchProfileMutation,
+} from "~/lib/api/profiles";
+import {
+  TRIP_SETUP_INTERESTS,
+  markTripSetupSeen,
+  safeNextPath,
+  tripSetupSave,
+} from "~/lib/trip-setup";
 
 // A short, focused pre-trip questionnaire that writes a default search profile,
 // so the very first chat/discover request is already personalised. Reuses the
@@ -34,7 +45,11 @@ const STEPS = ["Budget", "Pace", "Getting around", "Interests"] as const;
 
 export default function TripSetup() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const createMut = useCreateSearchProfileMutation();
+  const updateMut = useUpdateSearchProfileMutation();
+  const profilesQuery = useSearchProfiles();
   const interestsQuery = useInterests();
   // Chips are the curated labels the catalogue actually has; the request sends
   // their ids (labels used to go out as interest_ids and were refused). When
@@ -49,9 +64,15 @@ export default function TripSetup() {
       .slice(0, 12);
   });
   const [saveError, setSaveError] = createSignal<string | null>(null);
+  const [saving, setSaving] = createSignal(false);
 
-  // Offered once: seen counts from the first look, finished or not.
-  onMount(markTripSetupSeen);
+  // Where the user was headed before the questionnaire; /discover otherwise.
+  const nextPath = () =>
+    safeNextPath(typeof searchParams.next === "string" ? searchParams.next : undefined);
+
+  // Offered once per account: seen counts from the first look, finished or
+  // not. The user can arrive before the profile call that fills user() does.
+  createEffect(() => markTripSetupSeen(user()?.id));
 
   const [step, setStep] = createSignal(0);
   const [budget, setBudget] = createSignal("2");
@@ -62,36 +83,51 @@ export default function TripSetup() {
   const toggleInterest = (i: string) =>
     setInterests((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]));
 
+  // Interests are required only when there is a catalogue to pick from; a
+  // failed catalogue load must not trap the user on the last step.
   const canNext = () => {
-    if (step() === 3) return interests().length > 0;
+    if (step() === 3) return interests().length > 0 || chips().length === 0;
     return true;
   };
 
-  const finish = () => {
+  const finish = async () => {
+    if (saving()) return;
     setSaveError(null);
-    createMut.mutate(
-      tripSetupProfile({
-        budget: budget(),
-        pace: pace(),
-        mobility: mobility(),
-        interests: interests(),
-        catalogue: catalogue(),
-      }),
-      {
-        onSuccess: () => navigate("/chat"),
-        // The profile is what personalises the first search, so a failed save
-        // is said out loud with a retry, not swallowed on the way to /chat.
-        onError: (error) =>
-          setSaveError(
-            error instanceof Error && error.message
-              ? error.message
-              : "We couldn't save your preferences.",
-          ),
-      },
-    );
+    setSaving(true);
+    try {
+      // Every account already has the server-created default profile; update
+      // it rather than adding a second one.
+      const profiles = profilesQuery.data ?? (await fetchPreferenceProfilesRPC());
+      const save = tripSetupSave(
+        {
+          budget: budget(),
+          pace: pace(),
+          mobility: mobility(),
+          interests: interests(),
+          catalogue: catalogue(),
+        },
+        profiles,
+      );
+      if (save.mode === "update") {
+        await updateMut.mutateAsync({ profileId: save.profileId, data: save.data });
+      } else {
+        await createMut.mutateAsync(save.data);
+      }
+      navigate(nextPath());
+    } catch (error) {
+      // The profile is what personalises the first search, so a failed save
+      // is said out loud with a retry, never swallowed on the way out.
+      setSaveError(
+        error instanceof Error && error.message
+          ? error.message
+          : "We couldn't save your preferences.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const skip = () => navigate("/chat");
+  const skip = () => navigate(nextPath());
 
   const next = () => (step() < STEPS.length - 1 ? setStep(step() + 1) : finish());
   const back = () => step() > 0 && setStep(step() - 1);
@@ -135,6 +171,15 @@ export default function TripSetup() {
 
         <Show when={step() === 3}>
           <Question title="What are you into?" subtitle="Pick a few — you can change these later.">
+            <Show when={interestsQuery.isPending}>
+              <p class="text-sm text-muted-foreground">Loading interests…</p>
+            </Show>
+            <Show when={interestsQuery.isError}>
+              <p role="alert" class="text-sm text-destructive">
+                We couldn't load interests. You can finish without them and add some later in your
+                profile.
+              </p>
+            </Show>
             <div class="flex flex-wrap gap-2">
               <For each={chips()}>
                 {(i) => (
@@ -163,7 +208,7 @@ export default function TripSetup() {
         >
           <p>{saveError()}</p>
           <div class="mt-2 flex gap-3">
-            <button type="button" class="font-medium underline" onClick={finish}>
+            <button type="button" class="font-medium underline" onClick={() => void finish()}>
               Try again
             </button>
             <button type="button" class="text-muted-foreground underline" onClick={skip}>
@@ -176,23 +221,30 @@ export default function TripSetup() {
       {/* Nav */}
       <div class="mt-8 flex items-center justify-between">
         <button
+          type="button"
           class="text-sm text-muted-foreground hover:text-foreground disabled:opacity-0"
           onClick={back}
           disabled={step() === 0}
         >
           ← Back
         </button>
-        <button
-          class="rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
-          onClick={next}
-          disabled={!canNext() || createMut.isPending}
-        >
-          {step() === STEPS.length - 1
-            ? createMut.isPending
-              ? "Saving…"
-              : "Start planning"
-            : "Next"}
-        </button>
+        <div class="flex items-center gap-4">
+          <button
+            type="button"
+            class="text-sm text-muted-foreground hover:text-foreground"
+            onClick={skip}
+          >
+            Skip
+          </button>
+          <button
+            type="button"
+            class="rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
+            onClick={() => void next()}
+            disabled={!canNext() || saving()}
+          >
+            {step() === STEPS.length - 1 ? (saving() ? "Saving…" : "Start planning") : "Next"}
+          </button>
+        </div>
       </div>
     </main>
   );
