@@ -47,6 +47,7 @@ import { SelectionToolbar } from "~/components/ui/SelectionToolbar";
 import { exportPOIsToPDF } from "~/lib/utils/pdf-export";
 import EditTripCTA from "~/components/trip/EditTripCTA";
 import AddToTripButton from "~/components/trip/AddToTripButton";
+import AddToListButton from "~/components/lists/AddToListButton";
 import AdvancedFiltersBar, {
   advancedFilterPromptSuffix,
   type AdvancedFilterId,
@@ -791,6 +792,13 @@ export default function DiscoverPage() {
                                 </a>
                               </Show>
                               <AddToTripButton poi={poi} />
+                              <AddToListButton
+                                itemId={poi.id}
+                                itemName={poi.name}
+                                contentType="poi"
+                                size="sm"
+                                recommendationTrace={poi.recommendation_trace}
+                              />
                             </div>
                           </div>
                         );

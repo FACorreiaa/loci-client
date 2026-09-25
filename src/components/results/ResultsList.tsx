@@ -2,9 +2,16 @@ import { For, Show, createMemo } from "solid-js";
 import { Star } from "lucide-solid";
 import StopCard from "~/components/itinerary/StopCard";
 import FavoriteButton from "~/components/shared/FavoriteButton";
+import AddToListButton from "~/components/lists/AddToListButton";
 import { stopFromPoi, type ItineraryStop } from "~/lib/itinerary/createItineraryStream";
 import type { POIDetailedInfo } from "~/lib/api/types";
-import { favoritePayload, isOpenNow, todayHours, type ResultsDomain } from "~/lib/results/domain";
+import {
+  DOMAINS,
+  favoritePayload,
+  isOpenNow,
+  todayHours,
+  type ResultsDomain,
+} from "~/lib/results/domain";
 
 export interface ResultsListProps {
   pois: POIDetailedInfo[];
@@ -49,12 +56,21 @@ export default function ResultsList(props: ResultsListProps) {
             meta={<DomainMeta poi={row.poi} domain={props.domain} />}
             action={
               <Show when={props.showFavorite ?? true}>
-                <FavoriteButton
-                  item={favoritePayload(row.poi, props.domain, props.cityName)}
-                  size="sm"
-                  recommendationTrace={row.poi.recommendation_trace}
-                  poiId={row.poi.id}
-                />
+                <span class="inline-flex items-center gap-1">
+                  <FavoriteButton
+                    item={favoritePayload(row.poi, props.domain, props.cityName)}
+                    size="sm"
+                    recommendationTrace={row.poi.recommendation_trace}
+                    poiId={row.poi.id}
+                  />
+                  <AddToListButton
+                    itemId={row.poi.id}
+                    itemName={row.poi.name}
+                    contentType={DOMAINS[props.domain].contentType}
+                    size="sm"
+                    recommendationTrace={row.poi.recommendation_trace}
+                  />
+                </span>
               </Show>
             }
           />

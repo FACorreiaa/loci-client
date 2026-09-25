@@ -1,8 +1,11 @@
 import { createSignal, Show, For } from "solid-js";
-import { Plus, FolderPlus, X } from "lucide-solid";
-import { useLists, useCreateListMutation } from "~/lib/api/lists";
-import { useAddToListMutation } from "~/lib/api/lists";
+import { Portal } from "solid-js/web";
+import { A } from "@solidjs/router";
+import { Plus, FolderPlus, X, Check } from "lucide-solid";
+import { useLists, useCreateListMutation, useAddToListMutation } from "~/lib/api/lists";
 import type { RecommendationTrace } from "~/lib/api/recommendations";
+import { useAuth } from "~/contexts/AuthContext";
+import { friendlyError } from "~/lib/connect-errors";
 
 interface AddToListButtonProps {
   itemId: string;
@@ -16,237 +19,257 @@ interface AddToListButtonProps {
   recommendationTrace?: RecommendationTrace;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * "Add to list" for one place.
+ *
+ * AddListItem keys on the place's UUID, so a place that only exists in a
+ * streamed answer (no catalogue id yet) renders nothing rather than a button
+ * that can only fail.
+ */
 export default function AddToListButton(props: AddToListButtonProps) {
-  const [showListModal, setShowListModal] = createSignal(false);
+  const { isAuthenticated } = useAuth();
+  const [open, setOpen] = createSignal(false);
   const [showCreateForm, setShowCreateForm] = createSignal(false);
   const [newListName, setNewListName] = createSignal("");
   const [isCreating, setIsCreating] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
+  const [addedTo, setAddedTo] = createSignal<string | null>(null);
 
-  // API hooks
   const listsQuery = useLists();
   const createListMutation = useCreateListMutation();
   const addToListMutation = useAddToListMutation();
 
   const lists = () => listsQuery.data || [];
 
-  const buttonSizeClasses = () => {
-    switch (props.size) {
-      case "sm":
-        return "w-8 h-8 text-xs";
-      case "lg":
-        return "w-12 h-12 text-lg";
-      default:
-        return "w-10 h-10 text-sm";
-    }
+  const iconSize = () =>
+    props.size === "sm" ? "w-4 h-4" : props.size === "lg" ? "w-6 h-6" : "w-5 h-5";
+  const boxSize = () =>
+    props.size === "sm" ? "h-8 w-8" : props.size === "lg" ? "h-12 w-12" : "h-10 w-10";
+
+  const openModal = (e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setError(null);
+    setAddedTo(null);
+    setOpen(true);
   };
 
-  const iconSizeClasses = () => {
-    switch (props.size) {
-      case "sm":
-        return "w-3 h-3";
-      case "lg":
-        return "w-6 h-6";
-      default:
-        return "w-4 h-4";
-    }
+  const close = () => {
+    setOpen(false);
+    setShowCreateForm(false);
+    setNewListName("");
   };
 
-  const addToList = async (listId: string) => {
+  const addToList = async (listId: string, listName: string) => {
+    setError(null);
     try {
       await addToListMutation.mutateAsync({
         listId,
         itemData: {
           itemId: props.itemId,
           contentType: props.contentType,
-          position: 0, // Will be set by backend
           notes: "",
+          itemAiDescription: props.aiDescription,
           recommendationTrace: props.recommendationTrace,
         },
       });
-      setShowListModal(false);
-    } catch (error) {
-      console.error("Failed to add item to list:", error);
+      setAddedTo(listName);
+      close();
+    } catch (err) {
+      setError(`Couldn't add it to ${listName}. ${friendlyError(err).message}`);
     }
   };
 
   const createNewList = async () => {
-    if (!newListName().trim()) return;
-
+    const name = newListName().trim();
+    if (!name) return;
     setIsCreating(true);
+    setError(null);
     try {
-      const newList = await createListMutation.mutateAsync({
-        name: newListName(),
-        description: `List created for ${props.itemName}`,
-        isPublic: false,
-      });
-
-      // Add the item to the newly created list
-      if (newList?.id) {
-        await addToList(newList.id);
-      }
-      setNewListName("");
-      setShowCreateForm(false);
-    } catch (error) {
-      console.error("Failed to create list:", error);
+      // No city and no description: both are optional now, and a description
+      // like "List created for X" was noise the owner then had to delete.
+      const newList = await createListMutation.mutateAsync({ name, isPublic: false });
+      if (newList?.id) await addToList(newList.id, newList.name || name);
+    } catch (err) {
+      setError(`Couldn't create the list. ${friendlyError(err).message}`);
     } finally {
       setIsCreating(false);
     }
   };
 
-  const renderButton = () => {
-    if (props.variant === "minimal") {
+  const trigger = () => {
+    const label = `Add ${props.itemName} to a list`;
+    if (props.variant === "button") {
       return (
         <button
-          onClick={() => setShowListModal(true)}
-          class={`text-gray-500 hover:text-blue-600 transition-colors ${props.className || ""}`}
-          title={`Add ${props.itemName} to list`}
+          type="button"
+          onClick={openModal}
+          class={`inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted ${props.className || ""}`}
         >
-          <FolderPlus class={iconSizeClasses()} />
+          <FolderPlus class="h-4 w-4" />
+          Add to list
         </button>
       );
     }
-
-    if (props.variant === "icon") {
-      return (
-        <button
-          onClick={() => setShowListModal(true)}
-          class={`${buttonSizeClasses()} bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition-all flex items-center justify-center ${props.className || ""}`}
-          title={`Add ${props.itemName} to list`}
-        >
-          <FolderPlus class={iconSizeClasses()} />
-        </button>
-      );
-    }
-
     return (
       <button
-        onClick={() => setShowListModal(true)}
-        class={`px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition-all flex items-center gap-2 text-sm font-medium ${props.className || ""}`}
+        type="button"
+        onClick={openModal}
+        aria-label={label}
+        title={label}
+        class={`inline-flex ${boxSize()} items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-primary ${props.variant === "icon" ? "border border-border bg-background" : ""} ${props.className || ""}`}
       >
-        <FolderPlus class="w-4 h-4" />
-        Add to List
+        <Show when={addedTo()} fallback={<FolderPlus class={iconSize()} />}>
+          <Check class={`${iconSize()} text-primary`} />
+        </Show>
       </button>
     );
   };
 
   return (
-    <>
-      {renderButton()}
+    <Show when={UUID.test(props.itemId)}>
+      {trigger()}
 
-      {/* List Selection Modal */}
-      <Show when={showListModal()}>
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
-            {/* Header */}
-            <div class="p-6 border-b border-gray-200">
-              <div class="flex items-center justify-between">
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900">Add to List</h3>
-                  <p class="text-sm text-gray-600 mt-1 truncate">{props.itemName}</p>
+      {/* Portalled: the trigger sits inside cards that are themselves buttons
+          (StopCard handles Enter/Space), and keys typed into this dialog must
+          not bubble up to them. */}
+      <Show when={open()}>
+        <Portal>
+          <div
+            class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (e.target === e.currentTarget) close();
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-to-list-title"
+              class="max-h-[80vh] w-full max-w-md overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl"
+            >
+              <div class="flex items-center justify-between border-b border-border p-5">
+                <div class="min-w-0">
+                  <h3 id="add-to-list-title" class="text-lg font-semibold">
+                    Add to list
+                  </h3>
+                  <p class="mt-0.5 truncate text-sm text-muted-foreground">{props.itemName}</p>
                 </div>
                 <button
-                  onClick={() => setShowListModal(false)}
-                  class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  type="button"
+                  onClick={close}
+                  class="rounded-lg p-2 text-muted-foreground hover:bg-muted"
+                  aria-label="Close"
                 >
-                  <X class="w-5 h-5 text-gray-500" />
+                  <X class="h-5 w-5" />
                 </button>
               </div>
-            </div>
 
-            {/* Content */}
-            <div class="p-6 max-h-64 overflow-y-auto">
-              <Show
-                when={!showCreateForm()}
-                fallback={
-                  <div class="space-y-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">
-                        New List Name
-                      </label>
-                      <input
-                        type="text"
-                        value={newListName()}
-                        onInput={(e) => setNewListName(e.target.value)}
-                        placeholder="Enter list name..."
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        onKeyPress={(e) => e.key === "Enter" && createNewList()}
-                      />
-                    </div>
-                    <div class="flex gap-2">
-                      <button
-                        onClick={createNewList}
-                        disabled={!newListName().trim() || isCreating()}
-                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                      >
-                        {isCreating() ? "Creating..." : "Create List"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowCreateForm(false);
-                          setNewListName("");
-                        }}
-                        class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                }
-              >
-                <div class="space-y-3">
+              <div class="max-h-80 overflow-y-auto p-5">
+                <Show
+                  when={isAuthenticated()}
+                  fallback={
+                    <p class="text-sm text-muted-foreground">
+                      <A href="/auth/signin" class="font-medium text-primary underline">
+                        Sign in
+                      </A>{" "}
+                      to keep places in lists.
+                    </p>
+                  }
+                >
                   <Show
-                    when={lists().length > 0}
+                    when={!showCreateForm()}
                     fallback={
-                      <div class="text-center py-6">
-                        <FolderPlus class="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p class="text-gray-600 mb-4">No lists yet</p>
-                        <button
-                          onClick={() => setShowCreateForm(true)}
-                          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                        >
-                          Create Your First List
-                        </button>
-                      </div>
+                      <form
+                        class="space-y-3"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void createNewList();
+                        }}
+                      >
+                        <label class="block text-sm font-medium">
+                          New list name
+                          <input
+                            type="text"
+                            value={newListName()}
+                            onInput={(e) => setNewListName(e.currentTarget.value)}
+                            placeholder="Coffee in Lisbon"
+                            maxlength={200}
+                            class="mt-1.5 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          />
+                        </label>
+                        <div class="flex gap-2">
+                          <button
+                            type="submit"
+                            disabled={!newListName().trim() || isCreating()}
+                            class="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                          >
+                            {isCreating() ? "Creating…" : "Create and add"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowCreateForm(false);
+                              setNewListName("");
+                            }}
+                            class="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
                     }
                   >
-                    <For each={lists()}>
-                      {(list: any) => (
-                        <button
-                          onClick={() => addToList(list.id)}
-                          disabled={addToListMutation.isPending}
-                          class="w-full p-3 text-left hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors disabled:opacity-50"
-                        >
-                          <div class="flex items-center justify-between">
-                            <div class="flex-1 min-w-0">
-                              <h4 class="font-medium text-gray-900 truncate">{list.name}</h4>
-                              <p class="text-sm text-gray-600 truncate">{list.description}</p>
-                            </div>
-                            <Show when={addToListMutation.isPending}>
-                              <div class="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin ml-2" />
-                            </Show>
-                          </div>
-                        </button>
-                      )}
-                    </For>
-                  </Show>
-
-                  <Show when={lists().length > 0}>
-                    <div class="pt-3 border-t border-gray-200">
+                    <div class="space-y-2">
+                      <Show when={listsQuery.isLoading}>
+                        <div class="h-16 animate-pulse rounded-lg bg-muted" />
+                      </Show>
+                      <Show when={listsQuery.isError}>
+                        <p class="text-sm text-destructive">Your lists didn&apos;t load.</p>
+                      </Show>
+                      <Show when={listsQuery.isSuccess && lists().length === 0}>
+                        <p class="py-2 text-sm text-muted-foreground">No lists yet.</p>
+                      </Show>
+                      <For each={lists()}>
+                        {(list: any) => (
+                          <button
+                            type="button"
+                            onClick={() => void addToList(list.id, list.name)}
+                            disabled={addToListMutation.isPending}
+                            class="w-full rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted disabled:opacity-50"
+                          >
+                            <span class="block truncate font-medium">{list.name}</span>
+                            <span class="block truncate text-xs text-muted-foreground">
+                              {list.itemCount || 0} {list.itemCount === 1 ? "item" : "items"}
+                              {list.isItinerary ? " · Itinerary" : ""}
+                            </span>
+                          </button>
+                        )}
+                      </For>
                       <button
+                        type="button"
                         onClick={() => setShowCreateForm(true)}
-                        class="w-full p-3 text-left hover:bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 transition-colors flex items-center gap-2 text-gray-600"
+                        class="flex w-full items-center gap-2 rounded-lg border-2 border-dashed border-border p-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted"
                       >
-                        <Plus class="w-4 h-4" />
-                        Create New List
+                        <Plus class="h-4 w-4" />
+                        New list
                       </button>
                     </div>
                   </Show>
-                </div>
-              </Show>
+                </Show>
+
+                <Show when={error()}>
+                  <p class="mt-3 text-sm text-destructive" role="alert">
+                    {error()}
+                  </p>
+                </Show>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       </Show>
-    </>
+    </Show>
   );
 }
