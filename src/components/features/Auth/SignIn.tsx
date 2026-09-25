@@ -10,6 +10,7 @@ import AuthLayout from "~/components/layout/Auth";
 import { useAuth } from "~/contexts/AuthContext";
 import { useGoogleLoginMutation, useAppleLoginMutation } from "~/lib/api/custom-auth";
 import { type AuthErrorField, describeAuthError } from "~/lib/auth/auth-errors";
+import { afterSignInTarget } from "~/lib/auth/after-sign-in";
 
 interface FormData {
   email: string;
@@ -103,7 +104,7 @@ const SignIn: Component = () => {
       navigate(returnTo);
       return;
     }
-    navigate("/");
+    void afterSignInTarget().then((target) => navigate(target));
   };
 
   const handleGoogleLogin = async () => {

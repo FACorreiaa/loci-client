@@ -10,6 +10,7 @@ import { useGoogleLoginMutation, useAppleLoginMutation } from "~/lib/api/custom-
 import { type AuthErrorField, describeAuthError } from "~/lib/auth/auth-errors";
 import { capture } from "~/lib/analytics";
 import { useAuth } from "~/contexts/AuthContext";
+import { afterSignInTarget } from "~/lib/auth/after-sign-in";
 
 interface FormData {
   email: string;
@@ -68,7 +69,7 @@ const SignUp: Component = () => {
     clearErrors();
     try {
       await googleLoginMutation.mutateAsync();
-      navigate("/");
+      navigate(await afterSignInTarget());
     } catch (err: unknown) {
       showAuthError(err, "google");
     } finally {
@@ -81,7 +82,7 @@ const SignUp: Component = () => {
     clearErrors();
     try {
       await appleLoginMutation.mutateAsync();
-      navigate("/");
+      navigate(await afterSignInTarget());
     } catch (err: unknown) {
       showAuthError(err, "apple");
     } finally {

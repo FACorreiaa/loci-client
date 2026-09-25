@@ -17,6 +17,7 @@ import { clearFavoritesIdentityCache } from "~/lib/api/favorites";
 import { queryUtils } from "~/lib/query-client";
 import { unregisterPushDevice } from "~/lib/push/push-client";
 import { clearOfflineTripCache } from "~/lib/trip-offline-cache";
+import { afterSignInTarget } from "~/lib/auth/after-sign-in";
 
 interface User {
   id: string;
@@ -355,7 +356,8 @@ export const AuthProvider = (props: AuthProviderProps) => {
       sessionStorage.removeItem("auth_return_to");
       navigate(stored);
     } else {
-      navigate("/");
+      // Home, or the trip questionnaire once for a brand-new account.
+      void afterSignInTarget().then((target) => navigate(target));
     }
   };
 

@@ -1,6 +1,8 @@
-import { createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, onMount, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
+import { useInterests } from "~/lib/api/interests";
 import { useCreateSearchProfileMutation } from "~/lib/api/profiles";
+import { TRIP_SETUP_INTERESTS, markTripSetupSeen, tripSetupProfile } from "~/lib/trip-setup";
 
 // A short, focused pre-trip questionnaire that writes a default search profile,
 // so the very first chat/discover request is already personalised. Reuses the
@@ -28,26 +30,28 @@ const MOBILITY: Choice[] = [
   { value: "wheelchair", label: "Step-free / accessible", icon: "♿" },
 ];
 
-const INTERESTS = [
-  "Food & Dining",
-  "Art & Culture",
-  "History",
-  "Nature & Parks",
-  "Nightlife",
-  "Shopping",
-  "Architecture",
-  "Photography",
-  "Local Culture",
-  "Adventure",
-  "Relaxation",
-  "Family",
-];
-
 const STEPS = ["Budget", "Pace", "Getting around", "Interests"] as const;
 
 export default function TripSetup() {
   const navigate = useNavigate();
   const createMut = useCreateSearchProfileMutation();
+  const interestsQuery = useInterests();
+  // Chips are the curated labels the catalogue actually has; the request sends
+  // their ids (labels used to go out as interest_ids and were refused). When
+  // none of the curated names exist, the catalogue's own names stand in.
+  const catalogue = () => (interestsQuery.data ?? []).map((i) => ({ id: i.id, name: i.name }));
+  const chips = createMemo(() => {
+    const names = new Set(catalogue().map((i) => i.name.trim().toLowerCase()));
+    const curated = TRIP_SETUP_INTERESTS.filter((label) => names.has(label.toLowerCase()));
+    if (curated.length > 0) return curated;
+    return catalogue()
+      .map((i) => i.name)
+      .slice(0, 12);
+  });
+  const [saveError, setSaveError] = createSignal<string | null>(null);
+
+  // Offered once: seen counts from the first look, finished or not.
+  onMount(markTripSetupSeen);
 
   const [step, setStep] = createSignal(0);
   const [budget, setBudget] = createSignal("2");
@@ -64,19 +68,30 @@ export default function TripSetup() {
   };
 
   const finish = () => {
+    setSaveError(null);
     createMut.mutate(
-      {
-        profile_name: "My Trip Profile",
-        is_default: true,
-        budget_level: Number(budget()),
-        preferred_pace: pace(),
-        preferred_transport: mobility(),
-        prefer_accessible_pois: mobility() === "wheelchair",
+      tripSetupProfile({
+        budget: budget(),
+        pace: pace(),
+        mobility: mobility(),
         interests: interests(),
+        catalogue: catalogue(),
+      }),
+      {
+        onSuccess: () => navigate("/chat"),
+        // The profile is what personalises the first search, so a failed save
+        // is said out loud with a retry, not swallowed on the way to /chat.
+        onError: (error) =>
+          setSaveError(
+            error instanceof Error && error.message
+              ? error.message
+              : "We couldn't save your preferences.",
+          ),
       },
-      { onSuccess: () => navigate("/chat"), onError: () => navigate("/chat") },
     );
   };
+
+  const skip = () => navigate("/chat");
 
   const next = () => (step() < STEPS.length - 1 ? setStep(step() + 1) : finish());
   const back = () => step() > 0 && setStep(step() - 1);
@@ -121,7 +136,7 @@ export default function TripSetup() {
         <Show when={step() === 3}>
           <Question title="What are you into?" subtitle="Pick a few — you can change these later.">
             <div class="flex flex-wrap gap-2">
-              <For each={INTERESTS}>
+              <For each={chips()}>
                 {(i) => (
                   <button
                     type="button"
@@ -140,6 +155,23 @@ export default function TripSetup() {
           </Question>
         </Show>
       </div>
+
+      <Show when={saveError()}>
+        <div
+          role="alert"
+          class="mt-6 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+        >
+          <p>{saveError()}</p>
+          <div class="mt-2 flex gap-3">
+            <button type="button" class="font-medium underline" onClick={finish}>
+              Try again
+            </button>
+            <button type="button" class="text-muted-foreground underline" onClick={skip}>
+              Skip for now
+            </button>
+          </div>
+        </div>
+      </Show>
 
       {/* Nav */}
       <div class="mt-8 flex items-center justify-between">
