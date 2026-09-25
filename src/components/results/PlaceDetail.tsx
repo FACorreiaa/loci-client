@@ -23,6 +23,9 @@ import { buildAppleMapsUrl, buildGoogleMapsUrl } from "~/lib/trip-kit";
 import { DOMAINS, type ResultsDomain } from "~/lib/results/domain";
 import { backToResultsHref } from "~/lib/results/last-session";
 import type { POI } from "~/components/features/Map/types";
+import { isOpenableId } from "~/lib/saved/collect";
+
+const PlaceReviews = lazyChunk(() => import("~/components/reviews/PlaceReviews"));
 
 const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 
@@ -83,6 +86,21 @@ const isNotFound = (err: unknown): boolean =>
 export default function PlaceDetail(props: PlaceDetailProps) {
   const meta = () => DOMAINS[props.domain];
   const [tab, setTab] = createSignal(props.tabs[0]?.id ?? "overview");
+  // Every stored place gets a Reviews tab here rather than in each route: the
+  // reviews live on the place, whatever kind of place it is. A name-based id
+  // names nothing the review service knows, so it gets no tab.
+  const allTabs = createMemo<PlaceTab[]>(() => {
+    const p = props.place;
+    if (!p || !isOpenableId(p.id)) return props.tabs;
+    return [
+      ...props.tabs,
+      {
+        id: "reviews",
+        label: "Reviews",
+        content: () => <PlaceReviews poiId={p.id} poiName={p.name} />,
+      },
+    ];
+  });
   const [heroIndex, setHeroIndex] = createSignal(0);
 
   const backHref = () =>
@@ -336,7 +354,7 @@ export default function PlaceDetail(props: PlaceDetailProps) {
 
               {/* Tabs */}
               <div class="mt-8 border-b border-border flex gap-1 overflow-x-auto" role="tablist">
-                <For each={props.tabs}>
+                <For each={allTabs()}>
                   {(t) => (
                     <button
                       type="button"
@@ -371,7 +389,7 @@ export default function PlaceDetail(props: PlaceDetailProps) {
               </div>
 
               <div class="py-6">
-                <For each={props.tabs}>
+                <For each={allTabs()}>
                   {(t) => <Show when={tab() === t.id}>{t.content()}</Show>}
                 </For>
 
