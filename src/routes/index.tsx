@@ -71,7 +71,7 @@ export default function Index() {
           "@type": "SoftwareApplication",
           name: "Loci - AI Travel Companion",
           applicationCategory: "TravelApplication",
-          operatingSystem: "Web, iOS (coming soon), Android (coming soon)",
+          operatingSystem: "Web, iOS (beta), Android (coming soon)",
           offers: {
             "@type": "Offer",
             price: "0",
