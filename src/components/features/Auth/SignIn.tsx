@@ -97,22 +97,19 @@ const SignIn: Component = () => {
   const googleLoginMutation = useGoogleLoginMutation();
   const appleLoginMutation = useAppleLoginMutation();
 
-  const afterAuthNavigate = () => {
+  // Social sign-in on this page can still create an account; the server says
+  // so, and a brand-new one sees the trip questionnaire once on the way.
+  const afterAuthNavigate = (result: { userId: string; isNewUser: boolean }) => {
     const returnTo = (searchParams.returnTo as string) || sessionStorage.getItem("auth_return_to");
-    if (returnTo) {
-      sessionStorage.removeItem("auth_return_to");
-      navigate(returnTo);
-      return;
-    }
-    void afterSignInTarget().then((target) => navigate(target));
+    if (returnTo) sessionStorage.removeItem("auth_return_to");
+    void afterSignInTarget({ ...result, returnTo }).then((target) => navigate(target));
   };
 
   const handleGoogleLogin = async () => {
     setSocialLoading("google");
     clearErrors();
     try {
-      await googleLoginMutation.mutateAsync();
-      afterAuthNavigate();
+      afterAuthNavigate(await googleLoginMutation.mutateAsync());
     } catch (err: unknown) {
       showAuthError(err, "google");
     } finally {
@@ -124,8 +121,7 @@ const SignIn: Component = () => {
     setSocialLoading("apple");
     clearErrors();
     try {
-      await appleLoginMutation.mutateAsync();
-      afterAuthNavigate();
+      afterAuthNavigate(await appleLoginMutation.mutateAsync());
     } catch (err: unknown) {
       showAuthError(err, "apple");
     } finally {

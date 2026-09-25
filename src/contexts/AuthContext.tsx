@@ -68,7 +68,12 @@ interface AuthContextType {
    * `retryAuth()` can recover.
    */
   authError: () => string | null;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<LoginOutcome>;
+  login: (
+    email: string,
+    password: string,
+    rememberMe?: boolean,
+    options?: { isNewUser?: boolean },
+  ) => Promise<LoginOutcome>;
   completeMFALogin: (
     mfaToken: string,
     code: string,
@@ -316,6 +321,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
     },
     fallbackEmail: string,
     rememberMe: boolean,
+    isNewUser = false,
   ): void => {
     const { access_token, refresh_token, user_id, username, email: userEmail } = response;
     setAuthToken(access_token, rememberMe, refresh_token);
@@ -352,19 +358,19 @@ export const AuthProvider = (props: AuthProviderProps) => {
     setAuthReady(true);
 
     const stored = typeof window !== "undefined" ? sessionStorage.getItem("auth_return_to") : null;
-    if (stored) {
-      sessionStorage.removeItem("auth_return_to");
-      navigate(stored);
-    } else {
-      // Home, or the trip questionnaire once for a brand-new account.
-      void afterSignInTarget().then((target) => navigate(target));
-    }
+    if (stored) sessionStorage.removeItem("auth_return_to");
+    // Where the user was headed (home when nowhere); a brand-new account sees
+    // the trip questionnaire once on the way there.
+    void afterSignInTarget({ userId: user_id, isNewUser, returnTo: stored }).then((target) =>
+      navigate(target),
+    );
   };
 
   const login = async (
     email: string,
     password: string,
     rememberMe: boolean = false,
+    options: { isNewUser?: boolean } = {},
   ): Promise<LoginOutcome> => {
     setIsLoading(true);
     try {
@@ -379,7 +385,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
         return { mfaRequired: true, mfaToken: response.mfa_token, email: response.email || email };
       }
 
-      establishSession(response, email, rememberMe);
+      establishSession(response, email, rememberMe, options.isNewUser ?? false);
       return { mfaRequired: false };
     } catch (error) {
       console.error("AuthProvider: Login failed:", error);

@@ -2,13 +2,20 @@ import { fetchPreferenceProfilesRPC } from "~/lib/api/profiles";
 import { postSignInTarget, readTripSetupSeen } from "~/lib/trip-setup";
 
 /**
- * Where a sign-in lands when nothing asked to return somewhere: home, or the
- * trip questionnaire once for an account that has no profile yet. One RPC,
- * and a failure of it falls back to home so sign-in is never blocked.
+ * Where a sign-in lands: `returnTo` (home when absent), or, for a brand-new
+ * account, the trip questionnaire once and then `returnTo`. Existing accounts
+ * cost no RPC; for a new one a failed profile read falls back to `returnTo`
+ * so sign-in is never blocked.
  */
-export async function afterSignInTarget(): Promise<string> {
+export async function afterSignInTarget(args: {
+  userId: string | undefined;
+  isNewUser: boolean;
+  returnTo?: string | null;
+}): Promise<string> {
   return postSignInTarget({
-    seen: readTripSetupSeen(),
-    countProfiles: async () => (await fetchPreferenceProfilesRPC()).length,
+    isNewUser: args.isNewUser && !!args.userId,
+    seen: readTripSetupSeen(args.userId),
+    returnTo: args.returnTo,
+    loadProfiles: fetchPreferenceProfilesRPC,
   });
 }
