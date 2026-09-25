@@ -7,6 +7,7 @@ import {
   type DeviceSession,
 } from "~/lib/api/sessions";
 import { Button } from "~/ui/button";
+import { describeUserAgent } from "~/lib/user-agent";
 
 /**
  * Where the account is signed in, and how to end a session.
@@ -78,8 +79,14 @@ export default function SignedInDevices(props: {
             {(session) => (
               <li class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
                 <div class="min-w-0">
-                  <p class="font-medium text-foreground">
-                    {session.userAgent || "Unrecognised device"}
+                  {/*
+                    The raw header used to be rendered here, so two different
+                    browsers read as the same wall of text and the screen could
+                    not answer "which of these is me?". The full string stays as
+                    the title, so nothing is lost.
+                  */}
+                  <p class="font-medium text-foreground" title={session.userAgent}>
+                    {describeUserAgent(session.userAgent)}
                     <Show when={session.current}>
                       <span class="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
                         This device
