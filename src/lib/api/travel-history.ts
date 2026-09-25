@@ -71,6 +71,15 @@ export interface TravelSummary {
   countriesVisitedPrev: number;
   poisVisitedPrev: number;
   periodDays: number;
+  /**
+   * Counts inside the current window (the last periodDays). Servers from api
+   * #101 on send these, and *Prev then means the previous window's count
+   * rather than the all-time total when the window opened. All zero on older
+   * servers. See summaryTrends in ./travel-trends.
+   */
+  citiesVisitedThis: number;
+  countriesVisitedThis: number;
+  poisVisitedThis: number;
 }
 
 export interface GlobeData {
@@ -138,6 +147,9 @@ const EMPTY_SUMMARY: TravelSummary = {
   countriesVisitedPrev: 0,
   poisVisitedPrev: 0,
   periodDays: 365,
+  citiesVisitedThis: 0,
+  countriesVisitedThis: 0,
+  poisVisitedThis: 0,
 };
 
 const mapSummary = (s: any): TravelSummary =>
@@ -154,6 +166,9 @@ const mapSummary = (s: any): TravelSummary =>
         countriesVisitedPrev: s.countriesVisitedPrevPeriod ?? 0,
         poisVisitedPrev: s.poisVisitedPrevPeriod ?? 0,
         periodDays: s.periodDays ?? 365,
+        citiesVisitedThis: s.citiesVisitedThisPeriod ?? 0,
+        countriesVisitedThis: s.countriesVisitedThisPeriod ?? 0,
+        poisVisitedThis: s.poisVisitedThisPeriod ?? 0,
       }
     : { ...EMPTY_SUMMARY };
 
@@ -220,15 +235,4 @@ export const useVisitedCities = (page = 1, pageSize = 50) =>
     retry: 2,
   }));
 
-/**
- * Real period-over-period delta, or null when there is no prior period to
- * compare against.
- *
- * Returns null rather than 0 or 100% for a first period deliberately: an arrow
- * next to a number the user has no baseline for is decoration, and the stats
- * rail renders nothing instead.
- */
-export const trendPercent = (current: number, previous: number): number | null => {
-  if (previous <= 0) return null;
-  return ((current - previous) / previous) * 100;
-};
+export { trendPercent, summaryTrends } from "./travel-trends";

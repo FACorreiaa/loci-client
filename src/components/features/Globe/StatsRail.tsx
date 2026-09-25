@@ -1,6 +1,7 @@
 import { createMemo, For, Show } from "solid-js";
 import { TrendingDown, TrendingUp } from "lucide-solid";
-import { trendPercent, type TravelSummary } from "~/lib/api/travel-history";
+import type { TravelSummary } from "~/lib/api/travel-history";
+import { summaryTrends } from "~/lib/api/travel-trends";
 
 interface StatsRailProps {
   summary?: TravelSummary;
@@ -21,24 +22,26 @@ const nf = new Intl.NumberFormat();
  * Main statistics rail.
  *
  * Every figure here is a count of real rows in user_visited_cities. The trend
- * arrows come from the summary's *_prev_period fields, which exist for exactly
- * this reason — a delta with no prior period returns null and renders no arrow,
- * rather than a decorative 0% or +100%.
+ * arrows compare the current window with the previous one (summaryTrends, which
+ * also handles servers that predate the *_this_period fields) — a delta with no
+ * prior period returns null and renders no arrow, rather than a decorative 0%
+ * or +100%.
  */
 export default function StatsRail(props: StatsRailProps) {
   const stats = createMemo<Stat[]>(() => {
     const s = props.summary;
     if (!s) return [];
+    const trends = summaryTrends(s);
     return [
       {
         label: "Cities visited",
         value: nf.format(s.citiesVisited),
-        trend: trendPercent(s.citiesVisited, s.citiesVisitedPrev),
+        trend: trends.cities,
       },
       {
         label: "Countries",
         value: nf.format(s.countriesVisited),
-        trend: trendPercent(s.countriesVisited, s.countriesVisitedPrev),
+        trend: trends.countries,
         // Country is only known where a city resolved against the cities table;
         // it is never inferred from coordinates.
         hint:
@@ -49,7 +52,7 @@ export default function StatsRail(props: StatsRailProps) {
       {
         label: "Places",
         value: nf.format(s.poisVisited),
-        trend: trendPercent(s.poisVisited, s.poisVisitedPrev),
+        trend: trends.pois,
       },
       {
         label: "Distance travelled",
