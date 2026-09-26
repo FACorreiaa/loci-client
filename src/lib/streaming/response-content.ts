@@ -12,6 +12,7 @@ export const responseHasContent = (r: Partial<UnifiedChatResponse> | null | unde
   if (!r || typeof r !== "object") return false;
   const any = r as any;
   if (any.general_city_data?.city) return true;
+  if (Array.isArray(any.gastronomy?.dishes) && any.gastronomy.dishes.length > 0) return true;
   const lists = [
     any.points_of_interest,
     any.itinerary_response?.points_of_interest,

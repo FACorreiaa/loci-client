@@ -31,7 +31,15 @@ import {
 import WhyThisStop from "~/components/poi/WhyThisStop";
 import { deriveWhyThis } from "~/lib/why-this";
 import { useDiscoverPageData, fetchRecentDiscoveries } from "~/lib/api/discover";
-import type { TrendingDiscovery, POI, DomainType, ChatSession } from "~/lib/api/types";
+import type {
+  TrendingDiscovery,
+  POI,
+  DomainType,
+  ChatSession,
+  CityGastronomy,
+} from "~/lib/api/types";
+import GastronomySection from "~/components/gastronomy/GastronomySection";
+import { hasGastronomy } from "~/lib/api/gastronomy";
 import { useAuth } from "~/contexts/AuthContext";
 import DictationButton, {
   appendTranscript,
@@ -66,6 +74,18 @@ export default function DiscoverPage() {
   const subscriptionQuery = useUserSubscription(() => !!isAuthenticated());
   const isPro = () => canUsePro(subscriptionQuery.data?.plan);
   const localResultCache = new Map<string, POI[]>();
+  const localGastronomyCache = new Map<string, CityGastronomy[]>();
+  // The typical gastronomy of each city the search covered, in arrival order.
+  const [gastronomies, setGastronomies] = createSignal<CityGastronomy[]>([]);
+  const addGastronomy = (g: CityGastronomy | undefined, cacheKey: string) => {
+    if (!hasGastronomy(g)) return;
+    const next = [
+      ...gastronomies().filter((x) => x.city_name.toLowerCase() !== g.city_name.toLowerCase()),
+      g,
+    ];
+    setGastronomies(next);
+    localGastronomyCache.set(cacheKey, next);
+  };
   const [searchQuery, setSearchQuery] = createSignal("");
   // The search box is locked while a recording is in flight, so nothing typed
   // during it races the transcript that lands afterwards.
@@ -198,6 +218,7 @@ export default function DiscoverPage() {
 
     if (localResultCache.has(cacheKey)) {
       setSearchResults(localResultCache.get(cacheKey) || []);
+      setGastronomies(localGastronomyCache.get(cacheKey) || []);
       setSearchError(null);
       setProgressMessage("Loaded from cache");
       setIsSearching(false);
@@ -214,6 +235,7 @@ export default function DiscoverPage() {
     setIsSearching(true);
     setProgressMessage("Starting discover stream...");
     setSearchResults([]);
+    setGastronomies([]);
     setPersistedTripId(null);
     setPersistedTripCity("");
     setMultiRoute(null);
@@ -267,7 +289,12 @@ export default function DiscoverPage() {
             setProgressMessage("Found places you might like");
             break;
           }
+          case "gastronomy":
+            addGastronomy(event.gastronomy, cacheKey);
+            setProgressMessage("Tasting the local food...");
+            break;
           case "itinerary": {
+            addGastronomy(event.cityResponse.gastronomy, cacheKey);
             const pois = attributeResults(event.cityResponse.points_of_interest || []);
             if (event.stopIndex !== undefined) {
               if (pois.length > 0) {
@@ -287,6 +314,7 @@ export default function DiscoverPage() {
             break;
           }
           case "complete": {
+            addGastronomy(event.result?.gastronomy, cacheKey);
             const mr = multiRoute();
             if (mr) {
               const tripId = event.tripId || mr.tripId;
@@ -809,6 +837,10 @@ export default function DiscoverPage() {
               </div>
             </div>
           </Show>
+
+          <For each={gastronomies()}>
+            {(g) => <GastronomySection gastronomy={g} compact class="mb-10" />}
+          </For>
 
           {/* Quick Categories */}
           <div class="mb-10">

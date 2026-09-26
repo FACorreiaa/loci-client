@@ -23,7 +23,13 @@ import { chatService } from "@/lib/api";
 import { refreshSession } from "@/lib/connect-transport";
 import { parseStreamError } from "@/lib/errors";
 import { mapAiCityResponse, mapGeneralCityData, mapPoi } from "@/lib/api/llm";
-import type { AiCityResponse, GeneralCityData, POIDetailedInfo } from "@/lib/api/types";
+import { mapCityGastronomy } from "@/lib/api/gastronomy";
+import type {
+  AiCityResponse,
+  CityGastronomy,
+  GeneralCityData,
+  POIDetailedInfo,
+} from "@/lib/api/types";
 import { capture } from "~/lib/analytics";
 import { logger } from "~/lib/logger";
 import { domainName } from "./domain-name";
@@ -85,6 +91,7 @@ export type LociStreamEvent = { eventId?: string; stopIndex?: number } & (
   | { kind: "hotels"; pois: POIDetailedInfo[]; city?: GeneralCityData; sessionId: string }
   | { kind: "restaurants"; pois: POIDetailedInfo[]; city?: GeneralCityData; sessionId: string }
   | { kind: "activities"; pois: POIDetailedInfo[]; city?: GeneralCityData; sessionId: string }
+  | { kind: "gastronomy"; gastronomy: CityGastronomy; sessionId: string }
   | { kind: "progress"; stage: string; percent?: number }
   | { kind: "route"; route: RouteInfo }
   | {
@@ -248,6 +255,12 @@ function mapPayload(ev: ProtoStreamEvent): LociStreamEvent | null {
         city: mapGeneralCityData(p.value.generalCityData),
         sessionId: p.value.sessionId,
       };
+    case "gastronomy": {
+      const gastronomy = mapCityGastronomy(p.value.gastronomy);
+      // An empty section is not worth an event: the page keeps waiting.
+      if (!gastronomy) return null;
+      return { kind: "gastronomy", gastronomy, sessionId: p.value.sessionId };
+    }
     case "progress":
       return { kind: "progress", stage: p.value.stage, percent: p.value.percent };
     case "error":

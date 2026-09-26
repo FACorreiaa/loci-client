@@ -23,6 +23,7 @@ export * from "./lists";
 
 // Export LLM and chat queries
 export * from "./llm";
+export * from "./gastronomy";
 
 // Export hotel and restaurant queries
 export * from "./hotels";

@@ -19,6 +19,7 @@ const shortcuts = [
   { id: "dining", label: "Dining", href: "/discover?category=dining" },
   { id: "weekend", label: "Weekend", href: "/discover?category=weekend" },
   { id: "compare", label: "Compare", href: "/compare" },
+  { id: "gastronomy", label: "Local food", href: "/gastronomy" },
 ] as const;
 
 export default function LoggedInDashboard() {

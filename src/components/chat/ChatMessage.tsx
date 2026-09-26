@@ -2,6 +2,8 @@ import { Component, Show, createMemo } from "solid-js";
 import { Heart, Share2, ChevronDown, ChevronUp } from "lucide-solid";
 import { formatMessageContent } from "./format-message-content";
 import ResultsList from "~/components/results/ResultsList";
+import GastronomySection from "~/components/gastronomy/GastronomySection";
+import { hasGastronomy } from "~/lib/api/gastronomy";
 import ItineraryStreamView from "~/components/itinerary/ItineraryStreamView";
 import { stopsFromCityResponse } from "~/lib/itinerary/createItineraryStream";
 import Markdown from "~/components/ui/Markdown";
@@ -89,6 +91,9 @@ const StreamingResults: Component<{
             />
           );
         })()}
+      </Show>
+      <Show when={hasGastronomy(props.streamingData.gastronomy) && props.streamingData.gastronomy}>
+        {(g) => <GastronomySection gastronomy={g()} compact />}
       </Show>
     </div>
   );

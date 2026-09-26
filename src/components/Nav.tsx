@@ -17,6 +17,7 @@ import {
   Sparkles,
   User,
   Users,
+  UtensilsCrossed,
   X,
 } from "lucide-solid";
 import { createSignal, For, Show } from "solid-js";
@@ -37,13 +38,18 @@ const publicItems = [
 const journeyItems = [
   { name: "Discover", href: "/discover", icon: Compass },
   { name: "Compare", href: "/compare", icon: GitCompare },
+  { name: "Local food", href: "/gastronomy", icon: UtensilsCrossed },
   { name: "Nearby", href: "/nearme", icon: MapPin },
   { name: "Trips", href: "/trips", icon: Map },
   { name: "Calendar", href: "/calendar", icon: CalendarDays },
   { name: "Ask Loci", href: "/chat", icon: MessageCircle },
 ];
 
-const mobileJourneyItems = journeyItems.filter((item) => item.href !== "/compare");
+// The mobile bar is five columns. Compare and Local food are reached from the
+// dashboard shortcuts there instead.
+const mobileJourneyItems = journeyItems.filter(
+  (item) => item.href !== "/compare" && item.href !== "/gastronomy",
+);
 
 const accountItems = [
   { name: "Contribute", href: "/contribute", icon: Users },

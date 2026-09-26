@@ -459,7 +459,13 @@ export interface TravelProfileFormData {
 // STREAMING TYPES
 // ==================
 
-export type DomainType = "general" | "itinerary" | "accommodation" | "dining" | "activities";
+export type DomainType =
+  | "general"
+  | "itinerary"
+  | "accommodation"
+  | "dining"
+  | "activities"
+  | "gastronomy";
 
 export type StreamEventType =
   | "start"
@@ -569,7 +575,51 @@ export interface AiCityResponse {
   restaurants?: Array<RestaurantDetailedInfo | POIDetailedInfo>;
   activities?: POIDetailedInfo[];
   bars?: RestaurantDetailedInfo[];
+  /**
+   * The city's typical gastronomy. Generated alongside itinerary and general
+   * answers, and the whole answer of a gastronomy search. Absent for other
+   * domains and when its generation failed.
+   */
+  gastronomy?: CityGastronomy;
   session_id: string;
+}
+
+// ==================
+// GASTRONOMY
+// ==================
+
+export type DishCategory = "main" | "street_food" | "snack" | "dessert" | "drink";
+
+/** A well-known place to eat a dish. A light reference, not a POI. */
+export interface GastronomyPlace {
+  name: string;
+  neighborhood: string;
+  address: string;
+  why_famous: string;
+  price_range: string;
+  latitude?: number;
+  longitude?: number;
+  website?: string;
+}
+
+export interface GastronomyDish {
+  name: string;
+  local_name: string;
+  description: string;
+  category: DishCategory;
+  is_signature: boolean;
+  places: GastronomyPlace[];
+  /** Main-ingredient and diet tags: seafood, vegetarian, pastry… */
+  tags: string[];
+}
+
+export interface CityGastronomy {
+  city_name: string;
+  country: string;
+  overview: string;
+  culinary_traditions: string[];
+  dishes: GastronomyDish[];
+  dining_tips: string[];
 }
 
 export interface HotelDetailedInfo {

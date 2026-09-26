@@ -56,6 +56,8 @@ function toLegacyEvent(ev: LociStreamEvent): LegacyStreamEvent {
       return { Type: "restaurants", Data: ev.pois, SessionId: ev.sessionId };
     case "activities":
       return { Type: "activities", Data: ev.pois, SessionId: ev.sessionId };
+    case "gastronomy":
+      return { Type: "gastronomy", Data: ev.gastronomy, SessionId: ev.sessionId };
     case "itinerary":
       return { Type: "itinerary", Data: ev.cityResponse };
     case "complete":

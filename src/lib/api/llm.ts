@@ -1,5 +1,6 @@
 // LLM and chat queries and mutations
 import { useMutation } from "@tanstack/solid-query";
+import { gastronomyField } from "./gastronomy";
 import { create } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
 import { defaultLLMRateLimiter, RateLimitError, showRateLimitNotification } from "../rate-limiter";
@@ -310,6 +311,7 @@ export const mapAiCityResponse = (response?: ProtoAiCityResponse): AiCityRespons
     },
     points_of_interest: response.pointsOfInterest?.map(mapPoi) ?? [],
     itinerary_response: mappedItinerary,
+    ...gastronomyField(response.gastronomy),
     hotels: storedHotels.length ? storedHotels : hotelsFromAccommodation || derived.hotels,
     restaurants: storedRestaurants.length
       ? storedRestaurants
