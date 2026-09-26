@@ -34,7 +34,12 @@ export default function NotificationSettings(props: {
   const settings = (): Settings =>
     settingsQuery.isSuccess
       ? settingsQuery.data
-      : { recommendations: false, tripReminders: false, searchFinished: false };
+      : {
+          recommendations: false,
+          tripReminders: false,
+          searchFinished: false,
+          friendActivity: false,
+        };
 
   const toggle = async (key: keyof Settings, value: boolean) => {
     try {
@@ -101,6 +106,25 @@ export default function NotificationSettings(props: {
               <Label class="font-medium text-foreground">Trip reminders</Label>
               <p class="text-sm text-muted-foreground">
                 Nudges about a trip you're planning as the dates get close.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <Checkbox
+              checked={settings().friendActivity}
+              onChange={(value: boolean) => {
+                pushDevice.onToggle(value);
+                void toggle("friendActivity", value);
+              }}
+              disabled={updateSettings.isPending}
+            >
+              <CheckboxControl />
+            </Checkbox>
+            <div class="min-w-0">
+              <Label class="font-medium text-foreground">Friends</Label>
+              <p class="text-sm text-muted-foreground">
+                When someone sends you a friend request, or accepts yours.
               </p>
             </div>
           </div>
