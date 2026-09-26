@@ -11,6 +11,9 @@ import StopCard from "@/components/itinerary/StopCard";
 import TripKit from "@/components/itinerary/TripKit";
 import EditTripCTA from "@/components/trip/EditTripCTA";
 import SectionHeader from "@/components/ui/SectionHeader";
+import GastronomySection from "@/components/gastronomy/GastronomySection";
+import { hasGastronomy } from "@/lib/api/gastronomy";
+import type { CityGastronomy } from "@/lib/api/types";
 import { hasItineraryContent, normalizeItineraryPayload } from "@/lib/itinerary/normalize-payload";
 import {
   stopsFromCityResponse,
@@ -423,6 +426,15 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   });
 
   const itineraryData = createMemo(() => viewData()?.itinerary_response);
+  // The typical gastronomy of each city on screen: the chosen city's, or on
+  // "All days" of a multi-city trip one section per city, in trip order.
+  const gastronomies = createMemo<CityGastronomy[]>(() => {
+    const all =
+      isMulti() && !activeCity()
+        ? cityStops().map((s) => (s.data as { gastronomy?: CityGastronomy } | null)?.gastronomy)
+        : [viewData()?.gastronomy as CityGastronomy | undefined];
+    return all.filter(hasGastronomy);
+  });
   const cityData = createMemo(() => viewData()?.general_city_data);
 
   // Structured text types out while the stream is live; restored sessions
@@ -995,6 +1007,10 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
               />
             </div>
           </Show>
+
+          <For each={gastronomies()}>
+            {(g) => <GastronomySection gastronomy={g} compact class="mt-10" />}
+          </For>
 
           <Show when={extraStops().length > 0}>
             <div class="mt-10">

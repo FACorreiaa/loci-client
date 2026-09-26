@@ -15,6 +15,8 @@ export const domainName = (d: DomainType): string => {
       return "itinerary";
     case DomainType.TRANSPORT:
       return "transport";
+    case DomainType.GASTRONOMY:
+      return "gastronomy";
     default:
       return "general";
   }

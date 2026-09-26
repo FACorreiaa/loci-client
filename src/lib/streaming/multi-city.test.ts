@@ -89,3 +89,46 @@ describe("multi-city projection", () => {
     expect(applyStopEvent(stops, { kind: "progress", stage: "x" }, true)).toBe(stops);
   });
 });
+
+describe("gastronomy projection", () => {
+  const gastronomy = {
+    city_name: "Porto",
+    country: "Portugal",
+    overview: "",
+    culinary_traditions: [],
+    dining_tips: [],
+    dishes: [
+      {
+        name: "Francesinha",
+        local_name: "",
+        description: "",
+        category: "main" as const,
+        is_signature: true,
+        tags: [],
+        places: [],
+      },
+    ],
+  };
+
+  it("merges beside what the city already has rather than replacing it", () => {
+    const before = { general_city_data: { city: "Porto" }, session_id: "s1" } as any;
+    const after = applyCityEvent(
+      before,
+      { kind: "gastronomy", gastronomy, sessionId: "s1" },
+      true,
+      "s1",
+    ) as any;
+    expect(after.general_city_data.city).toBe("Porto");
+    expect(after.gastronomy.dishes[0].name).toBe("Francesinha");
+  });
+
+  it("is the whole answer of a gastronomy search", () => {
+    const after = applyCityEvent(
+      null,
+      { kind: "gastronomy", gastronomy, sessionId: "s9" },
+      false,
+      "s9",
+    ) as any;
+    expect(after).toMatchObject({ gastronomy, session_id: "s9" });
+  });
+});

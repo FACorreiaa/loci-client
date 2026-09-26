@@ -73,6 +73,15 @@ export function applyCityEvent(
         domain: "activities",
         session_id: ev.sessionId || sessionId,
       } as ActivitiesResponse as Data;
+    case "gastronomy":
+      // Merged, not replacing: on an itinerary it sits beside the city and
+      // places that arrived before it.
+      return {
+        ...data,
+        gastronomy: ev.gastronomy,
+        session_id:
+          (data as Partial<AiCityResponse> | null)?.session_id || ev.sessionId || sessionId,
+      } as Data;
     default:
       return data;
   }

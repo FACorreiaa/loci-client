@@ -26,7 +26,7 @@ const REGISTRY = "https://buf.build/gen/npm/v1/";
  * Modules that must exist after an update. Add to this when a new proto module
  * ships, so a stale package can never install quietly again.
  */
-const REQUIRED = ["loci/memory", "loci/apikey", "loci/trip", "loci/auth", "loci/calendar"];
+const REQUIRED = ["loci/memory", "loci/apikey", "loci/trip", "loci/auth", "loci/calendar", "loci/gastronomy"];
 
 function run(cmd, args) {
   return execFileSync(cmd, args, {

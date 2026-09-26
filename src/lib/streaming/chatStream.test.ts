@@ -275,3 +275,64 @@ describe("capabilities", () => {
     expect(opts?.headers?.["Loci-Features"]).toContain("multi-city");
   });
 });
+
+describe("gastronomy events", () => {
+  it("maps the GASTRONOMY payload onto a gastronomy event", () => {
+    const ev = mapProtoEvent(
+      create(StreamEventSchema, {
+        eventType: StreamEventType.GASTRONOMY,
+        payload: {
+          case: "gastronomy",
+          value: {
+            sessionId: "s-1",
+            gastronomy: {
+              cityName: "Madeira",
+              overview: "Island food.",
+              dishes: [{ name: "Espetada", tags: ["beef"], places: [{ name: "Casa de Abrigo" }] }],
+            },
+          },
+        },
+      }),
+    );
+    expect(ev).toMatchObject({
+      kind: "gastronomy",
+      sessionId: "s-1",
+      gastronomy: { city_name: "Madeira", dishes: [{ name: "Espetada", tags: ["beef"] }] },
+    });
+  });
+
+  it("drops a gastronomy payload with nothing in it", () => {
+    const ev = mapProtoEvent(
+      create(StreamEventSchema, {
+        eventType: StreamEventType.GASTRONOMY,
+        payload: { case: "gastronomy", value: { sessionId: "s-1" } },
+      }),
+    );
+    expect(ev).toBeNull();
+  });
+
+  it("carries gastronomy on the itinerary's city response", () => {
+    const ev = mapProtoEvent(
+      create(StreamEventSchema, {
+        eventType: StreamEventType.ITINERARY,
+        payload: {
+          case: "itinerary",
+          value: {
+            cityResponse: {
+              sessionId: "s-1",
+              generalCityData: { city: "Madeira" },
+              gastronomy: {
+                cityName: "Madeira",
+                dishes: [{ name: "Bolo do caco", places: [{ name: "A Bica" }] }],
+              },
+            },
+          },
+        },
+      }),
+    );
+    expect(ev?.kind).toBe("itinerary");
+    if (ev?.kind === "itinerary") {
+      expect(ev.cityResponse.gastronomy?.dishes[0].name).toBe("Bolo do caco");
+    }
+  });
+});

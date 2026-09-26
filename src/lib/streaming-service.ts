@@ -303,6 +303,17 @@ export class StreamingChatService {
         mgr.onProgress(mgr.session);
         break;
 
+      case "gastronomy":
+        // Rides on an itinerary/general answer, or is the whole answer of a
+        // gastronomy search. It lands before the itinerary event, which
+        // carries it again on the full response.
+        mgr.session.data =
+          applyCityEvent(mgr.session.data, event, isCity, mgr.session.sessionId) ??
+          mgr.session.data;
+        this.publish(run);
+        mgr.onProgress(mgr.session);
+        break;
+
       case "progress":
         mgr.onProgress(mgr.session);
         break;
@@ -460,6 +471,9 @@ export const getDomainRoute = (domain: DomainType, sessionId?: string, city?: st
       break;
     case "activities":
       baseRoute = "/activities";
+      break;
+    case "gastronomy":
+      baseRoute = "/gastronomy";
       break;
     default:
       baseRoute = "/itinerary";
