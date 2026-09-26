@@ -56,7 +56,12 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
     // the app-wide boundary, and this modal renders over the dashboard.
     notificationSettingsQuery.isSuccess
       ? notificationSettingsQuery.data
-      : { recommendations: false, tripReminders: false, searchFinished: false };
+      : {
+          recommendations: false,
+          tripReminders: false,
+          searchFinished: false,
+          friendActivity: false,
+        };
   // One source of truth for browser permission: the hook's own signal, used
   // here for the top-of-section banner and each switch's disabled state, not
   // just for the "Search finished" notice it was originally added for.

@@ -11,6 +11,13 @@ import {
   GetTripRequestSchema,
   ListTripsRequestSchema,
   ShareTripRequestSchema,
+  SetTripVisibilityRequestSchema,
+  GetSharedTripRequestSchema,
+  GetFriendTripRequestSchema,
+  ListFriendTripsRequestSchema,
+  ListUserTripsRequestSchema,
+  CopyTripRequestSchema,
+  TripVisibility as ProtoTripVisibility,
   ReorderStopsRequestSchema,
   AddStopRequestSchema,
   RemoveStopRequestSchema,
@@ -36,6 +43,7 @@ import {
 } from "./recommendations";
 import { useAppQuery } from "./authed-query";
 import { capture } from "../analytics";
+import { mapPublicUser, type PublicUser } from "./social";
 
 const tripClient = createClient(TripService, transport);
 
@@ -121,7 +129,41 @@ export interface Trip {
   sourceSessionId?: string;
   createdAt: string;
   updatedAt: string;
+  /** Who besides the owner may open it. Absent on trips built locally (private). */
+  visibility?: TripVisibility;
+  /** Owner reads only, once shared by link. */
+  shareCode?: string;
+  /** Set when someone other than the owner reads the trip. */
+  owner?: PublicUser;
+  copiedFromTripId?: string;
 }
+
+/**
+ * Who besides the owner may open a trip. `link` is anyone holding the link,
+ * listed nowhere; `public` is also listed on the owner's profile.
+ */
+export type TripVisibility = "private" | "friends" | "link" | "public";
+
+export const visibilityFromProto = (v: ProtoTripVisibility): TripVisibility => {
+  switch (v) {
+    case ProtoTripVisibility.FRIENDS:
+      return "friends";
+    case ProtoTripVisibility.LINK:
+      return "link";
+    case ProtoTripVisibility.PUBLIC:
+      return "public";
+    default:
+      return "private";
+  }
+};
+
+export const visibilityToProto = (v: TripVisibility): ProtoTripVisibility =>
+  ({
+    private: ProtoTripVisibility.PRIVATE,
+    friends: ProtoTripVisibility.FRIENDS,
+    link: ProtoTripVisibility.LINK,
+    public: ProtoTripVisibility.PUBLIC,
+  })[v];
 
 // ---- mappers ----
 
@@ -134,8 +176,12 @@ const mapConstraint = (c?: ProtoTripConstraint): TripConstraint => ({
   dayEndMinute: c?.dayEndMinute,
 });
 
-const mapTrip = (p: ProtoTripDraft): Trip => ({
+export const mapTrip = (p: ProtoTripDraft): Trip => ({
   id: p.id,
+  visibility: visibilityFromProto(p.visibility),
+  shareCode: p.shareCode || undefined,
+  owner: mapPublicUser(p.owner),
+  copiedFromTripId: p.copiedFromTripId || undefined,
   userId: p.userId,
   cityId: p.cityId,
   cityName: p.cityName,
@@ -267,6 +313,10 @@ export const tripKeys = {
   all: ["trips"] as const,
   list: () => ["trips", "list"] as const,
   detail: (id: string) => ["trips", "detail", id] as const,
+  shared: (code: string) => ["trips", "shared", code] as const,
+  friendFeed: () => ["trips", "friends", "feed"] as const,
+  friendTrip: (id: string) => ["trips", "friends", "trip", id] as const,
+  byUser: (userId: string) => ["trips", "user", userId] as const,
 };
 
 // ---- queries ----
@@ -465,6 +515,111 @@ export const useShareTrip = () =>
     mutationFn: async (i: { tripId: string; isPublic: boolean }) =>
       tripClient.shareTrip(create(ShareTripRequestSchema, i)),
   }));
+
+// ---- sharing ----
+
+/** Sets who may open a trip; returns its link (empty for private). */
+export const useSetTripVisibility = () => {
+  const qc = useQueryClient();
+  return useMutation(() => ({
+    mutationFn: async (i: {
+      tripId: string;
+      visibility: TripVisibility;
+      shareDetails?: boolean;
+    }) => {
+      const res = await tripClient.setTripVisibility(
+        create(SetTripVisibilityRequestSchema, {
+          tripId: i.tripId,
+          visibility: visibilityToProto(i.visibility),
+          shareDetails: i.shareDetails ?? false,
+        }),
+      );
+      return {
+        visibility: visibilityFromProto(res.visibility),
+        shareCode: res.shareCode,
+        shareUrl: res.shareUrl,
+      };
+    },
+    onSuccess: (_res, vars) => {
+      void qc.invalidateQueries({ queryKey: tripKeys.detail(vars.tripId) });
+      void qc.invalidateQueries({ queryKey: tripKeys.list() });
+    },
+  }));
+};
+
+/** A trip opened by its share code; works signed out. */
+export const useSharedTrip = (code: () => string | undefined) =>
+  useAppQuery(() => ({
+    queryKey: tripKeys.shared(code() ?? ""),
+    enabled: !!code(),
+    retry: false,
+    queryFn: async () =>
+      mapTrip(
+        await tripClient.getSharedTrip(create(GetSharedTripRequestSchema, { shareCode: code()! })),
+      ),
+  }));
+
+/** A friend's (or public) trip by id. */
+export const useFriendTrip = (id: () => string | undefined) =>
+  useAppQuery(() => ({
+    queryKey: tripKeys.friendTrip(id() ?? ""),
+    enabled: !!id(),
+    retry: false,
+    queryFn: async () =>
+      mapTrip(
+        await tripClient.getFriendTrip(create(GetFriendTripRequestSchema, { tripId: id()! })),
+      ),
+  }));
+
+const pagination = (page = 1, pageSize = 20) => create(PaginationRequestSchema, { page, pageSize });
+
+/** Trips friends shared with the caller, newest first. */
+export const useFriendTrips = (enabled: () => boolean = () => true) =>
+  useAppQuery(() => ({
+    queryKey: tripKeys.friendFeed(),
+    enabled: enabled(),
+    queryFn: async () => {
+      const res = await tripClient.listFriendTrips(
+        create(ListFriendTripsRequestSchema, { pagination: pagination() }),
+      );
+      return res.trips.map(mapTrip);
+    },
+  }));
+
+/** The trips of one user the caller may see (all of them for the owner). */
+export const useUserTrips = (userId: () => string | undefined) =>
+  useAppQuery(() => ({
+    queryKey: tripKeys.byUser(userId() ?? ""),
+    enabled: !!userId(),
+    retry: false,
+    queryFn: async () => {
+      const res = await tripClient.listUserTrips(
+        create(ListUserTripsRequestSchema, { userId: userId()!, pagination: pagination() }),
+      );
+      return res.trips.map(mapTrip);
+    },
+  }));
+
+/** Copies a trip the caller may see into their own trips; returns the new id. */
+export const useCopyTrip = () => {
+  const qc = useQueryClient();
+  return useMutation(() => ({
+    mutationFn: async (source: { tripId?: string; shareCode?: string }) => {
+      const res = await tripClient.copyTrip(
+        create(CopyTripRequestSchema, {
+          source: source.shareCode
+            ? { case: "shareCode", value: source.shareCode }
+            : { case: "tripId", value: source.tripId ?? "" },
+        }),
+      );
+      capture("trip_copied", { via: source.shareCode ? "link" : "friend" });
+      return res.tripId;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: tripKeys.list() });
+    },
+  }));
+};
 
 // Export a trip to ICS and trigger a browser download.
 export const exportTripICS = async (tripId: string, trip?: Trip) =>

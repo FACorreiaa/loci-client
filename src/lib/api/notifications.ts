@@ -24,11 +24,15 @@ const userClient = createClient(UserService, transport);
  * `recommendations` and `tripReminders` still only record a preference —
  * delivery for those is separate work that does not exist yet, so the UI
  * must not imply that either of them sends anything.
+ *
+ * `friendActivity` (friend requests and acceptances) is delivered the same
+ * way as `searchFinished`: web push here, APNs on iOS.
  */
 export type NotificationSettings = {
   recommendations: boolean;
   tripReminders: boolean;
   searchFinished: boolean;
+  friendActivity: boolean;
 };
 
 export const useNotificationSettings = () => {
@@ -42,6 +46,7 @@ export const useNotificationSettings = () => {
         recommendations: response.recommendations,
         tripReminders: response.tripReminders,
         searchFinished: response.searchFinished,
+        friendActivity: response.friendActivity,
       };
     },
     staleTime: 5 * 60 * 1000,
@@ -60,12 +65,14 @@ export const useUpdateNotificationSettings = () => {
           recommendations: changes.recommendations,
           tripReminders: changes.tripReminders,
           searchFinished: changes.searchFinished,
+          friendActivity: changes.friendActivity,
         }),
       );
       return {
         recommendations: response.recommendations,
         tripReminders: response.tripReminders,
         searchFinished: response.searchFinished,
+        friendActivity: response.friendActivity,
       };
     },
     onSuccess: (settings) => {

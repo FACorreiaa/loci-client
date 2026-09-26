@@ -1,6 +1,6 @@
 import { createSignal, For, Show, createEffect, onMount } from "solid-js";
 import { useParams } from "@solidjs/router";
-import { AlertTriangle, Link as LinkIcon } from "lucide-solid";
+import { AlertTriangle } from "lucide-solid";
 import TripChecklists from "~/components/trip/TripChecklists";
 import {
   useTrip,
@@ -8,7 +8,6 @@ import {
   useRenameStop,
   useEditStopDuration,
   useSetConstraint,
-  useShareTrip,
   useAddStop,
   useRemoveStop,
   useReplaceStop,
@@ -38,8 +37,7 @@ import { Alert, AlertDescription, AlertTitle } from "~/ui/alert";
 import { Button } from "~/ui/button";
 import { colorForMapDay } from "~/lib/theme-colors";
 import type { POI } from "~/lib/api/types";
-import { copyShareLink } from "~/lib/api/share";
-import { capture } from "~/lib/analytics";
+import TripSharePanel from "~/components/social/TripSharePanel";
 
 /** Per-trip edit-mode memory, so a reload mid-edit does not drop you back into read mode. */
 const editingKey = (tripId: string) => `loci.trip.editing.${tripId}`;
@@ -54,16 +52,14 @@ export default function TripEditor() {
   const rename = useRenameStop();
   const editDur = useEditStopDuration();
   const setConstraint = useSetConstraint();
-  const share = useShareTrip();
   const add = useAddStop();
   const remove = useRemoveStop();
   const replace = useReplaceStop();
 
-  const [shareUrl, setShareUrl] = createSignal<string | null>(null);
+  const [sharing, setSharing] = createSignal(false);
   const [conflict, setConflict] = createSignal(false);
   const [replacingStopID, setReplacingStopID] = createSignal<string | null>(null);
   const [removeConfirmID, setRemoveConfirmID] = createSignal<string | null>(null);
-  const [copied, setCopied] = createSignal(false);
 
   /**
    * Read mode is the default: the page is read far more often than it is
@@ -156,26 +152,6 @@ export default function TripEditor() {
       { tripId: params.id!, constraints: { ...t.constraints, ...patch }, baseVersion: version() },
       { onError: onMutationError },
     );
-  };
-
-  const doShare = () =>
-    share.mutate(
-      { tripId: params.id!, isPublic: true },
-      {
-        onSuccess: (r) => {
-          setShareUrl(r.shareUrl);
-          capture("share_link_created", { content_type: "trip" });
-        },
-      },
-    );
-
-  const copySharedTrip = async () => {
-    const url = shareUrl();
-    if (url && (await copyShareLink(url))) {
-      capture("share_link_copied", { content_type: "trip" });
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2400);
-    }
   };
 
   const addStop = (day: TripDay, poi: POI) => {
@@ -276,8 +252,16 @@ export default function TripEditor() {
               isPro={isPro()}
               editing={editing()}
               onEditingChange={setEditing}
-              onShare={doShare}
-              sharing={share.isPending}
+              onShare={() => setSharing(true)}
+              sharing={false}
+            />
+
+            <TripSharePanel
+              open={sharing()}
+              onOpenChange={setSharing}
+              tripId={params.id!}
+              visibility={t.visibility}
+              shareCode={t.shareCode}
             />
 
             <Show when={conflict()}>
@@ -287,23 +271,6 @@ export default function TripEditor() {
                 <AlertDescription>
                   Reloaded the latest version — re-apply your edit.
                 </AlertDescription>
-              </Alert>
-            </Show>
-
-            <Show when={shareUrl()}>
-              <Alert class="mb-4 flex flex-wrap items-center gap-3">
-                <LinkIcon class="h-4 w-4" aria-hidden="true" />
-                <a
-                  class="min-w-0 flex-1 truncate underline underline-offset-2"
-                  href={shareUrl()!}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {shareUrl()}
-                </a>
-                <Button size="sm" variant="ghost" onClick={() => void copySharedTrip()}>
-                  {copied() ? "Copied" : "Copy"}
-                </Button>
               </Alert>
             </Show>
 
