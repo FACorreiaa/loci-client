@@ -24,6 +24,10 @@ export type AnalyticsEvent =
   | "review_submitted"
   /** A shareable content link was successfully generated. */
   | "share_link_created"
+  /** A trip someone shared was copied into the viewer's own trips. */
+  | "trip_copied"
+  /** Two people became friends (request accepted or invite opened). */
+  | "friend_added"
   /** A generated share link was copied to the clipboard. */
   | "share_link_copied"
   /** A field report was submitted. Metric: scout contributions, and how many corroborate. */

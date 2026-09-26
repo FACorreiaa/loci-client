@@ -16,6 +16,7 @@ import {
   Settings,
   Sparkles,
   User,
+  UserPlus,
   Users,
   UtensilsCrossed,
   X,
@@ -26,6 +27,7 @@ import { useAuth } from "~/contexts/AuthContext";
 import ThemeSelector from "~/components/ThemeSelector";
 import { Button } from "~/ui/button";
 import { handleLinkPreload } from "~/lib/preload";
+import FriendRequestBadge from "~/components/social/FriendRequestBadge";
 
 const publicItems = [
   // A public surface, and the one page here meant to be found from outside.
@@ -52,6 +54,7 @@ const mobileJourneyItems = journeyItems.filter(
 );
 
 const accountItems = [
+  { name: "Friends", href: "/friends", icon: UserPlus },
   { name: "Contribute", href: "/contribute", icon: Users },
   { name: "Saved", href: "/saved", icon: Bookmark },
   { name: "Recents", href: "/recents", icon: Clock3 },
@@ -122,6 +125,9 @@ export default function Nav() {
                         <Dynamic component={Icon} class="h-4 w-4" />
                       </Show>
                       {item.name}
+                      <Show when={item.href === "/friends"}>
+                        <FriendRequestBadge />
+                      </Show>
                     </A>
                   );
                 }}
@@ -177,6 +183,9 @@ export default function Nav() {
                           >
                             <Dynamic component={item.icon} class="h-4 w-4" />
                             {item.name}
+                            <Show when={item.href === "/friends"}>
+                              <FriendRequestBadge />
+                            </Show>
                           </A>
                         )}
                       </For>
@@ -222,6 +231,9 @@ export default function Nav() {
                         <Dynamic component={Icon} class="h-4 w-4" />
                       </Show>
                       {item.name}
+                      <Show when={item.href === "/friends"}>
+                        <FriendRequestBadge />
+                      </Show>
                     </A>
                   );
                 }}
