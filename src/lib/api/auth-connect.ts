@@ -304,3 +304,17 @@ export const useResetPasswordMutation = () => {
     },
   }));
 };
+
+// Confirm Email Change - completes the change from the emailed link
+export const useConfirmEmailChangeMutation = () => {
+  return useMutation(() => ({
+    mutationFn: async ({ token }: { token: string }) => {
+      const { ConfirmEmailChangeRequestSchema } =
+        await import("@buf/loci_loci-proto.bufbuild_es/loci/auth/auth_pb.js");
+      const response = await authClient.confirmEmailChange(
+        create(ConfirmEmailChangeRequestSchema, { token }),
+      );
+      return { success: response.success, message: response.message };
+    },
+  }));
+};
