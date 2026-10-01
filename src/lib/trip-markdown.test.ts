@@ -8,6 +8,8 @@ const sample: Trip = {
   userId: "u1",
   cityName: "Lisbon",
   title: "Weekend in Lisbon",
+  stays: [],
+  flights: [],
   constraints: {
     pace: TripPace.MODERATE,
     mobility: "walking",
