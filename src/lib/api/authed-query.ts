@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/solid-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/solid-query";
 
 /**
  * `useQuery`, but it never runs during server-side rendering.
@@ -77,6 +77,37 @@ export const useAppQuery: typeof useQuery = ((...args: unknown[]) => {
     ...args.slice(1),
   );
 }) as typeof useQuery;
+
+/**
+ * `useInfiniteQuery` with the same server-side guard as `useAppQuery`: on the
+ * server it runs under a namespaced key, resolves at once and offers no next
+ * page. Its single page is `null`, so callers must skip null pages.
+ */
+export const useAppInfiniteQuery: typeof useInfiniteQuery = ((...args: unknown[]) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyUseInfiniteQuery = useInfiniteQuery as any;
+
+  if (!renderingOnServer()) return anyUseInfiniteQuery(...args);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const optionsFn = args[0] as () => Record<string, any>;
+  return anyUseInfiniteQuery(
+    () => {
+      const options = optionsFn();
+      return {
+        ...options,
+        queryKey: [...(options.queryKey ?? []), "__ssr_placeholder__"],
+        queryFn: async () => null,
+        getNextPageParam: () => undefined,
+        enabled: true,
+        retry: false,
+        staleTime: 0,
+        gcTime: 0,
+      };
+    },
+    ...args.slice(1),
+  );
+}) as typeof useInfiniteQuery;
 
 /**
  * Kept as a named alias for queries that only make sense once authenticated.

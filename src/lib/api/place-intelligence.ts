@@ -17,8 +17,14 @@ import {
 import { createClient } from "@connectrpc/connect";
 import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { transport } from "~/lib/connect-transport";
-import { type MyClaim, toMyClaim } from "~/lib/contribute/my-claims";
-import { useAppQuery } from "./authed-query";
+import { type ContributorBadge, toContributorBadges } from "~/lib/contribute/badges";
+import {
+  MY_CLAIMS_PAGE_SIZE,
+  type MyClaimsPage,
+  nextMyClaimsPage,
+  toMyClaim,
+} from "~/lib/contribute/my-claims";
+import { useAppInfiniteQuery, useAppQuery } from "./authed-query";
 
 const placeClient = createClient(PlaceIntelligenceService, transport);
 
@@ -44,7 +50,8 @@ export interface ContributorProfile {
   reputation: number;
   submittedClaims: number;
   acceptedClaims: number;
-  badges: string[];
+  /** Display copy from badge_details where the server sends it, else the slug. */
+  badges: ContributorBadge[];
 }
 
 /**
@@ -183,7 +190,7 @@ export const useContributorProfile = (options: PlaceIntelligenceQueryOptions = {
         reputation: profile.reputation,
         submittedClaims: profile.submittedClaims,
         acceptedClaims: profile.acceptedClaims,
-        badges: profile.badges,
+        badges: toContributorBadges(profile.badges, profile.badgeDetails),
       };
     },
   }));
@@ -261,27 +268,40 @@ export const usePendingPlaces = (options: PlaceIntelligenceQueryOptions = {}) =>
     },
   }));
 
-/** The scout's own reports, newest first (first page of 20), and what became of each. */
+/** One page of the scout's own reports, newest first, and what became of each. */
+export const fetchMyClaimsPage = async (page: number): Promise<MyClaimsPage> => {
+  const response = await placeClient.listMyClaims(
+    create(ListMyClaimsRequestSchema, { limit: MY_CLAIMS_PAGE_SIZE, page }),
+  );
+  return {
+    page,
+    total: response.total,
+    claims: response.claims.map((claim) =>
+      toMyClaim({
+        claimId: claim.claimId,
+        poiId: claim.poiId,
+        poiName: claim.poiName,
+        field: fieldNames[claim.field] ?? "PLACE_FACT_FIELD_VIBE",
+        value: claim.value,
+        status: claimStatusNames[claim.status] ?? "UNSPECIFIED",
+        createdAt: claim.createdAt ? timestampDate(claim.createdAt) : undefined,
+      }),
+    ),
+  };
+};
+
+/**
+ * The scout's own reports, a page of 20 at a time. "Load more" is
+ * `fetchNextPage`, which keeps the query key, so the rows already on screen
+ * stay put while the next page loads.
+ */
 export const useMyClaims = (options: PlaceIntelligenceQueryOptions = {}) =>
-  useAppQuery(() => ({
+  useAppInfiniteQuery(() => ({
     enabled: options.enabled ? options.enabled() : true,
     queryKey: ["place-intelligence", "my-claims"],
-    queryFn: async (): Promise<MyClaim[]> => {
-      const response = await placeClient.listMyClaims(
-        create(ListMyClaimsRequestSchema, { limit: 20, page: 1 }),
-      );
-      return response.claims.map((claim) =>
-        toMyClaim({
-          claimId: claim.claimId,
-          poiId: claim.poiId,
-          poiName: claim.poiName,
-          field: fieldNames[claim.field] ?? "PLACE_FACT_FIELD_VIBE",
-          value: claim.value,
-          status: claimStatusNames[claim.status] ?? "UNSPECIFIED",
-          createdAt: claim.createdAt ? timestampDate(claim.createdAt) : undefined,
-        }),
-      );
-    },
+    initialPageParam: 1,
+    queryFn: ({ pageParam }: { pageParam: number }) => fetchMyClaimsPage(pageParam),
+    getNextPageParam: (_last: MyClaimsPage, pages: MyClaimsPage[]) => nextMyClaimsPage(pages),
   }));
 
 export const useSubmitPlace = () => {
