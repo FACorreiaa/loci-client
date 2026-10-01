@@ -6,6 +6,7 @@ import {
   type PendingPlace,
   type VerificationTask,
   useContributorProfile,
+  useMyClaims,
   usePendingPlaces,
   useVerificationTasks,
 } from "~/lib/api/place-intelligence";
@@ -17,6 +18,7 @@ import {
   AddPlaceForm,
   ClaimForm,
   MissingPlaceCard,
+  MyClaimsList,
   type ConfirmOutcome,
   PendingPlaceCard,
   TaskCard,
@@ -33,6 +35,7 @@ export default function ContributePage() {
   const tasks = useVerificationTasks({ enabled: () => isAuthenticated() });
   const profile = useContributorProfile({ enabled: () => isAuthenticated() });
   const pendingPlaces = usePendingPlaces({ enabled: () => isAuthenticated() });
+  const myClaims = useMyClaims({ enabled: () => isAuthenticated() });
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = createSignal<VerificationTask>();
   // Confirmed places leave the pending feed on the next refetch, so they are kept
@@ -164,6 +167,17 @@ export default function ContributePage() {
           </div>
 
           <section class="lg:col-start-1 lg:row-start-1" ref={(el) => (listAnchor = el)}>
+            <Show when={(myClaims.data?.length ?? 0) > 0}>
+              <div class="mb-8">
+                <SectionHeader
+                  kicker="Your reports"
+                  title="What became of what you saw"
+                  size="sm"
+                />
+                <MyClaimsList claims={myClaims.data ?? []} />
+              </div>
+            </Show>
+
             <SectionHeader
               kicker="Knowledge gaps near you"
               title="Places that need a fresh look"

@@ -4,6 +4,7 @@ import {
   ConfirmPlaceRequestSchema,
   GetMyContributorProfileRequestSchema,
   GetPlaceFactsRequestSchema,
+  ListMyClaimsRequestSchema,
   ListPendingPlacesRequestSchema,
   ListVerificationTasksRequestSchema,
   PlaceClaimStatus as ProtoPlaceClaimStatus,
@@ -16,6 +17,7 @@ import {
 import { createClient } from "@connectrpc/connect";
 import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { transport } from "~/lib/connect-transport";
+import { type MyClaim, toMyClaim } from "~/lib/contribute/my-claims";
 import { useAppQuery } from "./authed-query";
 
 const placeClient = createClient(PlaceIntelligenceService, transport);
@@ -256,6 +258,29 @@ export const usePendingPlaces = (options: PlaceIntelligenceQueryOptions = {}) =>
         address: place.address,
         confirmationsNeeded: place.confirmationsNeeded,
       }));
+    },
+  }));
+
+/** The scout's own reports, newest first (first page of 20), and what became of each. */
+export const useMyClaims = (options: PlaceIntelligenceQueryOptions = {}) =>
+  useAppQuery(() => ({
+    enabled: options.enabled ? options.enabled() : true,
+    queryKey: ["place-intelligence", "my-claims"],
+    queryFn: async (): Promise<MyClaim[]> => {
+      const response = await placeClient.listMyClaims(
+        create(ListMyClaimsRequestSchema, { limit: 20, page: 1 }),
+      );
+      return response.claims.map((claim) =>
+        toMyClaim({
+          claimId: claim.claimId,
+          poiId: claim.poiId,
+          poiName: claim.poiName,
+          field: fieldNames[claim.field] ?? "PLACE_FACT_FIELD_VIBE",
+          value: claim.value,
+          status: claimStatusNames[claim.status] ?? "UNSPECIFIED",
+          createdAt: claim.createdAt ? timestampDate(claim.createdAt) : undefined,
+        }),
+      );
     },
   }));
 
