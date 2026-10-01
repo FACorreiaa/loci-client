@@ -28,11 +28,16 @@ import {
   type WatchProposal,
 } from "~/lib/api/watches";
 import type { ConversationMessage } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
+import type { ActionProposal, LociStreamEvent } from "~/lib/streaming/chatStream";
+import { tripKeys, type Trip } from "~/lib/api/trips";
 
 export interface ChatMessage {
   id: string;
-  /** "watch-proposal" renders a standing-task card instead of a bubble. */
-  type: "user" | "assistant" | "error" | "watch-proposal";
+  /**
+   * "watch-proposal" renders a standing-task card instead of a bubble;
+   * "trip-action" a change the planner proposes to the chat's trip.
+   */
+  type: "user" | "assistant" | "error" | "watch-proposal" | "trip-action";
   content: string;
   timestamp: Date;
   hasItinerary?: boolean;
@@ -46,6 +51,8 @@ export interface ChatMessage {
   sourceLabel?: string;
   /** Set on "watch-proposal" messages: what ProposeWatch understood. */
   watchProposal?: WatchProposal;
+  /** Set on "trip-action" messages: the change the planner proposes. */
+  tripAction?: ActionProposal;
 }
 
 const MAX_LOCAL_SESSIONS = 10;
@@ -72,7 +79,7 @@ const welcomeMessage = (profile: string): ChatMessage => ({
 /**
  * All /chat state + actions. The route only wires this into the view components.
  */
-export function useChat() {
+export function useChat(opts: { tripId?: () => string | undefined } = {}) {
   const queryClient = useQueryClient();
 
   const [messages, setMessages] = createSignal<ChatMessage[]>([]);
@@ -170,8 +177,44 @@ export function useChat() {
   const patchMessage = (id: string, partial: Partial<ChatMessage>) =>
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...partial } : m)));
 
+  // Proposals arrive as their own events; each becomes a card in the thread.
+  // A resumed stream can replay one, so a card already shown is not added twice.
+  let proposedThisTurn = 0;
+  const onStreamEvent = (event: LociStreamEvent) => {
+    dispatchMuse(event);
+    if (event.kind !== "action_proposal") return;
+    proposedThisTurn++;
+    const id = `trip-action-${event.proposal.id}`;
+    if (messages().some((m) => m.id === id)) return;
+    appendMessage({
+      id,
+      type: "trip-action",
+      content: event.proposal.summary,
+      timestamp: new Date(),
+      tripAction: event.proposal,
+    });
+  };
+
+  /** ApplyTripAction succeeded: the card gives way to the confirmation. */
+  const applyTripAction = (
+    messageId: string,
+    trip: Trip | undefined,
+    confirmation?: ConversationMessage,
+  ) => {
+    if (trip) queryClient.setQueryData(tripKeys.detail(trip.id), trip);
+    setMessages((prev) => {
+      const rest = prev.filter((m) => m.id !== messageId);
+      return confirmation ? [...rest, toChatMessage(confirmation)] : rest;
+    });
+  };
+
+  /** "Not now": the card goes (the server was told by the card). */
+  const dismissTripAction = (messageId: string) =>
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+
   const sendMessage = async () => {
     if (!currentMessage().trim() || isLoading()) return;
+    proposedThisTurn = 0;
 
     const messageContent = currentMessage().trim();
     appendMessage({
@@ -322,11 +365,12 @@ export function useChat() {
         requestId: activeRequestId,
         profileId: profile,
         userLocation: { userLat: userLatitude, userLon: userLongitude },
+        tripId: opts.tripId?.(),
       },
       {
         session,
         hostPath: chatHostPath(),
-        onEvent: dispatchMuse,
+        onEvent: onStreamEvent,
         onProgress: (updated) => {
           setStreamingSession({ ...updated });
           setStreamProgress(progressLabel(updated));
@@ -378,11 +422,12 @@ export function useChat() {
         sessionId: existingSessionId,
         cityName: currentCity,
         userLocation: { userLat: userLatitude, userLon: userLongitude },
+        tripId: opts.tripId?.(),
       },
       {
         session,
         hostPath: chatHostPath(),
-        onEvent: dispatchMuse,
+        onEvent: onStreamEvent,
         onProgress: (updated) => {
           setStreamingSession({ ...updated });
           setStreamProgress(
@@ -420,6 +465,16 @@ export function useChat() {
     if (completed.sessionId) {
       setSessionId(completed.sessionId);
       persistLocalSession(completed);
+    }
+    // A turn that proposed changes has cards, not results.
+    if (proposedThisTurn > 0) {
+      patchMessage(streamId, {
+        content: "Here's what I can change on your trip — confirm the ones you want.",
+        hasItinerary: false,
+        showResults: false,
+        streaming: false,
+      });
+      return;
     }
     patchMessage(streamId, {
       content: getCompletionMessage(completed.domain, completed.city),
@@ -642,5 +697,7 @@ export function useChat() {
     watchSessionId,
     confirmStandingTask,
     dismissStandingTask,
+    applyTripAction,
+    dismissTripAction,
   };
 }
