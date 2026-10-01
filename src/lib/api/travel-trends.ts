@@ -33,29 +33,48 @@ type TrendInputs = Pick<
   | "citiesVisitedThis"
   | "countriesVisitedThis"
   | "poisVisitedThis"
+  | "hasPeriodCounts"
 >;
 
 /**
- * True when the server sent window counts (*_this_period). Those fields are
- * plain proto3 int32s with no presence, so "sent" can only mean non-zero.
+ * True when the server sent window counts (*_this_period). From proto v5.32.0
+ * the server says so explicitly (has_period_counts), which is the only way to
+ * tell "nothing this window" from "an older server". Without the flag the
+ * counts are plain proto3 int32s with no presence, so "sent" can only mean
+ * non-zero.
  */
 export const hasWindowCounts = (s: TrendInputs): boolean =>
-  s.citiesVisitedThis > 0 || s.countriesVisitedThis > 0 || s.poisVisitedThis > 0;
+  s.hasPeriodCounts ||
+  s.citiesVisitedThis > 0 ||
+  s.countriesVisitedThis > 0 ||
+  s.poisVisitedThis > 0;
+
+/**
+ * Window-against-window delta. Zeros are real here: nothing this window
+ * against something last window is -100%, and nothing in either is flat (0).
+ * Something this window against nothing last window still has no baseline.
+ */
+const windowTrend = (current: number, previous: number): number | null =>
+  current === 0 && previous === 0 ? 0 : trendPercent(current, previous);
 
 /**
  * Trend per stat.
  *
- * Newer servers (api #101) send *_this_period and *_prev_period as counts in
- * two equal windows, and the trend is one against the other. Older servers
- * send only *_prev_period, as the all-time total when the current window
- * opened, so the trend there is the all-time total against it. Both shapes
- * are handled so the web works either side of the server deploy.
- *
- * Known gap: on a newer server, a user with nothing in the current window but
- * something in the previous one sends all-zero *_this_period and looks like an
- * older server, so they get the older (upward-only) arrow rather than -100%.
+ * Servers that set has_period_counts send *_this_period and *_prev_period as
+ * counts in two equal windows, and the trend is one against the other, used
+ * exactly as sent. Older servers send only *_prev_period, as the all-time
+ * total when the current window opened, so the trend there is the all-time
+ * total against it. Servers between api #101 and has_period_counts send window
+ * counts without the flag; they are detected by a non-zero *_this_period.
  */
 export const summaryTrends = (s: TrendInputs): SummaryTrends => {
+  if (s.hasPeriodCounts) {
+    return {
+      cities: windowTrend(s.citiesVisitedThis, s.citiesVisitedPrev),
+      countries: windowTrend(s.countriesVisitedThis, s.countriesVisitedPrev),
+      pois: windowTrend(s.poisVisitedThis, s.poisVisitedPrev),
+    };
+  }
   if (hasWindowCounts(s)) {
     return {
       cities: trendPercent(s.citiesVisitedThis, s.citiesVisitedPrev),

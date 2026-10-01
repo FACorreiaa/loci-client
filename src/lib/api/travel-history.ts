@@ -80,6 +80,11 @@ export interface TravelSummary {
   citiesVisitedThis: number;
   countriesVisitedThis: number;
   poisVisitedThis: number;
+  /**
+   * Set by servers on proto v5.32.0+: the *This and *Prev counts are two
+   * equal windows and are to be compared as sent, zeros included.
+   */
+  hasPeriodCounts: boolean;
 }
 
 export interface GlobeData {
@@ -150,6 +155,7 @@ const EMPTY_SUMMARY: TravelSummary = {
   citiesVisitedThis: 0,
   countriesVisitedThis: 0,
   poisVisitedThis: 0,
+  hasPeriodCounts: false,
 };
 
 const mapSummary = (s: any): TravelSummary =>
@@ -169,6 +175,7 @@ const mapSummary = (s: any): TravelSummary =>
         citiesVisitedThis: s.citiesVisitedThisPeriod ?? 0,
         countriesVisitedThis: s.countriesVisitedThisPeriod ?? 0,
         poisVisitedThis: s.poisVisitedThisPeriod ?? 0,
+        hasPeriodCounts: s.hasPeriodCounts ?? false,
       }
     : { ...EMPTY_SUMMARY };
 
