@@ -11,6 +11,7 @@ import {
   useVerificationTasks,
 } from "~/lib/api/place-intelligence";
 import type { POI } from "~/lib/api/types";
+import { flattenMyClaims, type MyClaimsPage } from "~/lib/contribute/my-claims";
 import { clampPage, pageFromParam, pageOf, pageSlice } from "~/lib/contribute/paginate";
 import { resolveTask } from "~/lib/contribute/task-from-place";
 import { useAuth } from "~/contexts/AuthContext";
@@ -36,6 +37,12 @@ export default function ContributePage() {
   const profile = useContributorProfile({ enabled: () => isAuthenticated() });
   const pendingPlaces = usePendingPlaces({ enabled: () => isAuthenticated() });
   const myClaims = useMyClaims({ enabled: () => isAuthenticated() });
+  // The server-side placeholder page is null; skip it rather than crash on it.
+  const myClaimPages = createMemo(() =>
+    (myClaims.data?.pages ?? []).filter((page): page is MyClaimsPage => page != null),
+  );
+  const myClaimRows = createMemo(() => flattenMyClaims(myClaimPages()));
+  const myClaimsTotal = () => myClaimPages().at(-1)?.total ?? 0;
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = createSignal<VerificationTask>();
   // Confirmed places leave the pending feed on the next refetch, so they are kept
@@ -131,6 +138,32 @@ export default function ContributePage() {
               <span class="text-[10px] text-primary-foreground/60">Verified</span>
             </div>
           </div>
+          <Show when={isAuthenticated()}>
+            <div class="flex flex-wrap items-center gap-2 md:col-span-2">
+              <For each={profile.data?.badges ?? []}>
+                {(badge) => (
+                  <span
+                    class="rounded-full border border-primary-foreground/25 px-3 py-1 text-xs text-primary-foreground"
+                    title={badge.description || undefined}
+                  >
+                    <b class="font-semibold">{badge.name}</b>
+                    <Show when={badge.description}>
+                      <span class="hidden text-primary-foreground/65 sm:inline">
+                        {" "}
+                        — {badge.description}
+                      </span>
+                    </Show>
+                  </span>
+                )}
+              </For>
+              <a
+                href="#my-reports"
+                class="text-xs font-semibold text-primary-foreground underline underline-offset-4 hover:text-primary-foreground/80"
+              >
+                My reports
+              </a>
+            </div>
+          </Show>
         </div>
       </section>
 
@@ -167,16 +200,19 @@ export default function ContributePage() {
           </div>
 
           <section class="lg:col-start-1 lg:row-start-1" ref={(el) => (listAnchor = el)}>
-            <Show when={(myClaims.data?.length ?? 0) > 0}>
-              <div class="mb-8">
-                <SectionHeader
-                  kicker="Your reports"
-                  title="What became of what you saw"
-                  size="sm"
-                />
-                <MyClaimsList claims={myClaims.data ?? []} />
-              </div>
-            </Show>
+            <div id="my-reports" class="mb-8 scroll-mt-28">
+              <SectionHeader kicker="My reports" title="What became of what you saw" size="sm" />
+              <MyClaimsList
+                claims={myClaimRows()}
+                total={myClaimsTotal()}
+                loading={myClaims.isLoading}
+                error={myClaims.isError ? myClaims.error : undefined}
+                hasMore={Boolean(myClaims.hasNextPage)}
+                loadingMore={myClaims.isFetchingNextPage}
+                onLoadMore={() => void myClaims.fetchNextPage()}
+                onRetry={() => void myClaims.refetch()}
+              />
+            </div>
 
             <SectionHeader
               kicker="Knowledge gaps near you"

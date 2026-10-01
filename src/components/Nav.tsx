@@ -33,6 +33,8 @@ import DailyCheckIn from "~/components/progress/DailyCheckIn";
 const publicItems = [
   // A public surface, and the one page here meant to be found from outside.
   { name: "City Packs", href: "/packs" },
+  // Readable signed out, like the packs; posting needs an account.
+  { name: "Boards", href: "/boards" },
   { name: "How it works", href: "/features" },
   { name: "About", href: "/about" },
   { name: "Pricing", href: "/pricing" },
