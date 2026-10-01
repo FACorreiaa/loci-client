@@ -15,7 +15,10 @@ import {
   type TripDay,
   type TripStop,
   type TripConstraint,
+  tripKeys,
 } from "~/lib/api/trips";
+import { useQueryClient } from "@tanstack/solid-query";
+import TripPlanPanel from "~/components/trip/TripPlanPanel";
 import { useUserSubscription } from "~/lib/api/billing";
 import { canUsePro } from "~/lib/subscription";
 import { cacheTripOffline } from "~/lib/trip-offline-cache";
@@ -45,6 +48,7 @@ const editingKey = (tripId: string) => `loci.trip.editing.${tripId}`;
 export default function TripEditor() {
   const params = useParams();
   const tripQuery = useTrip(() => params.id!);
+  const queryClient = useQueryClient();
   const subscriptionQuery = useUserSubscription();
   const isPro = () => canUsePro(subscriptionQuery.data?.plan);
 
@@ -302,6 +306,21 @@ export default function TripEditor() {
                   <TripGlobe trips={[t]} class="h-[320px]" />
                 </div>
               </section>
+            </Show>
+
+            {/* The plan (dates, stays, flights) is the owner's to edit; a friend
+                reading a shared trip sees it in the day list and header. */}
+            <Show when={!t.owner}>
+              <TripPlanPanel
+                trip={t}
+                onUpdated={(updated) =>
+                  queryClient.setQueryData(tripKeys.detail(updated.id), updated)
+                }
+                onConflict={() => {
+                  setConflict(true);
+                  tripQuery.refetch();
+                }}
+              />
             </Show>
 
             <TripPreferences constraints={t.constraints} onChange={updateConstraints} />

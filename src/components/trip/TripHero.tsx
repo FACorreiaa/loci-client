@@ -1,5 +1,6 @@
 import { Show } from "solid-js";
-import { CalendarDays, MapPin, Pencil, Share2 } from "lucide-solid";
+import { A } from "@solidjs/router";
+import { CalendarDays, MapPin, MessageCircle, Pencil, Share2 } from "lucide-solid";
 import { Button } from "~/ui/button";
 import { Toggle } from "~/ui/toggle";
 import TripExportMenu from "~/components/trip/TripExportMenu";
@@ -64,6 +65,14 @@ export default function TripHero(props: TripHeroProps) {
           trip={props.trip}
         />
         <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
+          <A
+            href={`/chat?trip=${encodeURIComponent(props.tripId)}`}
+            class="inline-flex h-9 items-center gap-1.5 rounded-md border border-input px-3 text-sm font-medium hover:bg-muted"
+            data-testid="trip-ask-planner"
+          >
+            <MessageCircle class="h-4 w-4" aria-hidden="true" />
+            Ask the planner
+          </A>
           <Button
             variant="outline"
             size="sm"
