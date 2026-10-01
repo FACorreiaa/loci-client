@@ -9,6 +9,8 @@ import UserAvatar from "~/components/social/UserAvatar";
 import RelationshipButton from "~/components/social/RelationshipButton";
 import FriendTripCard from "~/components/social/FriendTripCard";
 import InviteCard from "~/components/social/InviteCard";
+import LeaderboardPanel from "~/components/progress/LeaderboardPanel";
+import ProgressPanel from "~/components/progress/ProgressPanel";
 import {
   profilePath,
   useCancelFriendRequest,
@@ -22,7 +24,7 @@ import { useFriendTrips } from "~/lib/api/trips";
 import { useAuthGate } from "~/lib/auth/useAuthGate";
 import { capture } from "~/lib/analytics";
 
-const TABS = ["trips", "friends", "requests", "add"] as const;
+const TABS = ["trips", "friends", "leaderboard", "progress", "requests", "add"] as const;
 type Tab = (typeof TABS)[number];
 
 function PersonRow(props: {
@@ -110,6 +112,8 @@ function FriendsPage() {
               {(n) => <span class="ml-1.5 text-muted-foreground">{n()}</span>}
             </Show>
           </TabsTrigger>
+          <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+          <TabsTrigger value="progress">Progress</TabsTrigger>
           <TabsTrigger value="requests">
             Requests
             <Show when={incoming().length}>
@@ -164,6 +168,18 @@ function FriendsPage() {
                 )}
               </For>
             </ul>
+          </Show>
+        </TabsContent>
+
+        <TabsContent value="leaderboard">
+          <Show when={tab() === "leaderboard"}>
+            <LeaderboardPanel />
+          </Show>
+        </TabsContent>
+
+        <TabsContent value="progress">
+          <Show when={tab() === "progress"}>
+            <ProgressPanel />
           </Show>
         </TabsContent>
 
