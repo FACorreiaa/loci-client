@@ -3,6 +3,7 @@ export { ClaimForm } from "./ClaimForm";
 export { ClaimResult } from "./ClaimResult";
 export { FieldPicker } from "./FieldPicker";
 export { MissingPlaceCard } from "./MissingPlaceCard";
+export { MyClaimsList } from "./MyClaimsList";
 export { OpeningHoursPicker } from "./OpeningHoursPicker";
 export { PendingPlaceCard, type ConfirmOutcome } from "./PendingPlaceCard";
 export { TaskCard } from "./TaskCard";
