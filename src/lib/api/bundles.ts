@@ -15,6 +15,7 @@ import { PaginationRequestSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/c
 import { transport } from "../connect-transport";
 import { useAppQuery } from "./authed-query";
 import { useAuthGate } from "../auth/useAuthGate";
+import { mapImageCredit } from "./llm";
 import type { ItineraryStop } from "../itinerary/createItineraryStream";
 import { pointsFromDays, type PackPoint } from "../bundles/points";
 import { purchasePollInterval } from "../bundles/purchase-poll";
@@ -91,6 +92,10 @@ export const toDetail = (d: ProtoBundleDetail): PackDetail => ({
       day: day.dayNumber - 1,
       placeId: s.poiId || undefined,
       timeToSpend: s.durationMinutes ? `${s.durationMinutes} min` : undefined,
+      // The stop's picture with the credit its licence requires. StopCard
+      // shows both, and keeps its gradient placeholder when there is none.
+      imageUrl: s.image?.url || undefined,
+      imageCredit: s.image?.url ? mapImageCredit(s.image) : undefined,
       // These stops are authored, not streamed: there is no enrichment pass
       // still to come, so they arrive finished.
       enriched: true,
