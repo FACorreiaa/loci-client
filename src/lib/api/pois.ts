@@ -63,19 +63,33 @@ export const usePOIDetails = (poiId: string) => {
   }));
 };
 
-export const useNearbyPOIs = (params?: {
+export interface NearbyParams {
   latitude?: number;
   longitude?: number;
   radiusKm?: number;
-}) => {
+}
+
+/**
+ * The SearchPOI request for "places near a point". It carries a location and
+ * radius and no query: the server accepts an empty query when a location is
+ * given (proto v5.32.0), so nothing here may fill query/cityName with "".
+ * Null when there is no point to search around. 0 is a valid coordinate.
+ */
+export const nearbySearchRequest = (params?: NearbyParams) => {
+  if (params?.latitude == null || params?.longitude == null) return null;
+  return {
+    latitude: params.latitude,
+    longitude: params.longitude,
+    radiusKm: params.radiusKm || 10,
+    searchType: "hybrid",
+  };
+};
+
+export const useNearbyPOIs = (params?: NearbyParams) => {
   const [data, state] = createResource(async () => {
-    if (!params?.latitude || !params?.longitude) return [];
-    const response = await poiClient.searchPOI({
-      latitude: params.latitude,
-      longitude: params.longitude,
-      radiusKm: params.radiusKm || 10,
-      searchType: "hybrid",
-    });
+    const request = nearbySearchRequest(params);
+    if (!request) return [];
+    const response = await poiClient.searchPOI(request);
     return response.pois.map(mapProtoPOI);
   });
   return [() => data() || [], state] as const;
