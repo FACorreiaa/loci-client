@@ -6,7 +6,7 @@ import { Title, Meta } from "@solidjs/meta";
 // with loci-ios/loci/loci/PrivacyInfo.xcprivacy and the App Privacy answers in
 // App Store Connect: a claim here that the app does not keep is a review risk.
 const CONTACT = "fernandocorreia316@gmail.com";
-const UPDATED = "1 October 2026";
+const UPDATED = "2 October 2026";
 
 const sections = [
   {
@@ -17,6 +17,19 @@ const sections = [
       "Location: your precise location, only while you use a feature that needs it (places near you, planning from where you are, a walk you start). Loci does not track you in the background otherwise.",
       "Voice: when you turn the mic on, the audio is sent to our own transcription server, turned into text and discarded. It is not sent to a third party and not kept.",
       "Usage: product events (screens opened, buttons used, errors) so we can see what works and fix what breaks.",
+      "Points: a record of what earned them (a daily check-in, a search, a place visited, a city, a trip day walked, a confirmed report), your streak and your badges.",
+    ],
+  },
+  {
+    title: "Friends",
+    items: [
+      "Friends are mutual: someone asks and you accept, or you open their invite link. Only then are you friends.",
+      "Friends see your name, username, photo and home city, your trips you share with friends, and on the leaderboard your level, streak, and points or counts of cities and places. They never see your location, your phone number or your email.",
+      "You can leave your friends' leaderboards in the iOS app's Settings → Notifications (\"Show me on friends' leaderboards\"). Blocking someone ends the friendship and hides you from each other.",
+      "Contacts: if you choose to find friends from your contacts, your phone turns each number and email into a one-way fingerprint (SHA-256) and sends only those. We compare them with Loci accounts that verified that number or email and keep nothing for contacts who are not on Loci.",
+      'Phone number: if you choose "Let friends find you by number", we text you a code to check the number is yours, then keep it on your account so people who have it in their contacts can find you. It is never shown to anyone.',
+      "Facebook: if you connect Facebook, we receive your Facebook ID for this app and the list of your Facebook friends who also connected Loci. We use it only to suggest those friends, replace it each time you connect, and never post to Facebook.",
+      "Visits: when the app records a place you reached (Near me, or walking a trip day), it sends where your phone was at that moment so the visit can be checked before it earns points. It is not used to track you.",
     ],
   },
   {
@@ -36,6 +49,8 @@ const sections = [
       "Mapbox serves map tiles to your device.",
       "PostHog stores usage events.",
       "Apple or Google confirm your identity when you sign in with them.",
+      "Twilio sends the text message with your code, if you verify a phone number.",
+      "Meta (Facebook) confirms your Facebook account and the friends list above, if you connect Facebook.",
       "Calendly or Telegram, only if you connect them yourself in Settings.",
       "We do not sell your data and do not use it for advertising.",
     ],
@@ -45,7 +60,8 @@ const sections = [
     items: [
       "Your data is kept while your account exists.",
       "Settings lets you export everything Loci holds about you, or delete your account.",
-      "Deleting your account removes your trips, saves and profile.",
+      "Deleting your account removes your trips, saves and profile, and with them your friendships, points, badges, verified phone number and Facebook link.",
+      "Disconnect Facebook at any time in your Facebook settings (Apps and websites); deleting your Loci account removes everything we got from it.",
     ],
   },
   {
