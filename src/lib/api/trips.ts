@@ -1,5 +1,5 @@
 // Trip (editable day-by-day itinerary) queries + mutations over TripService.
-import { useMutation, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient, type QueryClient } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -595,6 +595,17 @@ export const useReplaceStop = () =>
       void recordRecommendationEvents(events);
     },
   );
+
+/**
+ * A write elsewhere (the Plan panel, an applied chat proposal) returned the
+ * trip at a new version: cache it, keep the offline copy current, and mark
+ * the list stale, since the calendar saves with the list's versions.
+ */
+export const rememberTrip = (qc: QueryClient, trip: Trip) => {
+  qc.setQueryData(tripKeys.detail(trip.id), trip);
+  void qc.invalidateQueries({ queryKey: tripKeys.list() });
+  cacheTripOffline(trip);
+};
 
 // The trip's plan: dates, a stay per city, flights. Each has its own RPC
 // (SaveTrip never touches them) and answers with the updated trip.

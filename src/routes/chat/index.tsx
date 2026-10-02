@@ -1,4 +1,5 @@
-import { For, Show, createSignal, createEffect } from "solid-js";
+import { For, Show, createSignal, createEffect, on } from "solid-js";
+import { useQueryClient } from "@tanstack/solid-query";
 import { lazyChunk } from "~/lib/lazyChunk";
 import { Loader2, MapPin } from "lucide-solid";
 import {
@@ -13,7 +14,7 @@ import {
 import ChatMessage from "~/components/chat/ChatMessage";
 import TripActionCard from "~/components/chat/TripActionCard";
 import { useChat } from "~/lib/hooks/useChat";
-import { useTrip } from "~/lib/api/trips";
+import { tripKeys, useTrip } from "~/lib/api/trips";
 import { A, useSearchParams } from "@solidjs/router";
 const DetailedItemModal = lazyChunk(() => import("~/components/DetailedItemModal"));
 
@@ -68,6 +69,10 @@ export default function ChatPage() {
   const tripId = () => (typeof search.trip === "string" && search.trip ? search.trip : undefined);
   const tripQuery = useTrip(tripId);
   const chat = useChat({ tripId });
+  const queryClient = useQueryClient();
+  // Another trip (or none) is another conversation: its cards would apply to
+  // the wrong trip's version.
+  createEffect(on(tripId, () => chat.newChat(), { defer: true }));
   const [selectedItem, setSelectedItem] = createSignal<any | null>(null);
   const [showDetailModal, setShowDetailModal] = createSignal(false);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
@@ -207,7 +212,10 @@ export default function ChatPage() {
                   {(proposal) => (
                     <TripActionCard
                       proposal={proposal()}
-                      baseVersion={tripQuery.data?.version ?? 0n}
+                      baseVersion={tripQuery.data?.version}
+                      onConflict={(id) =>
+                        queryClient.invalidateQueries({ queryKey: tripKeys.detail(id) })
+                      }
                       onApplied={(trip, confirmation) =>
                         chat.applyTripAction(message.id, trip, confirmation)
                       }

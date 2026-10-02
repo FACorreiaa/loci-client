@@ -29,7 +29,7 @@ import {
 } from "~/lib/api/watches";
 import type { ConversationMessage } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
 import type { ActionProposal, LociStreamEvent } from "~/lib/streaming/chatStream";
-import { tripKeys, type Trip } from "~/lib/api/trips";
+import { rememberTrip, type Trip } from "~/lib/api/trips";
 
 export interface ChatMessage {
   id: string;
@@ -201,7 +201,7 @@ export function useChat(opts: { tripId?: () => string | undefined } = {}) {
     trip: Trip | undefined,
     confirmation?: ConversationMessage,
   ) => {
-    if (trip) queryClient.setQueryData(tripKeys.detail(trip.id), trip);
+    if (trip) rememberTrip(queryClient, trip);
     setMessages((prev) => {
       const rest = prev.filter((m) => m.id !== messageId);
       return confirmation ? [...rest, toChatMessage(confirmation)] : rest;
@@ -462,19 +462,24 @@ export function useChat(opts: { tripId?: () => string | undefined } = {}) {
     setIsLoading(false);
     setStreamProgress("");
     setStreamingMessageId(null);
-    if (completed.sessionId) {
-      setSessionId(completed.sessionId);
-      persistLocalSession(completed);
-    }
-    // A turn that proposed changes has cards, not results.
+    // A turn that proposed changes has cards, not results: no local
+    // "itinerary" session entry (it has no city), but the server's session
+    // list still refreshes.
     if (proposedThisTurn > 0) {
+      if (completed.sessionId) setSessionId(completed.sessionId);
       patchMessage(streamId, {
         content: "Here's what I can change on your trip — confirm the ones you want.",
         hasItinerary: false,
         showResults: false,
         streaming: false,
       });
+      const pid = activeProfileId();
+      if (pid) queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
       return;
+    }
+    if (completed.sessionId) {
+      setSessionId(completed.sessionId);
+      persistLocalSession(completed);
     }
     patchMessage(streamId, {
       content: getCompletionMessage(completed.domain, completed.city),

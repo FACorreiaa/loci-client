@@ -165,3 +165,54 @@ describe("TripPlanPanel", () => {
     );
   });
 });
+
+describe("TripPlanPanel hotel search feedback", () => {
+  it("says when no hotel matches instead of showing nothing", async () => {
+    const api = fakeApi();
+    const host = mount({ trip: trip(), onUpdated: vi.fn(), onConflict: vi.fn(), api });
+    const stars = byId(host, "plan-stars-Lisbon") as unknown as HTMLSelectElement;
+    stars.value = "3";
+    stars.dispatchEvent(new Event("change", { bubbles: true }));
+    byId(host, "plan-find-Lisbon").click();
+    await flush();
+    expect(host.querySelectorAll('[data-testid="plan-hotel"]')).toHaveLength(0);
+    expect(byId(host, "plan-no-hotels-Lisbon")?.textContent).toContain("No 3★ hotels");
+  });
+
+  it("disables Find while it searches", async () => {
+    let release!: (v: any) => void;
+    const api = fakeApi({ hotelsNear: vi.fn(() => new Promise((r) => (release = r))) as any });
+    const host = mount({ trip: trip(), onUpdated: vi.fn(), onConflict: vi.fn(), api });
+    byId(host, "plan-find-Lisbon").click();
+    await flush();
+    expect((byId(host, "plan-find-Lisbon") as HTMLButtonElement).disabled).toBe(true);
+    release([]);
+    await flush();
+    expect((byId(host, "plan-find-Lisbon") as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("only https flight links are shown", () => {
+    const host = mount({
+      trip: trip({
+        flights: [
+          {
+            id: "f1",
+            origin: { name: "A" },
+            destination: { name: "B" },
+            departDate: "2026-11-12",
+            passengers: 1,
+            links: [
+              { provider: "x", label: "Evil", url: "javascript:alert(1)" },
+              { provider: "g", label: "Google Flights", url: "https://g.example" },
+            ],
+          },
+        ],
+      }),
+      onUpdated: vi.fn(),
+      onConflict: vi.fn(),
+      api: fakeApi(),
+    });
+    const hrefs = [...host.querySelectorAll("a")].map((a) => a.getAttribute("href"));
+    expect(hrefs).toEqual(["https://g.example"]);
+  });
+});

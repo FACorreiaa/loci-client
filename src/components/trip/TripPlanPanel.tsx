@@ -27,6 +27,9 @@ const label = "font-coord text-[11px] uppercase tracking-[0.16em] text-muted-for
 const field = "rounded-md border border-input bg-background px-2 py-1 text-sm";
 const link = "text-sm text-primary underline-offset-2 hover:underline";
 
+/** Links come from the server, but only https ones ever become an href. */
+const httpsOnly = (links: FlightLink[]) => links.filter((l) => l.url.startsWith("https://"));
+
 const errorText = (err: unknown, fallback: string) =>
   err instanceof ConnectError && err.rawMessage ? err.rawMessage : fallback;
 
@@ -69,16 +72,31 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
   const [found, setFound] = createSignal<Record<string, HotelDetailedInfo[]>>({});
   const stayFor = (city: string) =>
     props.trip.stays.find((s) => s.cityName.toLowerCase() === city.toLowerCase());
+  // Per city: a search in flight, and the star filter the last finished one used
+  // (so an empty result can say what it looked for).
+  const [searching, setSearching] = createSignal<Record<string, boolean>>({});
+  const [searchedStars, setSearchedStars] = createSignal<Record<string, number>>({});
   const findHotels = async (city: string) => {
     const at = cityCoords(props.trip, city);
-    if (!at) return;
+    if (!at || searching()[city]) return;
     setError(null);
+    setSearching({ ...searching(), [city]: true });
+    const want = stars()[city] ?? 0;
     try {
       const hotels = await api().hotelsNear(at.lat, at.lon);
-      setFound({ ...found(), [city]: hotelsWithStars(hotels, stars()[city] ?? 0).slice(0, 5) });
+      setFound({ ...found(), [city]: hotelsWithStars(hotels, want).slice(0, 5) });
+      setSearchedStars({ ...searchedStars(), [city]: want });
     } catch {
       setError(`Couldn't look up hotels in ${city} right now.`);
+    } finally {
+      setSearching({ ...searching(), [city]: false });
     }
+  };
+  const noHotelsText = (city: string) => {
+    const want = searchedStars()[city] ?? 0;
+    return want > 0
+      ? `No ${want}★ hotels within 5 km of ${city}. Try any stars.`
+      : `No hotels found within 5 km of ${city}.`;
   };
   const pickHotel = async (city: string, h: HotelDetailedInfo) => {
     const ok = await run(() =>
@@ -214,11 +232,22 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
                     size="sm"
                     variant="outline"
                     data-testid={`plan-find-${city}`}
+                    disabled={!!searching()[city]}
                     onClick={() => findHotels(city)}
                   >
-                    Find hotels
+                    {searching()[city] ? "Searching…" : "Find hotels"}
                   </Button>
                 </div>
+                <Show
+                  when={searchedStars()[city] !== undefined && (found()[city] ?? []).length === 0}
+                >
+                  <p
+                    class="mt-2 text-xs text-muted-foreground"
+                    data-testid={`plan-no-hotels-${city}`}
+                  >
+                    {noHotelsText(city)}
+                  </p>
+                </Show>
                 <ul class="mt-2 space-y-1">
                   <For each={found()[city] ?? []}>
                     {(h) => (
@@ -254,7 +283,7 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
                 <Show when={f.returnDate}> – {f.returnDate}</Show>
               </span>
               <span class="flex flex-wrap items-center gap-3">
-                <For each={f.links}>
+                <For each={httpsOnly(f.links)}>
                   {(l) => (
                     <a class={link} href={l.url} target="_blank" rel="noopener noreferrer">
                       {l.label}
@@ -340,7 +369,7 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
           >
             Search flights
           </Button>
-          <For each={links()}>
+          <For each={httpsOnly(links())}>
             {(l) => (
               <a class={link} href={l.url} target="_blank" rel="noopener noreferrer">
                 {l.label}

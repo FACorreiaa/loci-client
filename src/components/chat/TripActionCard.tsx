@@ -4,13 +4,16 @@ import type {
   ConversationMessage,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
 import { mapTrip, type Trip } from "~/lib/api/trips";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { tripActionApi, tripActionErrorMessage, type TripActionApi } from "~/lib/api/trip-actions";
 import { ProactiveCaption } from "./ProactiveCaption";
 
 export interface TripActionCardProps {
   proposal: ActionProposal;
-  /** The trip version this card was shown against. */
-  baseVersion: bigint;
+  /** The trip's current version; undefined until the trip has loaded. */
+  baseVersion: bigint | undefined;
+  /** The trip changed since the suggestion: the page refetches it. */
+  onConflict?: (tripId: string) => void;
   /** ApplyTripAction succeeded: the trip as it now is, and the thread's confirmation. */
   onApplied: (trip: Trip | undefined, confirmation?: ConversationMessage) => void;
   onDismissed: () => void;
@@ -32,22 +35,37 @@ const TripActionCard: Component<TripActionCardProps> = (props) => {
   const api = () => props.api ?? tripActionApi;
   const kind = () => props.proposal.action?.kind.case;
   const pickOne = () => kind() === "searchHotels";
+  // Links come from the server, but only https ones ever become an href.
   const flightLinks = () => {
     const choice = props.proposal.options[0]?.choice;
-    return choice?.case === "flight" ? choice.value.links : [];
+    return choice?.case === "flight"
+      ? choice.value.links.filter((l) => l.url.startsWith("https://"))
+      : [];
   };
+  /** Nothing can be applied until the trip's version is known. */
+  const waiting = () => props.baseVersion === undefined;
   const canConfirm = () =>
     !pickOne() && (kind() !== "searchFlights" || props.proposal.options.length > 0);
 
   const apply = async (optionIndex?: number) => {
-    if (busy()) return;
+    const baseVersion = props.baseVersion;
+    if (busy() || baseVersion === undefined) return;
     setBusy(true);
     setError(null);
     try {
-      const res = await api().apply(props.proposal.id, optionIndex, props.baseVersion);
+      const res = await api().apply(props.proposal.id, optionIndex, baseVersion);
       props.onApplied(res.trip ? mapTrip(res.trip) : undefined, res.confirmation);
     } catch (err) {
       setError(tripActionErrorMessage(err));
+      // A stale trip: have the page refetch it, so the next card (or this
+      // one, asked again) applies against the current version.
+      if (
+        err instanceof ConnectError &&
+        err.code === Code.FailedPrecondition &&
+        err.rawMessage.includes("version")
+      ) {
+        props.onConflict?.(props.proposal.tripId);
+      }
       setBusy(false);
     }
   };
@@ -81,7 +99,7 @@ const TripActionCard: Component<TripActionCardProps> = (props) => {
                     <button
                       type="button"
                       data-testid="trip-action-option"
-                      disabled={busy()}
+                      disabled={busy() || waiting()}
                       onClick={() => apply(i())}
                       class="w-full rounded-xl bg-[var(--muse-pill)] px-3 py-2 text-left text-sm disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
@@ -130,11 +148,17 @@ const TripActionCard: Component<TripActionCardProps> = (props) => {
               <button
                 type="button"
                 data-testid="trip-action-confirm"
-                disabled={busy()}
+                disabled={busy() || waiting()}
                 onClick={() => apply(kind() === "searchFlights" ? 0 : undefined)}
                 class={`${pill} bg-[var(--muse-user-bubble)] font-semibold text-[var(--muse-user-text)]`}
               >
-                {busy() ? "Updating…" : kind() === "searchFlights" ? "Save to trip" : "Confirm"}
+                {waiting()
+                  ? "Loading trip…"
+                  : busy()
+                    ? "Updating…"
+                    : kind() === "searchFlights"
+                      ? "Save to trip"
+                      : "Confirm"}
               </button>
             </Show>
             <button

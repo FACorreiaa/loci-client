@@ -15,7 +15,7 @@ import {
   type TripDay,
   type TripStop,
   type TripConstraint,
-  tripKeys,
+  rememberTrip,
 } from "~/lib/api/trips";
 import { useQueryClient } from "@tanstack/solid-query";
 import TripPlanPanel from "~/components/trip/TripPlanPanel";
@@ -313,9 +313,7 @@ export default function TripEditor() {
             <Show when={!t.owner}>
               <TripPlanPanel
                 trip={t}
-                onUpdated={(updated) =>
-                  queryClient.setQueryData(tripKeys.detail(updated.id), updated)
-                }
+                onUpdated={(updated) => rememberTrip(queryClient, updated)}
                 onConflict={() => {
                   setConflict(true);
                   tripQuery.refetch();

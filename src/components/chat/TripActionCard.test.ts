@@ -186,3 +186,84 @@ describe("TripActionCard", () => {
     expect(byId(host, "trip-action-dismiss")).not.toBeNull();
   });
 });
+
+describe("TripActionCard recovery", () => {
+  it("a version conflict tells the page to refetch the trip", async () => {
+    const a = api({
+      apply: vi.fn(async () => {
+        throw new ConnectError("trip version conflict", Code.FailedPrecondition);
+      }),
+    });
+    const onConflict = vi.fn();
+    const host = mount({
+      proposal: dates,
+      baseVersion: 3n,
+      onApplied: vi.fn(),
+      onDismissed: vi.fn(),
+      onConflict,
+      api: a,
+    });
+    byId(host, "trip-action-confirm")!.click();
+    await flush();
+    expect(onConflict).toHaveBeenCalledWith("t1");
+  });
+
+  it("waits for the trip before anything can be applied", () => {
+    const host = mount({
+      proposal: hotels,
+      baseVersion: undefined,
+      onApplied: vi.fn(),
+      onDismissed: vi.fn(),
+      api: api(),
+    });
+    expect(
+      (host.querySelectorAll('[data-testid="trip-action-option"]')[0] as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    const host2 = mount({
+      proposal: dates,
+      baseVersion: undefined,
+      onApplied: vi.fn(),
+      onDismissed: vi.fn(),
+      api: api(),
+    });
+    const confirm = byId(host2, "trip-action-confirm") as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    expect(confirm.textContent).toContain("Loading trip");
+  });
+
+  it("only https links are shown", () => {
+    const bad = create(ActionProposalSchema, {
+      id: "p5",
+      tripId: "t1",
+      summary: "Flights A → B",
+      action: { kind: { case: "searchFlights", value: { departDate: "2026-11-12" } } },
+      options: [
+        {
+          label: "Save this flight search",
+          choice: {
+            case: "flight",
+            value: {
+              origin: { name: "A" },
+              destination: { name: "B" },
+              departDate: "2026-11-12",
+              links: [
+                { provider: "x", label: "Evil", url: "javascript:alert(1)" },
+                { provider: "g", label: "Google Flights", url: "https://g.example" },
+              ],
+            },
+          },
+        },
+      ],
+    });
+    const host = mount({
+      proposal: bad,
+      baseVersion: 3n,
+      onApplied: vi.fn(),
+      onDismissed: vi.fn(),
+      api: api(),
+    });
+    expect(host.querySelectorAll("a")).toHaveLength(1);
+    expect(host.querySelector("a")!.getAttribute("href")).toBe("https://g.example");
+  });
+});
