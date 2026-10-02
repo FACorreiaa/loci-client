@@ -46,7 +46,7 @@ const sections = [
     items: [
       "AI model providers (Google Gemini, OpenRouter) receive the text of a trip request to write the itinerary. They do not receive your email.",
       "Live-data services (weather, holidays, hazards, exchange rates) receive city names or coordinates, never who is asking.",
-      "Mapbox serves map tiles to your device.",
+      "Maps: on the website, Mapbox serves the map tiles; the iOS app uses Apple Maps.",
       "PostHog stores usage events.",
       "Apple or Google confirm your identity when you sign in with them.",
       "Twilio sends the text message with your code, if you verify a phone number.",
