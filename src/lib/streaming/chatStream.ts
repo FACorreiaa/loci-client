@@ -18,7 +18,12 @@ import {
   ChatRequestSchema,
   StreamEventType,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
-import type { StreamEvent as ProtoStreamEvent } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
+import type {
+  ActionProposal,
+  StreamEvent as ProtoStreamEvent,
+} from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
+
+export type { ActionProposal };
 import { chatService } from "@/lib/api";
 import { refreshSession } from "@/lib/connect-transport";
 import { parseStreamError } from "@/lib/errors";
@@ -92,6 +97,8 @@ export type LociStreamEvent = { eventId?: string; stopIndex?: number } & (
   | { kind: "restaurants"; pois: POIDetailedInfo[]; city?: GeneralCityData; sessionId: string }
   | { kind: "activities"; pois: POIDetailedInfo[]; city?: GeneralCityData; sessionId: string }
   | { kind: "gastronomy"; gastronomy: CityGastronomy; sessionId: string }
+  /** A change to the turn's trip the traveller can confirm (ApplyTripAction). */
+  | { kind: "action_proposal"; proposal: ActionProposal }
   | { kind: "progress"; stage: string; percent?: number }
   | { kind: "route"; route: RouteInfo }
   | {
@@ -139,6 +146,8 @@ export interface ChatStreamParams {
   stops?: { cityName: string; nights?: number }[];
   /** Let the server reorder `stops` into a sensible route. */
   suggestOrder?: boolean;
+  /** The trip this chat is about: its turns propose changes to it. */
+  tripId?: string;
 }
 
 const mapNavigation = (nav: ProtoStreamEvent["navigation"]): NavigationInfo | undefined =>
@@ -261,6 +270,8 @@ function mapPayload(ev: ProtoStreamEvent): LociStreamEvent | null {
       if (!gastronomy) return null;
       return { kind: "gastronomy", gastronomy, sessionId: p.value.sessionId };
     }
+    case "actionProposal":
+      return p.value.proposal ? { kind: "action_proposal", proposal: p.value.proposal } : null;
     case "progress":
       return { kind: "progress", stage: p.value.stage, percent: p.value.percent };
     case "error":
@@ -313,6 +324,7 @@ export const buildRequest = (params: ChatStreamParams) =>
     sessionId: params.sessionId || undefined,
     resumeToken: params.resumeToken || undefined,
     requestId: params.requestId || undefined,
+    tripId: params.tripId || undefined,
     stops: (params.stops ?? []).map((s) => ({ cityName: s.cityName, nights: s.nights })),
     suggestOrder: params.suggestOrder ?? false,
     userLocation: params.userLocation

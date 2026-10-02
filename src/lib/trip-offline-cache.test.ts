@@ -29,6 +29,15 @@ describe("offline trip cache", () => {
     sessionStorage.clear();
   });
 
+  // A trip cached before stays and flights existed must still read as a Trip:
+  // the Plan panel walks both lists.
+  it("reads an older cached trip with empty plan lists", () => {
+    cacheTripOffline(trip("old"), "alice");
+    const back = getCachedTrip("old", "alice")!;
+    expect(back.stays).toEqual([]);
+    expect(back.flights).toEqual([]);
+  });
+
   it("keeps each account's trips apart", () => {
     cacheTripOffline(trip("a"), "alice");
     cacheTripOffline(trip("b"), "bob");

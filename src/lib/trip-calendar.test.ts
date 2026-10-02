@@ -14,6 +14,8 @@ const trip = (partial: Partial<Trip> & Pick<Trip, "id" | "title">): Trip => ({
   cityName: "Lisbon",
   constraints: { pace: TripPace.UNSPECIFIED, interests: [] },
   days: [],
+  stays: [],
+  flights: [],
   version: 1n,
   createdAt: "2026-09-01T00:00:00.000Z",
   updatedAt: "2026-09-01T00:00:00.000Z",
