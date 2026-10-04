@@ -3,6 +3,7 @@ import {
   DAYS,
   defaultOpeningHours,
   encodeOpeningHours,
+  formatOpeningHours,
   isValidOpeningHours,
   parseOpeningHours,
   type OpeningHours,
@@ -166,5 +167,18 @@ describe("isValidOpeningHours", () => {
   it("rejects an open day with no hours", () => {
     const hours = week({ mon: { closed: false, intervals: [] } });
     expect(isValidOpeningHours(hours)).toBe(false);
+  });
+});
+
+describe("formatOpeningHours", () => {
+  it("reads the canonical week for a person", () => {
+    expect(formatOpeningHours("mon-fri 09:00-12:00,14:00-18:00; sat 10:00-14:00; sun closed")).toBe(
+      "Mon–Fri 09:00–12:00, 14:00–18:00 · Sat 10:00–14:00 · Sun closed",
+    );
+  });
+
+  it("shows anything it cannot parse as sent", () => {
+    expect(formatOpeningHours("9am-5pm")).toBe("9am-5pm");
+    expect(formatOpeningHours("mon-fri 09:00-17:00")).toBe("mon-fri 09:00-17:00");
   });
 });

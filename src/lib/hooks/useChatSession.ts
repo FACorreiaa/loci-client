@@ -62,6 +62,10 @@ function toLegacyEvent(ev: LociStreamEvent): LegacyStreamEvent {
       return { Type: "itinerary", Data: ev.cityResponse };
     case "complete":
       return { Type: "complete", Navigation: ev.navigation, SessionId: ev.sessionId };
+    case "action_proposal":
+      // This legacy session never binds a trip, so it gets none; if one
+      // arrives, its one-line summary is all this view can show.
+      return { Type: "progress", Data: ev.proposal.summary };
     case "route":
       // A multi-city trip: the outline is the progress line.
       return { Type: "progress", Data: ev.route.outline };

@@ -336,3 +336,36 @@ describe("gastronomy events", () => {
     }
   });
 });
+
+describe("trip actions", () => {
+  it("maps an action_proposal payload", () => {
+    const ev = mapProtoEvent(
+      create(StreamEventSchema, {
+        eventId: "e1",
+        eventType: StreamEventType.ACTION_PROPOSAL,
+        payload: {
+          case: "actionProposal",
+          value: { proposal: { id: "p1", tripId: "t1", summary: "Set dates" } },
+        },
+      }),
+    );
+    expect(ev).toMatchObject({ kind: "action_proposal" });
+    expect(ev?.kind === "action_proposal" && ev.proposal.id).toBe("p1");
+  });
+
+  it("an empty action_proposal payload maps to nothing", () => {
+    const ev = mapProtoEvent(
+      create(StreamEventSchema, {
+        eventType: StreamEventType.ACTION_PROPOSAL,
+        payload: { case: "actionProposal", value: {} },
+      }),
+    );
+    expect(ev).toBeNull();
+  });
+
+  it("sends trip_id only when there is one", () => {
+    expect(buildRequest({ message: "x", tripId: "t1" }).tripId).toBe("t1");
+    expect(buildRequest({ message: "x" }).tripId).toBeUndefined();
+    expect(buildRequest({ message: "x", tripId: "" }).tripId).toBeUndefined();
+  });
+});

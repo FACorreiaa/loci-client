@@ -76,6 +76,9 @@ function deserializeTrip(raw: unknown): Trip | undefined {
   if (typeof o.id !== "string") return undefined;
   return {
     ...(o as unknown as Trip),
+    // Trips cached before the plan fields existed carry neither list.
+    stays: Array.isArray(o.stays) ? (o.stays as Trip["stays"]) : [],
+    flights: Array.isArray(o.flights) ? (o.flights as Trip["flights"]) : [],
     version: BigInt(typeof o.version === "string" || typeof o.version === "number" ? o.version : 0),
   };
 }

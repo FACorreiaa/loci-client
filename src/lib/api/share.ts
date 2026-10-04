@@ -1,6 +1,7 @@
 // Share API client using ConnectRPC ShareService
 import { createClient } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
+import { useQuery } from "@tanstack/solid-query";
 import {
   ShareService,
   CreateShareLinkRequestSchema,
@@ -174,3 +175,23 @@ export const shareViaWebShare = async (
   }
   return false;
 };
+
+/**
+ * The share page's data. Reading is public; a dead code is an error so the
+ * page can say so rather than render an empty card.
+ */
+export const useSharedContent = (code: () => string | undefined) =>
+  useQuery(() => ({
+    queryKey: ["share", "content", code() ?? ""],
+    enabled: !!code(),
+    retry: false,
+    queryFn: async () => {
+      const response = await shareClient.getSharedContent(
+        create(GetSharedContentRequestSchema, { shareCode: code()! }),
+      );
+      if (!response.success || !response.content) {
+        throw new Error(response.message || "This link has expired.");
+      }
+      return response.content;
+    },
+  }));

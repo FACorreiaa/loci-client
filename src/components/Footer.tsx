@@ -12,6 +12,8 @@ const links = [
   // that actually answers the question is the one listing what Loci has
   // learned about you, with export and delete on it.
   { label: "Your data", href: "/settings/memory" },
+  { label: "Privacy", href: "/privacy" },
+  { label: "Support", href: "/support" },
 ];
 
 export default function Footer() {

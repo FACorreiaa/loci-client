@@ -1,7 +1,7 @@
 import { For, Show } from "solid-js";
 import { Clock, ShieldCheck } from "lucide-solid";
-import { isVerifiedFact, type PlaceFact, type PlaceFactField } from "~/lib/api/place-intelligence";
-import { fieldLabel, vocabularyFor } from "~/lib/place-facts/vocabulary";
+import { isVerifiedFact, type PlaceFact } from "~/lib/api/place-intelligence";
+import { factValueLabel, fieldLabel } from "~/lib/place-facts/vocabulary";
 
 /**
  * What scouts have confirmed about a place.
@@ -15,19 +15,6 @@ import { fieldLabel, vocabularyFor } from "~/lib/place-facts/vocabulary";
  * awaiting a second pair of eyes, two or more is something the field guide
  * stands behind.
  */
-
-/** Turns a stored token back into the label the picker offered. */
-const valueLabel = (field: PlaceFactField, value: string): string => {
-  const vocabulary = vocabularyFor(field);
-  if (!vocabulary || vocabulary.kind === "structured") return value;
-  // Multi-answer fields are stored one answer per fact, so this is a single
-  // token, but splitting keeps it correct for anything stored before the
-  // per-answer change.
-  return value
-    .split(",")
-    .map((token) => vocabulary.options.find((o) => o.token === token.trim())?.label ?? token.trim())
-    .join(", ");
-};
 
 export function PlaceFacts(props: { facts?: PlaceFact[]; class?: string }) {
   const facts = () => props.facts ?? [];
@@ -51,7 +38,7 @@ export function PlaceFacts(props: { facts?: PlaceFact[]; class?: string }) {
                 <div class="min-w-0">
                   <p class="text-sm">
                     <span class="text-muted-foreground">{fieldLabel(fact.field)}:</span>{" "}
-                    <span class="font-medium">{valueLabel(fact.field, fact.value)}</span>
+                    <span class="font-medium">{factValueLabel(fact.field, fact.value)}</span>
                   </p>
                   <p class="mt-0.5 text-[11px] text-muted-foreground">
                     <Show

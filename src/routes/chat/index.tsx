@@ -1,4 +1,5 @@
-import { For, Show, createSignal, createEffect } from "solid-js";
+import { For, Show, createSignal, createEffect, on } from "solid-js";
+import { useQueryClient } from "@tanstack/solid-query";
 import { lazyChunk } from "~/lib/lazyChunk";
 import { Loader2, MapPin } from "lucide-solid";
 import {
@@ -11,7 +12,10 @@ import {
   type QuickPrompt,
 } from "~/components/chat";
 import ChatMessage from "~/components/chat/ChatMessage";
+import TripActionCard from "~/components/chat/TripActionCard";
 import { useChat } from "~/lib/hooks/useChat";
+import { tripKeys, useTrip } from "~/lib/api/trips";
+import { A, useSearchParams } from "@solidjs/router";
 const DetailedItemModal = lazyChunk(() => import("~/components/DetailedItemModal"));
 
 const QUICK_PROMPTS: QuickPrompt[] = [
@@ -60,7 +64,15 @@ const QUICK_PROMPTS: QuickPrompt[] = [
 ];
 
 export default function ChatPage() {
-  const chat = useChat();
+  // /chat?trip=<id> is a chat about that trip: its turns propose changes to it.
+  const [search] = useSearchParams();
+  const tripId = () => (typeof search.trip === "string" && search.trip ? search.trip : undefined);
+  const tripQuery = useTrip(tripId);
+  const chat = useChat({ tripId });
+  const queryClient = useQueryClient();
+  // Another trip (or none) is another conversation: its cards would apply to
+  // the wrong trip's version.
+  createEffect(on(tripId, () => chat.newChat(), { defer: true }));
   const [selectedItem, setSelectedItem] = createSignal<any | null>(null);
   const [showDetailModal, setShowDetailModal] = createSignal(false);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
@@ -149,29 +161,65 @@ export default function ChatPage() {
           class="flex-1 overflow-y-auto px-3 pb-4 pt-[176px] sm:px-4"
         >
           <div class="max-w-3xl mx-auto space-y-3 sm:space-y-4">
+            <Show when={tripId() ? tripQuery.data : undefined}>
+              {(t) => (
+                <div
+                  class="rounded-xl border border-primary/30 bg-primary/5 px-4 py-2 text-sm"
+                  data-testid="chat-trip-banner"
+                >
+                  Planning{" "}
+                  <A
+                    href={`/trips/${t().id}`}
+                    class="font-medium underline-offset-2 hover:underline"
+                  >
+                    {t().title}
+                  </A>
+                  . Ask for dates, hotels, more days or flights.
+                </div>
+              )}
+            </Show>
             <For each={chat.messages()}>
               {(message) => (
                 <Show
-                  when={message.type === "watch-proposal" && message.watchProposal}
+                  when={message.type === "trip-action" && message.tripAction}
                   fallback={
-                    <ChatMessage
-                      message={message}
-                      expanded={chat.expandedResults().has(message.id)}
-                      onToggle={chat.toggleResultExpansion}
-                      onItemClick={handleItemClick}
-                      onSave={chat.saveMessage}
-                      onShare={chat.shareMessage}
-                    />
+                    <Show
+                      when={message.type === "watch-proposal" && message.watchProposal}
+                      fallback={
+                        <ChatMessage
+                          message={message}
+                          expanded={chat.expandedResults().has(message.id)}
+                          onToggle={chat.toggleResultExpansion}
+                          onItemClick={handleItemClick}
+                          onSave={chat.saveMessage}
+                          onShare={chat.shareMessage}
+                        />
+                      }
+                    >
+                      {(proposal) => (
+                        <WatchProposalCard
+                          proposal={proposal()}
+                          sessionId={chat.watchSessionId()}
+                          onCreated={(confirmation) =>
+                            chat.confirmStandingTask(message.id, confirmation)
+                          }
+                          onDismiss={() => chat.dismissStandingTask(message.id)}
+                        />
+                      )}
+                    </Show>
                   }
                 >
                   {(proposal) => (
-                    <WatchProposalCard
+                    <TripActionCard
                       proposal={proposal()}
-                      sessionId={chat.watchSessionId()}
-                      onCreated={(confirmation) =>
-                        chat.confirmStandingTask(message.id, confirmation)
+                      baseVersion={tripQuery.data?.version}
+                      onConflict={(id) =>
+                        queryClient.invalidateQueries({ queryKey: tripKeys.detail(id) })
                       }
-                      onDismiss={() => chat.dismissStandingTask(message.id)}
+                      onApplied={(trip, confirmation) =>
+                        chat.applyTripAction(message.id, trip, confirmation)
+                      }
+                      onDismissed={() => chat.dismissTripAction(message.id)}
                     />
                   )}
                 </Show>

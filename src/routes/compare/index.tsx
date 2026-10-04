@@ -120,6 +120,8 @@ export default function ComparePage() {
           : `${col.cityName} weekend`,
         constraints: { pace: TripPace.MODERATE, interests: [] },
         days,
+        stays: [],
+        flights: [],
         version: 0n,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -190,6 +192,8 @@ export default function ComparePage() {
         title: plan.cities.map((c: PlannedCity) => c.cityName).join(" + "),
         constraints: { pace: TripPace.MODERATE, interests: [] },
         days,
+        stays: [],
+        flights: [],
         legs: plan.legs.map((l: TripLeg) => ({
           fromName: l.fromName,
           toName: l.toName,

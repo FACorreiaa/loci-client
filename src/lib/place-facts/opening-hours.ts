@@ -165,3 +165,30 @@ export const parseOpeningHours = (value: string): OpeningHours | null => {
   if (DAYS.some((day) => week[day] === undefined)) return null;
   return week as OpeningHours;
 };
+
+/**
+ * Reads a canonical opening-hours string for a person, e.g.
+ * `mon-fri 09:00-17:00; sun closed` → `Mon–Fri 09:00–17:00 · Sun closed`.
+ *
+ * Only a string `parseOpeningHours` accepts is reworded; it is re-encoded first
+ * so the groups are the canonical ones. Anything else is shown as sent rather
+ * than guessed at.
+ */
+export const formatOpeningHours = (value: string): string => {
+  const week = parseOpeningHours(value);
+  if (!week) return value;
+  const shortDay = (day: string) => day.charAt(0).toUpperCase() + day.slice(1);
+  return encodeOpeningHours(week)
+    .split("; ")
+    .map((group) => {
+      const separator = group.indexOf(" ");
+      const days = group.slice(0, separator).split("-").map(shortDay).join("–");
+      const hours = group
+        .slice(separator + 1)
+        .split(",")
+        .map((interval) => interval.replace("-", "–"))
+        .join(", ");
+      return `${days} ${hours}`;
+    })
+    .join(" · ");
+};

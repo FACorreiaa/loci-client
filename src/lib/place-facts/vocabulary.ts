@@ -1,4 +1,5 @@
 import type { PlaceFactField } from "~/lib/api/place-intelligence";
+import { formatOpeningHours } from "./opening-hours";
 
 /**
  * The canonical vocabulary a field report can be written in.
@@ -185,4 +186,23 @@ export const claimValuesFor = (field: PlaceFactField, tokens: string[]): string[
 
   if (cleaned.length === 0) return [];
   return vocabularyFor(field)?.kind === "single" ? [cleaned[0]] : cleaned;
+};
+
+/**
+ * Turns a stored claim or fact value back into the words the picker offered:
+ * opening hours read as a week, tokens as their labels. Multi-answer fields are
+ * stored one answer per claim, so this is usually a single token, but a
+ * comma-joined value from before the per-answer change still reads correctly.
+ * An unknown token is shown as sent.
+ */
+export const factValueLabel = (field: PlaceFactField, value: string): string => {
+  const vocabulary = vocabularyFor(field);
+  if (!vocabulary) return value;
+  if (vocabulary.kind === "structured") return formatOpeningHours(value);
+  return value
+    .split(",")
+    .map((token) => token.trim())
+    .filter((token) => token !== "")
+    .map((token) => vocabulary.options.find((option) => option.token === token)?.label ?? token)
+    .join(", ");
 };

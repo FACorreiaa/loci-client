@@ -1,5 +1,5 @@
 // Trip (editable day-by-day itinerary) queries + mutations over TripService.
-import { useMutation, useQueryClient } from "@tanstack/solid-query";
+import { useMutation, useQueryClient, type QueryClient } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
@@ -31,6 +31,9 @@ import {
   TripStopSchema,
   type TripDraft as ProtoTripDraft,
   type TripConstraint as ProtoTripConstraint,
+  FlightCabin,
+  type TripStay as ProtoTripStay,
+  type TripFlight as ProtoTripFlight,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import { PaginationRequestSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/common/common_pb.js";
 import { transport } from "../connect-transport";
@@ -44,6 +47,7 @@ import {
 import { useAppQuery } from "./authed-query";
 import { capture } from "../analytics";
 import { mapPublicUser, type PublicUser } from "./social";
+import { planApi, type FlightSearch } from "./trip-plan";
 
 const tripClient = createClient(TripService, transport);
 
@@ -94,6 +98,47 @@ export interface TripLeg {
   bookingUrl?: string;
 }
 
+export type FlightCabinName = "economy" | "premium_economy" | "business" | "first";
+
+/** Where the traveller sleeps in one city (TripService.SetStay). */
+export interface TripStay {
+  cityName: string;
+  poiId?: string;
+  name: string;
+  starRating?: string;
+  checkIn?: string;
+  checkOut?: string;
+  bookingUrl?: string;
+}
+
+export interface FlightPlace {
+  name: string;
+  iata?: string;
+}
+
+/** A prefilled search on a site that sells the ticket. Server-built. */
+export interface FlightLink {
+  provider: string;
+  label: string;
+  url: string;
+}
+
+/** A flight the traveller chose. Loci never quotes a fare. */
+export interface TripFlight {
+  id: string;
+  origin: FlightPlace;
+  destination: FlightPlace;
+  departDate: string;
+  returnDate?: string;
+  passengers: number;
+  cabin?: FlightCabinName;
+  links: FlightLink[];
+  carrier?: string;
+  flightNo?: string;
+  priceText?: string;
+  notes?: string;
+}
+
 /** One city of a multi-city trip. */
 export interface TripCity {
   cityName: string;
@@ -136,6 +181,11 @@ export interface Trip {
   /** Set when someone other than the owner reads the trip. */
   owner?: PublicUser;
   copiedFromTripId?: string;
+  /** The trip's plan (dates, stays, flights). SaveTrip never writes these. */
+  startDate?: string;
+  endDate?: string;
+  stays: TripStay[];
+  flights: TripFlight[];
 }
 
 /**
@@ -176,12 +226,48 @@ const mapConstraint = (c?: ProtoTripConstraint): TripConstraint => ({
   dayEndMinute: c?.dayEndMinute,
 });
 
+const CABIN_NAMES: Record<number, FlightCabinName | undefined> = {
+  [FlightCabin.ECONOMY]: "economy",
+  [FlightCabin.PREMIUM_ECONOMY]: "premium_economy",
+  [FlightCabin.BUSINESS]: "business",
+  [FlightCabin.FIRST]: "first",
+};
+
+export const mapStay = (s: ProtoTripStay): TripStay => ({
+  cityName: s.cityName,
+  poiId: s.poiId || undefined,
+  name: s.name,
+  starRating: s.starRating || undefined,
+  checkIn: s.checkIn || undefined,
+  checkOut: s.checkOut || undefined,
+  bookingUrl: s.bookingUrl || undefined,
+});
+
+export const mapFlight = (f: ProtoTripFlight): TripFlight => ({
+  id: f.id,
+  origin: { name: f.origin?.name ?? "", iata: f.origin?.iata || undefined },
+  destination: { name: f.destination?.name ?? "", iata: f.destination?.iata || undefined },
+  departDate: f.departDate,
+  returnDate: f.returnDate || undefined,
+  passengers: f.passengers,
+  cabin: CABIN_NAMES[f.cabin],
+  links: f.links.map((l) => ({ provider: l.provider, label: l.label, url: l.url })),
+  carrier: f.carrier || undefined,
+  flightNo: f.flightNo || undefined,
+  priceText: f.priceText || undefined,
+  notes: f.notes || undefined,
+});
+
 export const mapTrip = (p: ProtoTripDraft): Trip => ({
   id: p.id,
   visibility: visibilityFromProto(p.visibility),
   shareCode: p.shareCode || undefined,
   owner: mapPublicUser(p.owner),
   copiedFromTripId: p.copiedFromTripId || undefined,
+  startDate: p.startDate || undefined,
+  endDate: p.endDate || undefined,
+  stays: (p.stays ?? []).map(mapStay),
+  flights: (p.flights ?? []).map(mapFlight),
   userId: p.userId,
   cityId: p.cityId,
   cityName: p.cityName,
@@ -508,6 +594,40 @@ export const useReplaceStop = () =>
       }
       void recordRecommendationEvents(events);
     },
+  );
+
+/**
+ * A write elsewhere (the Plan panel, an applied chat proposal) returned the
+ * trip at a new version: cache it, keep the offline copy current, and mark
+ * the list stale, since the calendar saves with the list's versions.
+ */
+export const rememberTrip = (qc: QueryClient, trip: Trip) => {
+  qc.setQueryData(tripKeys.detail(trip.id), trip);
+  void qc.invalidateQueries({ queryKey: tripKeys.list() });
+  cacheTripOffline(trip);
+};
+
+// The trip's plan: dates, a stay per city, flights. Each has its own RPC
+// (SaveTrip never touches them) and answers with the updated trip.
+export const useSetTripDates = () =>
+  detailMutation((i: { tripId: string; start: string; end: string; baseVersion: bigint }) =>
+    planApi.setDates(i.tripId, i.start, i.end, i.baseVersion),
+  );
+export const useSetStay = () =>
+  detailMutation((i: { tripId: string; stay: TripStay; baseVersion: bigint }) =>
+    planApi.setStay(i.tripId, i.stay, i.baseVersion),
+  );
+export const useClearStay = () =>
+  detailMutation((i: { tripId: string; cityName: string; baseVersion: bigint }) =>
+    planApi.clearStay(i.tripId, i.cityName, i.baseVersion),
+  );
+export const useAddFlight = () =>
+  detailMutation((i: { tripId: string; flight: FlightSearch; baseVersion: bigint }) =>
+    planApi.addFlight(i.tripId, i.flight, i.baseVersion),
+  );
+export const useRemoveFlight = () =>
+  detailMutation((i: { tripId: string; flightId: string; baseVersion: bigint }) =>
+    planApi.removeFlight(i.tripId, i.flightId, i.baseVersion),
   );
 
 export const useShareTrip = () =>

@@ -28,6 +28,8 @@ const makeTrip = ({ dates, days, ...rest }: MakeTrip = {}): Trip => {
     cityName: "Porto",
     title: "Porto weekend",
     constraints: { pace: TripPace.UNSPECIFIED, interests: [] },
+    stays: [],
+    flights: [],
     days:
       days ??
       (dates ?? []).map((date, i) => ({
