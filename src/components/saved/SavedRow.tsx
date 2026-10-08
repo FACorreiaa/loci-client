@@ -3,7 +3,8 @@ import { A } from "@solidjs/router";
 import { Cloud, Smartphone, Trash2 } from "lucide-solid";
 import { ShareMenu } from "~/components/ShareMenu";
 import { SHARE_HOME_URL } from "~/lib/share";
-import type { SavedItem, SavedItineraryItem } from "~/lib/saved/types";
+import type { SavedItem, SavedItineraryItem, SavedPlace } from "~/lib/saved/types";
+import PlaceNote from "./PlaceNote";
 
 const formatDate = (iso: string) => {
   const d = new Date(iso);
@@ -62,19 +63,25 @@ export default function SavedRow(props: Props) {
 
   return (
     <li class="flex items-start gap-3 py-3">
-      <Show
-        when={item().href}
-        fallback={<div class="flex min-w-0 flex-1 items-start gap-4 opacity-80">{body()}</div>}
-      >
-        {(href) => (
-          <A
-            href={href()}
-            class="flex min-w-0 flex-1 items-start gap-4 transition-opacity hover:opacity-70"
-          >
-            {body()}
-          </A>
-        )}
-      </Show>
+      <div class="min-w-0 flex-1">
+        <Show
+          when={item().href}
+          fallback={<div class="flex min-w-0 flex-1 items-start gap-4 opacity-80">{body()}</div>}
+        >
+          {(href) => (
+            <A
+              href={href()}
+              class="flex min-w-0 flex-1 items-start gap-4 transition-opacity hover:opacity-70"
+            >
+              {body()}
+            </A>
+          )}
+        </Show>
+        {/* A note is the traveller's, so it sits outside the link. */}
+        <Show when={item().kind === "place"}>
+          <PlaceNote place={item() as SavedPlace} />
+        </Show>
+      </div>
 
       <div class="flex shrink-0 items-center gap-1">
         {/* Only an itinerary has something worth sharing, and only one that

@@ -41,6 +41,8 @@ import { Button } from "~/ui/button";
 import { colorForMapDay } from "~/lib/theme-colors";
 import type { POI } from "~/lib/api/types";
 import TripSharePanel from "~/components/social/TripSharePanel";
+import { useMarkStop, type StopMark } from "~/lib/api/gamification";
+import { showToast } from "~/lib/toast-store";
 
 /** Per-trip edit-mode memory, so a reload mid-edit does not drop you back into read mode. */
 const editingKey = (tripId: string) => `loci.trip.editing.${tripId}`;
@@ -59,6 +61,8 @@ export default function TripEditor() {
   const add = useAddStop();
   const remove = useRemoveStop();
   const replace = useReplaceStop();
+  const markStop = useMarkStop();
+  const [markingStopID, setMarkingStopID] = createSignal<string | null>(null);
 
   const [sharing, setSharing] = createSignal(false);
   const [conflict, setConflict] = createSignal(false);
@@ -115,6 +119,52 @@ export default function TripEditor() {
       setConflict(true);
       tripQuery.refetch();
     }
+  };
+
+  /**
+   * Walked or skipped. Shown at once (the server only adds points), put back
+   * from the server if the call fails. A finished day or trip is the one
+   * moment worth a toast.
+   */
+  const setStopMark = (day: TripDay, stop: TripStop, mark: StopMark) => {
+    const t = trip();
+    if (!t) return;
+    const key = ["trips", "detail", t.id];
+    queryClient.setQueryData(key, (old: Trip | undefined) =>
+      old
+        ? {
+            ...old,
+            days: old.days.map((d) =>
+              d.id !== day.id
+                ? d
+                : { ...d, stops: d.stops.map((s) => (s.id === stop.id ? { ...s, mark } : s)) },
+            ),
+          }
+        : old,
+    );
+    setMarkingStopID(stop.id);
+    markStop.mutate(
+      { tripId: t.id, dayId: day.id, stopId: stop.id, mark },
+      {
+        onSuccess: (res) => {
+          if (res.tripFinished) {
+            showToast({
+              id: `field-trip-${t.id}`,
+              title: `Trip finished · +${res.points} field score`,
+              action: { label: "Field", href: "/field" },
+            });
+          } else if (res.dayFinished) {
+            showToast({
+              id: `field-day-${day.id}`,
+              title: `Day ${day.dayNumber} finished · +${res.points} field score`,
+              action: { label: "Field", href: "/field" },
+            });
+          }
+        },
+        onError: () => void queryClient.invalidateQueries({ queryKey: key }),
+        onSettled: () => setMarkingStopID(null),
+      },
+    );
   };
 
   const moveStop = (day: TripDay, index: number, dir: -1 | 1) => {
@@ -373,6 +423,8 @@ export default function TripEditor() {
                           onOutcome={(eventType, rating) =>
                             recordStopOutcome(stop, eventType, rating)
                           }
+                          onMark={(mark) => setStopMark(day, stop, mark)}
+                          marking={markingStopID() === stop.id}
                         >
                           <PlacePicker
                             cityName={t.cityName}

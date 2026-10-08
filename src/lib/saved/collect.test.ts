@@ -143,6 +143,7 @@ const place = (key: string, savedAt: string): SavedItem => ({
   typeLabel: "place",
   itemId: key,
   contentType: ContentType.POI,
+  notes: "",
 });
 
 const route = (key: string, savedAt: string): SavedItem => ({

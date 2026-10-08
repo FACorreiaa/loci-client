@@ -7,6 +7,7 @@ import {
   AddToFavoritesRequestSchema,
   RemoveFromFavoritesRequestSchema,
   GetFavoritesRequestSchema,
+  UpdateFavoriteNoteRequestSchema,
   ContentType,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/favorites/v1/favorites_pb.js";
 import { create } from "@bufbuild/protobuf";
@@ -237,6 +238,7 @@ export function useAddToFavorites() {
     onSuccess: () => {
       capture("poi_saved", { surface: "favorites" });
       queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
+      void queryClient.invalidateQueries({ queryKey: ["gamification"] });
     },
   }));
 }
@@ -250,6 +252,27 @@ export function useRemoveFromFavorites() {
       removeFromFavorites(itemId, contentType),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
+    },
+  }));
+}
+
+/**
+ * Sets the note on a saved place. A note of 40 or more characters in the
+ * traveller's own words counts once toward the field score; `counts` says
+ * whether this one did.
+ */
+export function useUpdateFavoriteNote() {
+  const queryClient = useQueryClient();
+  return useMutation(() => ({
+    mutationFn: async (v: { itemId: string; contentType: ContentType; notes: string }) => {
+      const res = await favoritesClient.updateFavoriteNote(
+        create(UpdateFavoriteNoteRequestSchema, v),
+      );
+      return { points: res.pointsAwarded, counts: res.noteCounts };
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
+      void queryClient.invalidateQueries({ queryKey: ["gamification"] });
     },
   }));
 }

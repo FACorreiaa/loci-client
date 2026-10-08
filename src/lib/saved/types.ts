@@ -28,6 +28,8 @@ export interface SavedPlace extends SavedBase {
   /** What the server stores. Often a display name on older rows. */
   itemId: string;
   contentType: ContentType;
+  /** The traveller's own note; empty when there is none. */
+  notes: string;
 }
 
 export interface SavedItineraryItem extends SavedBase {
