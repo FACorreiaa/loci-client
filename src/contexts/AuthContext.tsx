@@ -6,6 +6,9 @@ import {
   onCleanup,
   onMount,
   JSX,
+  Match,
+  Show,
+  Switch,
 } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { getAuthToken, setAuthToken, clearAuthToken, isPersistentSession } from "~/lib/auth/tokens";
@@ -484,31 +487,36 @@ export const ProtectedRoute = (props: ProtectedRouteProps) => {
     }
   });
 
-  if (isLoading() || !authReady()) {
-    // eslint-disable-next-line solid/components-return-once
-    return (
-      <div class="min-h-screen flex items-center justify-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated()) {
-    // eslint-disable-next-line solid/components-return-once
-    return (
-      props.fallback || (
-        <div class="min-h-screen flex items-center justify-center">
-          <div class="text-center">
-            <h2 class="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-            <p class="text-gray-600">You need to be logged in to access this page.</p>
+  // Reactive branches, not early returns: a Solid component body runs once,
+  // so an `if` here decided the page on its first render. A direct load (a
+  // bookmark, a toast link, a redirect) renders before the session restore
+  // finishes, and the spinner never gave way to the page.
+  return (
+    <Switch fallback={props.children}>
+      <Match when={isLoading() || !authReady()}>
+        <AuthSpinner />
+      </Match>
+      <Match when={!isAuthenticated()}>
+        {props.fallback || (
+          <div class="min-h-screen flex items-center justify-center">
+            <div class="text-center">
+              <h2 class="text-xl font-semibold text-foreground mb-2">Access Denied</h2>
+              <p class="text-muted-foreground">You need to be logged in to access this page.</p>
+            </div>
           </div>
-        </div>
-      )
-    );
-  }
-
-  return <>{props.children}</>;
+        )}
+      </Match>
+    </Switch>
+  );
 };
+
+function AuthSpinner() {
+  return (
+    <div class="min-h-screen flex items-center justify-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+    </div>
+  );
+}
 
 // Public Route Component (redirects authenticated users)
 interface PublicRouteProps {
@@ -526,14 +534,10 @@ export const PublicRoute = (props: PublicRouteProps) => {
     }
   });
 
-  if (isLoading() || !authReady()) {
-    // eslint-disable-next-line solid/components-return-once
-    return (
-      <div class="min-h-screen flex items-center justify-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
-
-  return <>{props.children}</>;
+  // Reactive for the same reason as ProtectedRoute.
+  return (
+    <Show when={!isLoading() && authReady()} fallback={<AuthSpinner />}>
+      {props.children}
+    </Show>
+  );
 };

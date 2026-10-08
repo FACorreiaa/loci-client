@@ -13,6 +13,7 @@ import {
   type BoardMetric,
   type BoardRow,
   type BoardScope,
+  type Rank,
 } from "~/lib/api/gamification";
 import { useAuthGate } from "~/lib/auth/useAuthGate";
 
@@ -27,6 +28,9 @@ const METRICS: { id: BoardMetric; label: string }[] = [
   { id: "kept", label: "Places kept" },
   { id: "days", label: "Days finished" },
 ];
+
+const RANK_ORDER: Rank[] = ["Scout", "Walker", "Guide", "Local", "Keeper"];
+const nextRank = (r: Rank): Rank | undefined => RANK_ORDER[RANK_ORDER.indexOf(r) + 1];
 
 const unit = (metric: BoardMetric, n: number) =>
   metric === "kept"
@@ -219,7 +223,7 @@ function FieldPage() {
                 <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
                   <div>
                     <p class="kicker mb-1">
-                      {scope() === "friends" ? "You and your friends" : cityName()} · this week
+                      {scope() === "friends" ? "Friends board" : "City board"}
                     </p>
                     <h2 class="editorial-title text-xl">
                       {scope() === "friends" ? "Friends, this week" : `${cityName()}, this week`}
@@ -308,10 +312,10 @@ function FieldPage() {
                     <span class="text-muted-foreground"> in {c.cityName}</span>
                   </span>
                   <span class="text-sm tabular-nums text-muted-foreground">
-                    {c.score}
-                    <Show when={c.nextThreshold > 0}>
+                    {c.score} points
+                    <Show when={nextRank(c.rank) && c.nextThreshold > 0}>
                       {" "}
-                      · {c.nextThreshold - c.score} to the next rank
+                      · {c.nextThreshold - c.score} more for {nextRank(c.rank)}
                     </Show>
                   </span>
                 </li>
