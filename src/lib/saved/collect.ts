@@ -73,6 +73,7 @@ export function placesToSaved(favorites: KeptFavorite[] | undefined): SavedPlace
     typeLabel: contentTypeLabel(f.contentType),
     itemId: f.itemId,
     contentType: f.contentType,
+    notes: f.notes ?? "",
     href: placeHref(f.itemId, f.contentType),
   }));
 }

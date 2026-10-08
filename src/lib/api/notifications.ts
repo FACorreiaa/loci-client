@@ -33,6 +33,10 @@ export type NotificationSettings = {
   tripReminders: boolean;
   searchFinished: boolean;
   friendActivity: boolean;
+  /** Friends see the traveller on the friends board. */
+  leaderboardVisible: boolean;
+  /** People who are not friends see the traveller's name and weekly score on city boards. */
+  cityBoardVisible: boolean;
 };
 
 export const useNotificationSettings = () => {
@@ -47,6 +51,8 @@ export const useNotificationSettings = () => {
         tripReminders: response.tripReminders,
         searchFinished: response.searchFinished,
         friendActivity: response.friendActivity,
+        leaderboardVisible: response.leaderboardVisible,
+        cityBoardVisible: response.cityBoardVisible,
       };
     },
     staleTime: 5 * 60 * 1000,
@@ -66,6 +72,8 @@ export const useUpdateNotificationSettings = () => {
           tripReminders: changes.tripReminders,
           searchFinished: changes.searchFinished,
           friendActivity: changes.friendActivity,
+          leaderboardVisible: changes.leaderboardVisible,
+          cityBoardVisible: changes.cityBoardVisible,
         }),
       );
       return {
@@ -73,6 +81,8 @@ export const useUpdateNotificationSettings = () => {
         tripReminders: response.tripReminders,
         searchFinished: response.searchFinished,
         friendActivity: response.friendActivity,
+        leaderboardVisible: response.leaderboardVisible,
+        cityBoardVisible: response.cityBoardVisible,
       };
     },
     onSuccess: (settings) => {

@@ -1,6 +1,6 @@
 import { createSignal, For, Match, Show, Switch } from "solid-js";
 import { Title } from "@solidjs/meta";
-import { A, useSearchParams } from "@solidjs/router";
+import { A, Navigate, useSearchParams } from "@solidjs/router";
 import { Search } from "lucide-solid";
 import { ProtectedRoute } from "~/contexts/AuthContext";
 import { Button } from "~/ui/button";
@@ -9,8 +9,6 @@ import UserAvatar from "~/components/social/UserAvatar";
 import RelationshipButton from "~/components/social/RelationshipButton";
 import FriendTripCard from "~/components/social/FriendTripCard";
 import InviteCard from "~/components/social/InviteCard";
-import LeaderboardPanel from "~/components/progress/LeaderboardPanel";
-import ProgressPanel from "~/components/progress/ProgressPanel";
 import {
   profilePath,
   useCancelFriendRequest,
@@ -24,7 +22,7 @@ import { useFriendTrips } from "~/lib/api/trips";
 import { useAuthGate } from "~/lib/auth/useAuthGate";
 import { capture } from "~/lib/analytics";
 
-const TABS = ["trips", "friends", "leaderboard", "progress", "requests", "add"] as const;
+const TABS = ["trips", "friends", "requests", "add"] as const;
 type Tab = (typeof TABS)[number];
 
 function PersonRow(props: {
@@ -67,6 +65,8 @@ function Empty(props: { children: import("solid-js").JSX.Element }) {
 
 function FriendsPage() {
   const [params, setParams] = useSearchParams<{ tab?: string }>();
+  // The leaderboard and progress tabs moved to the field notebook.
+  const movedToField = () => params.tab === "leaderboard" || params.tab === "progress";
   const gate = useAuthGate();
   const tab = (): Tab =>
     (TABS as readonly string[]).includes(params.tab ?? "") ? (params.tab as Tab) : "trips";
@@ -89,6 +89,9 @@ function FriendsPage() {
 
   return (
     <main class="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <Show when={movedToField()}>
+        <Navigate href="/field?scope=friends" />
+      </Show>
       <Title>Friends · Loci</Title>
       <header class="mb-6">
         <p class="font-coord mb-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -112,8 +115,6 @@ function FriendsPage() {
               {(n) => <span class="ml-1.5 text-muted-foreground">{n()}</span>}
             </Show>
           </TabsTrigger>
-          <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-          <TabsTrigger value="progress">Progress</TabsTrigger>
           <TabsTrigger value="requests">
             Requests
             <Show when={incoming().length}>
@@ -168,18 +169,6 @@ function FriendsPage() {
                 )}
               </For>
             </ul>
-          </Show>
-        </TabsContent>
-
-        <TabsContent value="leaderboard">
-          <Show when={tab() === "leaderboard"}>
-            <LeaderboardPanel />
-          </Show>
-        </TabsContent>
-
-        <TabsContent value="progress">
-          <Show when={tab() === "progress"}>
-            <ProgressPanel />
           </Show>
         </TabsContent>
 
