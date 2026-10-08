@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from "~/ui/ta
 import UserAvatar from "~/components/social/UserAvatar";
 import RelationshipButton from "~/components/social/RelationshipButton";
 import FriendTripCard from "~/components/social/FriendTripCard";
+import InviteCard from "~/components/social/InviteCard";
 import {
   profilePath,
   useCancelFriendRequest,
@@ -232,6 +233,7 @@ function FriendsPage() {
         </TabsContent>
 
         <TabsContent value="add" class="space-y-6">
+          <InviteCard />
           <section class="loci-card p-5" aria-labelledby="find-title">
             <h2 id="find-title" class="text-lg font-medium">
               Find by username
