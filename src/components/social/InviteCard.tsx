@@ -1,5 +1,5 @@
 import { createResource, createSignal, Show } from "solid-js";
-import QRCode from "qrcode";
+import { qrDataUrl } from "~/lib/qr";
 import { Copy, MessageSquare, Share2 } from "lucide-solid";
 import { Button } from "~/ui/button";
 import { useMyInvite } from "~/lib/api/social";
@@ -35,13 +35,7 @@ export default function InviteCard() {
   // Rendered locally; the link is a credential, so no third-party QR service.
   const [qr] = createResource(
     () => invite()?.url,
-    async (url) => {
-      try {
-        return await QRCode.toDataURL(url, { width: 180, margin: 1 });
-      } catch {
-        return null;
-      }
-    },
+    (url) => qrDataUrl(url, 180),
   );
 
   const copy = async (inv: ShareableInvite) => {
