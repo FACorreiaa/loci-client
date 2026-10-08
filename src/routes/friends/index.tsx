@@ -154,9 +154,16 @@ function FriendsPage() {
             when={friends()?.length}
             fallback={
               <Empty>
-                {friendsQuery.isLoading
-                  ? "Loading…"
-                  : "No friends yet — send your invite link to someone you travel with."}
+                <Show when={!friendsQuery.isLoading} fallback="Loading…">
+                  No friends yet — send your invite link to someone you travel with.{" "}
+                  <button
+                    type="button"
+                    class="font-medium text-foreground underline underline-offset-4"
+                    onClick={() => setParams({ tab: "add" })}
+                  >
+                    Invite
+                  </button>
+                </Show>
               </Empty>
             }
           >

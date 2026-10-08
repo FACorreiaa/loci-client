@@ -12,6 +12,7 @@ import {
 } from "@buf/loci_loci-proto.bufbuild_es/loci/custom_auth/custom_auth_pb.js";
 import { setAuthToken } from "../auth/tokens";
 import { queryKeys } from "./shared";
+import { clearInvite, pendingInviteCode } from "../invite";
 import { transport } from "../connect-transport";
 import { identify } from "../analytics";
 
@@ -140,9 +141,12 @@ export const useGoogleLoginMutation = () => {
         provider: OAuthProvider.OAUTH_PROVIDER_GOOGLE,
         code,
         state: oauthStateStore["google"],
+        // Used only if this sign-in creates the account.
+        inviteCode: pendingInviteCode(),
       });
 
       const response = await customAuthClient.oAuthCallback(callbackRequest);
+      clearInvite();
 
       // Store tokens, then link the anonymous browser session to the stable id.
       // setAuthToken also announces the new session, which is what makes the UI
@@ -191,9 +195,11 @@ export const useAppleLoginMutation = () => {
         provider: OAuthProvider.OAUTH_PROVIDER_APPLE,
         code,
         state: oauthStateStore["apple"],
+        inviteCode: pendingInviteCode(),
       });
 
       const response = await customAuthClient.oAuthCallback(callbackRequest);
+      clearInvite();
 
       setAuthToken(response.accessToken, true, response.refreshToken);
       identifyAuthenticatedUser(response);

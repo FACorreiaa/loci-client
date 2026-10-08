@@ -14,6 +14,7 @@ import {
 } from "@buf/loci_loci-proto.bufbuild_es/loci/auth/auth_pb.js";
 import { clearAuthToken, getAuthToken, getRefreshToken, setAuthToken } from "../auth/tokens";
 import { queryKeys } from "./shared";
+import { clearInvite, pendingInviteCode } from "../invite";
 import { transport } from "../connect-transport";
 import { useAppQuery } from "./authed-query";
 
@@ -169,9 +170,13 @@ export const useRegisterMutation = () => {
         email,
         password,
         role,
+        // From an invite link opened on this device; the server ignores a bad one.
+        inviteCode: pendingInviteCode(),
       });
 
       const response = await authClient.register(request);
+      // Spent whether or not it applied: one signup per link.
+      clearInvite();
 
       return {
         success: response.success,
