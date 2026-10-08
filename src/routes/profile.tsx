@@ -9,7 +9,6 @@ import {
 import { ProcessedProfileData, UserProfileResponse } from "~/lib/api/types";
 import { ProtectedRoute } from "~/contexts/AuthContext";
 import { Button } from "~/ui/button";
-import InviteCard from "~/components/social/InviteCard";
 import ProPlanBadge from "~/components/ProPlanBadge";
 import { useRecentInteractions } from "~/lib/api/recents";
 import { useLists } from "~/lib/api/lists";
@@ -630,10 +629,6 @@ function ProfilePageContent() {
                   </Show>
                 </div>
               </div>
-            </div>
-
-            <div class="mb-6">
-              <InviteCard />
             </div>
 
             {/* Tabs */}
