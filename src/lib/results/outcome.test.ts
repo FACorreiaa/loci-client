@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RecommendationTrace } from "~/lib/api/recommendations";
-import { outcomeEvent, resultKey, withoutDismissed } from "./outcome";
+import { outcomeEvent, resultKey, visibleResults, withoutDismissed } from "./outcome";
 
 const trace: RecommendationTrace = {
   runId: "run-1",
@@ -38,5 +38,23 @@ describe("withoutDismissed", () => {
     ];
     const dismissed = new Set([resultKey(pois[0]), resultKey(pois[1])]);
     expect(withoutDismissed(pois, dismissed).map((p) => p.name)).toEqual(["C"]);
+  });
+});
+
+describe("visibleResults", () => {
+  it("drops a dismissed place from the list and the extras alike, so cards, pins and the extras' numbering stay in step", () => {
+    const list = [
+      { id: "a", name: "A" },
+      { id: "b", name: "B" },
+      { id: "c", name: "C" },
+    ];
+    const extras = [
+      { id: "x", name: "X" },
+      { id: "y", name: "Y" },
+    ];
+    const view = visibleResults(list, extras, new Set(["b", "y"]));
+    expect(view.list.map((p) => p.name)).toEqual(["A", "C"]);
+    expect(view.extras.map((p) => p.name)).toEqual(["X"]);
+    expect(view.extrasStart).toBe(2);
   });
 });

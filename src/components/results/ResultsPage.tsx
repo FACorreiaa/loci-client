@@ -8,6 +8,7 @@ import {
   For,
   Show,
 } from "solid-js";
+import { resultKey, visibleResults } from "~/lib/results/outcome";
 import { useSearchParams } from "@solidjs/router";
 import { Check, Sparkles } from "lucide-solid";
 import { lazyChunk } from "~/lib/lazyChunk";
@@ -250,8 +251,15 @@ export default function ResultsPage(props: ResultsPageProps) {
   const cityData = createMemo(() => results()?.city ?? effectiveData()?.general_city_data);
   const resolvedCity = () =>
     (isMulti() ? activeCityName() : undefined) || cityData()?.city || cityName();
-  const list = createMemo<POIDetailedInfo[]>(() => results()?.list ?? []);
-  const extras = createMemo<POIDetailedInfo[]>(() => results()?.extras ?? []);
+  // Places waved away with "Not for me". Cards, pins and the extras'
+  // numbering all derive from the filtered view so they never disagree.
+  const [dismissed, setDismissed] = createSignal<ReadonlySet<string>>(new Set());
+  const dismiss = (poi: POIDetailedInfo) =>
+    setDismissed((current) => new Set(current).add(resultKey(poi)));
+  const rawList = createMemo<POIDetailedInfo[]>(() => results()?.list ?? []);
+  const visible = createMemo(() => visibleResults(rawList(), results()?.extras ?? [], dismissed()));
+  const list = createMemo<POIDetailedInfo[]>(() => visible().list);
+  const extras = createMemo<POIDetailedInfo[]>(() => visible().extras);
   const title = () => listTitle(props.domain, resolvedCity());
 
   // The city the server resolved, once it is known: the URL, the share
@@ -269,8 +277,8 @@ export default function ResultsPage(props: ResultsPageProps) {
     () => list().filter((poi) => poi.images?.[0] || poi.image_credits?.[0] || poi.id).length,
   );
   const phase = createMemo<"skeleton" | "enriching" | "done" | "error">(() => {
-    if (streamError() && list().length === 0) return "error";
-    if (list().length === 0) return "skeleton";
+    if (streamError() && rawList().length === 0) return "error";
+    if (rawList().length === 0) return "skeleton";
     if (isStreaming()) return "enriching";
     return "done";
   });
@@ -613,10 +621,11 @@ export default function ResultsPage(props: ResultsPageProps) {
             cityName={resolvedCity()}
             selectedKey={selectedId()}
             onSelect={onCardSelect}
+            onDismiss={dismiss}
           />
         </Show>
 
-        <Show when={phase() === "done" && list().length === 0 && !streamError()}>
+        <Show when={phase() === "done" && rawList().length === 0 && !streamError()}>
           <div class="loci-card rounded-2xl p-6 text-center space-y-3 mt-4">
             <p class="font-display text-xl text-foreground">
               No {meta().label.toLowerCase()} found for this search
@@ -653,7 +662,8 @@ export default function ResultsPage(props: ResultsPageProps) {
               cityName={resolvedCity()}
               selectedKey={selectedId()}
               onSelect={onCardSelect}
-              startIndex={list().length}
+              startIndex={visible().extrasStart}
+              onDismiss={dismiss}
             />
           </div>
         </Show>

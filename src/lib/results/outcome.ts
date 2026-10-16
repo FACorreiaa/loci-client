@@ -34,3 +34,17 @@ export function withoutDismissed<T extends TracedResult>(
 ): T[] {
   return dismissed.size === 0 ? pois : pois.filter((poi) => !dismissed.has(resultKey(poi)));
 }
+
+/**
+ * A results page after dismissals: the list and the extras both filtered, and
+ * where the extras' numbering starts. The page derives its cards, its map pins
+ * and the extras block from this one value so all three agree.
+ */
+export function visibleResults<T extends TracedResult>(
+  list: T[],
+  extras: T[],
+  dismissed: ReadonlySet<string>,
+): { list: T[]; extras: T[]; extrasStart: number } {
+  const shown = withoutDismissed(list, dismissed);
+  return { list: shown, extras: withoutDismissed(extras, dismissed), extrasStart: shown.length };
+}

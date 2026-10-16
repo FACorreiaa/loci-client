@@ -34,6 +34,12 @@ export interface ResultsListProps {
    * trace), which teaches the taste profile and hides the place.
    */
   dismissible?: boolean;
+  /**
+   * The parent owns dismissals (it also draws the places on a map): the list
+   * records the event and reports the place, and the parent filters `pois`.
+   * Without it the list hides dismissed places itself.
+   */
+  onDismiss?: (poi: POIDetailedInfo) => void;
 }
 
 const MAX_AMENITIES = 4;
@@ -63,7 +69,8 @@ export default function ResultsList(props: ResultsListProps) {
 
   const dismiss = (poi: POIDetailedInfo) => {
     record(poi, "RECOMMENDATION_EVENT_TYPE_DISMISSED");
-    setDismissed((current) => new Set(current).add(resultKey(poi)));
+    if (props.onDismiss) props.onDismiss(poi);
+    else setDismissed((current) => new Set(current).add(resultKey(poi)));
   };
 
   return (
