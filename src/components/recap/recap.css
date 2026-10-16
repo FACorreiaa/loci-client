@@ -472,6 +472,9 @@
   display: flex;
   justify-content: space-between;
 }
+.rc-pass-body > .rc-barcode {
+  margin-top: auto;
+}
 .rc-pass-body {
   padding: 7%;
   display: flex;
@@ -523,21 +526,11 @@
   background: var(--rc-cream);
   color: var(--rc-ink);
 }
-.rc-days .rc-head {
-  position: absolute;
-  left: 7%;
-  right: 7%;
-  top: 12%;
-  animation: rc-rise 0.6s ease-out both;
-}
 .rc-stubs {
-  position: absolute;
-  left: 7%;
-  right: 7%;
-  top: 46%;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15cqw, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(17cqw, 1fr));
   gap: 2.5cqw;
+  margin-top: 4cqw;
 }
 .rc-stub {
   border: 1.5px solid var(--rc-ink);
@@ -608,8 +601,10 @@
   font-family: var(--rc-display);
   font-weight: 800;
   font-size: 4.6cqw;
-  -webkit-mask: radial-gradient(circle 3px at 3px 3px, transparent 98%, #000) -3px -3px / 8px 8px;
-  mask: radial-gradient(circle 3px at 3px 3px, transparent 98%, #000) -3px -3px / 8px 8px;
+  /* Perforated edge: a dotted ring in the paper's colour over the stamp's rim. */
+  outline: 3px dotted var(--rc-paper);
+  outline-offset: -2px;
+  box-shadow: 0 0 0 1px rgb(50 59 66 / 0.08);
 }
 .rc-postcard h3 {
   font-family: var(--rc-display);
@@ -741,8 +736,11 @@
   position: absolute;
   left: 8%;
   right: 8%;
-  top: 18%;
-  display: grid;
+  top: 12%;
+  bottom: 14%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   gap: 4cqw;
   animation: rc-rise 0.6s ease-out both;
 }
@@ -813,6 +811,11 @@
   overflow: hidden;
   animation: rc-thud 0.38s cubic-bezier(0.3, 1.6, 0.5, 1) both;
   animation-delay: calc(0.6s + var(--i) * 0.18s);
+}
+.rc-face[data-anon] {
+  background: var(--rc-sand);
+  color: var(--rc-muted);
+  border: 1.5px dashed var(--rc-muted);
 }
 .rc-face img {
   width: 100%;

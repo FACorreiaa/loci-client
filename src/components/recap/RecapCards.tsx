@@ -137,7 +137,10 @@ const project = (pts: { latitude: number; longitude: number }[]) => {
   return xs.map((x, i) => [ox + (x - minX) * sx, oy + (ys[i] - minY) * sx] as const);
 };
 
-function Route(props: { card: Extract<RecapCard["card"], { case: "route" }>["value"] }) {
+function Route(props: {
+  card: Extract<RecapCard["card"], { case: "route" }>["value"];
+  city?: string;
+}) {
   const pts = () => project(props.card.points);
   const first = () => props.card.points[0]?.label;
   const last = () => props.card.points[props.card.points.length - 1]?.label;
@@ -149,7 +152,16 @@ function Route(props: { card: Extract<RecapCard["card"], { case: "route" }>["val
           <span>Loci</span>
         </div>
         <div class="rc-pass-body">
-          <Show when={first() && last()}>
+          <Show
+            when={first() && last()}
+            fallback={
+              <Show when={props.city}>
+                <div class="rc-legs">
+                  <span>Around {props.city}</span>
+                </div>
+              </Show>
+            }
+          >
             <div class="rc-legs">
               <span>{first()}</span>
               <span aria-hidden="true">→</span>
@@ -191,6 +203,7 @@ function Route(props: { card: Extract<RecapCard["card"], { case: "route" }>["val
               </svg>
             </div>
           </Show>
+          <div class="rc-barcode" aria-hidden="true" />
         </div>
       </div>
     </div>
@@ -208,25 +221,25 @@ function Days(props: { card: Extract<RecapCard["card"], { case: "days" }>["value
         }));
   return (
     <div class="rc-card rc-days">
-      <div class="rc-head">
+      <div class="rc-center">
         <div class="rc-count">
           {props.card.daysCompleted}
           <small>of {props.card.daysTotal} days</small>
         </div>
-        <p class="rc-headline" style={{ "margin-top": "3%" }}>
+        <p class="rc-headline" style={{ margin: 0 }}>
           {props.card.headline}
         </p>
-      </div>
-      <div class="rc-stubs">
-        <For each={stubs().slice(0, 12)}>
-          {(d, i) => (
-            <div class="rc-stub" data-done={d.completed ? "" : undefined} style={{ "--i": i() }}>
-              Day
-              <b>{d.dayNumber}</b>
-              {d.stopsDone ? `${d.stopsDone} stops` : d.completed ? "walked" : " "}
-            </div>
-          )}
-        </For>
+        <div class="rc-stubs">
+          <For each={stubs().slice(0, 12)}>
+            {(d, i) => (
+              <div class="rc-stub" data-done={d.completed ? "" : undefined} style={{ "--i": i() }}>
+                Day
+                <b>{d.dayNumber}</b>
+                {d.stopsDone ? `${d.stopsDone} stops` : d.completed ? "walked" : "\u00a0"}
+              </div>
+            )}
+          </For>
+        </div>
       </div>
     </div>
   );
@@ -279,10 +292,11 @@ const REASON = ["", "Kept", "Reviewed", "First visit"];
 function Highlights(props: { card: Extract<RecapCard["card"], { case: "highlights" }>["value"] }) {
   return (
     <div class="rc-card rc-highlights">
-      <div class="rc-center" style={{ top: "11%" }}>
-        <div class="rc-kicker" style={{ opacity: 0.7 }}>
-          {props.card.headline}
-        </div>
+      <div
+        class="rc-kicker"
+        style={{ position: "absolute", left: "8%", right: "8%", top: "11%", opacity: 0.7 }}
+      >
+        {props.card.headline}
       </div>
       <div class="rc-pins">
         <For each={props.card.highlights}>
@@ -290,7 +304,9 @@ function Highlights(props: { card: Extract<RecapCard["card"], { case: "highlight
             <div class="rc-pin" style={{ "--i": i(), "--r": `${[-2, 1.5, -1][i() % 3]}deg` }}>
               <b>{h.name}</b>
               <span>
-                {[h.category, REASON[h.reason] ?? ""].filter(Boolean).join(" · ")}
+                {[h.category.replace(/_/g, " "), REASON[h.reason] ?? ""]
+                  .filter(Boolean)
+                  .join(" · ")}
                 <Show when={h.rating > 0}>
                   {" · "}
                   <span class="rc-stars" aria-label={`${h.rating} out of 5`}>
@@ -350,9 +366,11 @@ function Field(props: { card: Extract<RecapCard["card"], { case: "field" }>["val
           </div>
         </div>
         <p class="rc-headline">{props.card.headline}</p>
-        <div class="rc-kicker" style={{ opacity: 0.7 }}>
-          {props.card.placesKept} places kept · {props.card.daysFinished} days finished
-        </div>
+        <Show when={props.card.placesKept > 0 || props.card.daysFinished > 0}>
+          <div class="rc-kicker" style={{ opacity: 0.7 }}>
+            {props.card.placesKept} places kept · {props.card.daysFinished} days finished
+          </div>
+        </Show>
       </div>
     </div>
   );
@@ -371,6 +389,15 @@ function Friends(props: {
             `of your friends have ${props.city ?? "this city"} on a trip too.`}
         </p>
         <div class="rc-faces">
+          <Show when={props.card.friends.length === 0}>
+            <For each={Array.from({ length: Math.min(5, props.card.friendsBeenCount) })}>
+              {(_, i) => (
+                <div class="rc-face" data-anon style={{ "--i": i() }} aria-hidden="true">
+                  ·
+                </div>
+              )}
+            </For>
+          </Show>
           <For each={props.card.friends}>
             {(f, i) => (
               <div class="rc-face" style={{ "--i": i() }} title={f.displayName}>
@@ -393,7 +420,7 @@ function Outro(props: {
 }) {
   return (
     <div class="rc-card rc-outro">
-      <div class="rc-center" style={{ top: "26%" }}>
+      <div class="rc-center">
         <div class="rc-kicker" style={{ opacity: 0.7 }}>
           {props.recap.title} · {props.recap.periodLabel}
         </div>
@@ -424,7 +451,7 @@ export function RecapCardView(props: { recap: Recap; card: RecapCard; outroFoote
       case "places":
         return <Places card={c.value} />;
       case "route":
-        return <Route card={c.value} />;
+        return <Route card={c.value} city={city()} />;
       case "days":
         return <Days card={c.value} />;
       case "taste":
