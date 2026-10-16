@@ -1,10 +1,12 @@
-import { For, Show, createMemo } from "solid-js";
-import { Star } from "lucide-solid";
+import { For, Show, createMemo, createSignal } from "solid-js";
+import { Star, X } from "lucide-solid";
 import StopCard from "~/components/itinerary/StopCard";
 import FavoriteButton from "~/components/shared/FavoriteButton";
 import AddToListButton from "~/components/lists/AddToListButton";
 import { stopFromPoi, type ItineraryStop } from "~/lib/itinerary/createItineraryStream";
 import type { POIDetailedInfo } from "~/lib/api/types";
+import { recordRecommendationEvents } from "~/lib/api/recommendations";
+import { outcomeEvent, resultKey, withoutDismissed } from "~/lib/results/outcome";
 import {
   DOMAINS,
   favoritePayload,
@@ -27,6 +29,11 @@ export interface ResultsListProps {
   startIndex?: number;
   /** Default true. Off where saving makes no sense (a preview). */
   showFavorite?: boolean;
+  /**
+   * Default true. Offers "Not for me" on places Loci recommended (those with a
+   * trace), which teaches the taste profile and hides the place.
+   */
+  dismissible?: boolean;
 }
 
 const MAX_AMENITIES = 4;
@@ -38,11 +45,26 @@ const MAX_AMENITIES = 4;
  * hotel looks the same everywhere it appears.
  */
 export default function ResultsList(props: ResultsListProps) {
+  const [dismissed, setDismissed] = createSignal<ReadonlySet<string>>(new Set());
   const rows = createMemo(() => {
     const start = props.startIndex ?? 0;
-    const pois = props.limit ? props.pois.slice(0, props.limit) : props.pois;
+    const visible = withoutDismissed(props.pois, dismissed());
+    const pois = props.limit ? visible.slice(0, props.limit) : visible;
     return pois.map((poi, i) => ({ poi, stop: stopFromPoi(poi, start + i), index: start + i }));
   });
+
+  const record = (
+    poi: POIDetailedInfo,
+    type: "RECOMMENDATION_EVENT_TYPE_OPENED" | "RECOMMENDATION_EVENT_TYPE_DISMISSED",
+  ) => {
+    const event = outcomeEvent(poi, type);
+    if (event) void recordRecommendationEvents([event]);
+  };
+
+  const dismiss = (poi: POIDetailedInfo) => {
+    record(poi, "RECOMMENDATION_EVENT_TYPE_DISMISSED");
+    setDismissed((current) => new Set(current).add(resultKey(poi)));
+  };
 
   return (
     <div class="space-y-3">
@@ -52,7 +74,14 @@ export default function ResultsList(props: ResultsListProps) {
             stop={row.stop}
             index={row.index}
             selected={props.selectedKey === row.poi.name}
-            onClick={props.onSelect ? () => props.onSelect?.(row.poi, row.stop) : undefined}
+            onClick={
+              props.onSelect
+                ? () => {
+                    record(row.poi, "RECOMMENDATION_EVENT_TYPE_OPENED");
+                    props.onSelect?.(row.poi, row.stop);
+                  }
+                : undefined
+            }
             meta={<DomainMeta poi={row.poi} domain={props.domain} />}
             action={
               <Show when={props.showFavorite ?? true}>
@@ -70,6 +99,21 @@ export default function ResultsList(props: ResultsListProps) {
                     size="sm"
                     recommendationTrace={row.poi.recommendation_trace}
                   />
+                  <Show when={(props.dismissible ?? true) && row.poi.recommendation_trace}>
+                    <button
+                      type="button"
+                      class="inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      aria-label={`Not for me: ${row.poi.name}`}
+                      title="Not for me — Loci learns from this"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dismiss(row.poi);
+                      }}
+                    >
+                      <X class="h-3.5 w-3.5" />
+                    </button>
+                  </Show>
                 </span>
               </Show>
             }
