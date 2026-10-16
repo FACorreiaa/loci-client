@@ -1,6 +1,6 @@
 import { createSignal, For, Show, createEffect, onMount } from "solid-js";
-import { useParams } from "@solidjs/router";
-import { AlertTriangle } from "lucide-solid";
+import { A, useParams } from "@solidjs/router";
+import { AlertTriangle, Sparkles } from "lucide-solid";
 import TripChecklists from "~/components/trip/TripChecklists";
 import {
   useTrip,
@@ -43,6 +43,7 @@ import type { POI } from "~/lib/api/types";
 import TripSharePanel from "~/components/social/TripSharePanel";
 import { useMarkStop, type StopMark } from "~/lib/api/gamification";
 import { showToast } from "~/lib/toast-store";
+import { tripHasEnded } from "~/lib/recap/recap";
 
 /** Per-trip edit-mode memory, so a reload mid-edit does not drop you back into read mode. */
 const editingKey = (tripId: string) => `loci.trip.editing.${tripId}`;
@@ -309,6 +310,22 @@ export default function TripEditor() {
               onShare={() => setSharing(true)}
               sharing={false}
             />
+
+            <Show when={tripHasEnded(t)}>
+              <A
+                href={`/recap/trip/${params.id}`}
+                class="loci-card mb-4 flex items-center gap-3 p-4 transition-colors hover:bg-muted/60"
+              >
+                <Sparkles class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                <span class="min-w-0 flex-1">
+                  <span class="block font-medium">Your trip recap</span>
+                  <span class="block text-sm text-muted-foreground">
+                    The places, the kilometres and what Loci learned about your taste.
+                  </span>
+                </span>
+                <span class="text-sm font-medium text-primary">See it</span>
+              </A>
+            </Show>
 
             <TripSharePanel
               open={sharing()}
