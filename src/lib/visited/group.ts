@@ -23,3 +23,16 @@ export function groupVisitsByCity(visits: VisitedPlace[]): CityVisits[] {
   }
   return [...byCity].map(([city, places]) => ({ city, places }));
 }
+
+export interface VisitedPage {
+  places: VisitedPlace[];
+  total: number;
+}
+
+/** The page with one visit taken out, for the optimistic delete. */
+export function withoutVisit(page: VisitedPage, id: string): VisitedPage {
+  const places = page.places.filter((p) => p.id !== id);
+  return places.length === page.places.length
+    ? page
+    : { places, total: Math.max(page.total - 1, 0) };
+}
