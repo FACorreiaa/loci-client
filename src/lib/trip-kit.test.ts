@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAppleMapsUrl,
+  buildAppleMapsMultiStopUrl,
   buildGoogleMapsMultiStopUrl,
   buildGoogleMapsUrl,
   buildItineraryIcs,
@@ -103,6 +104,35 @@ describe("buildGoogleMapsMultiStopUrl", () => {
   });
 });
 
+describe("buildAppleMapsMultiStopUrl", () => {
+  it("builds a walking directions URL", () => {
+    const url = buildAppleMapsMultiStopUrl(stops.slice(0, 3), "Lisbon");
+    expect(url).not.toBeNull();
+    expect(url).toContain("maps.apple.com");
+    expect(url).toContain("dirflg=w");
+  });
+
+  it("includes origin coordinates", () => {
+    const url = buildAppleMapsMultiStopUrl(stops.slice(0, 2), "Lisbon");
+    expect(url).toContain("saddr=38.7,-9.1");
+  });
+
+  it("returns null for empty stops", () => {
+    expect(buildAppleMapsMultiStopUrl([], "Lisbon")).toBeNull();
+  });
+
+  it("returns null when no stop has valid coordinates or name", () => {
+    const noCoords: TripStop[] = [{ name: "", latitude: 0, longitude: 0 }];
+    expect(buildAppleMapsMultiStopUrl(noCoords, "X")).toBeNull();
+  });
+
+  it("falls back to single-place URL for one stop", () => {
+    const url = buildAppleMapsMultiStopUrl([stops[0]], "Lisbon");
+    expect(url).toContain("maps.apple.com");
+    expect(url).toContain("ll=38.7,-9.1");
+  });
+});
+
 describe("buildItineraryIcs", () => {
   it("emits VEVENT blocks", () => {
     const ics = buildItineraryIcs({
@@ -115,6 +145,65 @@ describe("buildItineraryIcs", () => {
     expect(ics).toContain("BEGIN:VEVENT");
     expect(ics).toContain("SUMMARY:A");
     expect(ics).toContain("END:VCALENDAR");
+  });
+
+  it("emits one all-day umbrella VEVENT per day", () => {
+    const ics = buildItineraryIcs(
+      { title: "Funchal", cityName: "Funchal", stops, stopsPerDay: 2 },
+      { startDate: new Date(2026, 9, 8, 9, 0, 0) },
+    );
+    // 3 days → 3 VALUE=DATE lines
+    const datelines = ics.split("\r\n").filter((l) => l.startsWith("DTSTART;VALUE=DATE:"));
+    expect(datelines).toHaveLength(3);
+    expect(datelines[0]).toBe("DTSTART;VALUE=DATE:20261008");
+    expect(datelines[1]).toBe("DTSTART;VALUE=DATE:20261009");
+    expect(datelines[2]).toBe("DTSTART;VALUE=DATE:20261010");
+  });
+
+  it("all-day umbrella DTEND is the next calendar day", () => {
+    const ics = buildItineraryIcs(
+      { title: "Funchal", cityName: "Funchal", stops: stops.slice(0, 2), stopsPerDay: 4 },
+      { startDate: new Date(2026, 9, 8, 9, 0, 0) },
+    );
+    expect(ics).toContain("DTEND;VALUE=DATE:20261009");
+  });
+
+  it("all-day umbrella SUMMARY contains title and day label", () => {
+    const ics = buildItineraryIcs(
+      { title: "Funchal", cityName: "Funchal", stops: stops.slice(0, 4), stopsPerDay: 4 },
+      { startDate: new Date(2026, 9, 8, 9, 0, 0) },
+    );
+    expect(ics).toContain("SUMMARY:Funchal \u2014 Day 1");
+  });
+
+  it("all-day umbrella DESCRIPTION lists stop names", () => {
+    const ics = buildItineraryIcs(
+      { title: "T", cityName: "X", stops: stops.slice(0, 2), stopsPerDay: 4 },
+      { startDate: new Date(2026, 9, 8, 9, 0, 0) },
+    );
+    expect(ics).toContain("A \u00b7 B");
+  });
+
+  it("total VEVENT count = days + stops", () => {
+    // 5 stops with stopsPerDay=2 → 3 days → 3 umbrella + 5 stop = 8 VEVENTs
+    const ics = buildItineraryIcs(
+      { title: "X", cityName: "X", stops, stopsPerDay: 2 },
+      { startDate: new Date(2026, 9, 8, 9, 0, 0) },
+    );
+    const count = (ics.match(/BEGIN:VEVENT/g) ?? []).length;
+    expect(count).toBe(8); // 3 umbrella + 5 stops
+  });
+
+  it("individual stop VEVENTs still exist alongside umbrella events", () => {
+    const ics = buildItineraryIcs(
+      { title: "X", cityName: "X", stops: stops.slice(0, 2), stopsPerDay: 4 },
+      { startDate: new Date(2026, 9, 8, 9, 0, 0) },
+    );
+    // Stop event SUMMARYs
+    expect(ics).toContain("SUMMARY:A");
+    expect(ics).toContain("SUMMARY:B");
+    // And the umbrella
+    expect(ics).toContain("VALUE=DATE");
   });
 });
 
