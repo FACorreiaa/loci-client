@@ -153,3 +153,41 @@ export function telegramShareUrl(payload: SharePayload): string {
 export function copyShareToClipboard(payload: SharePayload): Promise<boolean> {
   return copyText(textWithLink(payload));
 }
+
+/**
+ * Shares image files through the native sheet (a story card to Instagram,
+ * say). Where the browser cannot share files, the image is downloaded
+ * instead, so the button always leaves the person holding the picture.
+ */
+export async function shareFiles(
+  files: File[],
+  data: { title?: string; text?: string; url?: string } = {},
+): Promise<NativeShareResult | "downloaded"> {
+  if (
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function" &&
+    typeof navigator.canShare === "function" &&
+    navigator.canShare({ files })
+  ) {
+    try {
+      await navigator.share({ ...data, files });
+      return "shared";
+    } catch (e) {
+      if ((e as DOMException)?.name === "AbortError") return "cancelled";
+      console.error("Share failed:", e);
+      return "failed";
+    }
+  }
+  if (typeof document === "undefined") return "unavailable";
+  for (const file of files) {
+    const href = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 10_000);
+  }
+  return "downloaded";
+}

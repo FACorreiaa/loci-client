@@ -47,7 +47,11 @@ export type AnalyticsEvent =
    * The client's own stream mapping threw (a bare TypeError out of the
    * StreamChat reader). Property: `message`. A code bug, not a network drop.
    */
-  | "stream_mapper_error";
+  | "stream_mapper_error"
+  /** A trip recap was opened. kind: owner | shared. */
+  | "recap_opened"
+  /** A recap was shared. kind: link | image. */
+  | "recap_shared";
 
 export type AnalyticsProperties = Record<string, unknown>;
 

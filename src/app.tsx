@@ -1,7 +1,7 @@
 import { Router, useLocation } from "@solidjs/router";
 import { FileRoutes } from "@solidjs/start/router";
 import { createMemo, Show, Suspense } from "solid-js";
-import { isChromeless } from "~/lib/chromeless-routes";
+import { hasOwnSocialImage, isChromeless } from "~/lib/chromeless-routes";
 import { Meta, MetaProvider } from "@solidjs/meta";
 import Nav from "~/components/Nav";
 import Footer from "~/components/Footer";
@@ -51,18 +51,31 @@ function SocialDefaults() {
     <>
       <Meta property="og:type" content="website" />
       <Meta property="og:site_name" content="Loci" />
+      {/* summary_large_image is what makes the 1200x630 card render full-width
+          rather than as a small square thumbnail beside the text. */}
+      <Meta name="twitter:card" content="summary_large_image" />
+      <Meta name="twitter:site" content="@loci" />
+      <Meta name="twitter:creator" content="@loci" />
+    </>
+  );
+}
+
+/**
+ * The brand card, for every page that has no image of its own. Lives in the
+ * Router root because whether a page has its own image depends on the path
+ * (see hasOwnSocialImage): image tags are not merged, so a page's own image
+ * after this one would lose to it in a crawler.
+ */
+function DefaultSocialImage() {
+  return (
+    <>
       <Meta property="og:image" content={CARD} />
       <Meta property="og:image:width" content="1200" />
       <Meta property="og:image:height" content="630" />
       <Meta property="og:image:type" content="image/png" />
       <Meta property="og:image:alt" content={CARD_ALT} />
-      {/* summary_large_image is what makes the 1200x630 card render full-width
-          rather than as a small square thumbnail beside the text. */}
-      <Meta name="twitter:card" content="summary_large_image" />
       <Meta name="twitter:image" content={CARD} />
       <Meta name="twitter:image:alt" content={CARD_ALT} />
-      <Meta name="twitter:site" content="@loci" />
-      <Meta name="twitter:creator" content="@loci" />
     </>
   );
 }
@@ -83,6 +96,9 @@ export default function App() {
                   const bare = createMemo(() => isChromeless(location.pathname));
                   return (
                     <AuthProvider>
+                      <Show when={!hasOwnSocialImage(location.pathname)}>
+                        <DefaultSocialImage />
+                      </Show>
                       <ProfilePreferencesSync />
                       <LocaleProvider>
                         <LocationProvider>
