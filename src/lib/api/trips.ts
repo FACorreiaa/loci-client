@@ -47,7 +47,6 @@ import {
 import { useAppQuery } from "./authed-query";
 import { capture } from "../analytics";
 import { mapPublicUser, type PublicUser } from "./social";
-import { stopMarkOf } from "./gamification";
 import { planApi, type FlightSearch } from "./trip-plan";
 
 const tripClient = createClient(TripService, transport);
@@ -66,8 +65,6 @@ export interface TripStop {
   notes: string;
   bookingUrl?: string;
   recommendationTrace?: RecommendationTrace;
-  /** Read side only: how the traveller marked it (GamificationService.MarkStop). */
-  mark?: "open" | "done" | "skipped";
 }
 
 export interface TripDay {
@@ -82,8 +79,6 @@ export interface TripDay {
   cityLon?: number;
   /** True when the day includes a move between cities. */
   travelDay?: boolean;
-  /** Read side only: when the traveller finished the day. */
-  completedAt?: string;
 }
 
 /** Travel between two consecutive cities on a multi-city trip. */
@@ -312,7 +307,6 @@ export const mapTrip = (p: ProtoTripDraft): Trip => ({
     cityLat: d.cityLat,
     cityLon: d.cityLon,
     travelDay: d.travelDay,
-    completedAt: d.completedAt ? timestampDate(d.completedAt).toISOString() : undefined,
     stops: (d.stops ?? []).map((s) => ({
       id: s.id,
       poiId: s.poiId,
@@ -323,7 +317,6 @@ export const mapTrip = (p: ProtoTripDraft): Trip => ({
       notes: s.notes,
       bookingUrl: s.bookingUrl,
       recommendationTrace: fromProtoRecommendationTrace(s.recommendationTrace),
-      mark: stopMarkOf(s.status),
     })),
   })),
 });

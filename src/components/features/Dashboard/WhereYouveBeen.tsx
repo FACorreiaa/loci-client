@@ -21,20 +21,12 @@ export default function WhereYouveBeen() {
             kicker="where you've been"
             title="The map so far"
             action={
-              <span class="flex items-center gap-4">
-                <A
-                  href="/visited"
-                  class="text-sm font-medium text-muted-foreground hover:text-foreground"
-                >
-                  Places
-                </A>
-                <A
-                  href="/globe"
-                  class="text-sm font-medium text-muted-foreground hover:text-foreground"
-                >
-                  Open the globe
-                </A>
-              </span>
+              <A
+                href="/globe"
+                class="text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Open the globe
+              </A>
             }
           />
           <p class="font-coord text-xs uppercase tracking-[0.12em] text-muted-foreground">

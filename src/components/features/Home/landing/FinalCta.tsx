@@ -11,7 +11,8 @@ export default function FinalCta() {
           Your next trip is one sentence away.
         </h2>
         <p class="mx-auto mt-3.5 max-w-[52ch] text-muted-foreground">
-          Start free — plot a city, invite your friends, and start collecting places.
+          Start free — plot a city today. Upgrade to Pro when you want unlimited itineraries and
+          agent access.
         </p>
         <div class="mt-7 flex flex-wrap justify-center gap-3">
           <A

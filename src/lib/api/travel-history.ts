@@ -7,22 +7,16 @@
 // both have been removed server-side.
 import { createClient } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
-import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import {
   TravelHistoryService,
   GetGlobeDataRequestSchema,
   GetTravelSummaryRequestSchema,
   ListVisitedCitiesRequestSchema,
-  ListVisitedPOIsRequestSchema,
-  DeleteVisitedPOIRequestSchema,
-  RecordVisitRequestSchema,
   VisitSource,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/travelhistory/travelhistory_pb.js";
 import { transport } from "../connect-transport";
 import { queryKeys } from "./shared";
 import { useAppQuery } from "./authed-query";
-import { withoutVisit, type VisitedPage } from "../visited/group";
 
 const historyClient = createClient(TravelHistoryService, transport);
 
@@ -247,101 +241,5 @@ export const useVisitedCities = (page = 1, pageSize = 50) =>
     staleTime: 5 * 60 * 1000,
     retry: 2,
   }));
-
-/** One place the traveller has been: a walk arrival, a confirmed visit, or "I've been here". */
-export interface VisitedPlace {
-  id: string;
-  poiId: string;
-  poiName: string;
-  cityName: string;
-  source: VisitSourceName;
-  tripId?: string;
-  visitedAt?: Date;
-}
-
-const mapVisitedPOI = (p: any): VisitedPlace => ({
-  id: p.id,
-  poiId: p.poiId,
-  poiName: p.poiName,
-  cityName: p.cityName ?? "",
-  source: sourceName(p.source ?? 0),
-  tripId: p.tripId || undefined,
-  visitedAt: p.visitedAt ? timestampDate(p.visitedAt) : undefined,
-});
-
-export const useVisitedPlaces = (page = 1, pageSize = 200) =>
-  useAppQuery(() => ({
-    queryKey: queryKeys.visitedPlaces(page),
-    queryFn: async () => {
-      const response = await historyClient.listVisitedPOIs(
-        create(ListVisitedPOIsRequestSchema, { page, pageSize }),
-      );
-      return { places: (response.pois ?? []).map(mapVisitedPOI), total: response.total ?? 0 };
-    },
-    staleTime: 60 * 1000,
-    retry: 2,
-  }));
-
-/** A place the traveller says they have been, as shown on its detail page. */
-export interface ManualVisitPlace {
-  id: string;
-  name: string;
-  cityName: string;
-  latitude: number;
-  longitude: number;
-}
-
-/**
- * The RecordVisit request for "I've been here", or undefined when the place
- * lacks what the server requires (a city name and real coordinates). No device
- * fix is sent, so a manual visit is recorded but earns no points.
- */
-export function buildManualVisit(place: ManualVisitPlace) {
-  const cityName = place.cityName.trim();
-  if (!cityName || (place.latitude === 0 && place.longitude === 0)) return undefined;
-  return {
-    cityName,
-    latitude: place.latitude,
-    longitude: place.longitude,
-    poiId: place.id,
-    poiName: place.name,
-  };
-}
-
-export const useRecordManualVisit = () => {
-  const queryClient = useQueryClient();
-  return useMutation(() => ({
-    mutationFn: async (place: ManualVisitPlace) => {
-      const visit = buildManualVisit(place);
-      if (!visit) throw new Error("This place has no city or location to record.");
-      await historyClient.recordVisit(create(RecordVisitRequestSchema, visit));
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.travelHistory }),
-  }));
-};
-
-/**
- * Removes one place from places-I've-been, and with it the taste signal it
- * taught. Optimistic: the row goes at once and comes back if the call fails.
- */
-export const useDeleteVisitedPlace = (page = 1) => {
-  const queryClient = useQueryClient();
-  const key = queryKeys.visitedPlaces(page);
-  return useMutation(() => ({
-    mutationFn: async (id: string) => {
-      await historyClient.deleteVisitedPOI(create(DeleteVisitedPOIRequestSchema, { id }));
-    },
-    onMutate: async (id: string) => {
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<VisitedPage>(key);
-      if (previous) queryClient.setQueryData(key, withoutVisit(previous, id));
-      return { previous };
-    },
-    onError: (_err, _id, context) => {
-      if (context?.previous) queryClient.setQueryData(key, context.previous);
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.travelHistory }),
-  }));
-};
 
 export { trendPercent, summaryTrends } from "./travel-trends";

@@ -9,14 +9,11 @@ import {
 import { ProcessedProfileData, UserProfileResponse } from "~/lib/api/types";
 import { ProtectedRoute } from "~/contexts/AuthContext";
 import { Button } from "~/ui/button";
-import InviteCard from "~/components/social/InviteCard";
 import ProPlanBadge from "~/components/ProPlanBadge";
 import { useRecentInteractions } from "~/lib/api/recents";
 import { useLists } from "~/lib/api/lists";
 import { useFavoritesList } from "~/lib/api/favorites";
 import { recentFavorites } from "~/lib/dashboard/kept";
-import { A } from "@solidjs/router";
-import { fieldLine, useFieldProfile } from "~/lib/api/gamification";
 
 function ProfilePageContent() {
   const { user } = useAuth();
@@ -35,8 +32,6 @@ function ProfilePageContent() {
   const recentsQuery = useRecentInteractions(20);
   const listsQuery = useLists();
   const favoritesQuery = useFavoritesList();
-  const fieldQuery = useFieldProfile();
-  const field = () => (fieldQuery.isSuccess ? fieldQuery.data : undefined);
 
   // Compute real stats from API data
   const computedStats = createMemo(() => {
@@ -584,16 +579,6 @@ function ProfilePageContent() {
                           </h1>
                           <ProPlanBadge />
                         </div>
-                        <Show when={field()}>
-                          {(f) => (
-                            <A
-                              href="/field"
-                              class="loci-chip loci-chip--surface mt-2 inline-flex text-sm"
-                            >
-                              {fieldLine(f())}
-                            </A>
-                          )}
-                        </Show>
                         <div class="flex items-center gap-4 mt-2 text-muted-foreground">
                           <Show when={profileData()?.email}>
                             <div class="flex items-center gap-1">
@@ -630,10 +615,6 @@ function ProfilePageContent() {
                   </Show>
                 </div>
               </div>
-            </div>
-
-            <div class="mb-6">
-              <InviteCard />
             </div>
 
             {/* Tabs */}

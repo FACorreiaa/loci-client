@@ -8,7 +8,6 @@ export interface KeptFavorite {
   cityName: string;
   contentType: ContentType;
   addedAt?: { seconds: bigint; nanos: number };
-  notes?: string;
 }
 
 export const contentTypeLabel = (ct: ContentType): string => {

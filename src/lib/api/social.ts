@@ -66,11 +66,8 @@ export interface FriendRequest {
 export interface Invite {
   code: string;
   url: string;
-  /** Empty: the code does not expire. */
   expiresAt: string;
   inviter?: PublicUser;
-  /** The message to send with the link, without the url. */
-  shareText: string;
 }
 
 export interface PublicProfile {
@@ -124,13 +121,7 @@ const iso = (t?: Timestamp) => (t ? timestampDate(t).toISOString() : "");
 
 export const mapInvite = (i?: ProtoInvite): Invite | undefined =>
   i
-    ? {
-        code: i.code,
-        url: i.url,
-        expiresAt: iso(i.expiresAt),
-        inviter: mapPublicUser(i.inviter),
-        shareText: i.shareText,
-      }
+    ? { code: i.code, url: i.url, expiresAt: iso(i.expiresAt), inviter: mapPublicUser(i.inviter) }
     : undefined;
 
 const mapRequest = (r: ProtoFriendRequest): FriendRequest => ({

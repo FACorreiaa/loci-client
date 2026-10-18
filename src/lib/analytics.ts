@@ -28,8 +28,6 @@ export type AnalyticsEvent =
   | "trip_copied"
   /** Two people became friends (request accepted or invite opened). */
   | "friend_added"
-  /** An invite link was sent or copied; `via` is sheet, copy, sms or facebook. */
-  | "invite_shared"
   /** An action earned points (`kind`: check_in | visit | trip_day, `points`). Same name as iOS. */
   | "points_awarded"
   /** A generated share link was copied to the clipboard. */
@@ -47,11 +45,7 @@ export type AnalyticsEvent =
    * The client's own stream mapping threw (a bare TypeError out of the
    * StreamChat reader). Property: `message`. A code bug, not a network drop.
    */
-  | "stream_mapper_error"
-  /** A trip recap was opened. kind: owner | shared. */
-  | "recap_opened"
-  /** A recap was shared. kind: link | image. */
-  | "recap_shared";
+  | "stream_mapper_error";
 
 export type AnalyticsProperties = Record<string, unknown>;
 

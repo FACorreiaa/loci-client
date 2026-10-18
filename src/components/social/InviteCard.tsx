@@ -1,56 +1,53 @@
 import { createResource, createSignal, Show } from "solid-js";
-import { qrDataUrl } from "~/lib/qr";
-import { Copy, MessageSquare, Share2 } from "lucide-solid";
+import QRCode from "qrcode";
+import { Copy, RefreshCw, Share2 } from "lucide-solid";
 import { Button } from "~/ui/button";
-import { useMyInvite } from "~/lib/api/social";
+import { useMyInvite, useRotateInvite } from "~/lib/api/social";
 import { useAuthGate } from "~/lib/auth/useAuthGate";
-import {
-  copyInviteLink,
-  facebookInviteHref,
-  shareInvite,
-  smsInviteHref,
-  type ShareableInvite,
-} from "~/lib/invite";
-import { capture } from "~/lib/analytics";
-
-const hasShareSheet = () =>
-  typeof navigator !== "undefined" && typeof navigator.share === "function";
+import { copyShareLink } from "~/lib/api/share";
 
 /**
  * Your invite link. Opening it is consent on both sides — the inviter made
  * the link, the invitee chose to open it — so it befriends in one step.
- *
- * Invite opens the system share sheet. Without one (most desktops), or when
- * it fails, the link can be copied, texted through the person's own phone,
- * or posted with Facebook's public sharer.
  */
 export default function InviteCard() {
   const gate = useAuthGate();
   const inviteQuery = useMyInvite(() => gate());
+  const rotate = useRotateInvite();
   const invite = () => (inviteQuery.isSuccess ? inviteQuery.data : undefined);
   const [copied, setCopied] = createSignal(false);
-  const [sheetFailed, setSheetFailed] = createSignal(false);
-  const showFallbacks = () => !hasShareSheet() || sheetFailed();
 
   // Rendered locally; the link is a credential, so no third-party QR service.
   const [qr] = createResource(
     () => invite()?.url,
-    (url) => qrDataUrl(url, 180),
+    async (url) => {
+      try {
+        return await QRCode.toDataURL(url, { width: 180, margin: 1 });
+      } catch {
+        return null;
+      }
+    },
   );
 
-  const copy = async (inv: ShareableInvite) => {
-    if (await copyInviteLink(inv)) {
-      capture("invite_shared", { via: "copy" });
+  const copy = async () => {
+    const url = invite()?.url;
+    if (url && (await copyShareLink(url))) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2400);
     }
   };
 
-  const share = async (inv: ShareableInvite) => {
-    const result = await shareInvite(inv);
-    if (result === "shared") capture("invite_shared", { via: "sheet" });
-    if (result === "unavailable" || result === "failed") setSheetFailed(true);
+  const share = async () => {
+    const url = invite()?.url;
+    if (!url) return;
+    try {
+      await navigator.share({ title: "Travel with me on Loci", url });
+    } catch {
+      /* dismissed */
+    }
   };
+
+  const canShare = () => typeof navigator !== "undefined" && "share" in navigator;
 
   return (
     <section class="loci-card p-5" aria-labelledby="invite-title">
@@ -59,7 +56,7 @@ export default function InviteCard() {
       </h2>
       <p class="mt-1 text-sm text-muted-foreground">
         Anyone who opens your link becomes your friend on Loci. Show the code in person, or send the
-        link from your own phone.
+        link.
       </p>
       <Show
         when={invite()}
@@ -87,45 +84,27 @@ export default function InviteCard() {
                 onFocus={(e) => e.currentTarget.select()}
               />
               <div class="flex flex-wrap gap-2">
-                <Show when={hasShareSheet()}>
-                  <Button size="sm" class="gap-1.5" onClick={() => void share(inv())}>
+                <Button size="sm" class="gap-1.5" onClick={() => void copy()}>
+                  <Copy class="h-3.5 w-3.5" aria-hidden="true" />
+                  {copied() ? "Copied" : "Copy link"}
+                </Button>
+                <Show when={canShare()}>
+                  <Button size="sm" variant="outline" class="gap-1.5" onClick={() => void share()}>
                     <Share2 class="h-3.5 w-3.5" aria-hidden="true" />
-                    Invite
+                    Share
                   </Button>
                 </Show>
                 <Button
                   size="sm"
-                  variant={hasShareSheet() ? "outline" : "default"}
+                  variant="ghost"
                   class="gap-1.5"
-                  onClick={() => void copy(inv())}
+                  disabled={rotate.isPending}
+                  onClick={() => rotate.mutate(undefined)}
+                  title="The old link stops working"
                 >
-                  <Copy class="h-3.5 w-3.5" aria-hidden="true" />
-                  {copied() ? "Copied" : "Copy link"}
+                  <RefreshCw class="h-3.5 w-3.5" aria-hidden="true" />
+                  New link
                 </Button>
-                <Show when={showFallbacks()}>
-                  <Button
-                    as="a"
-                    href={smsInviteHref(inv())}
-                    size="sm"
-                    variant="outline"
-                    class="gap-1.5"
-                    onClick={() => capture("invite_shared", { via: "sms" })}
-                  >
-                    <MessageSquare class="h-3.5 w-3.5" aria-hidden="true" />
-                    Text message
-                  </Button>
-                  <Button
-                    as="a"
-                    href={facebookInviteHref(inv())}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => capture("invite_shared", { via: "facebook" })}
-                  >
-                    Facebook
-                  </Button>
-                </Show>
               </div>
             </div>
           </div>

@@ -9,25 +9,25 @@ export default function Index() {
 
   return (
     <>
-      <Title>Loci — Explore cities with friends</Title>
+      <Title>Loci - AI-Powered Travel Discovery & Personalized Recommendations</Title>
       <Meta
         name="description"
-        content="Plan a city trip in one sentence, walk it stop by stop, collect the places you've really been and see how you rank against your friends."
+        content="Discover your perfect travel experiences with Loci's AI-powered recommendations. Get personalized itineraries, restaurant suggestions, and activities tailored to your preferences."
       />
       <Meta
         name="keywords"
         content="AI travel planner, personalized travel, trip planning, travel recommendations, itinerary planner, restaurant finder, travel discovery, AI travel assistant"
       />
-      <Meta property="og:title" content="Loci — Explore cities with friends" />
+      <Meta property="og:title" content="Loci - AI-Powered Travel Discovery" />
       <Meta
         property="og:description"
-        content="Plan a city trip in one sentence, walk it stop by stop, collect the places you've really been and see how you rank against your friends."
+        content="Discover your perfect travel experiences with AI-powered, personalized recommendations for itineraries, restaurants, and activities."
       />
       <Meta property="og:url" content="https://lociai.fyi" />
-      <Meta name="twitter:title" content="Loci — Explore cities with friends" />
+      <Meta name="twitter:title" content="Loci - AI-Powered Travel Discovery" />
       <Meta
         name="twitter:description"
-        content="Plan a city trip in one sentence, walk it stop by stop, collect the places you've really been and see how you rank against your friends."
+        content="Discover your perfect travel experiences with AI-powered, personalized recommendations."
       />
       <link rel="canonical" href="https://lociai.fyi" />
 
@@ -40,7 +40,7 @@ export default function Index() {
           url: "https://lociai.fyi",
           logo: "https://lociai.fyi/images/brand/icon-512.png",
           description:
-            "City trip planner for exploring cities with friends: plan a trip, walk it and collect the places you've really been.",
+            "AI-powered travel discovery platform delivering hyper-personalized city exploration recommendations",
           sameAs: ["https://twitter.com/loci"],
         })}
       </script>
@@ -52,7 +52,7 @@ export default function Index() {
           "@type": "WebSite",
           name: "Loci",
           url: "https://lociai.fyi",
-          description: "Explore cities with friends",
+          description: "AI-Powered Travel Discovery & Personalized Recommendations",
           potentialAction: {
             "@type": "SearchAction",
             target: {
