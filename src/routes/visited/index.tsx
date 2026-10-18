@@ -1,9 +1,13 @@
 import { For, Show, createMemo } from "solid-js";
 import { Title, Meta } from "@solidjs/meta";
 import { A } from "@solidjs/router";
-import { ChevronLeft, Footprints } from "lucide-solid";
+import { ChevronLeft, Footprints, Trash2 } from "lucide-solid";
 import { ProtectedRoute } from "~/contexts/AuthContext";
-import { useVisitedPlaces, type VisitSourceName } from "~/lib/api/travel-history";
+import {
+  useDeleteVisitedPlace,
+  useVisitedPlaces,
+  type VisitSourceName,
+} from "~/lib/api/travel-history";
 import { groupVisitsByCity } from "~/lib/visited/group";
 
 const SOURCE_LABEL: Record<VisitSourceName, string> = {
@@ -24,6 +28,7 @@ const formatDate = (d?: Date) =>
  */
 function VisitedContent() {
   const visited = useVisitedPlaces();
+  const remove = useDeleteVisitedPlace();
   const groups = createMemo(() => groupVisitsByCity(visited.data?.places ?? []));
 
   return (
@@ -47,7 +52,8 @@ function VisitedContent() {
             <h1 class="text-2xl sm:text-3xl font-bold text-foreground">Places I've been</h1>
           </div>
           <p class="text-muted-foreground text-sm sm:text-base">
-            Every place you walked to or marked as been-there. Loci learns your taste from these.
+            Every place you walked to or marked as been-there. Loci learns your taste from these;
+            remove one and it forgets that too.
           </p>
         </header>
 
@@ -85,6 +91,15 @@ function VisitedContent() {
                                 </span>
                               </Show>
                               {formatDate(place.visitedAt)}
+                              <button
+                                type="button"
+                                class="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted hover:text-foreground"
+                                aria-label={`Remove ${place.poiName || "this place"} from places you've been`}
+                                title="Remove — Loci also forgets what it learned from it"
+                                onClick={() => remove.mutate(place.id)}
+                              >
+                                <Trash2 class="h-3.5 w-3.5" />
+                              </button>
                             </span>
                           </li>
                         )}

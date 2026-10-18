@@ -15,12 +15,14 @@ import {
   GetTravelSummaryRequestSchema,
   ListVisitedCitiesRequestSchema,
   ListVisitedPOIsRequestSchema,
+  DeleteVisitedPOIRequestSchema,
   RecordVisitRequestSchema,
   VisitSource,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/travelhistory/travelhistory_pb.js";
 import { transport } from "../connect-transport";
 import { queryKeys } from "./shared";
 import { useAppQuery } from "./authed-query";
+import { withoutVisit, type VisitedPage } from "../visited/group";
 
 const historyClient = createClient(TravelHistoryService, transport);
 
@@ -315,6 +317,30 @@ export const useRecordManualVisit = () => {
       await historyClient.recordVisit(create(RecordVisitRequestSchema, visit));
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.travelHistory }),
+  }));
+};
+
+/**
+ * Removes one place from places-I've-been, and with it the taste signal it
+ * taught. Optimistic: the row goes at once and comes back if the call fails.
+ */
+export const useDeleteVisitedPlace = (page = 1) => {
+  const queryClient = useQueryClient();
+  const key = queryKeys.visitedPlaces(page);
+  return useMutation(() => ({
+    mutationFn: async (id: string) => {
+      await historyClient.deleteVisitedPOI(create(DeleteVisitedPOIRequestSchema, { id }));
+    },
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<VisitedPage>(key);
+      if (previous) queryClient.setQueryData(key, withoutVisit(previous, id));
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) queryClient.setQueryData(key, context.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.travelHistory }),
   }));
 };
 
