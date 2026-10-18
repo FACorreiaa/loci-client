@@ -19,11 +19,7 @@ import { resumeLiveSession } from "~/lib/streaming/resume-live";
 import { hydrateSession } from "~/lib/streaming/hydrate-session";
 import { getChatSession } from "~/lib/api/llm";
 import { persistCompletedSession } from "~/lib/utils/chatUtils";
-import {
-  getOfflineItinerary,
-  saveItineraryOffline,
-  updateItineraryMeta,
-} from "~/lib/itinerary-offline-store";
+import { getOfflineItinerary, saveItineraryOffline } from "~/lib/itinerary-offline-store";
 import { useSaveItineraryMutation } from "~/lib/api/itineraries";
 import { useUserSubscription } from "~/lib/api/billing";
 import { canUsePro } from "~/lib/subscription";
@@ -128,8 +124,8 @@ export default function ResultsPage(props: ResultsPageProps) {
   const [hydrating, setHydrating] = createSignal(false);
   const [savedOffline, setSavedOffline] = createSignal(false);
   // Trip Kit persistent meta — restored from the offline record when one exists.
-  const [tripStartDate, setTripStartDate] = createSignal<string | undefined>(undefined);
-  const [stopNotes, setStopNotes] = createSignal<Record<string, string>>({});
+  const [, setTripStartDate] = createSignal<string | undefined>(undefined);
+  const [, setStopNotes] = createSignal<Record<string, string>>({});
 
   const saveItineraryMutation = useSaveItineraryMutation();
   const subscriptionQuery = useUserSubscription(() => isAuthenticated());
