@@ -79,6 +79,7 @@ export const queryKeys = {
   globeData: (limit: number, periodDays: number) =>
     ["travel-history", "globe", limit, periodDays] as const,
   visitedCities: (page: number) => ["travel-history", "cities", page] as const,
+  visitedPlaces: (page: number) => ["travel-history", "places", page] as const,
   travelSummary: (periodDays: number) => ["travel-history", "summary", periodDays] as const,
 };
 
