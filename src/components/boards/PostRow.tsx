@@ -1,6 +1,6 @@
 import { Show } from "solid-js";
 import { A } from "@solidjs/router";
-import { MessageSquare, Paperclip } from "lucide-solid";
+import { Bot, MessageSquare, Paperclip } from "lucide-solid";
 import UserAvatar from "~/components/social/UserAvatar";
 import { profilePath } from "~/lib/api/social";
 import { timeAgo } from "~/lib/news/ticker";
@@ -52,6 +52,12 @@ export default function PostRow(props: {
               class="ml-1 inline h-3.5 w-3.5 text-muted-foreground"
               aria-label="Has a Loci item attached"
             />
+          </Show>
+          <Show when={p().isAiGenerated}>
+            <span class="ml-1 inline-flex items-center gap-1 rounded-full border border-primary/40 px-1.5 py-0.5 text-[10px] font-normal text-primary">
+              <Bot class="h-3 w-3" aria-hidden="true" />
+              AI generated
+            </span>
           </Show>
         </h3>
         <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">

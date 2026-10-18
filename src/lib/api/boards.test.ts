@@ -40,6 +40,11 @@ describe("boards mappers", () => {
     expect(p.attachment).toMatchObject({ kind: "itinerary", ref: "i1", title: "Lisbon in 3 days" });
   });
 
+  it("maps the AI-generated provenance flag", () => {
+    const p = mapPost(create(PostSchema, { id: "p1", isAiGenerated: true }));
+    expect(p.isAiGenerated).toBe(true);
+  });
+
   it("drops an attachment of an unknown kind", () => {
     const p = mapPost(
       create(PostSchema, { id: "p1", attachment: { kind: AttachmentKind.UNSPECIFIED } }),

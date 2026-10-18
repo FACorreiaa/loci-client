@@ -75,6 +75,7 @@ export interface Post {
   commentCount: number;
   myVote: Vote;
   createdAt: string;
+  isAiGenerated: boolean;
 }
 
 export interface Comment {
@@ -139,6 +140,7 @@ const clampVote = (v: number): Vote => (v > 0 ? 1 : v < 0 ? -1 : 0);
 
 export const mapPost = (p: ProtoPost): Post => {
   const kind = p.attachment ? KIND_NAMES[p.attachment.kind] : undefined;
+  const isAiGenerated = p.isAiGenerated || p.author?.username === "loci-editorial";
   return {
     id: p.id,
     board: { slug: p.board?.slug ?? "", name: p.board?.name ?? "" },
@@ -162,6 +164,7 @@ export const mapPost = (p: ProtoPost): Post => {
     commentCount: p.commentCount,
     myVote: clampVote(p.myVote),
     createdAt: iso(p.createdAt),
+    isAiGenerated,
   };
 };
 
