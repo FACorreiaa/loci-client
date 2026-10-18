@@ -161,8 +161,61 @@ export function buildGoogleMapsMultiStopUrl(stops: TripStop[], cityName: string)
   return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints}&travelmode=walking`;
 }
 
+/**
+ * Apple Maps walking directions URL for an ordered set of stops.
+ *
+ * Apple Maps' URL scheme only supports a single origin → destination pair.
+ * For multi-stop routes we chain intermediate stops using the
+ * `daddr=<addr>+to:<addr>` chaining syntax that Apple Maps web accepts.
+ * Coordinates are used when available; name + city is the fallback.
+ *
+ * Returns null when no stop has usable coordinates or a name.
+ */
+export function buildAppleMapsMultiStopUrl(stops: TripStop[], cityName: string): string | null {
+  const usable = stops.filter(
+    (s) => validCoord(s.latitude, s.longitude) || (s.name && s.name.trim().length > 0),
+  );
+  if (usable.length === 0) return null;
+
+  // For a single stop, delegate to the single-place helper.
+  if (usable.length === 1) {
+    return buildAppleMapsUrl({
+      latitude: usable[0].latitude,
+      longitude: usable[0].longitude,
+      name: usable[0].name,
+    });
+  }
+
+  const addr = (s: TripStop): string => {
+    if (validCoord(s.latitude, s.longitude)) {
+      const label = s.name?.trim() ? encodeURIComponent(s.name) : "";
+      return label ? `${s.latitude},${s.longitude}+${label}` : `${s.latitude},${s.longitude}`;
+    }
+    const q = [s.name, s.address, cityName].filter(Boolean).join(", ");
+    return encodeURIComponent(q);
+  };
+
+  const origin = addr(usable[0]);
+  // Chain middle and final stops with the " to:" separator Apple Maps web understands.
+  const rest = usable
+    .slice(1)
+    .map((s) => addr(s))
+    .join("+to:");
+  const daddr = encodeURIComponent(rest);
+
+  return `https://maps.apple.com/?saddr=${origin}&daddr=${daddr}&dirflg=w`;
+}
+
 function pad(n: number): string {
   return String(n).padStart(2, "0");
+}
+
+/**
+ * Format a local Date as a bare calendar date string for iCalendar VALUE=DATE
+ * fields (YYYYMMDD). All-day events must NOT use DATE-TIME or a UTC suffix.
+ */
+function toIcsDate(date: Date): string {
+  return `${date.getFullYear()}` + `${pad(date.getMonth() + 1)}` + `${pad(date.getDate())}`;
 }
 
 /** Format a Date as UTC iCalendar DATE-TIME (YYYYMMDDTHHMMSSZ). */
@@ -275,10 +328,29 @@ export function buildItineraryIcs(
     `X-WR-CALNAME:${escapeIcsText(input.title || `${input.cityName} Trip`)}`,
   ];
 
+  const slugCity = slug(input.cityName) || "trip";
+
   days.forEach((day, dayIndex) => {
     let cursor = new Date(base);
     cursor.setDate(base.getDate() + dayIndex);
     cursor.setHours(dayStartHour, 0, 0, 0);
+
+    // All-day umbrella event for this day (RFC 5545 §3.6.1: all-day events
+    // use VALUE=DATE and DTEND is the *next* calendar day, exclusive).
+    const dayStart = new Date(base.getFullYear(), base.getMonth(), base.getDate() + dayIndex);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayStart.getDate() + 1);
+    const stopNames = day.stops.map((s) => s.name).join(" · ");
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:loci-day-${day.day}-${slugCity}@loci.app`,
+      `DTSTAMP:${now}`,
+      `DTSTART;VALUE=DATE:${toIcsDate(dayStart)}`,
+      `DTEND;VALUE=DATE:${toIcsDate(dayEnd)}`,
+      `SUMMARY:${escapeIcsText(`${input.title || input.cityName} \u2014 ${day.label}`)}`,
+      `DESCRIPTION:${escapeIcsText(stopNames)}`,
+      "END:VEVENT",
+    );
 
     day.stops.forEach((stop, stopIndex) => {
       const duration = stop.durationMinutes ?? parseDurationMinutes(stop.timeToSpend);
@@ -343,6 +415,15 @@ export function openMapsForTrip(input: TripKitInput): { ok: boolean; locked: boo
   return { ok: true, locked: lockedDayCount(input) > 0 };
 }
 
+/** Open Apple Maps for the unlocked portion of the trip. */
+export function openAppleMapsForTrip(input: TripKitInput): { ok: boolean; locked: boolean } {
+  const stops = unlockedStops(input);
+  const url = buildAppleMapsMultiStopUrl(stops, input.cityName);
+  if (!url) return { ok: false, locked: false };
+  window.open(url, "_blank", "noopener,noreferrer");
+  return { ok: true, locked: lockedDayCount(input) > 0 };
+}
+
 /**
  * Download calendar for unlocked stops.
  *
@@ -367,7 +448,7 @@ export function downloadCalendarForTrip(
     },
     options,
   );
-  const slugCity = slug(input.cityName) || "trip";
-  downloadIcs(ics, `loci-${slugCity}${input.isPro ? "-full" : "-day1"}.ics`);
+  const slugCity2 = slug(input.cityName) || "trip";
+  downloadIcs(ics, `loci-${slugCity2}${input.isPro ? "-full" : "-day1"}.ics`);
   return { ok: true, locked: lockedDayCount(input) > 0 };
 }

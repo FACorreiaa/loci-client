@@ -26,6 +26,21 @@ export interface OfflineItinerary {
   savedAt: string;
   /** The original URL so we can re-open the itinerary */
   sourceUrl: string;
+  /**
+   * Trip start date chosen in the Trip Kit date picker (yyyy-mm-dd).
+   * Persisted so the picker restores its value on reopen.
+   */
+  tripStartDate?: string;
+  /**
+   * Ordered stop names. Persisted to survive reorder operations (drag-to-
+   * reorder) across sessions. Stops not in the list are appended at the end.
+   */
+  stopOrder?: string[];
+  /**
+   * Per-stop notes keyed by stop name. Persisted so inline notes survive
+   * navigation and appear in calendar event descriptions and PDF exports.
+   */
+  stopNotes?: Record<string, string>;
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -123,6 +138,39 @@ export async function clearOfflineItineraries(): Promise<void> {
   const tx = db.transaction(STORE_NAME, "readwrite");
   tx.objectStore(STORE_NAME).clear();
   return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/**
+ * Update Trip Kit meta fields on an existing offline itinerary without
+ * re-saving the full payload. If the record doesn't exist (not yet saved),
+ * resolves silently — the caller does not need to check first.
+ *
+ * No DB_VERSION bump needed: IndexedDB `put` with new fields on an existing
+ * record just adds them; the structured clone algorithm handles it.
+ */
+export async function updateItineraryMeta(
+  id: string,
+  patch: Partial<Pick<OfflineItinerary, "tripStartDate" | "stopOrder" | "stopNotes">>,
+): Promise<void> {
+  if (!id) return;
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    const getReq = store.get(id);
+    getReq.onsuccess = () => {
+      const existing = getReq.result as OfflineItinerary | undefined;
+      if (!existing) {
+        // Not yet saved — resolve silently.
+        resolve();
+        return;
+      }
+      store.put({ ...existing, ...patch });
+    };
+    getReq.onerror = () => reject(getReq.error);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });

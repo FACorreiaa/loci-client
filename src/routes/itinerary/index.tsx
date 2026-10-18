@@ -67,7 +67,11 @@ import { useUserSubscription } from "@/lib/api/billing";
 import { canUsePro } from "@/lib/subscription";
 import type { TripStop } from "@/lib/trip-kit";
 import { useAuth } from "@/contexts/AuthContext";
-import { saveItineraryOffline, getOfflineItinerary } from "@/lib/itinerary-offline-store";
+import {
+  saveItineraryOffline,
+  getOfflineItinerary,
+  updateItineraryMeta,
+} from "@/lib/itinerary-offline-store";
 import { SHARE_HOME_URL, type SharePayload } from "@/lib/share";
 
 /**
@@ -147,6 +151,10 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   const subscriptionQuery = useUserSubscription(() => isAuthenticated());
   const isPro = createMemo(() => canUsePro(subscriptionQuery.data?.plan));
   const [savedOffline, setSavedOffline] = createSignal(false);
+  // Trip Kit persistent state — restored from IndexedDB on mount.
+  const [tripStartDate, setTripStartDate] = createSignal<string | undefined>(undefined);
+  const [stopNotes, setStopNotes] = createSignal<Record<string, string>>({});
+  const [stopOrder, setStopOrder] = createSignal<string[]>([]);
   // isPro is derived from a query, so "not loaded yet" and "genuinely free"
   // both read as false. The trip kit needs to tell them apart: exporting on the
   // first reading silently handed a Pro account a Day-1 file.
@@ -244,12 +252,20 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
         const first = saved.payload.stops[0]?.data;
         if (first) setStore("data", normalizeItineraryPayload(first) ?? (first as any));
         setSavedOffline(true);
+        // Restore Trip Kit meta
+        if (saved.tripStartDate) setTripStartDate(saved.tripStartDate);
+        if (saved.stopNotes) setStopNotes(saved.stopNotes);
+        if (saved.stopOrder) setStopOrder(saved.stopOrder);
         return true;
       }
       const normalized = saved ? normalizeItineraryPayload(saved.payload) : null;
       if (!normalized || !hasItineraryContent(normalized)) return false;
       setStore("data", normalized);
       setSavedOffline(true);
+      // Restore Trip Kit meta
+      if (saved!.tripStartDate) setTripStartDate(saved!.tripStartDate);
+      if (saved!.stopNotes) setStopNotes(saved!.stopNotes);
+      if (saved!.stopOrder) setStopOrder(saved!.stopOrder);
       return true;
     } catch (e) {
       console.warn("Could not read the offline copy:", e);
@@ -580,9 +596,10 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   });
 
   // Trip Kit stops: itinerary order + geo/address from full POI map.
+  // If a saved stop order exists (from a previous session), reorder to match.
   const tripKitStops = createMemo<TripStop[]>(() => {
     const byName = allByName();
-    return itineraryModel().stops.map((s, i) => {
+    const built = itineraryModel().stops.map((s, i) => {
       const geo = byName.get(s.name);
       return {
         name: s.name,
@@ -595,6 +612,13 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
         day: dayOf(s, i),
       };
     });
+    const order = stopOrder();
+    if (order.length === 0) return built;
+    // Reorder to match saved order; stops not in the order list go to the end.
+    const byStopName = new Map(built.map((s) => [s.name, s]));
+    const ordered = order.map((n) => byStopName.get(n)).filter(Boolean) as TripStop[];
+    const remainder = built.filter((s) => !order.includes(s.name));
+    return [...ordered, ...remainder];
   });
 
   // Shared selection between list and map (keyed by POI name).
@@ -718,6 +742,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   };
 
   // One Save. The device copy is the point — it is what makes the itinerary
+  // One Save. The device copy is the point — it is what makes the itinerary
   // open with no network — so it is written first and counts as success on
   // its own. The account bookmark follows when signed in; the server keeps
   // only title and city (its session id is not accepted), so a failure there
@@ -742,6 +767,10 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
         stopCount: itineraryModel().stops.length,
         savedAt: new Date().toISOString(),
         sourceUrl: typeof window !== "undefined" ? window.location.href : "",
+        // Persist Trip Kit meta alongside the payload so they round-trip together.
+        tripStartDate: tripStartDate(),
+        stopNotes: stopNotes(),
+        stopOrder: tripKitStops().map((s) => s.name),
       });
       setSavedOffline(true);
     } catch (error) {
@@ -997,6 +1026,19 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
               streamPhase() === "done" || (itineraryModel().stops.length > 0 && !store.isLoading)
             }
             stopsPerDay={STOPS_PER_DAY}
+            isSaved={savedOffline()}
+            startDate={tripStartDate()}
+            onStartDateChange={(d) => {
+              setTripStartDate(d);
+              const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
+              if (sessionId) void updateItineraryMeta(sessionId, { tripStartDate: d });
+            }}
+            stopNotes={stopNotes()}
+            onStopNotesChange={(notes) => {
+              setStopNotes(notes);
+              const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
+              if (sessionId) void updateItineraryMeta(sessionId, { stopNotes: notes });
+            }}
           />
 
           <Show when={store.tripId || (searchParams.tripId as string | undefined)}>
