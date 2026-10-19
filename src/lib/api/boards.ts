@@ -237,6 +237,24 @@ export const slugify = (name: string): string =>
 
 export const SLUG_RE = /^[a-z0-9-]{3,32}$/;
 
+/** The board the server writes one AI destination post into per UTC day. */
+export const DAILY_BOARD_SLUG = "daily-destinations";
+
+const DAILY_FRESH_MS = 36 * 60 * 60 * 1000;
+
+/**
+ * Whether the daily post is still today's: 36 hours, so a late UTC run or a
+ * viewer far from UTC doesn't lose the card before the next one lands.
+ */
+export const isFreshDailyPost = (post: Pick<Post, "createdAt">, now: Date): boolean => {
+  const at = Date.parse(post.createdAt);
+  return !Number.isNaN(at) && now.getTime() - at <= DAILY_FRESH_MS;
+};
+
+/** A feed without one post, for when it is already shown above the feed. */
+export const withoutPost = (posts: Post[], id?: string): Post[] =>
+  id ? posts.filter((p) => p.id !== id) : posts;
+
 /** A message for a failed board write that a person can act on. */
 export const boardsErrorMessage = (err: unknown): string => {
   if (err instanceof ConnectError) {
@@ -265,6 +283,7 @@ export const boardsKeys = {
   posts: (slug: string, sort: PostSortName, window: TopWindowName) =>
     ["boards", "posts", slug, sort, sort === "top" ? window : ""] as const,
   post: (id: string) => ["boards", "post", id] as const,
+  daily: () => ["boards", "daily"] as const,
   viewer: () => ["boards", "viewer"] as const,
   sanctions: () => ["boards", "sanctions"] as const,
 };
@@ -324,6 +343,32 @@ export const usePosts = (
     queryKey: boardsKeys.posts(slug(), sort(), window()),
     queryFn: () => fetchPosts(slug(), sort(), window()),
   }));
+
+/** The newest post in the daily board, stale or not; null when it is empty. */
+export const fetchDailyPost = async (): Promise<Post | null> => {
+  const res = await client.listPosts(
+    create(ListPostsRequestSchema, {
+      boardSlug: DAILY_BOARD_SLUG,
+      sort: PostSort.NEW,
+      pageSize: 1,
+    }),
+  );
+  return res.posts[0] ? mapPost(res.posts[0]) : null;
+};
+
+/** Today's destination, or undefined while loading, on error or once stale. */
+export const useDailyPost = () => {
+  const query = useAppQuery(() => ({
+    queryKey: boardsKeys.daily(),
+    staleTime: 5 * 60_000,
+    retry: false,
+    queryFn: fetchDailyPost,
+  }));
+  return () => {
+    const post = query.isSuccess ? query.data : null;
+    return post && isFreshDailyPost(post, new Date()) ? post : undefined;
+  };
+};
 
 export const usePost = (id: () => string) =>
   useAppQuery(() => ({

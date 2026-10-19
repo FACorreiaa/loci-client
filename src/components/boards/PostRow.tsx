@@ -1,10 +1,11 @@
 import { Show } from "solid-js";
 import { A } from "@solidjs/router";
-import { Bot, MessageSquare, Paperclip } from "lucide-solid";
+import { MessageSquare, Paperclip } from "lucide-solid";
 import UserAvatar from "~/components/social/UserAvatar";
 import { profilePath } from "~/lib/api/social";
 import { timeAgo } from "~/lib/news/ticker";
 import type { Post } from "~/lib/api/boards";
+import AiBadge from "./AiBadge";
 import VoteControl from "./VoteControl";
 import ModerationMenu from "./ModerationMenu";
 import type { BoardsSession } from "./session";
@@ -54,10 +55,7 @@ export default function PostRow(props: {
             />
           </Show>
           <Show when={p().isAiGenerated}>
-            <span class="ml-1 inline-flex items-center gap-1 rounded-full border border-primary/40 px-1.5 py-0.5 text-[10px] font-normal text-primary">
-              <Bot class="h-3 w-3" aria-hidden="true" />
-              AI generated
-            </span>
+            <AiBadge class="ml-1" />
           </Show>
         </h3>
         <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">

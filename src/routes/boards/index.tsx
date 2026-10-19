@@ -3,14 +3,19 @@ import { Title, Meta } from "@solidjs/meta";
 import { A } from "@solidjs/router";
 import { Plus, ShieldCheck } from "lucide-solid";
 import { Button } from "~/ui/button";
+import DailyPostCard from "~/components/boards/DailyPostCard";
 import PostFeed from "~/components/boards/PostFeed";
 import SanctionBanner from "~/components/boards/SanctionBanner";
 import { useBoardsSession } from "~/components/boards/session";
-import { useBoards } from "~/lib/api/boards";
+import { useBoards, useDailyPost } from "~/lib/api/boards";
 
-/** Every board's posts in one feed, with the directory of boards beside it. */
+/**
+ * Every board's posts in one feed, with the directory of boards beside it.
+ * Today's destination sits pinned above the feed, so the feed leaves it out.
+ */
 export default function BoardsHome() {
   const session = useBoardsSession();
+  const daily = useDailyPost();
   const boardsQuery = useBoards();
   const boards = () => (boardsQuery.isSuccess ? boardsQuery.data : []);
 
@@ -48,11 +53,15 @@ export default function BoardsHome() {
       <SanctionBanner sanction={session.sanction()} />
 
       <div class="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <PostFeed
-          slug=""
-          session={session}
-          empty="Nothing posted yet. Open a board and start the first thread."
-        />
+        <div class="min-w-0">
+          <DailyPostCard />
+          <PostFeed
+            slug=""
+            session={session}
+            empty="Nothing posted yet. Open a board and start the first thread."
+            hideId={daily()?.id}
+          />
+        </div>
 
         <aside class="order-first lg:order-none">
           <h2 class="font-coord mb-2 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">

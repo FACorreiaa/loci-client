@@ -6,6 +6,7 @@ import {
   fetchPosts,
   useDeletePost,
   usePosts,
+  withoutPost,
   type Post,
   type PostSortName,
   type TopWindowName,
@@ -30,9 +31,15 @@ const pill = (active: boolean) =>
 
 /**
  * A board's posts, or every board's when slug is empty. New/Top and the Top
- * window live in the URL, so a sorted feed can be linked to.
+ * window live in the URL, so a sorted feed can be linked to. hideId drops a
+ * post already shown above the feed.
  */
-export default function PostFeed(props: { slug: string; session: BoardsSession; empty: string }) {
+export default function PostFeed(props: {
+  slug: string;
+  session: BoardsSession;
+  empty: string;
+  hideId?: string;
+}) {
   const [params, setParams] = useSearchParams<{ sort?: string; t?: string }>();
   const sort = (): PostSortName => (params.sort === "top" ? "top" : "new");
   const topWindow = (): TopWindowName =>
@@ -51,7 +58,7 @@ export default function PostFeed(props: { slug: string; session: BoardsSession; 
       setCursor(page?.nextCursor ?? "");
     }),
   );
-  const posts = () => [...(first()?.posts ?? []), ...more()];
+  const posts = () => withoutPost([...(first()?.posts ?? []), ...more()], props.hideId);
 
   const loadMore = async () => {
     setLoadingMore(true);

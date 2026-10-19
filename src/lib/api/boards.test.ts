@@ -16,11 +16,13 @@ import {
   attachmentHref,
   boardsErrorMessage,
   buildCommentTree,
+  isFreshDailyPost,
   mapComment,
   mapPost,
   mapSanction,
   slugify,
   SLUG_RE,
+  withoutPost,
   type Comment,
 } from "./boards";
 
@@ -127,5 +129,28 @@ describe("helpers", () => {
       boardsErrorMessage(new ConnectError("you are muted from boards", Code.PermissionDenied)),
     ).toBe("you are muted from boards");
     expect(boardsErrorMessage(new Error("boom"))).toMatch(/Something went wrong/);
+  });
+});
+
+describe("daily post", () => {
+  const now = new Date("2026-10-19T12:00:00Z");
+
+  it("is fresh for 36 hours", () => {
+    expect(isFreshDailyPost({ createdAt: "2026-10-19T00:00:00.000Z" }, now)).toBe(true);
+    expect(isFreshDailyPost({ createdAt: "2026-10-18T00:00:00.000Z" }, now)).toBe(true);
+  });
+
+  it("is stale past 36 hours", () => {
+    expect(isFreshDailyPost({ createdAt: "2026-10-17T23:59:59.000Z" }, now)).toBe(false);
+  });
+
+  it("is stale without a createdAt", () => {
+    expect(isFreshDailyPost({ createdAt: "" }, now)).toBe(false);
+  });
+
+  it("drops only the hidden post from a feed", () => {
+    const posts = ["a", "b", "c"].map((id) => mapPost(create(PostSchema, { id })));
+    expect(withoutPost(posts, "b").map((p) => p.id)).toEqual(["a", "c"]);
+    expect(withoutPost(posts, undefined)).toBe(posts);
   });
 });
