@@ -31,6 +31,7 @@ import TripHero from "~/components/trip/TripHero";
 import TripPreferences from "~/components/trip/TripPreferences";
 import TripDaySection from "~/components/trip/TripDaySection";
 import TripStopRow from "~/components/trip/TripStopRow";
+import HowWasIt from "~/components/ranking/HowWasIt";
 import TripLegRow from "~/components/trip/TripLegRow";
 import TripDetailSkeleton from "~/components/trip/TripDetailSkeleton";
 import TripMoney from "~/components/TripMoney";
@@ -214,12 +215,18 @@ export default function TripEditor() {
     );
   };
 
+  // The stop the traveller just marked visited, asked "How was it?" in place.
+  const [ratingStopID, setRatingStopID] = createSignal<string | null>(null);
+
   const recordStopOutcome = (
     stop: TripStop,
     eventType: RecommendationEventName,
     rating?: number,
   ) => {
     if (!stop.recommendationTrace) return;
+    if (eventType === "RECOMMENDATION_EVENT_TYPE_VISIT_CONFIRMED" && stop.poiId) {
+      setRatingStopID(stop.id);
+    }
     void recordRecommendationEvents([
       {
         eventType,
@@ -353,35 +360,49 @@ export default function TripEditor() {
                   >
                     <For each={day.stops}>
                       {(stop, i) => (
-                        <TripStopRow
-                          stop={stop}
-                          index={i()}
-                          isFirst={i() === 0}
-                          isLast={i() === day.stops.length - 1}
-                          editing={editing()}
-                          dotColor={colorForMapDay(day.dayNumber - 1)}
-                          replacing={replacingStopID() === stop.id}
-                          removeConfirming={removeConfirmID() === stop.id}
-                          onMove={(dir) => moveStop(day, i(), dir)}
-                          onRename={(name) => renameStop(stop, name)}
-                          onRetime={(start, duration) => retimeStop(stop, start, duration)}
-                          onToggleReplace={() =>
-                            setReplacingStopID((current) => (current === stop.id ? null : stop.id))
-                          }
-                          onRemove={() => removeStop(stop)}
-                          onCancelRemove={() => setRemoveConfirmID(null)}
-                          onOutcome={(eventType, rating) =>
-                            recordStopOutcome(stop, eventType, rating)
-                          }
-                        >
-                          <PlacePicker
-                            cityName={t.cityName}
-                            label={`Replace ${stop.name}`}
-                            busy={replace.isPending}
-                            onSelect={(poi) => replaceStop(stop, poi)}
-                            onCancel={() => setReplacingStopID(null)}
-                          />
-                        </TripStopRow>
+                        <>
+                          <TripStopRow
+                            stop={stop}
+                            index={i()}
+                            isFirst={i() === 0}
+                            isLast={i() === day.stops.length - 1}
+                            editing={editing()}
+                            dotColor={colorForMapDay(day.dayNumber - 1)}
+                            replacing={replacingStopID() === stop.id}
+                            removeConfirming={removeConfirmID() === stop.id}
+                            onMove={(dir) => moveStop(day, i(), dir)}
+                            onRename={(name) => renameStop(stop, name)}
+                            onRetime={(start, duration) => retimeStop(stop, start, duration)}
+                            onToggleReplace={() =>
+                              setReplacingStopID((current) =>
+                                current === stop.id ? null : stop.id,
+                              )
+                            }
+                            onRemove={() => removeStop(stop)}
+                            onCancelRemove={() => setRemoveConfirmID(null)}
+                            onOutcome={(eventType, rating) =>
+                              recordStopOutcome(stop, eventType, rating)
+                            }
+                          >
+                            <PlacePicker
+                              cityName={t.cityName}
+                              label={`Replace ${stop.name}`}
+                              busy={replace.isPending}
+                              onSelect={(poi) => replaceStop(stop, poi)}
+                              onCancel={() => setReplacingStopID(null)}
+                            />
+                          </TripStopRow>
+                          <Show when={ratingStopID() === stop.id}>
+                            <div class="my-2 ml-8">
+                              <HowWasIt
+                                poiId={stop.poiId}
+                                name={stop.name}
+                                cityName={t.cityName}
+                                onDone={() => setRatingStopID(null)}
+                              />
+                            </div>
+                          </Show>
+                        </>
                       )}
                     </For>
                   </TripDaySection>

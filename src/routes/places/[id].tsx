@@ -65,6 +65,7 @@ export default function PlaceDetailPage() {
       image_credits: p?.image_credits,
       phone: p?.phone_number || undefined,
       website: p?.website || undefined,
+      taste_match: p?.taste_match,
     };
   });
 

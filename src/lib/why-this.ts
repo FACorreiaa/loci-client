@@ -6,10 +6,16 @@ export interface WhyThisInput {
   rating?: number | null;
   recommendation_rationale?: string | null;
   tags?: string[] | null;
+  /** Why the place fits this traveller's taste (TasteMatch.reasons). */
+  taste_reasons?: string[] | null;
 }
 
 /** Short human rationale for a POI / trip stop. */
 export function deriveWhyThis(input: WhyThisInput): string | undefined {
+  // What Loci knows about this traveller beats anything generic.
+  const fromTaste = input.taste_reasons?.find((r) => r.trim())?.trim();
+  if (fromTaste) return fromTaste;
+
   const fromServer = input.recommendation_rationale?.trim();
   if (fromServer) return fromServer;
 

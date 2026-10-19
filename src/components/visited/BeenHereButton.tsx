@@ -12,7 +12,11 @@ import {
  * teaches their taste profile. Hidden when signed out, or when the place has
  * no city or coordinates to record it against.
  */
-export default function BeenHereButton(props: { place: ManualVisitPlace }) {
+export default function BeenHereButton(props: {
+  place: ManualVisitPlace;
+  /** Called once the visit is recorded, e.g. to ask how it was. */
+  onRecorded?: () => void;
+}) {
   const auth = useAuth();
   const record = useRecordManualVisit();
   const [done, setDone] = createSignal(false);
@@ -22,6 +26,7 @@ export default function BeenHereButton(props: { place: ManualVisitPlace }) {
     try {
       await record.mutateAsync(props.place);
       setDone(true);
+      props.onRecorded?.();
     } catch {
       // The mutation's error state renders below; the button stays usable.
     }

@@ -218,6 +218,7 @@ export default function ItineraryResults(props: ItineraryResultsProps) {
                           }
                         ).recommendation_rationale,
                         tags: poi.tags,
+                        taste_reasons: poi.taste_match?.reasons,
                       })}
                       uncertaintyScore={poi.uncertainty_score}
                       missingData={poi.missing_data}

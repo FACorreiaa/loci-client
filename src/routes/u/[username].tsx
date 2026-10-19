@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import { Title, Meta } from "@solidjs/meta";
 import { A, useParams } from "@solidjs/router";
 import { MapPin } from "lucide-solid";
@@ -8,6 +8,9 @@ import RelationshipButton from "~/components/social/RelationshipButton";
 import FriendTripCard from "~/components/social/FriendTripCard";
 import { useBlockUser, usePublicProfile } from "~/lib/api/social";
 import { useUserTrips } from "~/lib/api/trips";
+import { useUserRankings } from "~/lib/api/ranking";
+import { groupByCity } from "~/lib/ranking/flow";
+import RankedList from "~/components/ranking/RankedList";
 import { useAuthGate } from "~/lib/auth/useAuthGate";
 
 const memberSince = (iso?: string) =>
@@ -19,6 +22,10 @@ export default function UserProfilePage() {
   const profileQuery = usePublicProfile(() => params.username);
   const profile = () => (profileQuery.isSuccess ? profileQuery.data : undefined);
   const tripsQuery = useUserTrips(() => profile()?.user.id);
+  const canSeeRankings = () =>
+    profile()?.relationship === "friends" || profile()?.relationship === "self";
+  const rankingsQuery = useUserRankings(() => profile()?.user.id, canSeeRankings);
+  const cityRankings = createMemo(() => groupByCity(rankingsQuery.data ?? []));
   const trips = () => (tripsQuery.isSuccess ? tripsQuery.data : undefined);
   const block = useBlockUser();
   const [confirmBlock, setConfirmBlock] = createSignal(false);
@@ -122,6 +129,16 @@ export default function UserProfilePage() {
             >
               <div class="grid gap-4 sm:grid-cols-2">
                 <For each={trips()}>{(t) => <FriendTripCard trip={t} />}</For>
+              </div>
+            </Show>
+
+            {/* Rankings are friends-only; the server refuses anyone else. */}
+            <Show when={canSeeRankings() && cityRankings().length > 0}>
+              <h2 class="mb-3 mt-8 text-lg font-medium">Their top places</h2>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <For each={cityRankings()}>
+                  {(group) => <RankedList title={group.city} places={group.places} />}
+                </For>
               </div>
             </Show>
           </>

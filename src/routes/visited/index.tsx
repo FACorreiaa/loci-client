@@ -1,4 +1,4 @@
-import { For, Show, createMemo } from "solid-js";
+import { For, Show, createMemo, createSignal } from "solid-js";
 import { Title, Meta } from "@solidjs/meta";
 import { A } from "@solidjs/router";
 import { ChevronLeft, Footprints, Trash2 } from "lucide-solid";
@@ -9,6 +9,9 @@ import {
   type VisitSourceName,
 } from "~/lib/api/travel-history";
 import { groupVisitsByCity } from "~/lib/visited/group";
+import { useMyRankings } from "~/lib/api/ranking";
+import { VERDICTS } from "~/lib/ranking/flow";
+import HowWasIt from "~/components/ranking/HowWasIt";
 
 const SOURCE_LABEL: Record<VisitSourceName, string> = {
   visit_event: "Walked",
@@ -30,6 +33,13 @@ function VisitedContent() {
   const visited = useVisitedPlaces();
   const remove = useDeleteVisitedPlace();
   const groups = createMemo(() => groupVisitsByCity(visited.data?.places ?? []));
+  // Which visits are already ranked, so a row says "Loved" instead of "Rate".
+  const rankings = useMyRankings(() => "");
+  const verdictOf = createMemo(() => {
+    const labels = new Map(VERDICTS.map((v) => [v.verdict, v.label]));
+    return new Map((rankings.data ?? []).map((r) => [r.poiId, labels.get(r.verdict) ?? ""]));
+  });
+  const [rating, setRating] = createSignal<string | null>(null);
 
   return (
     <>
@@ -80,28 +90,52 @@ function VisitedContent() {
                     <ul class="divide-y divide-border">
                       <For each={group.places}>
                         {(place) => (
-                          <li class="flex items-center justify-between gap-3 py-2.5">
-                            <span class="min-w-0 truncate text-foreground">
-                              {place.poiName || "Unnamed place"}
-                            </span>
-                            <span class="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-                              <Show when={SOURCE_LABEL[place.source]}>
-                                <span class="rounded-full border border-border px-2 py-0.5">
-                                  {SOURCE_LABEL[place.source]}
-                                </span>
-                              </Show>
-                              {formatDate(place.visitedAt)}
-                              <button
-                                type="button"
-                                class="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted hover:text-foreground"
-                                aria-label={`Remove ${place.poiName || "this place"} from places you've been`}
-                                title="Remove — Loci also forgets what it learned from it"
-                                onClick={() => remove.mutate(place.id)}
-                              >
-                                <Trash2 class="h-3.5 w-3.5" />
-                              </button>
-                            </span>
-                          </li>
+                          <>
+                            <li class="flex items-center justify-between gap-3 py-2.5">
+                              <span class="min-w-0 truncate text-foreground">
+                                {place.poiName || "Unnamed place"}
+                              </span>
+                              <span class="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                                <Show when={SOURCE_LABEL[place.source]}>
+                                  <span class="rounded-full border border-border px-2 py-0.5">
+                                    {SOURCE_LABEL[place.source]}
+                                  </span>
+                                </Show>
+                                {formatDate(place.visitedAt)}
+                                <Show when={place.poiId}>
+                                  <button
+                                    type="button"
+                                    class="rounded-full border border-border px-2 py-0.5 text-foreground hover:bg-muted"
+                                    aria-label={`Rate ${place.poiName || "this place"}`}
+                                    onClick={() =>
+                                      setRating((id) => (id === place.id ? null : place.id))
+                                    }
+                                  >
+                                    {verdictOf().get(place.poiId) || "Rate"}
+                                  </button>
+                                </Show>
+                                <button
+                                  type="button"
+                                  class="inline-flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted hover:text-foreground"
+                                  aria-label={`Remove ${place.poiName || "this place"} from places you've been`}
+                                  title="Remove — Loci also forgets what it learned from it"
+                                  onClick={() => remove.mutate(place.id)}
+                                >
+                                  <Trash2 class="h-3.5 w-3.5" />
+                                </button>
+                              </span>
+                            </li>
+                            <Show when={rating() === place.id}>
+                              <li class="py-2">
+                                <HowWasIt
+                                  poiId={place.poiId}
+                                  name={place.poiName || "this place"}
+                                  cityName={place.cityName || group.city}
+                                  onDone={() => setRating(null)}
+                                />
+                              </li>
+                            </Show>
+                          </>
                         )}
                       </For>
                     </ul>

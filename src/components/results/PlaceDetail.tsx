@@ -24,6 +24,10 @@ import { DOMAINS, type ResultsDomain } from "~/lib/results/domain";
 import { backToResultsHref } from "~/lib/results/last-session";
 import type { POI } from "~/components/features/Map/types";
 import { isOpenableId } from "~/lib/saved/collect";
+import MatchChip from "~/components/taste/MatchChip";
+import BeenHereButton from "~/components/visited/BeenHereButton";
+import HowWasIt from "~/components/ranking/HowWasIt";
+import type { TasteMatchView } from "~/lib/taste/match";
 
 const PlaceReviews = lazyChunk(() => import("~/components/reviews/PlaceReviews"));
 
@@ -45,6 +49,7 @@ export interface PlaceSummary {
   image_credits?: POIImageCredit[];
   phone?: string;
   website?: string;
+  taste_match?: TasteMatchView;
 }
 
 export interface PlaceTab {
@@ -86,6 +91,8 @@ const isNotFound = (err: unknown): boolean =>
 export default function PlaceDetail(props: PlaceDetailProps) {
   const meta = () => DOMAINS[props.domain];
   const [tab, setTab] = createSignal(props.tabs[0]?.id ?? "overview");
+  // "I've been here" asks how it was, right where the traveller said it.
+  const [asking, setAsking] = createSignal(false);
   // Every stored place gets a Reviews tab here rather than in each route: the
   // reviews live on the place, whatever kind of place it is. A name-based id
   // names nothing the review service knows, so it gets no tab.
@@ -308,6 +315,32 @@ export default function PlaceDetail(props: PlaceDetailProps) {
                     </div>
                   </div>
 
+                  <Show when={isOpenableId(p().id)}>
+                    <div class="mb-3">
+                      <BeenHereButton
+                        place={{
+                          id: p().id,
+                          name: p().name,
+                          cityName: p().city ?? "",
+                          latitude: p().latitude ?? 0,
+                          longitude: p().longitude ?? 0,
+                        }}
+                        onRecorded={() => setAsking(true)}
+                      />
+                    </div>
+                  </Show>
+                  <Show when={asking() && p().city}>
+                    <div class="mb-4">
+                      <HowWasIt
+                        poiId={p().id}
+                        name={p().name}
+                        cityName={p().city ?? ""}
+                        category={p().category}
+                        onDone={() => setAsking(false)}
+                      />
+                    </div>
+                  </Show>
+
                   <div class="flex flex-wrap items-center gap-3 mb-4 text-sm">
                     <Show when={p().rating && p().rating! > 0}>
                       <span class="inline-flex items-center gap-1 font-semibold text-foreground">
@@ -319,6 +352,9 @@ export default function PlaceDetail(props: PlaceDetailProps) {
                           </span>
                         </Show>
                       </span>
+                    </Show>
+                    <Show when={p().taste_match}>
+                      {(match) => <MatchChip match={match()} name={p().name} />}
                     </Show>
                     {props.facts}
                   </div>
