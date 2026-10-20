@@ -838,6 +838,498 @@
   color: var(--rc-coral);
 }
 
+/* ---- year in review ---- */
+.rc-yearmap,
+.rc-pct {
+  background: var(--rc-sand);
+  color: var(--rc-ink);
+}
+.rc-topcity,
+.rc-given {
+  background: var(--rc-cream);
+  color: var(--rc-ink);
+}
+.rc-shift {
+  background: var(--rc-post);
+  color: var(--rc-ink);
+}
+.rc-timeline,
+.rc-streak {
+  background: var(--rc-night);
+  color: var(--rc-cream);
+}
+.rc-yhead {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 11%;
+  animation: rc-rise 0.6s ease-out both;
+}
+.rc-ycount {
+  font-size: 22cqw;
+}
+.rc-yhead .rc-kicker {
+  margin-top: 4cqw;
+}
+.rc-timeline .rc-ycount {
+  color: var(--rc-coral);
+}
+.rc-timeline .rc-ycount small {
+  color: var(--rc-cream);
+}
+.rc-ykick {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 11%;
+  color: var(--rc-muted);
+}
+.rc-yfoot {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  bottom: 10%;
+  margin: 0;
+  animation: rc-rise 0.6s ease-out both;
+  animation-delay: 1.4s;
+}
+.rc-italic {
+  font-family: var(--rc-display);
+  font-style: italic;
+  font-size: 8cqw;
+  line-height: 1.1;
+}
+
+/* the wall map */
+.rc-ymap {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 31%;
+  aspect-ratio: 100 / 62;
+  background:
+    linear-gradient(rgb(50 59 66 / 0.07) 1px, transparent 1px) 0 0 / 7.4% 12%,
+    linear-gradient(90deg, rgb(50 59 66 / 0.07) 1px, transparent 1px) 0 0 / 7.4% 12%,
+    var(--rc-paper);
+  border-radius: 8px;
+  box-shadow: 0 18px 30px -22px rgb(50 59 66 / 0.55);
+}
+.rc-ypin {
+  position: absolute;
+  width: 2.2cqw;
+  height: 2.2cqw;
+  margin: -1.1cqw 0 0 -1.1cqw;
+  border-radius: 50%;
+  background: var(--rc-coral-deep);
+  box-shadow: 0 0 0 1.4cqw rgb(250 120 98 / 0.25);
+  animation: rc-thud 0.38s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: calc(0.6s + var(--i) * 0.12s);
+}
+.rc-ypin span {
+  position: absolute;
+  left: 3.6cqw;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-family: var(--rc-mono);
+  font-size: 2.1cqw;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rc-ink);
+}
+.rc-ypin[data-side="left"] span {
+  left: auto;
+  right: 3.6cqw;
+}
+.rc-ledger {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 68%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rc-ledger li {
+  display: flex;
+  align-items: baseline;
+  gap: 2cqw;
+  padding: 1.2cqw 0;
+  border-bottom: 1.5px dashed rgb(50 59 66 / 0.2);
+  animation: rc-rise 0.45s ease-out both;
+  animation-delay: calc(0.9s + var(--i) * 0.12s);
+}
+.rc-ledger b {
+  font-family: var(--rc-display);
+  font-weight: 800;
+  font-size: 5cqw;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-ledger em {
+  font-style: normal;
+  font-family: var(--rc-mono);
+  font-weight: 700;
+  font-size: 2cqw;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rc-paper);
+  background: var(--rc-coral-deep);
+  border-radius: 99px;
+  padding: 0.6cqw 1.8cqw;
+}
+.rc-ledger span {
+  margin-left: auto;
+  white-space: nowrap;
+  font-family: var(--rc-mono);
+  font-size: 2.2cqw;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rc-muted);
+}
+
+/* the calendar strip */
+.rc-strip {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 36%;
+  height: 32%;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.6cqw;
+}
+.rc-month {
+  display: flex;
+  flex-direction: column;
+  gap: 2cqw;
+  text-align: center;
+  font-family: var(--rc-mono);
+  font-size: 2.4cqw;
+  color: rgb(253 245 234 / 0.6);
+}
+.rc-month[data-busy] {
+  color: var(--rc-cream);
+  font-weight: 700;
+}
+.rc-col {
+  flex: 1;
+  position: relative;
+  border-radius: 4px;
+  background: rgb(253 245 234 / 0.06);
+}
+.rc-col i {
+  position: absolute;
+  inset: auto 0 0 0;
+  border-radius: 4px;
+  background: rgb(253 245 234 / 0.75);
+  transform-origin: bottom;
+  animation: rc-rise-y 0.7s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  animation-delay: calc(0.4s + var(--i) * 0.06s);
+}
+.rc-month[data-busy] .rc-col i {
+  background: var(--rc-coral);
+}
+.rc-tickets {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 73%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.8cqw;
+}
+.rc-tickets span {
+  font-family: var(--rc-mono);
+  font-weight: 700;
+  font-size: 2.2cqw;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1.5px solid rgb(253 245 234 / 0.45);
+  border-radius: 4px;
+  padding: 1cqw 2cqw;
+  max-width: 40cqw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: rc-rise 0.45s ease-out both;
+  animation-delay: calc(1s + var(--i) * 0.08s);
+}
+
+/* the postcard of the year's city */
+.rc-ypost {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 17%;
+  aspect-ratio: 92 / 70;
+  background: var(--rc-paper);
+  border-radius: 6px;
+  box-shadow: 0 24px 40px -22px rgb(50 59 66 / 0.55);
+  padding: 4%;
+  display: flex;
+  flex-direction: column;
+  rotate: -3deg;
+  animation: rc-post 1s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+.rc-yface {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  background:
+    repeating-radial-gradient(
+      ellipse 60% 14% at 50% 120%,
+      transparent 0 7%,
+      rgb(255 253 249 / 0.14) 7% 8%
+    ),
+    var(--rc-coral-deep);
+  color: var(--rc-paper);
+  text-align: center;
+  padding: 4%;
+}
+.rc-yface b {
+  font-family: var(--rc-display);
+  font-weight: 800;
+  font-size: 13cqw;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+.rc-ygreet {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 4%;
+  font-family: var(--rc-mono);
+  font-size: 2.2cqw;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.rc-ygreet span:first-child {
+  font-weight: 700;
+}
+.rc-ygreet span:last-child {
+  color: var(--rc-muted);
+}
+.rc-stats {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 68%;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  text-align: center;
+  animation: rc-rise 0.6s ease-out both;
+  animation-delay: 0.9s;
+}
+.rc-stats div + div {
+  border-left: 1.5px dashed rgb(50 59 66 / 0.3);
+}
+.rc-stats[data-dark] div + div {
+  border-left-color: rgb(253 245 234 / 0.3);
+}
+.rc-stats b {
+  display: block;
+  font-family: var(--rc-display);
+  font-weight: 800;
+  font-size: 10cqw;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.rc-stats span {
+  font-family: var(--rc-mono);
+  font-size: 2.2cqw;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rc-muted);
+}
+.rc-stats[data-dark] span {
+  color: rgb(253 245 234 / 0.65);
+}
+
+/* taste, then and now */
+.rc-shift-body {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 17%;
+  display: flex;
+  flex-direction: column;
+  gap: 3cqw;
+  animation: rc-rise 0.6s ease-out both;
+}
+.rc-shift-body h3 {
+  margin: 0;
+  font-family: var(--rc-display);
+  font-weight: 800;
+  font-size: 11cqw;
+  line-height: 1;
+  text-wrap: balance;
+}
+.rc-bars2 {
+  display: grid;
+  gap: 3.5cqw;
+  margin: 3cqw 0;
+}
+.rc-bars2 span {
+  font-family: var(--rc-mono);
+  font-size: 2.4cqw;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rc-muted);
+}
+.rc-track {
+  margin-top: 1.2cqw;
+  height: 5cqw;
+  border-radius: 99px;
+  background: rgb(255 253 249 / 0.8);
+  overflow: hidden;
+}
+.rc-track i {
+  display: block;
+  height: 100%;
+  width: var(--w);
+  min-width: 5cqw;
+  border-radius: 99px;
+  background: rgb(50 59 66 / 0.35);
+  transform-origin: left;
+  animation: rc-grow 0.9s ease-out both;
+  animation-delay: calc(0.6s + var(--i) * 0.5s);
+}
+.rc-bars2 [data-now] .rc-track i {
+  background: var(--rc-coral-deep);
+}
+.rc-rise {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--rc-display);
+  font-weight: 800;
+  font-size: 5.5cqw;
+  line-height: 1.3;
+}
+
+/* the streak */
+.rc-streak .rc-big {
+  font-size: 34cqw;
+  color: var(--rc-coral);
+}
+.rc-beads {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 44%;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3cqw;
+}
+.rc-beads i {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--rc-coral);
+  animation: rc-thud 0.38s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: calc(0.5s + var(--i) * 0.05s);
+}
+.rc-streak-line {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 70%;
+  margin: 0;
+}
+.rc-streak .rc-stats {
+  top: auto;
+  bottom: 9%;
+}
+
+/* contributions: the ledger tiles */
+.rc-tiles {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 44%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4cqw;
+}
+.rc-tiles div {
+  background: var(--rc-paper);
+  border-radius: 8px;
+  box-shadow: 0 14px 24px -18px rgb(50 59 66 / 0.5);
+  padding: 5cqw 2cqw 3.5cqw;
+  text-align: center;
+  animation: rc-rise 0.45s ease-out both;
+  animation-delay: calc(0.6s + var(--i) * 0.12s);
+}
+.rc-tiles div[data-zero] b {
+  opacity: 0.3;
+}
+.rc-tiles b {
+  display: block;
+  font-family: var(--rc-display);
+  font-weight: 800;
+  font-size: 12cqw;
+  line-height: 1;
+}
+.rc-tiles span {
+  font-family: var(--rc-mono);
+  font-size: 2.2cqw;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rc-muted);
+}
+
+/* the percentile seal */
+.rc-pseal {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  width: 70cqw;
+  aspect-ratio: 1;
+  margin-left: -35cqw;
+  rotate: 8deg;
+  animation: rc-thud 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  animation-delay: 0.3s;
+}
+.rc-pseal svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.rc-pseal > div {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  color: var(--rc-paper);
+  font-family: var(--rc-mono);
+  font-size: 2.6cqw;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.rc-pseal > div span:first-child {
+  font-weight: 700;
+  font-size: 4cqw;
+}
+.rc-pseal b {
+  font-family: var(--rc-display);
+  font-weight: 800;
+  font-size: 22cqw;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.rc-pvalue {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 74%;
+  text-align: center;
+  font-weight: 700;
+}
+
 @keyframes rc-swing {
   0% {
     transform: translateY(-120%) rotate(-24deg);
@@ -907,6 +1399,14 @@
   }
   to {
     transform: scaleX(1);
+  }
+}
+@keyframes rc-rise-y {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
   }
 }
 @keyframes rc-draw {

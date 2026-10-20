@@ -6,14 +6,14 @@ import { Loader2 } from "lucide-solid";
 import StoryPlayer from "~/components/recap/StoryPlayer";
 import { Button } from "~/ui/button";
 import { useSharedRecap } from "~/lib/api/recap";
-import { fetchSharedRecapMeta, recapImageUrl, recapSharePath } from "~/lib/recap/recap";
+import { fetchSharedRecapMeta, recapImageUrl, recapName, recapSharePath } from "~/lib/recap/recap";
 import { SHARE_HOME_URL } from "~/lib/share";
 import { capture } from "~/lib/analytics";
 
 const API_BASE_URL = import.meta.env.VITE_CONNECT_BASE_URL || "http://localhost:8000";
 
 /**
- * A trip recap opened from its share link. Works signed out, and shows only
+ * A recap (a trip's or a year's) opened from its share link. Works signed out, and shows only
  * the public view: cities and counts, no places, dates or friends.
  */
 export default function SharedRecapPage() {
@@ -36,7 +36,7 @@ export default function SharedRecapPage() {
     }
   });
 
-  const title = () => meta()?.title ?? (recap() ? `${recap()!.title} recap` : "A trip recap");
+  const title = () => meta()?.title ?? (recap() ? recapName(recap()!) : "A trip recap");
   const description = () =>
     meta()?.description ?? "A trip, told in cards. Plan your own with Loci.";
   const image = () => meta()?.image ?? recapImageUrl(API_BASE_URL, params.code, "og");

@@ -61,6 +61,8 @@ export default function QuickSettingsModal(props: QuickSettingsModalProps) {
           tripReminders: false,
           searchFinished: false,
           friendActivity: false,
+          leaderboardVisible: true,
+          cityBoardVisible: true,
         };
   // One source of truth for browser permission: the hook's own signal, used
   // here for the top-of-section banner and each switch's disabled state, not

@@ -69,6 +69,18 @@
             "comment": "A share link, lociai.fyi/share/<code>"
           },
           {
+            "/": "/recap/trip/*",
+            "comment": "A finished trip's recap, /recap/trip/{tripId}"
+          },
+          {
+            "/": "/recap/year/*",
+            "comment": "A year in review, /recap/year/{year}"
+          },
+          {
+            "/": "/r/*",
+            "comment": "A shared recap, /r/{shareCode}"
+          },
+          {
             "/": "/auth/reset-password*",
             "comment": "Password reset from the email link, ?token="
           },
