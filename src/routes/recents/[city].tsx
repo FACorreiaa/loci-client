@@ -12,6 +12,9 @@ import {
   Bookmark,
 } from "lucide-solid";
 import { useCityDetails } from "~/lib/api/recents";
+import { useMyRankings } from "~/lib/api/ranking";
+import { TOP_N } from "~/lib/ranking/flow";
+import RankedList from "~/components/ranking/RankedList";
 import type { RecentInteraction } from "~/lib/api/types";
 
 export default function CityDetailsPage() {
@@ -21,6 +24,7 @@ export default function CityDetailsPage() {
 
   const cityName = () => decodeURIComponent(params.city || "");
   const cityDetailsQuery = useCityDetails(cityName());
+  const myRankings = useMyRankings(cityName);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -217,6 +221,10 @@ export default function CityDetailsPage() {
           {/* Overview Tab */}
           <Show when={activeTab() === "overview"}>
             <div class="space-y-6">
+              <RankedList
+                title={`Your ${cityName()} top ${TOP_N}`}
+                places={(myRankings.data ?? []).slice(0, TOP_N)}
+              />
               {/* Recent Activity Timeline */}
               <div class="bg-card rounded-lg shadow-sm border border-border p-6">
                 <h2 class="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>

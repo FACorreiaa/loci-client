@@ -1,3 +1,4 @@
+import type { TasteMatchView } from "../taste/match";
 /**
  * One picture of a place, with the credit it cannot be shown without.
  *
@@ -141,6 +142,8 @@ export interface POI {
   recommendation_trace?: RecommendationTrace;
   recommendation_rationale?: string;
   uncertainty_score?: number;
+  /** How well it fits the traveller's taste; absent when it could not be scored. */
+  taste_match?: TasteMatchView;
   missing_data?: string[];
   /**
    * Whether Loci cited this place from a row it actually retrieved, rather than
@@ -768,6 +771,8 @@ export interface POIDetailedInfo {
   star_rating?: number;
   recommendation_rationale?: string;
   uncertainty_score?: number;
+  /** How well it fits the traveller's taste; absent when it could not be scored. */
+  taste_match?: TasteMatchView;
   missing_data?: string[];
   recommendation_trace?: RecommendationTrace;
   /**

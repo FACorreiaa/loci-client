@@ -28,6 +28,7 @@ import {
 } from "@buf/loci_loci-proto.bufbuild_es/loci/poi/poi_pb.js";
 import { transport } from "../connect-transport";
 import { fromProtoRecommendationTrace } from "./recommendations";
+import { fromProtoTasteMatch } from "../taste/match";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 //import { createGraphQLClient, gql } from '@solid-primitives/graphql';
 import type {
@@ -198,6 +199,7 @@ export const mapPoi = (poi: ProtoPOIDetailedInfo): POIDetailedInfo => {
     description_poi: poi.descriptionPoi || "",
     recommendation_rationale: poi.recommendationRationale || "",
     uncertainty_score: poi.uncertaintyScore,
+    taste_match: fromProtoTasteMatch(poi.tasteMatch),
     missing_data: poi.missingData || [],
     recommendation_trace: fromProtoRecommendationTrace(poi.recommendationTrace),
     created_at:

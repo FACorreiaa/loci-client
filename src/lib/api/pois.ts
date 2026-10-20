@@ -8,6 +8,7 @@ import { transport } from "../connect-transport";
 import { queryKeys } from "./shared";
 import type { POI } from "./types";
 import { useAppQuery } from "./authed-query";
+import { fromProtoTasteMatch } from "../taste/match";
 
 const poiClient = createClient(POIService, transport);
 
@@ -44,6 +45,7 @@ function mapProtoPOI(poi: ProtoPOI): POI {
     city: poi.city,
     city_id: poi.cityId,
     llm_interaction_id: poi.llmInteractionId,
+    taste_match: fromProtoTasteMatch(poi.tasteMatch),
   };
 }
 

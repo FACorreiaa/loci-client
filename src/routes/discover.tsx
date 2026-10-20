@@ -62,6 +62,7 @@ import AdvancedFiltersBar, {
 } from "~/components/filters/AdvancedFiltersBar";
 import { useUserSubscription } from "~/lib/api/billing";
 import { canUsePro } from "~/lib/subscription";
+import { fromProtoTasteMatch } from "~/lib/taste/match";
 import {
   normalizeRecommendationTrace,
   recordRecommendationEvents,
@@ -160,6 +161,7 @@ export default function DiscoverPage() {
     recommendation_rationale: poi.recommendation_rationale || poi.recommendationRationale,
     uncertainty_score: poi.uncertainty_score ?? poi.uncertaintyScore,
     missing_data: poi.missing_data ?? poi.missingData,
+    taste_match: poi.taste_match ?? fromProtoTasteMatch(poi.tasteMatch),
     llm_interaction_id: poi.llm_interaction_id,
     created_at: poi.created_at,
     recommendation_trace: normalizeRecommendationTrace(
@@ -793,6 +795,7 @@ export default function DiscoverPage() {
                                 rating: poi.rating,
                                 recommendation_rationale: poi.recommendation_rationale,
                                 tags: poi.tags,
+                                taste_reasons: poi.taste_match?.reasons,
                               })}
                               uncertaintyScore={poi.uncertainty_score}
                               missingData={poi.missing_data}

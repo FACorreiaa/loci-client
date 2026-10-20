@@ -1,6 +1,8 @@
 import { For, Show, createMemo, createSignal } from "solid-js";
 import { Star, X } from "lucide-solid";
 import StopCard from "~/components/itinerary/StopCard";
+import MatchChip from "~/components/taste/MatchChip";
+import { showOnCard } from "~/lib/taste/match";
 import FavoriteButton from "~/components/shared/FavoriteButton";
 import AddToListButton from "~/components/lists/AddToListButton";
 import { stopFromPoi, type ItineraryStop } from "~/lib/itinerary/createItineraryStream";
@@ -157,6 +159,9 @@ function DomainMeta(props: { poi: POIDetailedInfo; domain: ResultsDomain }) {
 
   return (
     <div class="flex flex-wrap items-center gap-1.5">
+      <Show when={showOnCard(props.poi.taste_match) && props.poi.taste_match}>
+        {(match) => <MatchChip match={match()} name={props.poi.name} />}
+      </Show>
       <Show when={props.domain === "hotels"}>
         <Show when={stars() > 0}>
           <span
