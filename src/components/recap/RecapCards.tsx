@@ -1,5 +1,5 @@
 import { For, Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
-import type { Recap, RecapCard } from "~/lib/api/recap";
+import { RecapKind, type Recap, type RecapCard } from "~/lib/api/recap";
 import { evidenceLine, formatKm, initials, routeBasisCaption, trendLabel } from "~/lib/recap/recap";
 import {
   Contributions,
@@ -331,12 +331,15 @@ function Highlights(props: { card: Extract<RecapCard["card"], { case: "highlight
   );
 }
 
-function Progress(props: { card: Extract<RecapCard["card"], { case: "progress" }>["value"] }) {
+function Progress(props: {
+  card: Extract<RecapCard["card"], { case: "progress" }>["value"];
+  yearly: boolean;
+}) {
   return (
     <div class="rc-card rc-progress">
       <div class="rc-center">
         <div class="rc-kicker" style={{ opacity: 0.7 }}>
-          Points on this trip
+          {props.yearly ? "Points this year" : "Points on this trip"}
         </div>
         <div class="rc-big">
           <CountUp value={Number(props.card.points)} />
@@ -470,7 +473,7 @@ export function RecapCardView(props: { recap: Recap; card: RecapCard; outroFoote
       case "highlights":
         return <Highlights card={c.value} />;
       case "progress":
-        return <Progress card={c.value} />;
+        return <Progress card={c.value} yearly={props.recap.kind === RecapKind.YEAR} />;
       case "field":
         return <Field card={c.value} />;
       case "friends":

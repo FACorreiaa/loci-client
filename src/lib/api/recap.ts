@@ -21,7 +21,7 @@ import { useAppQuery } from "./authed-query";
 import { capture } from "../analytics";
 
 export type { Recap, RecapCard };
-export { RecapStatus } from "@buf/loci_loci-proto.bufbuild_es/loci/recap/recap_pb.js";
+export { RecapKind, RecapStatus } from "@buf/loci_loci-proto.bufbuild_es/loci/recap/recap_pb.js";
 
 const recapClient = createClient(RecapService, transport);
 
