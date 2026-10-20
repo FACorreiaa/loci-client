@@ -4,6 +4,7 @@ import { ArrowRight, CalendarDays, Compass, MapPin, Plus } from "lucide-solid";
 import { useTrips } from "~/lib/api/trips";
 import { Button } from "~/ui/button";
 import TripGlobe from "~/components/features/Globe/TripGlobe";
+import YearInReviewBanner from "~/components/recap/YearInReviewBanner";
 
 export default function TripsList() {
   const trips = useTrips();
@@ -43,6 +44,8 @@ export default function TripsList() {
           </div>
         </div>
       </section>
+
+      <YearInReviewBanner />
 
       {/* Globe above the grid, not instead of it. The cards answer "which
           trip?"; the globe answers "how far apart are these actually?", which

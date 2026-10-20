@@ -6,8 +6,10 @@ import { A } from "@solidjs/router";
 import { useFavoritesList } from "~/lib/api/favorites";
 import { useTrips } from "~/lib/api/trips";
 import { pickNextTrip } from "~/lib/dashboard/next-trip";
+import { pickToday } from "~/lib/dashboard/today";
 import DeskHero from "./DeskHero";
 import NextTripBand from "./NextTripBand";
+import TodayBand from "./TodayBand";
 import HereNowBand from "./HereNowBand";
 import InSeasonBand from "./InSeasonBand";
 import NewsTickerBand from "./NewsTickerBand";
@@ -27,20 +29,36 @@ export default function LoggedInDashboard() {
   const favoritesQuery = useFavoritesList();
 
   const next = createMemo(() => pickNextTrip(tripsQuery.data ?? [], new Date()));
+  // On a trip day, today leads and the prompt box follows.
+  const today = createMemo(() => pickToday(tripsQuery.data ?? [], new Date()));
   const settled = () => !tripsQuery.isLoading && !favoritesQuery.isLoading;
 
   return (
     <div class="min-h-[100dvh] bg-background text-foreground">
       <div class="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
-        <DeskHero />
-
-        <HereNowBand />
+        <Show
+          when={today()}
+          fallback={
+            <>
+              <DeskHero />
+              <HereNowBand />
+            </>
+          }
+        >
+          {(t) => (
+            <>
+              <TodayBand today={t()} />
+              <HereNowBand />
+              <DeskHero />
+            </>
+          )}
+        </Show>
 
         <InSeasonBand />
 
         <NewsTickerBand />
 
-        <Show when={next()}>{(n) => <NextTripBand next={n()} />}</Show>
+        <Show when={!today() && next()}>{(n) => <NextTripBand next={n()} />}</Show>
 
         <nav class="mb-10 flex flex-wrap gap-2" aria-label="Shortcuts">
           <For each={shortcuts}>

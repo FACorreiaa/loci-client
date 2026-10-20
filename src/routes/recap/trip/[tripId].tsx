@@ -1,87 +1,13 @@
-import { Show, createEffect, createSignal } from "solid-js";
+import { Show, createEffect } from "solid-js";
 import { Title, Meta } from "@solidjs/meta";
 import { A, useNavigate, useParams } from "@solidjs/router";
-import { Download, Link2, Loader2 } from "lucide-solid";
+import { Loader2 } from "lucide-solid";
 import { ProtectedRoute } from "~/contexts/AuthContext";
+import RecapActions from "~/components/recap/RecapActions";
 import StoryPlayer from "~/components/recap/StoryPlayer";
 import { Button } from "~/ui/button";
-import {
-  RecapStatus,
-  markRecapViewed,
-  renderRecapCard,
-  useShareRecap,
-  useTripRecap,
-  type Recap,
-  type RecapCard,
-} from "~/lib/api/recap";
-import { shareFiles, shareNative } from "~/lib/share";
-import { copyText } from "~/lib/clipboard";
-import { showToast } from "~/lib/toast-store";
+import { RecapStatus, markRecapViewed, useTripRecap } from "~/lib/api/recap";
 import { capture } from "~/lib/analytics";
-
-function RecapActions(props: { recap: Recap; card: RecapCard; tripId: string }) {
-  const share = useShareRecap();
-  const [saving, setSaving] = createSignal(false);
-
-  const saveImage = async () => {
-    setSaving(true);
-    try {
-      const blob = await renderRecapCard(props.recap.id, props.card.id);
-      const file = new File(
-        [blob],
-        `loci-${props.recap.title}-${props.card.id}.png`.replace(/\s+/g, "-"),
-        {
-          type: "image/png",
-        },
-      );
-      const res = await shareFiles([file], { title: `${props.recap.title} · Loci` });
-      if (res === "shared" || res === "downloaded") capture("recap_shared", { kind: "image" });
-    } catch {
-      showToast({ id: "recap-image", title: "Couldn't make the image. Try again." });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const shareLink = async () => {
-    const res = await share
-      .mutateAsync({ recapId: props.recap.id, tripId: props.tripId })
-      .catch(() => undefined);
-    if (!res) {
-      showToast({ id: "recap-link", title: "Couldn't make a link. Try again." });
-      return;
-    }
-    const sent = await shareNative({
-      title: `My ${props.recap.title} recap`,
-      cityName: props.recap.title,
-      url: res.url,
-      text: `My ${props.recap.title} recap, made with Loci.`,
-    });
-    if (sent === "unavailable" || sent === "failed") {
-      const ok = await copyText(res.url);
-      showToast({ id: "recap-link", title: ok ? "Link copied" : res.url });
-    }
-  };
-
-  return (
-    <>
-      <button type="button" class="rc-btn" disabled={saving()} onClick={saveImage}>
-        <Download size={14} aria-hidden="true" />
-        {saving() ? "Making…" : "Save image"}
-      </button>
-      <button
-        type="button"
-        class="rc-btn"
-        data-primary
-        disabled={share.isPending}
-        onClick={shareLink}
-      >
-        <Link2 size={14} aria-hidden="true" />
-        {share.isPending ? "Sharing…" : "Share link"}
-      </button>
-    </>
-  );
-}
 
 function TripRecapPage() {
   const params = useParams<{ tripId: string }>();

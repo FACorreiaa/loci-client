@@ -15,6 +15,7 @@ import ProgressiveImage from "~/components/itinerary/ProgressiveImage";
 import FavoriteButton from "~/components/shared/FavoriteButton";
 import AddToListButton from "~/components/lists/AddToListButton";
 import { ShareMenu } from "~/components/ShareMenu";
+import BeenHereButton from "~/components/visited/BeenHereButton";
 import { Skeleton } from "~/ui/skeleton";
 import type { FavoriteItem } from "~/lib/api/favorites";
 import type { POIImageCredit } from "~/lib/api/types";
@@ -25,7 +26,6 @@ import { backToResultsHref } from "~/lib/results/last-session";
 import type { POI } from "~/components/features/Map/types";
 import { isOpenableId } from "~/lib/saved/collect";
 import MatchChip from "~/components/taste/MatchChip";
-import BeenHereButton from "~/components/visited/BeenHereButton";
 import HowWasIt from "~/components/ranking/HowWasIt";
 import type { TasteMatchView } from "~/lib/taste/match";
 
@@ -321,7 +321,7 @@ export default function PlaceDetail(props: PlaceDetailProps) {
                         place={{
                           id: p().id,
                           name: p().name,
-                          cityName: p().city ?? "",
+                          cityName: p().city ?? props.cityHint ?? "",
                           latitude: p().latitude ?? 0,
                           longitude: p().longitude ?? 0,
                         }}

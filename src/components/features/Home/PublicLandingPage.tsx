@@ -151,16 +151,16 @@ export default function PublicLandingPage() {
               <div class="grid items-center gap-11 pb-4 lg:grid-cols-[1.05fr_0.95fr]">
                 <div>
                   <span class="font-coord text-xs uppercase tracking-[0.18em] text-accent">
-                    Loci · places, plotted
+                    Loci · cities, with friends
                   </span>
                   <h1 class="mt-4 text-[clamp(2.6rem,5.4vw,4.1rem)] font-bold leading-[1.02] tracking-tight text-balance">
-                    Turn a vibe
+                    Explore a city
                     <br />
-                    into a <span class="text-accent">route</span>.
+                    with your <span class="text-accent">friends</span>.
                   </h1>
                   <p class="mt-5 max-w-[30ch] text-lg text-muted-foreground">
-                    Tell Loci a city and a mood. Get a real itinerary of real places — mapped,
-                    ordered, and yours to reshape.
+                    Plan a trip in one sentence, walk it stop by stop, and collect the places you've
+                    really been. See who's explored most this week.
                   </p>
 
                   <div

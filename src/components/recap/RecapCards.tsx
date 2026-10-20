@@ -1,6 +1,15 @@
 import { For, Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import type { Recap, RecapCard } from "~/lib/api/recap";
 import { evidenceLine, formatKm, initials, routeBasisCaption, trendLabel } from "~/lib/recap/recap";
+import {
+  Contributions,
+  Percentile,
+  Streak,
+  TasteShift,
+  TopCity,
+  TripsTimeline,
+  YearMap,
+} from "./YearCards";
 
 /**
  * A number that counts up when the card appears. The server render and the
@@ -422,7 +431,9 @@ function Outro(props: {
     <div class="rc-card rc-outro">
       <div class="rc-center">
         <div class="rc-kicker" style={{ opacity: 0.7 }}>
-          {props.recap.title} · {props.recap.periodLabel}
+          {props.recap.title.includes(props.recap.periodLabel)
+            ? props.recap.title
+            : `${props.recap.title} · ${props.recap.periodLabel}`}
         </div>
         <h2>{props.card.headline}</h2>
         <Show when={props.card.summaryLine}>
@@ -466,6 +477,20 @@ export function RecapCardView(props: { recap: Recap; card: RecapCard; outroFoote
         return <Friends card={c.value} city={city()} />;
       case "outro":
         return <Outro recap={props.recap} card={c.value} footer={props.outroFooter} />;
+      case "yearMap":
+        return <YearMap card={c.value} />;
+      case "tripsTimeline":
+        return <TripsTimeline card={c.value} />;
+      case "topCity":
+        return <TopCity card={c.value} />;
+      case "tasteShift":
+        return <TasteShift card={c.value} />;
+      case "streak":
+        return <Streak card={c.value} />;
+      case "contributions":
+        return <Contributions card={c.value} />;
+      case "percentile":
+        return <Percentile card={c.value} />;
       default:
         return null;
     }
