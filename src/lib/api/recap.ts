@@ -1,4 +1,4 @@
-// Trip recaps over RecapService. The cards stay as the generated protobuf
+// Trip recaps and the year in review over RecapService. The cards stay as the generated protobuf
 // messages: they are a typed oneof, and the player switches on `card.case`.
 import { useMutation, useQueryClient } from "@tanstack/solid-query";
 import { createClient } from "@connectrpc/connect";
@@ -7,6 +7,7 @@ import {
   RecapService,
   RecapImageFormat,
   GetTripRecapRequestSchema,
+  GetYearInReviewRequestSchema,
   GetSharedRecapRequestSchema,
   ShareRecapRequestSchema,
   UnshareRecapRequestSchema,
@@ -26,6 +27,7 @@ const recapClient = createClient(RecapService, transport);
 
 export const recapKeys = {
   trip: (tripId: string) => ["recap", "trip", tripId] as const,
+  year: (year: number) => ["recap", "year", year] as const,
   shared: (code: string) => ["recap", "shared", code] as const,
 };
 
@@ -39,6 +41,25 @@ export const useTripRecap = (tripId: () => string | undefined) =>
     queryFn: async () => {
       const res = await recapClient.getTripRecap(
         create(GetTripRecapRequestSchema, { tripId: tripId()! }),
+      );
+      return res.recap;
+    },
+  }));
+
+/**
+ * My year in review. Before the year opens (1 December) it comes back
+ * INELIGIBLE with a reason; once open it is built the first time it is asked
+ * for.
+ */
+export const useYearInReview = (year: () => number | undefined) =>
+  useAppQuery(() => ({
+    queryKey: recapKeys.year(year() ?? 0),
+    enabled: !!year(),
+    retry: false,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const res = await recapClient.getYearInReview(
+        create(GetYearInReviewRequestSchema, { year: year()! }),
       );
       return res.recap;
     },
@@ -77,7 +98,7 @@ export const useRefreshTripRecap = () => {
 export const useShareRecap = () => {
   const qc = useQueryClient();
   return useMutation(() => ({
-    mutationFn: async (vars: { recapId: string; tripId?: string }) => {
+    mutationFn: async (vars: { recapId: string; tripId?: string; year?: number }) => {
       const res = await recapClient.shareRecap(
         create(ShareRecapRequestSchema, { recapId: vars.recapId }),
       );
@@ -86,6 +107,7 @@ export const useShareRecap = () => {
     onSuccess: (_res, vars) => {
       capture("recap_shared", { kind: "link" });
       if (vars.tripId) void qc.invalidateQueries({ queryKey: recapKeys.trip(vars.tripId) });
+      if (vars.year) void qc.invalidateQueries({ queryKey: recapKeys.year(vars.year) });
     },
   }));
 };

@@ -1,4 +1,4 @@
-// Pure helpers for trip recaps: when a trip has a recap to show, the link
+// Pure helpers for recaps (trips and years): when a trip has a recap to show, the link
 // preview for a shared recap, and the small bits of wording the cards share.
 // No DOM, no network except the injected fetch, so all of it runs on the
 // server and in tests.
@@ -51,8 +51,27 @@ const KNOWN_CARDS = new Set([
   "field",
   "friends",
   "outro",
+  "yearMap",
+  "tripsTimeline",
+  "topCity",
+  "tasteShift",
+  "streak",
+  "contributions",
+  "percentile",
 ]);
-const LIGHT_CARDS = new Set(["places", "days", "taste", "highlights", "field", "friends"]);
+const LIGHT_CARDS = new Set([
+  "places",
+  "days",
+  "taste",
+  "highlights",
+  "field",
+  "friends",
+  "yearMap",
+  "topCity",
+  "tasteShift",
+  "contributions",
+  "percentile",
+]);
 
 export const playableCards = <T extends CaseCard>(cards: T[]): T[] =>
   cards.filter((c) => !!c.card.case && KNOWN_CARDS.has(c.card.case));
@@ -114,7 +133,19 @@ export interface SharedRecapMeta {
   image: string;
 }
 
+/**
+ * What to call a recap in a sentence: "Lisbon recap" for a trip, "2026 in
+ * Loci" for a year (whose title, "Your 2026", reads wrong after "My").
+ */
+export const recapName = (recap: { title?: string; year?: number; kind?: unknown }): string => {
+  const isYear = recap.kind === 2 || recap.kind === "RECAP_KIND_YEAR";
+  if (isYear && recap.year) return `${recap.year} in Loci`;
+  return `${recap.title ?? "trip"} recap`;
+};
+
 interface WireRecap {
+  kind?: string | number;
+  year?: number;
   title?: string;
   subtitle?: string;
   periodLabel?: string;
@@ -132,7 +163,7 @@ export const sharedRecapMeta = (
   const who = recap.owner?.displayName;
   const summary = recap.cards?.find((c) => c.outro?.summaryLine)?.outro?.summaryLine;
   return {
-    title: who ? `${who}'s ${recap.title} recap` : `${recap.title} recap`,
+    title: who ? `${who}'s ${recapName(recap)}` : recapName(recap),
     description: [summary || recap.subtitle, "Plan your own trip with Loci."]
       .filter(Boolean)
       .join(". "),
@@ -159,4 +190,93 @@ export const fetchSharedRecapMeta = async (
   } catch {
     return undefined;
   }
+};
+
+/**
+ * The year whose year in review is worth offering at `now`: this year in
+ * December, last year in January, none otherwise. The server decides when a
+ * year actually opens; this only keeps the banner's query to the weeks it
+ * can answer yes.
+ */
+export const yearInReviewYear = (now: Date = new Date()): number | undefined => {
+  const m = now.getMonth();
+  if (m === 11) return now.getFullYear();
+  if (m === 0) return now.getFullYear() - 1;
+  return undefined;
+};
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** "Jun" for 6; empty outside 1..12. */
+export const monthShort = (m: number): string => MONTHS[m - 1] ?? "";
+/** "June" for 6; empty outside 1..12. */
+export const monthName = (m: number): string => MONTH_NAMES[m - 1] ?? "";
+
+/** "9 cities", "1 city", "1,204 places". */
+export const countLabel = (n: number, one: string, many: string): string =>
+  `${Math.max(0, n).toLocaleString("en-GB")} ${n === 1 ? one : many}`;
+
+/** What a percentile card ranks on, as the line under "Top N%". */
+export const percentileMetricLabel = (metric: number): string => {
+  switch (metric) {
+    case 2:
+      return "for cities";
+    case 3:
+      return "for days walked";
+    case 4:
+      return "for giving back";
+    default:
+      return "for places kept";
+  }
+};
+
+/**
+ * Places city pins in a w×h box with `pad` on every side (equirectangular,
+ * cos-lat corrected), keeping the shape. One pin sits in the middle. Points
+ * that are not finite numbers are dropped, so the result may be shorter
+ * than the input; each entry keeps the index of its point.
+ */
+export const projectPins = (
+  pts: { latitude: number; longitude: number }[],
+  w: number,
+  h: number,
+  pad: number,
+): { x: number; y: number; i: number }[] => {
+  const ok = pts
+    .map((p, i) => ({ ...p, i }))
+    .filter((p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude));
+  if (ok.length === 0) return [];
+  if (ok.length === 1) return [{ x: w / 2, y: h / 2, i: ok[0].i }];
+  const midLat = ok.reduce((s, p) => s + p.latitude, 0) / ok.length;
+  const k = Math.cos((midLat * Math.PI) / 180) || 1;
+  const xs = ok.map((p) => p.longitude * k);
+  const ys = ok.map((p) => -p.latitude);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const iw = w - 2 * pad;
+  const ih = h - 2 * pad;
+  const scale = Math.min(iw / Math.max(maxX - minX, 1e-6), ih / Math.max(maxY - minY, 1e-6));
+  const ox = pad + (iw - (maxX - minX) * scale) / 2;
+  const oy = pad + (ih - (maxY - minY) * scale) / 2;
+  return ok.map((p, j) => ({
+    x: ox + (xs[j] - minX) * scale,
+    y: oy + (ys[j] - minY) * scale,
+    i: p.i,
+  }));
 };
