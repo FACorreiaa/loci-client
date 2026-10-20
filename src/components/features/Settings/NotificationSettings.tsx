@@ -105,7 +105,7 @@ export default function NotificationSettings(props: {
             <div class="min-w-0">
               <Label class="font-medium text-foreground">Trip reminders</Label>
               <p class="text-sm text-muted-foreground">
-                Nudges about a trip you're planning as the dates get close.
+                A brief at 8:00 on each trip day, and a heads-up if the weather turns.
               </p>
             </div>
           </div>

@@ -15,6 +15,21 @@ describe("push-sw decide", () => {
     expect(pushSw.decide(payload, [visible])).toEqual({ kind: "relay", client: visible });
   });
 
+  it("shows anything but a search result even with a tab visible", () => {
+    // The page only toasts finished searches; a trip brief, a friend request
+    // or a standing task relayed to it would be dropped unseen.
+    const visible = { visibilityState: "visible", url: "https://lociai.fyi/" };
+    const brief = {
+      origin: "trip_brief",
+      title: "Day 2 in Lisbon",
+      body: "18°C",
+      url: "/trips/t1",
+    };
+    expect(pushSw.decide(brief, [visible])).toEqual({ kind: "show" });
+    const proactive = { sessionId: "s1", origin: "proactive", title: "Standing task", url: "/" };
+    expect(pushSw.decide(proactive, [visible])).toEqual({ kind: "show" });
+  });
+
   it("shows a notification when every tab is hidden", () => {
     expect(
       pushSw.decide(payload, [{ visibilityState: "hidden", url: "https://lociai.fyi/" }]),
@@ -27,6 +42,16 @@ describe("push-sw decide", () => {
   it("only follows same-site paths on click", () => {
     expect(pushSw.targetUrl({ url: "/itinerary?sessionId=s1" })).toBe("/itinerary?sessionId=s1");
     expect(pushSw.targetUrl({ url: "https://evil.example/x" })).toBe("/");
+  });
+
+  it("follows Loci's own absolute links as paths", () => {
+    // Server payloads carry https://lociai.fyi/… so the same link opens the
+    // app on a phone (Universal Link) and the page here.
+    expect(pushSw.targetUrl({ url: "https://lociai.fyi/trips/t1" })).toBe("/trips/t1");
+    expect(pushSw.targetUrl({ url: "https://lociai.fyi/u/ana?x=1#y" })).toBe("/u/ana?x=1#y");
+    expect(pushSw.targetUrl({ url: "https://lociai.fyi.evil.example/x" })).toBe("/");
+    expect(pushSw.targetUrl({ url: "http://lociai.fyi/x" })).toBe("/");
+    expect(pushSw.targetUrl({ url: "https://lociai.fyi//evil.example" })).toBe("/");
   });
 
   it("rejects a protocol-relative path", () => {
