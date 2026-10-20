@@ -23,6 +23,7 @@ import { transport } from "../connect-transport";
 import { queryKeys } from "./shared";
 import { useAppQuery } from "./authed-query";
 import { withoutVisit, type VisitedPage } from "../visited/group";
+import { rankingKeys } from "./ranking";
 
 const historyClient = createClient(TravelHistoryService, transport);
 
@@ -340,7 +341,11 @@ export const useDeleteVisitedPlace = (page = 1) => {
     onError: (_err, _id, context) => {
       if (context?.previous) queryClient.setQueryData(key, context.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.travelHistory }),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.travelHistory });
+      // The last visit to a place takes its ranking with it (server-side).
+      void queryClient.invalidateQueries({ queryKey: rankingKeys.all });
+    },
   }));
 };
 
