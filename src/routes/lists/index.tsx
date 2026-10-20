@@ -16,6 +16,7 @@ import {
   Bookmark,
   CheckSquare,
   Square,
+  Link2,
 } from "lucide-solid";
 import {
   useLists,
@@ -197,10 +198,20 @@ export default function ListsPage() {
                     </p>
                   </div>
                 </div>
-                <Button onClick={openCreateModal} variant="secondary" class="gap-2">
-                  <Plus class="w-5 h-5" />
-                  New List
-                </Button>
+                <div class="flex flex-wrap gap-2">
+                  <A
+                    href="/lists/import"
+                    class="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                    data-testid="lists-import"
+                  >
+                    <Link2 class="w-5 h-5" />
+                    Import from a link
+                  </A>
+                  <Button onClick={openCreateModal} variant="secondary" class="gap-2">
+                    <Plus class="w-5 h-5" />
+                    New List
+                  </Button>
+                </div>
               </div>
 
               {/* Quick Links */}
