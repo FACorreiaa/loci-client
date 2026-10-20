@@ -27,8 +27,8 @@ import RunWatcher from "~/components/runs/RunWatcher";
 
 const CARD = "https://lociai.fyi/images/brand/og-image.png";
 const CARD_ALT =
-  "Loci — turn a vibe into a route. Tell it a city and a mood and get a real " +
-  "itinerary of real places, mapped and ordered.";
+  "Loci — explore cities with friends. Plan a trip in one sentence, walk it " +
+  "and collect the places you've really been.";
 
 /**
  * The parts of the social card that are the same on every page.

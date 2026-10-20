@@ -8,6 +8,8 @@ import {
   Star,
   Trash2,
   Check,
+  Undo2,
+  SkipForward,
 } from "lucide-solid";
 import { cn } from "~/cn";
 import { Badge } from "~/ui/badge";
@@ -48,6 +50,12 @@ export interface TripStopRowProps {
   onOutcome: (eventType: RecommendationEventName, rating?: number) => void;
   /** The replace PlacePicker, rendered when `replacing`. */
   children?: JSX.Element;
+  /**
+   * Walked / skipped, for the trip's owner in read mode. Without it the rail
+   * dot is decoration and the stop cannot be marked (shared trips, editing).
+   */
+  onMark?: (mark: "open" | "done" | "skipped") => void;
+  marking?: boolean;
 }
 
 const timeInputClass =
@@ -64,6 +72,8 @@ const timeInputClass =
 export default function TripStopRow(props: TripStopRowProps) {
   const duration = () => formatDuration(props.stop.durationMinutes);
   const startLabel = () => minutesToHHMM(props.stop.startMinute);
+  const mark = () => props.stop.mark ?? "open";
+  const markable = () => !!props.onMark && !props.editing;
 
   const overflowMenu = () => (
     <DropdownMenu placement="bottom-end">
@@ -77,6 +87,27 @@ export default function TripStopRow(props: TripStopRowProps) {
         <MoreHorizontal class="h-4 w-4" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent class="w-52">
+        <Show when={markable()}>
+          <Show
+            when={mark() === "open"}
+            fallback={
+              <DropdownMenuItem onSelect={() => props.onMark?.("open")}>
+                <Undo2 class="mr-2 h-4 w-4" aria-hidden="true" />
+                {mark() === "done" ? "Not walked yet" : "Don't skip"}
+              </DropdownMenuItem>
+            }
+          >
+            <DropdownMenuItem onSelect={() => props.onMark?.("done")}>
+              <Check class="mr-2 h-4 w-4" aria-hidden="true" />
+              Walked it
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => props.onMark?.("skipped")}>
+              <SkipForward class="mr-2 h-4 w-4" aria-hidden="true" />
+              Skip this stop
+            </DropdownMenuItem>
+          </Show>
+          <DropdownMenuSeparator />
+        </Show>
         <DropdownMenuItem onSelect={props.onToggleReplace}>
           <ReplaceIcon class="mr-2 h-4 w-4" aria-hidden="true" />
           {props.replacing ? "Close search" : "Replace stop"}
@@ -147,20 +178,66 @@ export default function TripStopRow(props: TripStopRowProps) {
 
       {/* Rail line + dot, then the stop itself. */}
       <div class="relative border-l border-border pb-4 pl-4 sm:pl-5">
-        <span
-          class="absolute left-0 top-[0.85rem] h-2.5 w-2.5 -translate-x-1/2 rounded-full ring-2 ring-background"
-          style={{ "background-color": props.dotColor }}
-          aria-hidden="true"
-        />
+        <Show
+          when={markable()}
+          fallback={
+            <span
+              class="absolute left-0 top-[0.85rem] h-2.5 w-2.5 -translate-x-1/2 rounded-full ring-2 ring-background"
+              style={{ "background-color": props.dotColor }}
+              aria-hidden="true"
+            />
+          }
+        >
+          {/* The dot is the tick: one tap marks the stop walked, another reopens it. */}
+          <button
+            type="button"
+            class="absolute left-0 top-[0.35rem] grid h-6 w-6 -translate-x-1/2 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+            aria-label={
+              mark() === "done"
+                ? `${props.stop.name}: walked. Mark not walked`
+                : `Mark ${props.stop.name} walked`
+            }
+            aria-pressed={mark() === "done"}
+            disabled={props.marking}
+            onClick={() => props.onMark?.(mark() === "done" ? "open" : "done")}
+          >
+            <Show
+              when={mark() === "done"}
+              fallback={
+                <span
+                  class={cn(
+                    "h-2.5 w-2.5 rounded-full ring-2 ring-background transition-transform group-hover:scale-125",
+                    mark() === "skipped" && "opacity-40",
+                  )}
+                  style={{ "background-color": props.dotColor }}
+                />
+              }
+            >
+              <span class="grid h-[1.125rem] w-[1.125rem] place-items-center rounded-full bg-primary text-primary-foreground ring-2 ring-background">
+                <Check class="h-3 w-3" stroke-width={3} aria-hidden="true" />
+              </span>
+            </Show>
+          </button>
+        </Show>
 
         <Show
           when={props.editing}
           fallback={
             <div class="flex items-start gap-2">
               <div class="min-w-0 flex-1">
-                <h3 class="text-base font-medium leading-snug text-foreground">
+                <h3
+                  class={cn(
+                    "text-base font-medium leading-snug text-foreground",
+                    mark() === "skipped" && "text-muted-foreground line-through decoration-1",
+                  )}
+                >
                   {props.stop.name}
                 </h3>
+                <Show when={markable() && mark() !== "open"}>
+                  <p class="font-coord mt-0.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {mark() === "done" ? "Walked" : "Skipped"}
+                  </p>
+                </Show>
                 <WhyThisStop reason={props.stop.notes} />
               </div>
               <Show when={duration()}>

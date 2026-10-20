@@ -1,4 +1,4 @@
-import { Match, Show, Switch } from "solid-js";
+import { Match, onMount, Show, Switch } from "solid-js";
 import { Title, Meta } from "@solidjs/meta";
 import { A, useNavigate, useParams } from "@solidjs/router";
 import { Loader2 } from "lucide-solid";
@@ -7,10 +7,15 @@ import UserAvatar from "~/components/social/UserAvatar";
 import { useAuth } from "~/contexts/AuthContext";
 import { profilePath, useAcceptInvite, useInvite } from "~/lib/api/social";
 import { capture } from "~/lib/analytics";
+import { rememberInvite } from "~/lib/invite";
 
 /**
  * Someone's invite link. Signed out, it asks you to join first and brings
  * you back here; signed in, one tap makes you friends.
+ *
+ * The code is remembered as soon as the page opens, so the signup that
+ * follows records who invited you, whichever way you sign up. A code that
+ * does not resolve still leads to signup; the server ignores it there.
  */
 export default function InvitePage() {
   const params = useParams<{ code: string }>();
@@ -21,6 +26,8 @@ export default function InvitePage() {
   const data = () => (inviteQuery.isSuccess ? inviteQuery.data : undefined);
   const inviter = () => data()?.invite?.inviter;
   const here = () => `/invite/${encodeURIComponent(params.code)}`;
+
+  onMount(() => rememberInvite(params.code));
 
   const join = (to: "signup" | "signin") => {
     try {
@@ -54,11 +61,19 @@ export default function InvitePage() {
             />
           </Match>
           <Match when={inviteQuery.isError || (data() && !inviter())}>
-            <h1 class="text-2xl">This invite has expired</h1>
-            <p class="mt-2 text-muted-foreground">Ask your friend for a new link.</p>
-            <Button as={A} href="/" class="mt-6">
-              Go home
-            </Button>
+            <p class="text-muted-foreground">This invite link doesn't open anyone's invite.</p>
+            <Show
+              when={!isAuthenticated()}
+              fallback={
+                <Button as={A} href="/" class="mt-6">
+                  Go home
+                </Button>
+              }
+            >
+              <Button class="mt-6" onClick={() => navigate("/auth/signup")}>
+                Join Loci
+              </Button>
+            </Show>
           </Match>
           <Match when={inviter()}>
             {(u) => (

@@ -23,6 +23,7 @@ export interface TripDaySectionProps {
 export default function TripDaySection(props: TripDaySectionProps) {
   const summary = () => summariseDay(props.day);
   const showCity = () => props.day.cityName && props.day.cityName !== props.tripCityName;
+  const walked = () => props.day.stops.filter((s) => s.mark === "done").length;
 
   return (
     <section class="loci-card mb-6">
@@ -56,12 +57,18 @@ export default function TripDaySection(props: TripDaySectionProps) {
               Travel day
             </Badge>
           </Show>
+          <Show when={props.day.completedAt}>
+            <Badge variant="secondary" class="font-coord text-[10px] uppercase tracking-[0.12em]">
+              Day finished
+            </Badge>
+          </Show>
         </div>
 
         <p class="font-coord mt-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
           {summary().stopCount} stop{summary().stopCount === 1 ? "" : "s"}
           <Show when={summary().window}>{(w) => <> · {w()}</>}</Show>
           <Show when={summary().totalLabel}>{(t) => <> · {t()} planned</>}</Show>
+          <Show when={walked()}>{(n) => <> · {n()} walked</>}</Show>
         </p>
       </header>
 

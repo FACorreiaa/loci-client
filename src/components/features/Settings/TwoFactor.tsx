@@ -1,6 +1,6 @@
 import { createSignal, Show, For, createResource } from "solid-js";
 import { ShieldCheck, ShieldOff, Copy, Check, Download, RefreshCw, KeyRound } from "lucide-solid";
-import QRCode from "qrcode";
+import { qrDataUrl as drawQr } from "~/lib/qr";
 import { Button } from "~/ui/button";
 import { errorMessage } from "~/lib/connect-error";
 import { TextField, TextFieldRoot } from "~/ui/textfield";
@@ -51,7 +51,7 @@ export default function TwoFactor(props: TwoFactorProps) {
     () => enrollment()?.provisioningUri,
     async (uri) => {
       try {
-        return await QRCode.toDataURL(uri, { width: 220, margin: 1 });
+        return await drawQr(uri, 220);
       } catch {
         // Manual entry of the secret still works, so a QR failure is not fatal.
         return null;
