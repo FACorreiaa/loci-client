@@ -15,6 +15,7 @@ import ProgressiveImage from "~/components/itinerary/ProgressiveImage";
 import FavoriteButton from "~/components/shared/FavoriteButton";
 import AddToListButton from "~/components/lists/AddToListButton";
 import { ShareMenu } from "~/components/ShareMenu";
+import BeenHereButton from "~/components/visited/BeenHereButton";
 import { Skeleton } from "~/ui/skeleton";
 import type { FavoriteItem } from "~/lib/api/favorites";
 import type { POIImageCredit } from "~/lib/api/types";
@@ -306,6 +307,18 @@ export default function PlaceDetail(props: PlaceDetailProps) {
                       />
                       <ShareMenu payload={sharePayload()} />
                     </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <BeenHereButton
+                      place={{
+                        id: p().id,
+                        name: p().name,
+                        cityName: p().city ?? props.cityHint ?? "",
+                        latitude: p().latitude ?? 0,
+                        longitude: p().longitude ?? 0,
+                      }}
+                    />
                   </div>
 
                   <div class="flex flex-wrap items-center gap-3 mb-4 text-sm">

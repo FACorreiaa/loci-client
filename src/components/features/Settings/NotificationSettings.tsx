@@ -39,6 +39,8 @@ export default function NotificationSettings(props: {
           tripReminders: false,
           searchFinished: false,
           friendActivity: false,
+          leaderboardVisible: true,
+          cityBoardVisible: true,
         };
 
   const toggle = async (key: keyof Settings, value: boolean) => {
@@ -158,6 +160,45 @@ export default function NotificationSettings(props: {
                   </Show>
                 )}
               </Show>
+            </div>
+          </div>
+
+          <div class="border-t border-border pt-4">
+            <p class="kicker mb-3">Field boards</p>
+            <div class="space-y-4">
+              <div class="flex items-start gap-3">
+                <Checkbox
+                  checked={settings().cityBoardVisible}
+                  onChange={(value: boolean) => void toggle("cityBoardVisible", value)}
+                  disabled={updateSettings.isPending}
+                >
+                  <CheckboxControl />
+                </Checkbox>
+                <div class="min-w-0">
+                  <Label class="font-medium text-foreground">Show me on city boards</Label>
+                  <p class="text-sm text-muted-foreground">
+                    People who aren't your friends see your display name and this week's field score
+                    in a city — never your saved places or trips. Off, you still see the board;
+                    nobody else sees you on it.
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <Checkbox
+                  checked={settings().leaderboardVisible}
+                  onChange={(value: boolean) => void toggle("leaderboardVisible", value)}
+                  disabled={updateSettings.isPending}
+                >
+                  <CheckboxControl />
+                </Checkbox>
+                <div class="min-w-0">
+                  <Label class="font-medium text-foreground">Show me on my friends' board</Label>
+                  <p class="text-sm text-muted-foreground">
+                    Your friends see your weekly field score next to theirs.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
