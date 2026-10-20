@@ -35,6 +35,21 @@ const makeTrip = (id: string, dates: string[], stops: TripStop[][] = []): Trip =
 });
 
 describe("todayOf", () => {
+  it("reads a server date as the calendar day it names, west of UTC too", () => {
+    // The API carries a day as midnight UTC; in Los Angeles that instant is
+    // still the 19th, so a local reading would lead with the wrong day.
+    const tz = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles";
+    try {
+      const morning = new Date(2026, 9, 20, 9, 0);
+      const trip = makeTrip("w", ["2026-10-19T00:00:00.000Z", "2026-10-20T00:00:00.000Z"]);
+      expect(todayOf(trip, morning)?.day.dayNumber).toBe(2);
+    } finally {
+      if (tz === undefined) delete process.env.TZ;
+      else process.env.TZ = tz;
+    }
+  });
+
   it("is undefined outside the trip", () => {
     expect(todayOf(makeTrip("a", ["2026-10-21", "2026-10-22"]), now)).toBeUndefined();
     expect(todayOf(makeTrip("b", ["2026-10-18", "2026-10-19"]), now)).toBeUndefined();
