@@ -112,9 +112,9 @@ export function TripsTimeline(props: { card: Card<"tripsTimeline"> }) {
 
 export function TopCity(props: { card: Card<"topCity"> }) {
   const stats = () => [
-    { v: props.card.days, k: "Days" },
-    { v: props.card.placesCount, k: "Places" },
-    { v: props.card.tripsCount, k: "Trips" },
+    { v: props.card.days, one: "Day", many: "Days" },
+    { v: props.card.placesCount, one: "Place", many: "Places" },
+    { v: props.card.tripsCount, one: "Trip", many: "Trips" },
   ];
   return (
     <div class="rc-card rc-topcity">
@@ -133,7 +133,7 @@ export function TopCity(props: { card: Card<"topCity"> }) {
           {(s) => (
             <div>
               <b>{Math.max(0, s.v).toLocaleString("en-GB")}</b>
-              <span>{s.k}</span>
+              <span>{s.v === 1 ? s.one : s.many}</span>
             </div>
           )}
         </For>
@@ -199,7 +199,7 @@ export function Streak(props: { card: Card<"streak"> }) {
       <div class="rc-stats" data-dark>
         <div>
           <b>{Math.max(0, props.card.activeDays).toLocaleString("en-GB")}</b>
-          <span>Active days</span>
+          <span>{props.card.activeDays === 1 ? "Active day" : "Active days"}</span>
         </div>
         <Show when={monthShort(props.card.bestMonth)}>
           <div>
@@ -214,10 +214,10 @@ export function Streak(props: { card: Card<"streak"> }) {
 
 export function Contributions(props: { card: Card<"contributions"> }) {
   const tiles = () => [
-    { v: props.card.reviewsCount, k: "Reviews" },
-    { v: props.card.listsCount, k: "Lists" },
-    { v: props.card.postsCount, k: "Posts" },
-    { v: props.card.submissionsCount, k: "Places added" },
+    { v: props.card.reviewsCount, one: "Review", many: "Reviews" },
+    { v: props.card.listsCount, one: "List", many: "Lists" },
+    { v: props.card.postsCount, one: "Post", many: "Posts" },
+    { v: props.card.submissionsCount, one: "Place added", many: "Places added" },
   ];
   const total = () => tiles().reduce((s, t) => s + Math.max(0, t.v), 0);
   return (
@@ -234,7 +234,7 @@ export function Contributions(props: { card: Card<"contributions"> }) {
           {(t, i) => (
             <div data-zero={t.v <= 0 ? "" : undefined} style={{ "--i": i() }}>
               <b>{Math.max(0, t.v).toLocaleString("en-GB")}</b>
-              <span>{t.k}</span>
+              <span>{t.v === 1 ? t.one : t.many}</span>
             </div>
           )}
         </For>
