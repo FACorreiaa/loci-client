@@ -73,8 +73,12 @@
             "comment": "A finished trip's recap, /recap/trip/{tripId}"
           },
           {
+            "/": "/recap/year/*",
+            "comment": "A year in review, /recap/year/{year}"
+          },
+          {
             "/": "/r/*",
-            "comment": "A shared trip recap, /r/{shareCode}"
+            "comment": "A shared recap, /r/{shareCode}"
           },
           {
             "/": "/auth/reset-password*",
