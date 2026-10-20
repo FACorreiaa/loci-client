@@ -51,7 +51,9 @@ export type AnalyticsEvent =
   /** A trip recap was opened. kind: owner | shared. */
   | "recap_opened"
   /** A recap was shared. kind: link | image. */
-  | "recap_shared";
+  | "recap_shared"
+  /** Places were read from a shared link. source, places, resolved. Same name as iOS. */
+  | "link_imported";
 
 export type AnalyticsProperties = Record<string, unknown>;
 
