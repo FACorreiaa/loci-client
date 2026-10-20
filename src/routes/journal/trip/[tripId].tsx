@@ -1,10 +1,11 @@
-import { For, Show } from "solid-js";
+import { Index, Show, createEffect } from "solid-js";
 import { Title, Meta } from "@solidjs/meta";
 import { A, useParams } from "@solidjs/router";
 import { BookOpen, ChevronLeft, Loader2 } from "lucide-solid";
 import { ProtectedRoute } from "~/contexts/AuthContext";
 import JournalDay, { AddPhotosButton, PhotoStrip } from "~/components/journal/JournalDay";
 import { useAddPhotos, useDeletePhoto, useSetDayDiary, useTripJournal } from "~/lib/api/journal";
+import { createDiaryDrafts } from "~/lib/journal/drafts";
 import { showToast } from "~/lib/toast-store";
 
 /**
@@ -21,6 +22,9 @@ function JournalPage() {
   const diary = useSetDayDiary(tripId);
   const photos = useAddPhotos();
   const remove = useDeletePhoto(tripId);
+  // Notes being typed outlive the refetches that saves and uploads trigger.
+  const drafts = createDiaryDrafts();
+  createEffect(() => journal()?.days.forEach((d) => drafts.settle(d.id, d.diary)));
 
   const addPhotos = async (files: File[], dayId?: string, stopId?: string) => {
     const res = await photos
@@ -69,7 +73,7 @@ function JournalPage() {
           </section>
         </Show>
 
-        <Show when={journal()} keyed>
+        <Show when={journal()}>
           {(j) => (
             <>
               <header class="mb-8">
@@ -77,16 +81,16 @@ function JournalPage() {
                   <div class="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
                     <BookOpen class="w-5 h-5 text-primary" />
                   </div>
-                  <h1 class="text-2xl sm:text-3xl font-bold text-foreground">{j.title}</h1>
+                  <h1 class="text-2xl sm:text-3xl font-bold text-foreground">{j().title}</h1>
                 </div>
                 <p class="text-muted-foreground text-sm sm:text-base">
                   Your trip day by day. Write a line for each day
-                  <Show when={j.photosEnabled}> and add your photos</Show>; only you can see this.
+                  <Show when={j().photosEnabled}> and add your photos</Show>; only you can see this.
                 </p>
               </header>
 
               <Show
-                when={j.days.length > 0}
+                when={j().days.length > 0}
                 fallback={
                   <p class="loci-card rounded-3xl p-6 text-sm text-muted-foreground">
                     This trip has no days yet. Plan a day and it shows up here.
@@ -94,26 +98,30 @@ function JournalPage() {
                 }
               >
                 <div class="space-y-6">
-                  <For each={j.days}>
+                  {/* Index, not For: a refetch brings new day objects, and For
+                      would remount every day and drop the focused note box. */}
+                  <Index each={j().days}>
                     {(day) => (
                       <JournalDay
-                        day={day}
-                        photosEnabled={j.photosEnabled}
+                        day={day()}
+                        draft={drafts.text(day().id, day().diary)}
+                        photosEnabled={j().photosEnabled}
                         uploading={photos.isPending}
-                        onSaveDiary={(text) => saveDiary(day.id, text)}
-                        onAddPhotos={(files, stopId) => void addPhotos(files, day.id, stopId)}
+                        onDraft={(text) => drafts.edit(day().id, text)}
+                        onSaveDiary={(text) => saveDiary(day().id, text)}
+                        onAddPhotos={(files, stopId) => void addPhotos(files, day().id, stopId)}
                         onDeletePhoto={(id) => remove.mutate(id)}
                       />
                     )}
-                  </For>
+                  </Index>
                 </div>
               </Show>
 
-              <Show when={j.tripPhotos.length > 0 || j.photosEnabled}>
+              <Show when={j().tripPhotos.length > 0 || j().photosEnabled}>
                 <section class="loci-card mt-6 rounded-3xl p-5 sm:p-6" aria-label="Trip photos">
                   <h2 class="kicker mb-1">From the trip</h2>
-                  <PhotoStrip photos={j.tripPhotos} onDelete={(id) => remove.mutate(id)} />
-                  <Show when={j.photosEnabled}>
+                  <PhotoStrip photos={j().tripPhotos} onDelete={(id) => remove.mutate(id)} />
+                  <Show when={j().photosEnabled}>
                     <div class="mt-3">
                       <AddPhotosButton
                         label="Add photos"

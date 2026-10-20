@@ -1,4 +1,4 @@
-import { For, Show, createSignal } from "solid-js";
+import { For, Show } from "solid-js";
 import { Check, ImagePlus, Loader2, X } from "lucide-solid";
 import { VERDICTS } from "~/lib/ranking/flow";
 import { PHOTO_TYPES } from "~/lib/journal/upload";
@@ -82,8 +82,11 @@ export function AddPhotosButton(props: {
 
 export interface JournalDayProps {
   day: JournalDayView;
+  /** The note as typed; kept by the page so a refetch cannot reset it. */
+  draft: string;
   photosEnabled: boolean;
   uploading: boolean;
+  onDraft: (text: string) => void;
   onSaveDiary: (text: string) => void;
   onAddPhotos: (files: File[], stopId?: string) => void;
   onDeletePhoto: (id: string) => void;
@@ -91,11 +94,10 @@ export interface JournalDayProps {
 
 /** One day of the journal: the note, the plan as it went, and the photos. */
 export default function JournalDay(props: JournalDayProps) {
-  const [draft, setDraft] = createSignal(props.day.diary);
   const counts = () => visitedCount(props.day);
 
   const save = () => {
-    const text = draft().trim();
+    const text = props.draft.trim();
     if (text !== props.day.diary.trim()) props.onSaveDiary(text);
   };
 
@@ -120,8 +122,8 @@ export default function JournalDay(props: JournalDayProps) {
         rows={3}
         maxLength={4000}
         placeholder="How did the day go?"
-        value={draft()}
-        onInput={(e) => setDraft(e.currentTarget.value)}
+        value={props.draft}
+        onInput={(e) => props.onDraft(e.currentTarget.value)}
         onBlur={save}
       />
 
