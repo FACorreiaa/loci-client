@@ -11,6 +11,8 @@ export interface ImportedPlaceView {
   city: string;
   note: string;
   poiId?: string;
+  /** The Loci place's own name; it can differ from what the link called it. */
+  poiName?: string;
   address?: string;
   category?: string;
 }
@@ -43,10 +45,22 @@ export function toImportView(res: ImportPlacesResponse): ImportView {
       city: p.cityName,
       note: p.note,
       poiId: p.poiId || undefined,
+      poiName: p.poiName || undefined,
       address: p.address || undefined,
       category: p.category || undefined,
     })),
   };
+}
+
+/**
+ * The Loci place a row will save, when that is not simply the name the link
+ * gave: the person should see what they are about to keep.
+ */
+export function savedAs(p: ImportedPlaceView): string | undefined {
+  if (!p.poiId || !p.poiName) return undefined;
+  const same =
+    p.poiName.trim().localeCompare(p.name.trim(), undefined, { sensitivity: "base" }) === 0;
+  return same ? undefined : p.poiName;
 }
 
 /** Every place that can be saved starts picked. */
@@ -73,10 +87,14 @@ export type SaveTarget = { listId: string } | { newListName: string };
 
 export interface SaveOutcome {
   listId: string;
+  /** Set when this save created the list. */
+  created?: { id: string; name: string };
   added: number;
   /** Already in the list: AddListItem answers AlreadyExists. */
   already: number;
   failed: number;
+  /** Keys of the places that didn't save, for a retry. */
+  failedKeys: string[];
 }
 
 /**
@@ -89,7 +107,8 @@ export async function saveImported(
   places: ImportedPlaceView[],
 ): Promise<SaveOutcome> {
   const listId = "listId" in target ? target.listId : await deps.createList(target.newListName);
-  const out: SaveOutcome = { listId, added: 0, already: 0, failed: 0 };
+  const out: SaveOutcome = { listId, added: 0, already: 0, failed: 0, failedKeys: [] };
+  if ("newListName" in target) out.created = { id: listId, name: target.newListName };
   for (const p of places) {
     if (!p.poiId) continue;
     try {
@@ -97,10 +116,21 @@ export async function saveImported(
       out.added++;
     } catch (err) {
       if (err instanceof ConnectError && err.code === Code.AlreadyExists) out.already++;
-      else out.failed++;
+      else {
+        out.failed++;
+        out.failedKeys.push(p.key);
+      }
     }
   }
   return out;
+}
+
+/**
+ * What the form holds after a save: the list it saved into (so a retry never
+ * creates a second list) and only the places still to save.
+ */
+export function retryAfterSave(o: SaveOutcome): { listChoice: string; picked: Set<string> } {
+  return { listChoice: o.listId, picked: new Set(o.failedKeys) };
 }
 
 export function importErrorMessage(err: unknown): string {

@@ -9,7 +9,9 @@ import {
   defaultListName,
   defaultSelection,
   importErrorMessage,
+  retryAfterSave,
   saveImported,
+  savedAs,
   toImportView,
 } from "./link-import";
 
@@ -24,10 +26,11 @@ const response = () =>
         cityName: "Lisbon",
         note: "best nata",
         poiId: "p1",
+        poiName: "Manteigaria - Fábrica de Pastéis de Nata",
         address: "R. do Loreto 2",
       },
       { name: "Ghost Café", cityName: "Lisbon" },
-      { name: "Aloma", cityName: "Lisbon", poiId: "p3" },
+      { name: "Aloma", cityName: "Lisbon", poiId: "p3", poiName: "aloma" },
     ],
   });
 
@@ -42,6 +45,13 @@ describe("toImportView", () => {
     ]);
     expect(view.places[0].address).toBe("R. do Loreto 2");
     expect(new Set(view.places.map((p) => p.key)).size).toBe(3);
+  });
+
+  it("names the Loci place that will be saved when it is not the link's name", () => {
+    const [manteigaria, ghost, aloma] = toImportView(response()).places;
+    expect(savedAs(manteigaria)).toBe("Manteigaria - Fábrica de Pastéis de Nata");
+    expect(savedAs(ghost)).toBeUndefined();
+    expect(savedAs(aloma)).toBeUndefined();
   });
 
   it("starts with every saveable place picked", () => {
@@ -86,7 +96,14 @@ describe("saveImported", () => {
     };
     const out = await saveImported(deps, { newListName: "Bakeries" }, picked());
     expect(calls).toEqual(["create:Bakeries", "add:L1:p1", "add:L1:p3"]);
-    expect(out).toEqual({ listId: "L1", added: 2, already: 0, failed: 0 });
+    expect(out).toEqual({
+      listId: "L1",
+      created: { id: "L1", name: "Bakeries" },
+      added: 2,
+      already: 0,
+      failed: 0,
+      failedKeys: [],
+    });
   });
 
   it("counts a place already in the list as there, and carries on past a failure", async () => {
@@ -99,7 +116,25 @@ describe("saveImported", () => {
     };
     const out = await saveImported(deps, { listId: "L9" }, picked());
     expect(deps.createList).not.toHaveBeenCalled();
-    expect(out).toEqual({ listId: "L9", added: 0, already: 1, failed: 1 });
+    expect(out).toEqual({
+      listId: "L9",
+      added: 0,
+      already: 1,
+      failed: 1,
+      failedKeys: [picked()[1].key],
+    });
+  });
+
+  it("retries only the failed places, into the list the first try created", async () => {
+    const deps = {
+      createList: vi.fn(async () => "L1"),
+      addItem: vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("network")),
+    };
+    const places = picked();
+    const out = await saveImported(deps, { newListName: "Bakeries" }, places);
+    const next = retryAfterSave(out);
+    expect(next.listChoice).toBe("L1");
+    expect([...next.picked]).toEqual([places[1].key]);
   });
 
   it("never sends a place without a Loci id", async () => {

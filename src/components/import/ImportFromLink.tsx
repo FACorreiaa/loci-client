@@ -8,6 +8,8 @@ import {
   defaultListName,
   defaultSelection,
   importErrorMessage,
+  retryAfterSave,
+  savedAs,
   type ImportView,
   type SaveOutcome,
 } from "~/lib/import/link-import";
@@ -26,6 +28,8 @@ export default function ImportFromLink() {
   const [listChoice, setListChoice] = createSignal(NEW_LIST);
   const [listName, setListName] = createSignal("");
   const [outcome, setOutcome] = createSignal<SaveOutcome>();
+  // Lists this form created, until the lists query has them.
+  const [created, setCreated] = createSignal<{ id: string; name: string }[]>([]);
 
   const importer = useImportPlaces();
   const saver = useSaveImported();
@@ -41,6 +45,7 @@ export default function ImportFromLink() {
         onSuccess: (v) => {
           setView(v);
           setPicked(defaultSelection(v.places));
+          setListChoice(NEW_LIST);
           setListName(defaultListName(v));
         },
       },
@@ -64,7 +69,28 @@ export default function ImportFromLink() {
       listChoice() === NEW_LIST
         ? { newListName: listName().trim() || defaultListName(view()!) }
         : { listId: listChoice() };
-    saver.mutate({ target, places }, { onSuccess: setOutcome });
+    saver.mutate(
+      { target, places },
+      {
+        onSuccess: (o) => {
+          setOutcome(o);
+          const made = o.created;
+          if (made) setCreated((prev) => [...prev, made]);
+          const next = retryAfterSave(o);
+          setListChoice(next.listChoice);
+          setPicked(next.picked);
+        },
+      },
+    );
+  };
+
+  const savableLists = () => {
+    const known = (lists.data ?? []).filter((l: any) => !l.isItinerary);
+    const ids = new Set(known.map((l: any) => l.id));
+    return [
+      ...created().filter((l) => !ids.has(l.id)),
+      ...known.map((l: any) => ({ id: l.id as string, name: l.name as string })),
+    ];
   };
 
   return (
@@ -139,6 +165,11 @@ export default function ImportFromLink() {
                       />
                       <span class="min-w-0">
                         <span class="block font-medium text-foreground">{p.name}</span>
+                        <Show when={savedAs(p)}>
+                          {(name) => (
+                            <span class="block text-xs text-foreground">Saves as {name()}</span>
+                          )}
+                        </Show>
                         <span class="block text-xs text-muted-foreground">
                           <Show
                             when={p.poiId}
@@ -168,9 +199,7 @@ export default function ImportFromLink() {
                 onChange={(e) => setListChoice(e.currentTarget.value)}
               >
                 <option value={NEW_LIST}>A new list</option>
-                <For each={(lists.data ?? []).filter((l: any) => !l.isItinerary)}>
-                  {(l: any) => <option value={l.id}>{l.name}</option>}
-                </For>
+                <For each={savableLists()}>{(l) => <option value={l.id}>{l.name}</option>}</For>
               </select>
               <Show when={listChoice() === NEW_LIST}>
                 <input
