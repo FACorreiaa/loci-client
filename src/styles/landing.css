@@ -87,55 +87,274 @@
   }
 }
 
-/* ---- Hero plot signature ---- */
-.plot-grid {
-  background-image:
-    linear-gradient(hsl(var(--border)) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
-  background-size: 32px 32px;
+/* ---- Hero ---- */
+.landing-hero {
+  /* One card height drives the wall and the room left for it. */
+  --card-h: clamp(11rem, 26vh, 18rem);
+  position: relative;
+  overflow: hidden;
+  padding-bottom: max(12rem, calc(var(--card-h) * 0.82 + 2rem));
 }
-.route-draw {
-  stroke-dasharray: 780;
-  stroke-dashoffset: 780;
-}
-.route-draw.is-drawn {
-  animation: loci-draw 2.4s ease 0.2s forwards;
-}
-@keyframes loci-draw {
-  to {
-    stroke-dashoffset: 0;
+@media (min-width: 768px) {
+  .landing-hero {
+    /* The back row peeks ~1.05 card heights above the bottom edge. */
+    padding-bottom: max(16rem, calc(var(--card-h) * 1.06 + 2.5rem));
   }
 }
-.plot-point {
-  opacity: 0;
+
+.hero-glow {
+  position: absolute;
+  left: 50%;
+  top: 1.5rem;
+  width: 42rem;
+  height: 24rem;
+  translate: -50% 0;
+  border-radius: 9999px;
+  background: hsl(var(--accent) / 0.1);
+  filter: blur(64px);
+  pointer-events: none;
 }
-.plot-point.is-drawn {
-  animation: loci-pop 0.4s ease forwards;
+
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.6);
+  border-radius: 9999px;
+  background: hsl(var(--card) / 0.6);
+  padding: 0.3rem 0.85rem;
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  transition: border-color 0.2s ease;
 }
-.plot-point.d1 {
-  animation-delay: 0.5s;
+.hero-pill:hover {
+  border-color: hsl(var(--accent) / 0.5);
 }
-.plot-point.d2 {
-  animation-delay: 0.9s;
+.hero-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: hsl(var(--accent));
 }
-.plot-point.d3 {
-  animation-delay: 1.3s;
+.hero-pill-arrow {
+  opacity: 0.5;
+  transition: translate 0.2s ease;
 }
-.plot-point.d4 {
-  animation-delay: 1.7s;
+.hero-pill:hover .hero-pill-arrow {
+  translate: 2px 0;
 }
-.plot-point.d5 {
-  animation-delay: 2.1s;
+
+/* ---- Card wall (bottom of the hero) ---- */
+.card-wall {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: calc(var(--card-h) * 1.15);
+  overflow: hidden;
+  pointer-events: none;
+  /* Phones get a gentler fan: the cards are close together there. */
+  --rot-k: 0.55;
 }
-@keyframes loci-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.4);
+@media (min-width: 768px) {
+  .card-wall {
+    --rot-k: 1;
   }
-  to {
-    opacity: 1;
-    transform: scale(1);
+}
+/* Fades the wall into the page. */
+.card-wall::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  background: linear-gradient(to top, hsl(var(--background)) 0%, hsl(var(--background) / 0) 50%);
+}
+
+.wall-slot {
+  position: absolute;
+  bottom: 0;
+  left: var(--x);
+  transform-origin: bottom;
+  rotate: calc(var(--rot) * var(--rot-k));
+  translate: -50% var(--y);
+}
+.wall-slot-back {
+  scale: 0.9;
+}
+
+/* Sway runs on an inner element so it never fights rotate/translate. */
+.wall-sway {
+  animation: wall-sway 7s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+@keyframes wall-sway {
+  0%,
+  100% {
+    transform: translateY(0);
   }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.wall-card {
+  height: var(--card-h);
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid hsl(var(--foreground) / 0.1);
+  box-shadow:
+    0 30px 60px -18px rgb(0 0 0 / 0.45),
+    0 8px 18px -8px rgb(0 0 0 / 0.25);
+  container-type: size;
+  filter: brightness(0.85);
+}
+.dark .wall-card,
+[data-kb-theme="dark"] .wall-card {
+  filter: brightness(0.6);
+  border-color: rgb(255 255 255 / 0.1);
+}
+/* The back row sits further away, so it reads a step darker. */
+.wall-slot-back .wall-card {
+  filter: brightness(0.74);
+}
+.dark .wall-slot-back .wall-card,
+[data-kb-theme="dark"] .wall-slot-back .wall-card {
+  filter: brightness(0.48);
+}
+
+.wall-tone-paper {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  --wall-mark: hsl(var(--primary));
+}
+.wall-tone-ink {
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+  --wall-mark: hsl(var(--accent));
+}
+.wall-tone-coral {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  --wall-mark: hsl(var(--accent-foreground));
+}
+.wall-tone-shot {
+  background: hsl(var(--muted));
+}
+
+.wall-body {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  padding: 7cqw;
+  font-size: 5.6cqw;
+  line-height: 1.3;
+  text-align: left;
+}
+.wall-mono {
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 4.4cqw;
+  letter-spacing: 0.04em;
+}
+.wall-faint {
+  opacity: 0.6;
+}
+.wall-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--wall-mark);
+}
+.wall-stamp {
+  display: inline-block;
+  rotate: -4deg;
+  border: 1px dashed var(--wall-mark);
+  border-radius: 3px;
+  padding: 0.35em 0.6em;
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 4.2cqw;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--wall-mark);
+}
+.wall-map {
+  display: block;
+  width: 100%;
+  height: 30cqh;
+  margin-block: 5cqw;
+}
+.wall-contour {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.6;
+  opacity: 0.16;
+}
+.wall-route {
+  fill: none;
+  stroke: var(--wall-mark);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 4;
+}
+.wall-dot {
+  fill: var(--wall-mark);
+}
+.wall-name {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 9.6cqw;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.wall-city {
+  margin-top: 1.5cqw;
+  opacity: 0.7;
+}
+.wall-leg {
+  display: flex;
+  align-items: center;
+  gap: 2.5cqw;
+}
+.wall-leg-line {
+  width: 9cqw;
+  border-top: 2px dotted var(--wall-mark);
+}
+.wall-chip {
+  align-self: flex-start;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--wall-mark) 16%, transparent);
+  padding: 0.45em 0.85em;
+  font-size: 4.4cqw;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.wall-plan {
+  margin-top: 6cqw;
+  display: grid;
+  gap: 5cqw;
+  border-left: 2px dotted var(--wall-mark);
+  padding-left: 5cqw;
+}
+.wall-plan li {
+  display: grid;
+  gap: 0.5cqw;
+}
+.wall-plan-name {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 7.4cqw;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.wall-tally {
+  margin-top: 7cqw;
+  display: grid;
+  gap: 6cqw;
+}
+.wall-bar {
+  display: block;
+  margin-top: 1.5cqw;
+  height: 2.2cqw;
+  border-radius: 9999px;
+  background: var(--wall-mark);
 }
 
 /* ---- Scroll reveal ---- */
@@ -155,15 +374,11 @@
   .route-fill {
     transition: none;
   }
-  .route-draw,
-  .route-draw.is-drawn {
+  .wall-sway {
     animation: none;
-    stroke-dashoffset: 0;
   }
-  .plot-point,
-  .plot-point.is-drawn {
-    animation: none;
-    opacity: 1;
+  .hero-pill-arrow {
+    transition: none;
   }
   .reveal {
     opacity: 1;

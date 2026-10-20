@@ -26,6 +26,7 @@ import { createSignal, For, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { useAuth } from "~/contexts/AuthContext";
 import ThemeSelector from "~/components/ThemeSelector";
+import SocialXLink from "~/components/SocialXLink";
 import { Button } from "~/ui/button";
 import { handleLinkPreload } from "~/lib/preload";
 import FriendRequestBadge from "~/components/social/FriendRequestBadge";
@@ -141,6 +142,7 @@ export default function Nav() {
             </div>
 
             <div class="ml-auto hidden items-center gap-2 md:flex">
+              <SocialXLink />
               <ConnectAgentCta />
               <ThemeSelector />
               <Show
@@ -211,9 +213,11 @@ export default function Nav() {
             </div>
           </Show>
 
+          {/* The desktop row carries its own; this one sits by the menu button. */}
+          <SocialXLink class="-mr-3 ml-auto md:hidden" />
           <button
             type="button"
-            class="ml-auto grid h-10 w-10 place-items-center rounded-lg border border-border md:hidden"
+            class="grid h-10 w-10 place-items-center rounded-lg border border-border md:hidden"
             onClick={() => setMobileOpen(!mobileOpen())}
             aria-label={mobileOpen() ? "Close navigation" : "Open navigation"}
           >
