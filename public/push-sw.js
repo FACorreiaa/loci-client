@@ -8,6 +8,10 @@
   var ICON = "/images/brand/icon-192.png";
 
   function decide(payload, clients) {
+    // Only a finished search (a session, no origin) has a toast in the page;
+    // anything else — a trip brief, a friend request, a standing task — is
+    // always a system notification, or a visible tab would swallow it.
+    if (!payload || !payload.sessionId || payload.origin) return { kind: "show" };
     var visible = (clients || []).find(function (c) {
       return c.visibilityState === "visible";
     });
@@ -17,6 +21,10 @@
     return visible ? { kind: "relay", client: visible } : { kind: "show" };
   }
 
+  // Loci's own hosts: server payloads link to https://lociai.fyi/… so the
+  // same link is a Universal Link on a phone and a page here.
+  var SITE_HOSTS = ["lociai.fyi", "www.lociai.fyi"];
+
   // Only same-site paths: a payload can never send someone off-site.
   // Rejects protocol-relative ("//evil"), anything not starting with a
   // single "/", and a leading "/\" (browsers normalize a backslash after
@@ -24,6 +32,15 @@
   // "//evil").
   function targetUrl(data) {
     var url = data && typeof data.url === "string" ? data.url : "/";
+    if (/^https:\/\//i.test(url)) {
+      try {
+        var u = new URL(url);
+        if (SITE_HOSTS.indexOf(u.hostname) < 0) return "/";
+        url = u.pathname + u.search + u.hash;
+      } catch (_e) {
+        return "/";
+      }
+    }
     if (url.charAt(0) !== "/") return "/";
     if (url.charAt(1) === "/" || url.charAt(1) === "\\") return "/";
     return url;
