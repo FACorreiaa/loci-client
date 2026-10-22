@@ -81,9 +81,13 @@ export const parseTripDate = (iso?: string): Date | undefined => {
  * "12–15 Sep" style range across a trip's days. Days carry an optional ISO
  * date; a trip with none at all gets nothing rather than a fabricated range.
  */
-export const formatTripDates = (days: TripDay[]): string | undefined => {
-  const dates = days
-    .map((d) => parseTripDate(d.date))
+export const formatTripDates = (days: TripDay[]): string | undefined =>
+  formatDateRange(days.map((d) => d.date));
+
+/** The same range from any ISO dates, e.g. a trip's planned start and end. */
+export const formatDateRange = (isos: (string | undefined)[]): string | undefined => {
+  const dates = isos
+    .map(parseTripDate)
     .filter((d): d is Date => d !== undefined)
     .sort((a, b) => a.getTime() - b.getTime());
   if (dates.length === 0) return undefined;

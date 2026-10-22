@@ -49,6 +49,10 @@
             "comment": "A friend invite, /invite/{code}"
           },
           {
+            "/": "/j/*",
+            "comment": "A trip invite, /j/{code}"
+          },
+          {
             "/": "/u/*",
             "comment": "A traveller's profile, /u/{username}"
           },

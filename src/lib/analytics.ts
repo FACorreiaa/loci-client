@@ -34,8 +34,10 @@ export type AnalyticsEvent =
   | "cheer"
   /** The one-time reveal of achievements earned before they existed. */
   | "achievements_revealed"
-  /** An invite link was sent or copied; `via` is sheet, copy, sms or facebook. */
+  /** An invite link was sent or copied; `via` is sheet, copy, sms, whatsapp or facebook; `kind: "trip"` for a trip invite. */
   | "invite_shared"
+  /** A trip invite link was opened (`signed_in`). Joins are counted server-side. */
+  | "trip_invite_opened"
   /** An action earned points (`kind`: check_in | visit | trip_day, `points`). Same name as iOS. */
   | "points_awarded"
   /** A generated share link was copied to the clipboard. */
