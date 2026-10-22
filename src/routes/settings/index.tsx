@@ -60,6 +60,7 @@ import TasteAndPrivacy from "~/components/features/Settings/TasteAndPrivacy";
 import AccountData from "~/components/features/Settings/AccountData";
 import ConnectedCalendars from "~/components/features/Settings/ConnectedCalendars";
 import NotificationSettings from "~/components/features/Settings/NotificationSettings";
+import PrivacySetting from "~/components/social/PrivacySetting";
 import SignedInDevices from "~/components/features/Settings/SignedInDevices";
 import { Button } from "~/ui/button";
 import { useUserSubscription } from "~/lib/api/billing";
@@ -988,9 +989,12 @@ function SettingsPageContent() {
         return renderMemoryLink();
       case "notifications":
         return (
-          <NotificationSettings
-            onNotification={(message, type) => setNotification({ message, type })}
-          />
+          <>
+            <PrivacySetting />
+            <NotificationSettings
+              onNotification={(message, type) => setNotification({ message, type })}
+            />
+          </>
         );
       case "security":
         return renderSecurity();

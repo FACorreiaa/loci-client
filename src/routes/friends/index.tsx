@@ -6,24 +6,30 @@ import { ProtectedRoute } from "~/contexts/AuthContext";
 import { Button } from "~/ui/button";
 import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from "~/ui/tabs";
 import UserAvatar from "~/components/social/UserAvatar";
-import RelationshipButton from "~/components/social/RelationshipButton";
+import FollowButton from "~/components/social/FollowButton";
+import FeedItemCard from "~/components/social/FeedItemCard";
 import FriendTripCard from "~/components/social/FriendTripCard";
 import InviteCard from "~/components/social/InviteCard";
 import {
   profilePath,
-  useCancelFriendRequest,
-  useFriendRequests,
-  useFriends,
-  useRespondFriendRequest,
+  useCancelFollowRequest,
+  useFeed,
+  useFollowRequests,
+  useFollows,
+  useRemoveFollower,
+  useRespondFollowRequest,
   useSearchUsers,
+  type FollowEntry,
   type PublicUser,
 } from "~/lib/api/social";
 import { useFriendTrips } from "~/lib/api/trips";
 import { useAuthGate } from "~/lib/auth/useAuthGate";
-import { capture } from "~/lib/analytics";
 
-const TABS = ["trips", "friends", "requests", "add"] as const;
+const TABS = ["feed", "trips", "followers", "following", "requests", "add"] as const;
 type Tab = (typeof TABS)[number];
+
+/** Links from before following ("?tab=friends") land on the people you follow. */
+const LEGACY_TABS: Record<string, Tab> = { friends: "following" };
 
 function PersonRow(props: {
   user: PublicUser;
@@ -63,25 +69,79 @@ function Empty(props: { children: import("solid-js").JSX.Element }) {
   return <p class="py-10 text-center text-sm text-muted-foreground">{props.children}</p>;
 }
 
+function FollowRows(props: {
+  entries?: FollowEntry[];
+  loading: boolean;
+  empty: string;
+  followers?: boolean;
+}) {
+  const remove = useRemoveFollower();
+  return (
+    <Show
+      when={props.entries?.length}
+      fallback={<Empty>{props.loading ? "Loading…" : props.empty}</Empty>}
+    >
+      <ul class="divide-y divide-border">
+        <For each={props.entries}>
+          {(f) => (
+            <PersonRow
+              user={f.user}
+              sub={f.edge.state === "following" && f.edge.followsYou ? "Friend" : undefined}
+            >
+              <FollowButton user={f.user} edge={f.edge} size="sm" />
+              <Show when={props.followers}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={remove.isPending}
+                  onClick={() => remove.mutate(f.user.id)}
+                  aria-label={`Remove ${f.user.displayName} from your followers`}
+                >
+                  Remove
+                </Button>
+              </Show>
+            </PersonRow>
+          )}
+        </For>
+      </ul>
+    </Show>
+  );
+}
+
 function FriendsPage() {
   const [params, setParams] = useSearchParams<{ tab?: string }>();
   // The leaderboard and progress tabs moved to the field notebook.
   const movedToField = () => params.tab === "leaderboard" || params.tab === "progress";
   const gate = useAuthGate();
-  const tab = (): Tab =>
-    (TABS as readonly string[]).includes(params.tab ?? "") ? (params.tab as Tab) : "trips";
+  const tab = (): Tab => {
+    const t = LEGACY_TABS[params.tab ?? ""] ?? params.tab ?? "";
+    return (TABS as readonly string[]).includes(t) ? (t as Tab) : "feed";
+  };
 
-  const friendsQuery = useFriends(() => gate());
-  const incomingQuery = useFriendRequests("incoming", () => gate());
-  const outgoingQuery = useFriendRequests("outgoing", () => gate());
-  const feedQuery = useFriendTrips(() => gate());
-  const respond = useRespondFriendRequest();
-  const cancel = useCancelFriendRequest();
+  const followersQuery = useFollows(
+    () => "",
+    () => true,
+    () => gate() && tab() === "followers",
+  );
+  const followingQuery = useFollows(
+    () => "",
+    () => false,
+    () => gate() && tab() === "following",
+  );
+  const incomingQuery = useFollowRequests("incoming", () => gate());
+  const outgoingQuery = useFollowRequests("outgoing", () => gate() && tab() === "requests");
+  const tripsQuery = useFriendTrips(() => gate() && tab() === "trips");
+  const feedQuery = useFeed(() => gate() && tab() === "feed");
+  const respond = useRespondFollowRequest();
+  const cancel = useCancelFollowRequest();
 
-  const friends = () => (friendsQuery.isSuccess ? friendsQuery.data : undefined);
+  const followers = () => (followersQuery.isSuccess ? followersQuery.data : undefined);
+  const following = () => (followingQuery.isSuccess ? followingQuery.data : undefined);
   const incoming = () => (incomingQuery.isSuccess ? incomingQuery.data : undefined) ?? [];
   const outgoing = () => (outgoingQuery.isSuccess ? outgoingQuery.data : undefined) ?? [];
-  const feed = () => (feedQuery.isSuccess ? feedQuery.data : undefined);
+  const trips = () => (tripsQuery.isSuccess ? tripsQuery.data : undefined);
+  const feed = () =>
+    feedQuery.isSuccess ? feedQuery.data.pages.flatMap((p) => p.items) : undefined;
 
   const [query, setQuery] = createSignal("");
   const searchQuery = useSearchUsers(query);
@@ -92,96 +152,121 @@ function FriendsPage() {
       <Show when={movedToField()}>
         <Navigate href="/field?scope=friends" />
       </Show>
-      <Title>Friends · Loci</Title>
+      <Title>People · Loci</Title>
       <header class="mb-6">
         <p class="font-coord mb-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
           Your travel circle
         </p>
-        <h1 class="text-3xl">Friends</h1>
+        <h1 class="text-3xl">People</h1>
         <p class="mt-2 text-muted-foreground">
-          See where your friends are going, and copy the trips you like.
+          Follow travellers to see where they go. Follow each other and you're friends: you see each
+          other's friends-only trips.
         </p>
       </header>
 
       <Tabs
         value={tab()}
-        onChange={(v: string) => setParams({ tab: v === "trips" ? undefined : v })}
+        onChange={(v: string) => setParams({ tab: v === "feed" ? undefined : v })}
       >
-        <TabsList class="mb-6">
-          <TabsTrigger value="trips">Trips</TabsTrigger>
-          <TabsTrigger value="friends">
-            Friends
-            <Show when={friends()?.length}>
-              {(n) => <span class="ml-1.5 text-muted-foreground">{n()}</span>}
-            </Show>
-          </TabsTrigger>
-          <TabsTrigger value="requests">
-            Requests
-            <Show when={incoming().length}>
-              <span class="ml-1.5 rounded-full bg-accent px-1.5 text-[10px] font-bold text-accent-foreground">
-                {incoming().length}
-              </span>
-            </Show>
-          </TabsTrigger>
-          <TabsTrigger value="add">Add friends</TabsTrigger>
-          <TabsIndicator />
-        </TabsList>
+        <div class="-mx-4 mb-6 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <TabsList class="min-w-max">
+            <TabsTrigger value="feed">Feed</TabsTrigger>
+            <TabsTrigger value="trips">Trips</TabsTrigger>
+            <TabsTrigger value="followers">Followers</TabsTrigger>
+            <TabsTrigger value="following">Following</TabsTrigger>
+            <TabsTrigger value="requests">
+              Requests
+              <Show when={incoming().length}>
+                <span class="ml-1.5 rounded-full bg-accent px-1.5 text-[10px] font-bold text-accent-foreground">
+                  {incoming().length}
+                </span>
+              </Show>
+            </TabsTrigger>
+            <TabsTrigger value="add">Find people</TabsTrigger>
+            <TabsIndicator />
+          </TabsList>
+        </div>
 
-        <TabsContent value="trips">
+        <TabsContent value="feed">
           <Switch>
             <Match when={feedQuery.isLoading}>
-              <Empty>Loading your friends' trips…</Empty>
+              <Empty>Loading your feed…</Empty>
             </Match>
             <Match when={feed()?.length}>
-              <div class="grid gap-4 sm:grid-cols-2">
-                <For each={feed()}>{(t) => <FriendTripCard trip={t} showOwner />}</For>
-              </div>
+              <ul class="space-y-3">
+                <For each={feed()}>{(item) => <FeedItemCard item={item} />}</For>
+              </ul>
+              <Show when={feedQuery.hasNextPage}>
+                <div class="mt-4 flex justify-center">
+                  <Button
+                    variant="outline"
+                    disabled={feedQuery.isFetchingNextPage}
+                    onClick={() => void feedQuery.fetchNextPage()}
+                  >
+                    {feedQuery.isFetchingNextPage ? "Loading…" : "Show more"}
+                  </Button>
+                </div>
+              </Show>
             </Match>
             <Match when={feed()}>
               <Empty>
-                No shared trips yet. When a friend shares a trip with friends or publicly, it shows
-                up here.{" "}
+                Nothing here yet. When people you follow earn an achievement, reach a new city or
+                finish a trip, it shows up here.{" "}
                 <button class="underline" onClick={() => setParams({ tab: "add" })}>
-                  Invite someone
+                  Find people to follow
                 </button>
               </Empty>
             </Match>
           </Switch>
         </TabsContent>
 
-        <TabsContent value="friends">
-          <Show
-            when={friends()?.length}
-            fallback={
+        <TabsContent value="trips">
+          <Switch>
+            <Match when={tripsQuery.isLoading}>
+              <Empty>Loading trips…</Empty>
+            </Match>
+            <Match when={trips()?.length}>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <For each={trips()}>{(t) => <FriendTripCard trip={t} showOwner />}</For>
+              </div>
+            </Match>
+            <Match when={trips()}>
               <Empty>
-                <Show when={!friendsQuery.isLoading} fallback="Loading…">
-                  No friends yet — send your invite link to someone you travel with.{" "}
-                  <button
-                    type="button"
-                    class="font-medium text-foreground underline underline-offset-4"
-                    onClick={() => setParams({ tab: "add" })}
-                  >
-                    Invite
-                  </button>
-                </Show>
+                No shared trips yet. Trips the people you follow make public, and friends' trips
+                shared with friends, show up here.
               </Empty>
-            }
-          >
-            <ul class="divide-y divide-border">
-              <For each={friends()}>
-                {(f) => (
-                  <PersonRow user={f.user}>
-                    <RelationshipButton user={f.user} relationship="friends" size="sm" />
-                  </PersonRow>
-                )}
-              </For>
-            </ul>
-          </Show>
+            </Match>
+          </Switch>
+        </TabsContent>
+
+        <TabsContent value="followers">
+          <FollowRows
+            entries={followers()?.entries}
+            loading={followersQuery.isLoading}
+            empty="Nobody follows you yet. Send your invite link to someone you travel with."
+            followers
+          />
+        </TabsContent>
+
+        <TabsContent value="following">
+          <FollowRows
+            entries={following()?.entries}
+            loading={followingQuery.isLoading}
+            empty="You don't follow anyone yet."
+          />
         </TabsContent>
 
         <TabsContent value="requests">
-          <h2 class="text-sm font-medium text-muted-foreground">Waiting on you</h2>
-          <Show when={incoming().length} fallback={<Empty>No pending requests.</Empty>}>
+          <h2 class="text-sm font-medium text-muted-foreground">Asking to follow you</h2>
+          <Show
+            when={incoming().length}
+            fallback={
+              <Empty>
+                No pending requests. Only a private account gets these: anyone can follow a public
+                one.
+              </Empty>
+            }
+          >
             <ul class="mb-6 divide-y divide-border">
               <For each={incoming()}>
                 {(r) => (
@@ -189,20 +274,15 @@ function FriendsPage() {
                     <Button
                       size="sm"
                       disabled={respond.isPending}
-                      onClick={() =>
-                        respond.mutate(
-                          { requestId: r.id, accept: true },
-                          { onSuccess: () => capture("friend_added", { via: "request" }) },
-                        )
-                      }
+                      onClick={() => respond.mutate({ requestId: r.id, approve: true })}
                     >
-                      Accept
+                      Approve
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       disabled={respond.isPending}
-                      onClick={() => respond.mutate({ requestId: r.id, accept: false })}
+                      onClick={() => respond.mutate({ requestId: r.id, approve: false })}
                     >
                       Decline
                     </Button>
@@ -266,7 +346,7 @@ function FriendsPage() {
                   <For each={results()}>
                     {(r) => (
                       <PersonRow user={r.user}>
-                        <RelationshipButton user={r.user} relationship={r.relationship} size="sm" />
+                        <FollowButton user={r.user} edge={r.edge} size="sm" />
                       </PersonRow>
                     )}
                   </For>

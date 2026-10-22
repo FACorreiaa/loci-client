@@ -41,6 +41,7 @@ export default function NotificationSettings(props: {
           friendActivity: false,
           leaderboardVisible: true,
           cityBoardVisible: true,
+          cheers: true,
         };
 
   const toggle = async (key: keyof Settings, value: boolean) => {
@@ -124,9 +125,29 @@ export default function NotificationSettings(props: {
               <CheckboxControl />
             </Checkbox>
             <div class="min-w-0">
-              <Label class="font-medium text-foreground">Friends</Label>
+              <Label class="font-medium text-foreground">Followers</Label>
               <p class="text-sm text-muted-foreground">
-                When someone sends you a friend request, or accepts yours.
+                When someone follows you, asks to follow you, or approves your request.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <Checkbox
+              checked={settings().cheers}
+              onChange={(value: boolean) => {
+                pushDevice.onToggle(value);
+                void toggle("cheers", value);
+              }}
+              disabled={updateSettings.isPending}
+            >
+              <CheckboxControl />
+            </Checkbox>
+            <div class="min-w-0">
+              <Label class="font-medium text-foreground">Cheers</Label>
+              <p class="text-sm text-muted-foreground">
+                When someone cheers your achievement, city or trip. Once per item, at most three a
+                day, never at night.
               </p>
             </div>
           </div>

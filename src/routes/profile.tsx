@@ -17,6 +17,8 @@ import { useFavoritesList } from "~/lib/api/favorites";
 import { recentFavorites } from "~/lib/dashboard/kept";
 import { A } from "@solidjs/router";
 import { fieldLine, useFieldProfile } from "~/lib/api/gamification";
+import { useAchievements } from "~/lib/api/achievements";
+import RevealDialog from "~/components/achievements/RevealDialog";
 
 function ProfilePageContent() {
   const { user } = useAuth();
@@ -36,6 +38,8 @@ function ProfilePageContent() {
   const listsQuery = useLists();
   const favoritesQuery = useFavoritesList();
   const fieldQuery = useFieldProfile();
+  const achievementsQuery = useAchievements();
+  const achievements = () => (achievementsQuery.isSuccess ? achievementsQuery.data : undefined);
   const field = () => (fieldQuery.isSuccess ? fieldQuery.data : undefined);
 
   // Compute real stats from API data
@@ -594,6 +598,17 @@ function ProfilePageContent() {
                             </A>
                           )}
                         </Show>
+                        <Show when={achievements()}>
+                          {(a) => (
+                            <A
+                              href="/achievements"
+                              class="loci-chip loci-chip--surface ml-2 mt-2 inline-flex text-sm"
+                            >
+                              {a().earned} of {a().total} achievements
+                            </A>
+                          )}
+                        </Show>
+                        <RevealDialog list={achievements()} />
                         <div class="flex items-center gap-4 mt-2 text-muted-foreground">
                           <Show when={profileData()?.email}>
                             <div class="flex items-center gap-1">

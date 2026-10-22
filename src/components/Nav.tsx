@@ -59,7 +59,7 @@ const mobileJourneyItems = journeyItems.filter(
 );
 
 const accountItems = [
-  { name: "Friends", href: "/friends", icon: UserPlus },
+  { name: "People", href: "/friends", icon: UserPlus },
   { name: "Field", href: "/field", icon: NotebookPen },
   { name: "Contribute", href: "/contribute", icon: Users },
   { name: "Saved", href: "/saved", icon: Bookmark },
