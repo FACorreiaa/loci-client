@@ -152,12 +152,7 @@ export default function TripMembersBar(props: { trip: Trip; currentUserId?: stri
               onFocus={(e) => e.currentTarget.select()}
             />
             <div class="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                class="gap-1.5"
-                onClick={() => void copy(inv())}
-              >
+              <Button size="sm" variant="outline" class="gap-1.5" onClick={() => void copy(inv())}>
                 <Copy class="h-3.5 w-3.5" aria-hidden="true" />
                 {copied() ? "Copied" : "Copy link"}
               </Button>

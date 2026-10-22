@@ -72,8 +72,7 @@ export default function TripInvitePage() {
             {(i) => (
               <>
                 <p class="text-sm text-muted-foreground">
-                  {ownerName()} invited you to{" "}
-                  {i().role === "viewer" ? "follow" : "plan"} a trip
+                  {ownerName()} invited you to {i().role === "viewer" ? "follow" : "plan"} a trip
                 </p>
                 <h1 class="mt-2 text-2xl">{i().title}</h1>
                 <div class="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
