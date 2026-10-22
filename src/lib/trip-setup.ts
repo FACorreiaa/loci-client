@@ -216,6 +216,9 @@ export async function postSignInTarget(args: {
 }): Promise<string> {
   const destination = args.returnTo || "/";
   if (!args.isNewUser || args.seen) return destination;
+  // Someone joining a friend's trip came for that trip; the questionnaire
+  // would stand between them and the Join button.
+  if (destination.startsWith("/j/")) return destination;
   try {
     const profiles = await args.loadProfiles();
     return shouldOfferTripSetup({ isNewUser: true, seen: args.seen, profiles })

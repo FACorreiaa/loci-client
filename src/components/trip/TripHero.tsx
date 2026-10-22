@@ -65,14 +65,18 @@ export default function TripHero(props: TripHeroProps) {
           trip={props.trip}
         />
         <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
-          <A
-            href={`/chat?trip=${encodeURIComponent(props.tripId)}`}
-            class="inline-flex h-9 items-center gap-1.5 rounded-md border border-input px-3 text-sm font-medium hover:bg-muted"
-            data-testid="trip-ask-planner"
-          >
-            <MessageCircle class="h-4 w-4" aria-hidden="true" />
-            Ask the planner
-          </A>
+          {/* The planner edits the trip it is asked about, which only works
+              for the owner's own trips so far. */}
+          <Show when={!props.trip.owner}>
+            <A
+              href={`/chat?trip=${encodeURIComponent(props.tripId)}`}
+              class="inline-flex h-9 items-center gap-1.5 rounded-md border border-input px-3 text-sm font-medium hover:bg-muted"
+              data-testid="trip-ask-planner"
+            >
+              <MessageCircle class="h-4 w-4" aria-hidden="true" />
+              Ask the planner
+            </A>
+          </Show>
           {/* The journal is the owner's own notes and photos; a friend
               reading a shared trip has none to see. */}
           <Show when={!props.trip.owner}>
@@ -85,26 +89,29 @@ export default function TripHero(props: TripHeroProps) {
               Journal
             </A>
           </Show>
-          <Button
-            variant="outline"
-            size="sm"
-            class="h-9 gap-1.5"
-            disabled={props.sharing}
-            onClick={props.onShare}
-          >
-            <Share2 class="h-4 w-4" aria-hidden="true" />
-            Share
-          </Button>
-          <Toggle
-            variant="outline"
-            class="gap-1.5"
-            pressed={props.editing}
-            onChange={props.onEditingChange}
-            aria-label="Edit this trip"
-          >
-            <Pencil class="h-4 w-4" aria-hidden="true" />
-            {props.editing ? "Done" : "Edit"}
-          </Toggle>
+          {/* Sharing and editing are the owner's; a member reads the trip. */}
+          <Show when={!props.trip.owner}>
+            <Button
+              variant="outline"
+              size="sm"
+              class="h-9 gap-1.5"
+              disabled={props.sharing}
+              onClick={props.onShare}
+            >
+              <Share2 class="h-4 w-4" aria-hidden="true" />
+              Share
+            </Button>
+            <Toggle
+              variant="outline"
+              class="gap-1.5"
+              pressed={props.editing}
+              onChange={props.onEditingChange}
+              aria-label="Edit this trip"
+            >
+              <Pencil class="h-4 w-4" aria-hidden="true" />
+              {props.editing ? "Done" : "Edit"}
+            </Toggle>
+          </Show>
         </div>
       </div>
     </>

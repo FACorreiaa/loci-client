@@ -35,6 +35,10 @@ import {
   type TripStay as ProtoTripStay,
   type TripFlight as ProtoTripFlight,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
+import {
+  TripRole as ProtoTripRole,
+  type TripMember as ProtoTripMember,
+} from "@buf/loci_loci-proto.bufbuild_es/loci/trip/members_pb.js";
 import { PaginationRequestSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/common/common_pb.js";
 import { transport } from "../connect-transport";
 import { cacheTripOffline, getCachedTrip } from "../trip-offline-cache";
@@ -191,7 +195,46 @@ export interface Trip {
   endDate?: string;
   stays: TripStay[];
   flights: TripFlight[];
+  /** The caller's role: `owner` on their own trips, a member role on trips they joined. */
+  viewerRole?: TripRole;
+  /** The owner, then the members. Empty until someone joins. */
+  members?: TripMember[];
 }
+
+/**
+ * Planning together: `co_planner` suggests changes for the owner to apply,
+ * `viewer` only reads.
+ */
+export type TripRole = "owner" | "co_planner" | "viewer";
+
+export interface TripMember {
+  user: PublicUser;
+  role: TripRole;
+  joinedAt?: string;
+}
+
+export const roleFromProto = (r: ProtoTripRole): TripRole | undefined => {
+  switch (r) {
+    case ProtoTripRole.OWNER:
+      return "owner";
+    case ProtoTripRole.CO_PLANNER:
+      return "co_planner";
+    case ProtoTripRole.VIEWER:
+      return "viewer";
+    default:
+      return undefined;
+  }
+};
+
+export const roleToProto = (r: Exclude<TripRole, "owner">): ProtoTripRole =>
+  r === "viewer" ? ProtoTripRole.VIEWER : ProtoTripRole.CO_PLANNER;
+
+export const mapTripMember = (m: ProtoTripMember): TripMember | undefined => {
+  const user = mapPublicUser(m.user);
+  const role = roleFromProto(m.role);
+  if (!user || !role) return undefined;
+  return { user, role, joinedAt: m.joinedAt ? timestampDate(m.joinedAt).toISOString() : undefined };
+};
 
 /**
  * Who besides the owner may open a trip. `link` is anyone holding the link,
@@ -273,6 +316,8 @@ export const mapTrip = (p: ProtoTripDraft): Trip => ({
   endDate: p.endDate || undefined,
   stays: (p.stays ?? []).map(mapStay),
   flights: (p.flights ?? []).map(mapFlight),
+  viewerRole: roleFromProto(p.viewerRole),
+  members: (p.members ?? []).map(mapTripMember).filter((m): m is TripMember => !!m),
   userId: p.userId,
   cityId: p.cityId,
   cityName: p.cityName,
@@ -405,6 +450,7 @@ export const toProtoTrip = (t: Trip) =>
 export const tripKeys = {
   all: ["trips"] as const,
   list: () => ["trips", "list"] as const,
+  listWithMember: () => ["trips", "list", "with-member"] as const,
   detail: (id: string) => ["trips", "detail", id] as const,
   shared: (code: string) => ["trips", "shared", code] as const,
   friendFeed: () => ["trips", "friends", "feed"] as const,
@@ -414,13 +460,19 @@ export const tripKeys = {
 
 // ---- queries ----
 
-export const useTrips = () =>
+/**
+ * The caller's trips. `includeMember` mixes in the trips they joined, each
+ * with `owner` and `viewerRole` set; pickers that only make sense for your
+ * own trips leave it off.
+ */
+export const useTrips = (opts: { includeMember?: boolean } = {}) =>
   useAppQuery(() => ({
-    queryKey: tripKeys.list(),
+    queryKey: opts.includeMember ? tripKeys.listWithMember() : tripKeys.list(),
     queryFn: async () => {
       const res = await tripClient.listTrips(
         create(ListTripsRequestSchema, {
           pagination: create(PaginationRequestSchema, { page: 1, pageSize: 50 }),
+          includeMember: opts.includeMember ?? false,
         }),
       );
       return res.trips.map(mapTrip);

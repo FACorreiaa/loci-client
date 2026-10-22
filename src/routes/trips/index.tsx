@@ -7,7 +7,7 @@ import TripGlobe from "~/components/features/Globe/TripGlobe";
 import YearInReviewBanner from "~/components/recap/YearInReviewBanner";
 
 export default function TripsList() {
-  const trips = useTrips();
+  const trips = useTrips({ includeMember: true });
 
   return (
     <main class="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
@@ -103,6 +103,13 @@ export default function TripsList() {
                     <MapPin class="h-4 w-4 text-accent" />
                     {trip.cityName || "Open route"}
                   </div>
+                  <Show when={trip.owner}>
+                    {(o) => (
+                      <p class="mt-2 text-sm text-muted-foreground">
+                        Planning with {o().displayName}
+                      </p>
+                    )}
+                  </Show>
                   <div class="mt-auto flex items-end justify-between gap-4 pt-8">
                     <span class="flex items-center gap-2 font-coord text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                       <CalendarDays class="h-3.5 w-3.5" />

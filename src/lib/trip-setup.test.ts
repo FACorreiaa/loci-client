@@ -228,6 +228,18 @@ describe("first-run offer", () => {
     expect(calls).toBe(0);
   });
 
+  it("sends a new sign-up from a trip invite straight back to the invite", async () => {
+    let calls = 0;
+    const loadProfiles = async () => {
+      calls++;
+      return [serverDefault];
+    };
+    expect(
+      await postSignInTarget({ isNewUser: true, seen: null, returnTo: "/j/abc123", loadProfiles }),
+    ).toBe("/j/abc123");
+    expect(calls).toBe(0);
+  });
+
   it("never blocks sign-in on a failed profile read", async () => {
     expect(
       await postSignInTarget({

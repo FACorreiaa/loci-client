@@ -42,6 +42,8 @@ import { Button } from "~/ui/button";
 import { colorForMapDay } from "~/lib/theme-colors";
 import type { POI } from "~/lib/api/types";
 import TripSharePanel from "~/components/social/TripSharePanel";
+import TripMembersBar from "~/components/trip/TripMembersBar";
+import { useAuth } from "~/contexts/AuthContext";
 import { useMarkStop, type StopMark } from "~/lib/api/gamification";
 import { showToast } from "~/lib/toast-store";
 import { tripHasEnded } from "~/lib/recap/recap";
@@ -54,6 +56,7 @@ export default function TripEditor() {
   const tripQuery = useTrip(() => params.id!);
   const queryClient = useQueryClient();
   const subscriptionQuery = useUserSubscription();
+  const { user } = useAuth();
   const isPro = () => canUsePro(subscriptionQuery.data?.plan);
 
   const reorder = useReorderStops();
@@ -93,6 +96,8 @@ export default function TripEditor() {
   });
 
   const trip = () => tripQuery.data as Trip | undefined;
+  /** A member reads the trip; changes stay with its owner until suggestions land. */
+  const isOwner = () => !trip()?.owner;
   const version = () => trip()?.version ?? 0n;
 
   /**
@@ -312,7 +317,7 @@ export default function TripEditor() {
               trip={t}
               tripId={params.id!}
               isPro={isPro()}
-              editing={editing()}
+              editing={editing() && isOwner()}
               onEditingChange={setEditing}
               onShare={() => setSharing(true)}
               sharing={false}
@@ -333,6 +338,8 @@ export default function TripEditor() {
                 <span class="text-sm font-medium text-primary">See it</span>
               </A>
             </Show>
+
+            <TripMembersBar trip={t} currentUserId={user()?.id} />
 
             <TripSharePanel
               open={sharing()}
@@ -395,7 +402,9 @@ export default function TripEditor() {
               />
             </Show>
 
-            <TripPreferences constraints={t.constraints} onChange={updateConstraints} />
+            <Show when={isOwner()}>
+              <TripPreferences constraints={t.constraints} onChange={updateConstraints} />
+            </Show>
 
             <For each={t.days}>
               {(day) => (
@@ -415,7 +424,7 @@ export default function TripEditor() {
                     tripCityName={t.cityName}
                     dotColor={colorForMapDay(day.dayNumber - 1)}
                     addSlot={
-                      editing() ? (
+                      editing() && isOwner() ? (
                         <PlacePicker
                           cityName={t.cityName}
                           label={`Add another place to Day ${day.dayNumber}`}
@@ -433,7 +442,7 @@ export default function TripEditor() {
                             index={i()}
                             isFirst={i() === 0}
                             isLast={i() === day.stops.length - 1}
-                            editing={editing()}
+                            editing={editing() && isOwner()}
                             dotColor={colorForMapDay(day.dayNumber - 1)}
                             replacing={replacingStopID() === stop.id}
                             removeConfirming={removeConfirmID() === stop.id}
@@ -484,7 +493,10 @@ export default function TripEditor() {
               {(leg) => <TripLegRow leg={leg} homeward />}
             </For>
 
-            <TripChecklists tripId={params.id!} />
+            {/* Packing and expenses are the owner's own lists. */}
+            <Show when={isOwner()}>
+              <TripChecklists tripId={params.id!} />
+            </Show>
           </>
         )}
       </Show>
