@@ -1,10 +1,11 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
 import { Title, Meta } from "@solidjs/meta";
 import { A, useParams } from "@solidjs/router";
-import { MapPin } from "lucide-solid";
+import { Lock, MapPin } from "lucide-solid";
 import { Button } from "~/ui/button";
 import UserAvatar from "~/components/social/UserAvatar";
-import RelationshipButton from "~/components/social/RelationshipButton";
+import FollowButton from "~/components/social/FollowButton";
+import Showcase from "~/components/achievements/Showcase";
 import FriendTripCard from "~/components/social/FriendTripCard";
 import { useBlockUser, usePublicProfile } from "~/lib/api/social";
 import { useUserTrips } from "~/lib/api/trips";
@@ -21,7 +22,8 @@ export default function UserProfilePage() {
   const params = useParams<{ username: string }>();
   const profileQuery = usePublicProfile(() => params.username);
   const profile = () => (profileQuery.isSuccess ? profileQuery.data : undefined);
-  const tripsQuery = useUserTrips(() => profile()?.user.id);
+  // A private account the caller does not follow shows its card and counts only.
+  const tripsQuery = useUserTrips(() => (profile()?.canView ? profile()?.user.id : undefined));
   const canSeeRankings = () =>
     profile()?.relationship === "friends" || profile()?.relationship === "self";
   const rankingsQuery = useUserRankings(() => profile()?.user.id, canSeeRankings);
@@ -61,7 +63,12 @@ export default function UserProfilePage() {
               <UserAvatar user={p().user} size="lg" />
               <div class="min-w-0 flex-1">
                 <h1 class="text-2xl">{p().user.displayName}</h1>
-                <p class="text-muted-foreground">@{p().user.username}</p>
+                <p class="inline-flex items-center gap-1.5 text-muted-foreground">
+                  @{p().user.username}
+                  <Show when={p().isPrivate}>
+                    <Lock class="h-3.5 w-3.5" aria-label="Private account" />
+                  </Show>
+                </p>
                 <p class="mt-1 flex flex-wrap justify-center gap-x-3 text-sm text-muted-foreground sm:justify-start">
                   <Show when={p().user.homeCity}>
                     <span class="inline-flex items-center gap-1">
@@ -75,7 +82,10 @@ export default function UserProfilePage() {
                 </p>
               </div>
               <div class="flex shrink-0 flex-col items-center gap-2 sm:items-end">
-                <RelationshipButton user={p().user} relationship={p().relationship} />
+                <FollowButton user={p().user} edge={p().edge} />
+                <Show when={p().edge.followsYou && p().edge.state !== "self"}>
+                  <span class="text-xs text-muted-foreground">Follows you</span>
+                </Show>
                 <Show when={canBlock()}>
                   <button
                     type="button"
@@ -92,14 +102,16 @@ export default function UserProfilePage() {
               </div>
             </section>
 
-            <dl class="my-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <dl class="my-6 grid grid-cols-3 gap-3 sm:grid-cols-6">
               <For
                 each={
                   [
+                    ["Followers", p().stats.followers],
+                    ["Following", p().stats.following],
+                    ["Friends", p().stats.friends],
                     ["Cities", p().stats.cities],
                     ["Countries", p().stats.countries],
-                    ["Trips shared", p().stats.visibleTrips],
-                    ["Friends", p().stats.friends],
+                    ["Achievements", p().stats.achievements],
                   ] as const
                 }
               >
@@ -114,32 +126,53 @@ export default function UserProfilePage() {
               </For>
             </dl>
 
-            <h2 class="mb-3 text-lg font-medium">Trips</h2>
             <Show
-              when={trips()?.length}
+              when={p().canView}
               fallback={
-                <p class="py-8 text-center text-sm text-muted-foreground">
-                  {tripsQuery.isLoading
-                    ? "Loading…"
-                    : p().relationship === "friends" || p().relationship === "self"
-                      ? "No shared trips yet."
-                      : "No public trips. Friends see the trips shared with friends."}
-                </p>
+                <section class="loci-card p-8 text-center">
+                  <Lock class="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
+                  <h2 class="mt-3 text-lg font-medium">This account is private</h2>
+                  <p class="mt-1 text-sm text-muted-foreground">
+                    Follow {p().user.displayName} to see their trips and achievements once they
+                    approve.
+                  </p>
+                </section>
               }
             >
-              <div class="grid gap-4 sm:grid-cols-2">
-                <For each={trips()}>{(t) => <FriendTripCard trip={t} />}</For>
-              </div>
-            </Show>
+              <Show when={p().showcase.length}>
+                <h2 class="mb-3 text-lg font-medium">Achievements</h2>
+                <div class="mb-8">
+                  <Showcase items={p().showcase} />
+                </div>
+              </Show>
 
-            {/* Rankings are friends-only; the server refuses anyone else. */}
-            <Show when={canSeeRankings() && cityRankings().length > 0}>
-              <h2 class="mb-3 mt-8 text-lg font-medium">Their top places</h2>
-              <div class="grid gap-4 sm:grid-cols-2">
-                <For each={cityRankings()}>
-                  {(group) => <RankedList title={group.city} places={group.places} />}
-                </For>
-              </div>
+              <h2 class="mb-3 text-lg font-medium">Trips</h2>
+              <Show
+                when={trips()?.length}
+                fallback={
+                  <p class="py-8 text-center text-sm text-muted-foreground">
+                    {tripsQuery.isLoading
+                      ? "Loading…"
+                      : p().relationship === "friends" || p().relationship === "self"
+                        ? "No shared trips yet."
+                        : "No public trips. Friends see the trips shared with friends."}
+                  </p>
+                }
+              >
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <For each={trips()}>{(t) => <FriendTripCard trip={t} />}</For>
+                </div>
+              </Show>
+
+              {/* Rankings are friends-only; the server refuses anyone else. */}
+              <Show when={canSeeRankings() && cityRankings().length > 0}>
+                <h2 class="mb-3 mt-8 text-lg font-medium">Their top places</h2>
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <For each={cityRankings()}>
+                    {(group) => <RankedList title={group.city} places={group.places} />}
+                  </For>
+                </div>
+              </Show>
             </Show>
           </>
         )}

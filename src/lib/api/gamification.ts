@@ -21,6 +21,12 @@ import { TripStopStatus } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_
 import { transport } from "../connect-transport";
 import { useAppQuery } from "./authed-query";
 import { mapPublicUser, type PublicUser } from "./social";
+import {
+  celebrateUnlocks,
+  mapAchievement,
+  achievementKeys,
+  type Achievement,
+} from "./achievements";
 
 const client = createClient(GamificationService, transport);
 
@@ -75,6 +81,16 @@ export interface FieldProfile {
   cities: CityRank[];
   placesKept: number;
   daysFinished: number;
+  weekStreak: WeekStreak;
+}
+
+/** Weeks in a row with some exploring; this week counts until it ends. */
+export interface WeekStreak {
+  current: number;
+  longest: number;
+  exploredThisWeek: boolean;
+  /** Monday of this week, YYYY-MM-DD in the traveller's timezone. */
+  weekStart: string;
 }
 
 export interface BoardRow {
@@ -158,6 +174,12 @@ export const useFieldProfile = (enabled: () => boolean = () => true) =>
         })),
         placesKept: p?.placesKept ?? 0,
         daysFinished: p?.daysFinished ?? 0,
+        weekStreak: {
+          current: p?.weekStreak?.current ?? 0,
+          longest: p?.weekStreak?.longest ?? 0,
+          exploredThisWeek: p?.weekStreak?.exploredThisWeek ?? false,
+          weekStart: p?.weekStreak?.weekStart ?? "",
+        },
       };
     },
   }));
@@ -232,6 +254,8 @@ export interface MarkStopResult {
   points: number;
   dayFinished: boolean;
   tripFinished: boolean;
+  /** Achievements (and track tiers) this mark earned. */
+  unlocked: Achievement[];
 }
 
 /** Marks a stop of the caller's own trip done, skipped or open again. */
@@ -258,9 +282,13 @@ export const useMarkStop = () => {
         points: res.pointsAwarded,
         dayFinished: res.dayFinished,
         tripFinished: res.tripFinished,
+        unlocked: res.unlocked.map(mapAchievement),
       };
     },
-    onSuccess: (_res, v) => {
+    onSuccess: (res, v) => {
+      celebrateUnlocks(res.unlocked);
+      if (res.unlocked.length)
+        void queryClient.invalidateQueries({ queryKey: achievementKeys.all });
       void queryClient.invalidateQueries({ queryKey: gamificationKeys.all });
       void queryClient.invalidateQueries({ queryKey: ["trips", "detail", v.tripId] });
     },
@@ -303,4 +331,11 @@ export const fieldLine = (p: FieldProfile) => {
   const top = p.cities[0];
   const where = top ? `${top.rank} in ${top.cityName}` : p.rank;
   return p.week > 0 ? `+${p.week} this week · ${where}` : where;
+};
+
+/** "3 weeks in a row", or what keeps it: "Explore this week to keep your 3-week streak". */
+export const weekStreakLine = (w: WeekStreak): string => {
+  if (w.current <= 0) return "Explore this week to start a streak";
+  const weeks = `${w.current} week${w.current === 1 ? "" : "s"} in a row`;
+  return w.exploredThisWeek ? weeks : `${weeks} · explore this week to keep it`;
 };

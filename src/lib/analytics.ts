@@ -28,6 +28,12 @@ export type AnalyticsEvent =
   | "trip_copied"
   /** Two people became friends (request accepted or invite opened). */
   | "friend_added"
+  /** Someone followed (or asked to follow) another person. */
+  | "follow"
+  /** Someone cheered a feed item. */
+  | "cheer"
+  /** The one-time reveal of achievements earned before they existed. */
+  | "achievements_revealed"
   /** An invite link was sent or copied; `via` is sheet, copy, sms or facebook. */
   | "invite_shared"
   /** An action earned points (`kind`: check_in | visit | trip_day, `points`). Same name as iOS. */

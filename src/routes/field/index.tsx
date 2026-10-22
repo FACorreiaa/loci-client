@@ -1,12 +1,14 @@
 import { For, Match, Show, Switch, type JSX } from "solid-js";
 import { Title } from "@solidjs/meta";
 import { A, useSearchParams } from "@solidjs/router";
+import { Flame } from "lucide-solid";
 import { ProtectedRoute } from "~/contexts/AuthContext";
 import SectionHeader from "~/components/ui/SectionHeader";
 import UserAvatar from "~/components/social/UserAvatar";
 import { cn } from "~/cn";
 import {
   fieldLine,
+  weekStreakLine,
   useFieldBoard,
   useFieldLedger,
   useFieldProfile,
@@ -19,7 +21,7 @@ import { useAuthGate } from "~/lib/auth/useAuthGate";
 
 const SCOPES: { id: BoardScope; label: string }[] = [
   { id: "city", label: "This week in the city" },
-  { id: "friends", label: "Friends" },
+  { id: "friends", label: "Following" },
   { id: "personal", label: "Just me" },
 ];
 
@@ -139,6 +141,22 @@ function FieldPage() {
           Places you keep, stops you walk and days you finish. Opening the app and asking for ideas
           never count.
         </p>
+        <Show when={profile()}>
+          {(p) => (
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span
+                class="loci-chip loci-chip--surface inline-flex items-center gap-1.5 text-sm"
+                title={`Longest: ${p().weekStreak.longest} weeks`}
+              >
+                <Flame class="h-4 w-4 text-primary" aria-hidden="true" />
+                {weekStreakLine(p().weekStreak)}
+              </span>
+              <A href="/achievements" class="loci-chip loci-chip--surface inline-flex text-sm">
+                Achievements
+              </A>
+            </div>
+          )}
+        </Show>
       </header>
 
       <nav class="mb-6 flex flex-wrap gap-x-5 gap-y-2 border-b border-border" aria-label="Boards">
@@ -200,7 +218,7 @@ function FieldPage() {
 
           <Match when={scope() === "friends" && !board()?.friendsAvailable}>
             <Quiet>
-              Your friends board opens once you have a friend on Loci.{" "}
+              Your following board opens once you follow someone on Loci.{" "}
               <A href="/friends?tab=add" class="underline">
                 Invite someone you travel with
               </A>
@@ -223,10 +241,12 @@ function FieldPage() {
                 <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
                   <div>
                     <p class="kicker mb-1">
-                      {scope() === "friends" ? "Friends board" : "City board"}
+                      {scope() === "friends" ? "Following board" : "City board"}
                     </p>
                     <h2 class="editorial-title text-xl">
-                      {scope() === "friends" ? "Friends, this week" : `${cityName()}, this week`}
+                      {scope() === "friends"
+                        ? "You and who you follow, this week"
+                        : `${cityName()}, this week`}
                     </h2>
                   </div>
                   <div class="flex flex-wrap gap-2" role="group" aria-label="Ranked by">

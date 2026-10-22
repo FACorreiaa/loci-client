@@ -513,3 +513,22 @@
     color: hsl(var(--primary));
   }
 }
+
+/* Achievement tiers: the ring around a medallion. Metals read as metals on
+   the cream ground and on the dark one; the glyph inside carries the meaning,
+   so colour is never the only signal (the tier is also named in text). */
+@layer base {
+  :root {
+    --tier-bronze: 27 58% 44%;
+    --tier-silver: 210 9% 52%;
+    --tier-gold: 42 85% 40%;
+    --tier-platinum: 192 32% 46%;
+  }
+
+  .dark {
+    --tier-bronze: 27 62% 60%;
+    --tier-silver: 210 12% 72%;
+    --tier-gold: 44 88% 58%;
+    --tier-platinum: 190 40% 70%;
+  }
+}

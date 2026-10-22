@@ -25,8 +25,9 @@ const userClient = createClient(UserService, transport);
  * delivery for those is separate work that does not exist yet, so the UI
  * must not imply that either of them sends anything.
  *
- * `friendActivity` (friend requests and acceptances) is delivered the same
- * way as `searchFinished`: web push here, APNs on iOS.
+ * `friendActivity` (new followers, follow requests and approvals) and
+ * `cheers` (someone cheered your feed item) are delivered the same way as
+ * `searchFinished`: web push here, APNs on iOS.
  */
 export type NotificationSettings = {
   recommendations: boolean;
@@ -37,6 +38,8 @@ export type NotificationSettings = {
   leaderboardVisible: boolean;
   /** People who are not friends see the traveller's name and weekly score on city boards. */
   cityBoardVisible: boolean;
+  /** Someone cheered one of your feed items. */
+  cheers: boolean;
 };
 
 export const useNotificationSettings = () => {
@@ -53,6 +56,7 @@ export const useNotificationSettings = () => {
         friendActivity: response.friendActivity,
         leaderboardVisible: response.leaderboardVisible,
         cityBoardVisible: response.cityBoardVisible,
+        cheers: response.cheers,
       };
     },
     staleTime: 5 * 60 * 1000,
@@ -74,6 +78,7 @@ export const useUpdateNotificationSettings = () => {
           friendActivity: changes.friendActivity,
           leaderboardVisible: changes.leaderboardVisible,
           cityBoardVisible: changes.cityBoardVisible,
+          cheers: changes.cheers,
         }),
       );
       return {
@@ -83,6 +88,7 @@ export const useUpdateNotificationSettings = () => {
         friendActivity: response.friendActivity,
         leaderboardVisible: response.leaderboardVisible,
         cityBoardVisible: response.cityBoardVisible,
+        cheers: response.cheers,
       };
     },
     onSuccess: (settings) => {
