@@ -1,5 +1,5 @@
 import { createSignal, For, Show, createEffect, onMount } from "solid-js";
-import { A, useParams } from "@solidjs/router";
+import { A, useParams, useSearchParams } from "@solidjs/router";
 import { AlertTriangle, Sparkles } from "lucide-solid";
 import TripChecklists from "~/components/trip/TripChecklists";
 import {
@@ -44,6 +44,8 @@ import type { POI } from "~/lib/api/types";
 import TripSharePanel from "~/components/social/TripSharePanel";
 import TripMembersBar from "~/components/trip/TripMembersBar";
 import TripProposals from "~/components/trip/TripProposals";
+import TripComments from "~/components/trip/TripComments";
+import { useTripComments } from "~/lib/api/trip-comments";
 import {
   useProposeTripChange,
   useTripProposals,
@@ -120,6 +122,26 @@ export default function TripEditor() {
     () => !!trip() && (!isOwner() || (trip()?.members?.length ?? 0) > 0),
   );
   const proposals = () => proposalsQuery.data ?? [];
+  /** A trip planned together has comments; one nobody else is on does not. */
+  const shared = () => !!trip() && (!isOwner() || (trip()?.members?.length ?? 0) > 0);
+  const commentsQuery = useTripComments(() => params.id, shared);
+
+  /**
+   * A trip brief that saw a closed stop links here with ?swap=<stop>: open the
+   * swap picker on it, as a direct edit for the owner and a suggestion for a
+   * co-planner. A viewer just sees the trip. Once per visit.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  createEffect(() => {
+    const swap = typeof searchParams.swap === "string" ? searchParams.swap : undefined;
+    const t = trip();
+    if (!swap || !t) return;
+    setSearchParams({ swap: undefined }, { replace: true });
+    if (changes() === "none" || !t.days.some((d) => d.stops.some((s) => s.id === swap))) return;
+    if (isOwner()) setEditing(true);
+    else setSuggesting(true);
+    setReplacingStopID(swap);
+  });
   const suggest = (change: SuggestedChange, onDone?: () => void) =>
     propose.mutate(
       { tripId: params.id!, baseVersion: version(), change },
@@ -395,6 +417,14 @@ export default function TripEditor() {
                 currentUserId={user()?.id}
                 baseVersion={tripQuery.isFetching ? undefined : t.version}
                 onConflict={() => tripQuery.refetch()}
+              />
+            </Show>
+
+            <Show when={shared()}>
+              <TripComments
+                tripId={t.id}
+                comments={commentsQuery.data?.comments ?? []}
+                stops={t.days.flatMap((d) => d.stops.map((s) => ({ id: s.id, name: s.name })))}
               />
             </Show>
 
