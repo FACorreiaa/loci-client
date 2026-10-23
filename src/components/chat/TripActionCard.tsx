@@ -17,6 +17,11 @@ export interface TripActionCardProps {
   /** ApplyTripAction succeeded: the trip as it now is, and the thread's confirmation. */
   onApplied: (trip: Trip | undefined, confirmation?: ConversationMessage) => void;
   onDismissed: () => void;
+  /**
+   * The trip is someone else's: this card is the caller's suggestion, which
+   * waits for the trip's owner. It can only be taken back here.
+   */
+  suggestion?: boolean;
   /** Injected in tests. */
   api?: TripActionApi;
 }
@@ -91,7 +96,13 @@ const TripActionCard: Component<TripActionCardProps> = (props) => {
         >
           <p class="text-[15px] font-semibold leading-snug">{props.proposal.summary}</p>
 
-          <Show when={pickOne() && props.proposal.options.length > 0}>
+          <Show when={props.suggestion}>
+            <p class="mt-1 text-[13px] text-[var(--muse-text-secondary)]">
+              Sent to the trip's planner. It's on the trip page for everyone to see.
+            </p>
+          </Show>
+
+          <Show when={!props.suggestion && pickOne() && props.proposal.options.length > 0}>
             <ul class="mt-2 space-y-1">
               <For each={props.proposal.options}>
                 {(o, i) => (
@@ -144,7 +155,7 @@ const TripActionCard: Component<TripActionCardProps> = (props) => {
           </Show>
 
           <div class="mt-3 flex flex-wrap gap-2">
-            <Show when={canConfirm()}>
+            <Show when={!props.suggestion && canConfirm()}>
               <button
                 type="button"
                 data-testid="trip-action-confirm"
@@ -168,7 +179,7 @@ const TripActionCard: Component<TripActionCardProps> = (props) => {
               onClick={dismiss}
               class={`${pill} bg-[var(--muse-pill)] font-medium text-[var(--muse-text)]`}
             >
-              Not now
+              {props.suggestion ? "Take back" : "Not now"}
             </button>
           </div>
         </section>

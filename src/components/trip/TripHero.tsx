@@ -65,9 +65,9 @@ export default function TripHero(props: TripHeroProps) {
           trip={props.trip}
         />
         <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
-          {/* The planner edits the trip it is asked about, which only works
-              for the owner's own trips so far. */}
-          <Show when={!props.trip.owner}>
+          {/* The planner edits the owner's trip; a co-planner's asks become
+              suggestions for the owner. */}
+          <Show when={!props.trip.owner || props.trip.viewerRole === "co_planner"}>
             <A
               href={`/chat?trip=${encodeURIComponent(props.tripId)}`}
               class="inline-flex h-9 items-center gap-1.5 rounded-md border border-input px-3 text-sm font-medium hover:bg-muted"

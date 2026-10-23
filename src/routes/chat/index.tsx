@@ -174,7 +174,13 @@ export default function ChatPage() {
                   >
                     {t().title}
                   </A>
-                  . Ask for dates, hotels, more days or flights.
+                  <Show
+                    when={t().owner}
+                    fallback={<>. Ask for dates, hotels, places to add or swap, or flights.</>}
+                  >
+                    . Ask for places to add, swap or move: they go to {t().owner?.displayName} as
+                    suggestions.
+                  </Show>
                 </div>
               )}
             </Show>
@@ -213,6 +219,7 @@ export default function ChatPage() {
                     <TripActionCard
                       proposal={proposal()}
                       baseVersion={tripQuery.data?.version}
+                      suggestion={!!tripQuery.data?.owner}
                       onConflict={(id) =>
                         queryClient.invalidateQueries({ queryKey: tripKeys.detail(id) })
                       }

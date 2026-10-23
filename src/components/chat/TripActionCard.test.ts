@@ -83,6 +83,33 @@ const byId = (host: HTMLElement, id: string) =>
   host.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
 
 describe("TripActionCard", () => {
+  it("a co-planner's card is a suggestion: no Confirm, only Take back", async () => {
+    const a = api();
+    const onDismissed = vi.fn();
+    const swap = create(ActionProposalSchema, {
+      id: "p9",
+      tripId: "t1",
+      summary: "Swap Alfama for Pastéis de Belém on day 1.",
+      action: { kind: { case: "replaceStop", value: { stopId: "s1" } } },
+    });
+    const host = mount({
+      proposal: swap,
+      baseVersion: 3n,
+      suggestion: true,
+      onApplied: vi.fn(),
+      onDismissed,
+      api: a,
+    });
+    expect(host.textContent).toContain("Sent to the trip's planner");
+    expect(byId(host, "trip-action-confirm")).toBeNull();
+    const back = byId(host, "trip-action-dismiss")!;
+    expect(back.textContent).toContain("Take back");
+    back.click();
+    await flush();
+    expect(a.dismiss).toHaveBeenCalledWith("p9");
+    expect(onDismissed).toHaveBeenCalled();
+  });
+
   it("a pick-one card applies the chosen option with the trip's version", async () => {
     const a = api();
     const onApplied = vi.fn();
