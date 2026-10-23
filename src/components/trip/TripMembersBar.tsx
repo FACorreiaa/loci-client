@@ -1,6 +1,6 @@
 import { createSignal, For, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { Copy, LogOut, MessageSquare, Users } from "lucide-solid";
+import { Copy, LogOut, MessageSquare, Pencil, Users } from "lucide-solid";
 import { Button } from "~/ui/button";
 import UserAvatar from "~/components/social/UserAvatar";
 import { useCreateTripInvite, useRemoveTripMember, type TripInvite } from "~/lib/api/trip-members";
@@ -19,9 +19,16 @@ const whatsappHref = (inv: ShareableInvite) =>
  *
  * The owner gets Plan together: it makes (or reuses) the trip's invite link
  * and opens the share sheet. Without one, the link is copied or sent by text
- * or WhatsApp from the person's own phone. A member gets Leave trip.
+ * or WhatsApp from the person's own phone. A member gets Leave trip, and a
+ * co-planner the switch into suggesting changes.
  */
-export default function TripMembersBar(props: { trip: Trip; currentUserId?: string }) {
+export default function TripMembersBar(props: {
+  trip: Trip;
+  currentUserId?: string;
+  /** Set for a co-planner: whether the stops are in suggest mode. */
+  suggesting?: boolean;
+  onToggleSuggest?: () => void;
+}) {
   const navigate = useNavigate();
   const createInvite = useCreateTripInvite();
   const remove = useRemoveTripMember();
@@ -101,6 +108,18 @@ export default function TripMembersBar(props: { trip: Trip; currentUserId?: stri
             >
               <Users class="h-3.5 w-3.5" aria-hidden="true" />
               {createInvite.isPending ? "Making link…" : "Plan together"}
+            </Button>
+          </Show>
+          <Show when={props.suggesting !== undefined}>
+            <Button
+              size="sm"
+              variant={props.suggesting ? "default" : "outline"}
+              class="gap-1.5"
+              aria-pressed={props.suggesting}
+              onClick={() => props.onToggleSuggest?.()}
+            >
+              <Pencil class="h-3.5 w-3.5" aria-hidden="true" />
+              {props.suggesting ? "Done suggesting" : "Suggest changes"}
             </Button>
           </Show>
           <Show when={!isOwner() && props.currentUserId}>

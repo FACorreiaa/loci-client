@@ -376,7 +376,7 @@ export const mapTrip = (p: ProtoTripDraft): Trip => ({
 // Build the proto TripDraft for a save. Server-owned fields (ids, timestamps,
 // user_id) are filled with placeholders to satisfy validation; the server
 // assigns the real values (new day/stop ids are generated on insert).
-const toProtoStop = (s: TripStop) =>
+export const toProtoStop = (s: TripStop) =>
   create(TripStopSchema, {
     id: s.id || crypto.randomUUID(),
     poiId: s.poiId,

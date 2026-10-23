@@ -56,6 +56,12 @@ export interface TripStopRowProps {
    */
   onMark?: (mark: "open" | "done" | "skipped") => void;
   marking?: boolean;
+  /**
+   * How the viewer changes the trip: the owner edits it directly, a
+   * co-planner's moves, swaps and removals become suggestions for the owner,
+   * and a viewer only reads. Renaming and retiming stay the owner's.
+   */
+  changes?: "direct" | "suggest" | "none";
 }
 
 const timeInputClass =
@@ -74,6 +80,8 @@ export default function TripStopRow(props: TripStopRowProps) {
   const startLabel = () => minutesToHHMM(props.stop.startMinute);
   const mark = () => props.stop.mark ?? "open";
   const markable = () => !!props.onMark && !props.editing;
+  const changes = () => props.changes ?? "direct";
+  const suggesting = () => changes() === "suggest";
 
   const overflowMenu = () => (
     <DropdownMenu placement="bottom-end">
@@ -108,10 +116,12 @@ export default function TripStopRow(props: TripStopRowProps) {
           </Show>
           <DropdownMenuSeparator />
         </Show>
-        <DropdownMenuItem onSelect={props.onToggleReplace}>
-          <ReplaceIcon class="mr-2 h-4 w-4" aria-hidden="true" />
-          {props.replacing ? "Close search" : "Replace stop"}
-        </DropdownMenuItem>
+        <Show when={changes() !== "none"}>
+          <DropdownMenuItem onSelect={props.onToggleReplace}>
+            <ReplaceIcon class="mr-2 h-4 w-4" aria-hidden="true" />
+            {props.replacing ? "Close search" : suggesting() ? "Suggest a swap" : "Replace stop"}
+          </DropdownMenuItem>
+        </Show>
 
         <Show when={props.stop.bookingUrl}>
           <DropdownMenuItem
@@ -156,11 +166,13 @@ export default function TripStopRow(props: TripStopRowProps) {
           </DropdownMenuSub>
         </Show>
 
-        <DropdownMenuSeparator />
-        <DropdownMenuItem class="text-destructive" onSelect={props.onRemove}>
-          <Trash2 class="mr-2 h-4 w-4" aria-hidden="true" />
-          Remove
-        </DropdownMenuItem>
+        <Show when={changes() !== "none"}>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem class="text-destructive" onSelect={props.onRemove}>
+            <Trash2 class="mr-2 h-4 w-4" aria-hidden="true" />
+            {suggesting() ? "Suggest removing" : "Remove"}
+          </DropdownMenuItem>
+        </Show>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -275,42 +287,53 @@ export default function TripStopRow(props: TripStopRowProps) {
               </Button>
             </div>
 
-            <input
-              class="h-9 min-w-0 flex-1 basis-48 rounded-lg border border-input bg-background px-3 text-sm font-medium shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={props.stop.name}
-              aria-label="Stop name"
-              onChange={(e) => props.onRename(e.currentTarget.value)}
-            />
-
-            <input
-              type="time"
-              class={timeInputClass}
-              aria-label={`Start time for ${props.stop.name}`}
-              value={startLabel()}
-              onChange={(e) =>
-                props.onRetime(hhmmToMinutes(e.currentTarget.value), props.stop.durationMinutes)
+            <Show
+              when={!suggesting()}
+              fallback={
+                <span class="min-w-0 flex-1 basis-48 truncate text-sm font-medium">
+                  {props.stop.name}
+                </span>
               }
-            />
-
-            <div class="flex items-center gap-1.5">
+            >
               <input
-                type="number"
-                min="0"
-                step="15"
-                class={`${timeInputClass} w-20 tabular-nums`}
-                aria-label={`Duration in minutes for ${props.stop.name}`}
-                value={props.stop.durationMinutes ?? ""}
+                class="h-9 min-w-0 flex-1 basis-48 rounded-lg border border-input bg-background px-3 text-sm font-medium shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={props.stop.name}
+                aria-label="Stop name"
+                onChange={(e) => props.onRename(e.currentTarget.value)}
+              />
+            </Show>
+
+            <Show when={!suggesting()}>
+              <input
+                type="time"
+                class={timeInputClass}
+                aria-label={`Start time for ${props.stop.name}`}
+                value={startLabel()}
                 onChange={(e) =>
-                  props.onRetime(
-                    props.stop.startMinute,
-                    e.currentTarget.value ? Number(e.currentTarget.value) : 0,
-                  )
+                  props.onRetime(hhmmToMinutes(e.currentTarget.value), props.stop.durationMinutes)
                 }
               />
-              <span class="font-coord text-[11px] uppercase tracking-wide text-muted-foreground">
-                min
-              </span>
-            </div>
+
+              <div class="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min="0"
+                  step="15"
+                  class={`${timeInputClass} w-20 tabular-nums`}
+                  aria-label={`Duration in minutes for ${props.stop.name}`}
+                  value={props.stop.durationMinutes ?? ""}
+                  onChange={(e) =>
+                    props.onRetime(
+                      props.stop.startMinute,
+                      e.currentTarget.value ? Number(e.currentTarget.value) : 0,
+                    )
+                  }
+                />
+                <span class="font-coord text-[11px] uppercase tracking-wide text-muted-foreground">
+                  min
+                </span>
+              </div>
+            </Show>
 
             {overflowMenu()}
           </div>
@@ -321,13 +344,15 @@ export default function TripStopRow(props: TripStopRowProps) {
         {/* Remove is a two-step confirmation: the menu arms it, this bar commits. */}
         <Show when={props.removeConfirming}>
           <div class="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm">
-            <span class="text-destructive">Remove this stop?</span>
+            <span class="text-destructive">
+              {suggesting() ? "Suggest removing this stop?" : "Remove this stop?"}
+            </span>
             <div class="ml-auto flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={props.onCancelRemove}>
                 Cancel
               </Button>
               <Button variant="destructive" size="sm" onClick={props.onRemove}>
-                Remove
+                {suggesting() ? "Suggest" : "Remove"}
               </Button>
             </div>
           </div>
