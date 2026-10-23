@@ -1,6 +1,7 @@
 // Global Error Boundary component for catching unhandled errors
 import { ErrorBoundary as SolidErrorBoundary, Component, JSX, Show, createSignal } from "solid-js";
-import { captureException } from "~/lib/analytics";
+import { capture, captureException } from "~/lib/analytics";
+import { DISCORD_URL } from "~/lib/links";
 
 interface ErrorBoundaryProps {
   children: JSX.Element;
@@ -97,6 +98,16 @@ const ErrorFallback: Component<ErrorFallbackProps> = (props) => {
           If this keeps happening, please{" "}
           <a href="mailto:support@loci.app" class="text-primary underline hover:no-underline">
             contact support
+          </a>
+          {" · "}
+          <a
+            href={DISCORD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => capture("discord_link_clicked", { surface: "support" })}
+            class="text-primary underline hover:no-underline"
+          >
+            Join us on Discord
           </a>
         </p>
       </div>

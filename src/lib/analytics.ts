@@ -61,7 +61,9 @@ export type AnalyticsEvent =
   /** A recap was shared. kind: link | image. */
   | "recap_shared"
   /** Places were read from a shared link. source, places, resolved. Same name as iOS. */
-  | "link_imported";
+  | "link_imported"
+  /** The Discord invite was opened. surface: footer | support. Same name as iOS. */
+  | "discord_link_clicked";
 
 export type AnalyticsProperties = Record<string, unknown>;
 
