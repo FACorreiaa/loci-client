@@ -43,6 +43,12 @@ import { colorForMapDay } from "~/lib/theme-colors";
 import type { POI } from "~/lib/api/types";
 import TripSharePanel from "~/components/social/TripSharePanel";
 import TripMembersBar from "~/components/trip/TripMembersBar";
+import TripProposals from "~/components/trip/TripProposals";
+import {
+  useProposeTripChange,
+  useTripProposals,
+  type SuggestedChange,
+} from "~/lib/api/trip-proposals";
 import { useAuth } from "~/contexts/AuthContext";
 import { useMarkStop, type StopMark } from "~/lib/api/gamification";
 import { showToast } from "~/lib/toast-store";
@@ -96,9 +102,36 @@ export default function TripEditor() {
   });
 
   const trip = () => tripQuery.data as Trip | undefined;
-  /** A member reads the trip; changes stay with its owner until suggestions land. */
+  /**
+   * The owner edits the trip. A co-planner's adds, swaps, moves and removals
+   * become suggestions the owner applies; a viewer only reads.
+   */
   const isOwner = () => !trip()?.owner;
+  const canSuggest = () => trip()?.viewerRole === "co_planner";
+  const [suggesting, setSuggesting] = createSignal(false);
+  const changes = () => (isOwner() ? "direct" : canSuggest() ? "suggest" : "none");
+  const stopControls = () => (isOwner() ? editing() : canSuggest() && suggesting());
   const version = () => trip()?.version ?? 0n;
+
+  const propose = useProposeTripChange();
+  /** Only a trip planned together has suggestions to show. */
+  const proposalsQuery = useTripProposals(
+    () => params.id,
+    () => !!trip() && (!isOwner() || (trip()?.members?.length ?? 0) > 0),
+  );
+  const proposals = () => proposalsQuery.data ?? [];
+  const suggest = (change: SuggestedChange, onDone?: () => void) =>
+    propose.mutate(
+      { tripId: params.id!, baseVersion: version(), change },
+      {
+        onSuccess: (p) => {
+          onDone?.();
+          showToast({ id: `suggested-${p.id}`, title: "Suggestion sent to the planner" });
+        },
+        onError: () =>
+          showToast({ id: `suggest-failed-${params.id}`, title: "Couldn't send that suggestion" }),
+      },
+    );
 
   /**
    * The trip's primary city, for weather and currency.
@@ -178,6 +211,10 @@ export default function TripEditor() {
     const ids = day.stops.map((s) => s.id);
     const j = index + dir;
     if (j < 0 || j >= ids.length) return;
+    if (!isOwner()) {
+      suggest({ kind: "moveStop", stopId: ids[index], toDayId: day.id, toIndex: j });
+      return;
+    }
     [ids[index], ids[j]] = [ids[j], ids[index]];
     reorder.mutate(
       { tripId: params.id!, dayId: day.id, orderedStopIds: ids, baseVersion: version() },
@@ -216,28 +253,30 @@ export default function TripEditor() {
   };
 
   const addStop = (day: TripDay, poi: POI) => {
+    const stop: TripStop = {
+      id: crypto.randomUUID(),
+      poiId: poi.id,
+      orderIndex: day.stops.length,
+      name: poi.name,
+      notes: poi.description_poi || poi.description || "Added from place search",
+    };
+    if (!isOwner()) {
+      suggest({ kind: "addStop", dayId: day.id, stop });
+      return;
+    }
     add.mutate(
-      {
-        tripId: params.id!,
-        dayId: day.id,
-        baseVersion: version(),
-        stop: {
-          id: crypto.randomUUID(),
-          poiId: poi.id,
-          orderIndex: day.stops.length,
-          name: poi.name,
-          notes: poi.description_poi || poi.description || "Added from place search",
-        },
-      },
-      {
-        onError: onMutationError,
-      },
+      { tripId: params.id!, dayId: day.id, baseVersion: version(), stop },
+      { onError: onMutationError },
     );
   };
 
   const removeStop = (stop: TripStop) => {
     if (removeConfirmID() !== stop.id) {
       setRemoveConfirmID(stop.id);
+      return;
+    }
+    if (!isOwner()) {
+      suggest({ kind: "removeStop", stopId: stop.id }, () => setRemoveConfirmID(null));
       return;
     }
     remove.mutate(
@@ -250,20 +289,22 @@ export default function TripEditor() {
   };
 
   const replaceStop = (stop: TripStop, poi: POI) => {
+    const replacement: TripStop = {
+      ...stop,
+      id: crypto.randomUUID(),
+      poiId: poi.id,
+      name: poi.name,
+      notes: poi.description_poi || poi.description || "Replaced from place search",
+      recommendationTrace: undefined,
+    };
+    if (!isOwner()) {
+      suggest({ kind: "replaceStop", stopId: stop.id, replacement }, () =>
+        setReplacingStopID(null),
+      );
+      return;
+    }
     replace.mutate(
-      {
-        tripId: params.id!,
-        currentStop: stop,
-        baseVersion: version(),
-        replacement: {
-          ...stop,
-          id: crypto.randomUUID(),
-          poiId: poi.id,
-          name: poi.name,
-          notes: poi.description_poi || poi.description || "Replaced from place search",
-          recommendationTrace: undefined,
-        },
-      },
+      { tripId: params.id!, currentStop: stop, baseVersion: version(), replacement },
       {
         onSuccess: () => setReplacingStopID(null),
         onError: onMutationError,
@@ -339,7 +380,23 @@ export default function TripEditor() {
               </A>
             </Show>
 
-            <TripMembersBar trip={t} currentUserId={user()?.id} />
+            <TripMembersBar
+              trip={t}
+              currentUserId={user()?.id}
+              suggesting={canSuggest() ? suggesting() : undefined}
+              onToggleSuggest={() => setSuggesting((on) => !on)}
+            />
+
+            <Show when={proposals().length > 0}>
+              <TripProposals
+                tripId={t.id}
+                proposals={proposals()}
+                isOwner={isOwner()}
+                currentUserId={user()?.id}
+                baseVersion={tripQuery.isFetching ? undefined : t.version}
+                onConflict={() => tripQuery.refetch()}
+              />
+            </Show>
 
             <TripSharePanel
               open={sharing()}
@@ -424,11 +481,15 @@ export default function TripEditor() {
                     tripCityName={t.cityName}
                     dotColor={colorForMapDay(day.dayNumber - 1)}
                     addSlot={
-                      editing() && isOwner() ? (
+                      stopControls() ? (
                         <PlacePicker
                           cityName={t.cityName}
-                          label={`Add another place to Day ${day.dayNumber}`}
-                          busy={add.isPending}
+                          label={
+                            isOwner()
+                              ? `Add another place to Day ${day.dayNumber}`
+                              : `Suggest a place for Day ${day.dayNumber}`
+                          }
+                          busy={add.isPending || propose.isPending}
                           onSelect={(poi) => addStop(day, poi)}
                         />
                       ) : undefined
@@ -442,7 +503,8 @@ export default function TripEditor() {
                             index={i()}
                             isFirst={i() === 0}
                             isLast={i() === day.stops.length - 1}
-                            editing={editing() && isOwner()}
+                            editing={stopControls()}
+                            changes={changes()}
                             dotColor={colorForMapDay(day.dayNumber - 1)}
                             replacing={replacingStopID() === stop.id}
                             removeConfirming={removeConfirmID() === stop.id}
@@ -459,13 +521,13 @@ export default function TripEditor() {
                             onOutcome={(eventType, rating) =>
                               recordStopOutcome(stop, eventType, rating)
                             }
-                            onMark={(mark) => setStopMark(day, stop, mark)}
+                            onMark={isOwner() ? (mark) => setStopMark(day, stop, mark) : undefined}
                             marking={markingStopID() === stop.id}
                           >
                             <PlacePicker
                               cityName={t.cityName}
                               label={`Replace ${stop.name}`}
-                              busy={replace.isPending}
+                              busy={replace.isPending || propose.isPending}
                               onSelect={(poi) => replaceStop(stop, poi)}
                               onCancel={() => setReplacingStopID(null)}
                             />
