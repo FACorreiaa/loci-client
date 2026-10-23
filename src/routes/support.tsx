@@ -1,6 +1,8 @@
 import { For } from "solid-js";
 import { A } from "@solidjs/router";
 import { Title, Meta } from "@solidjs/meta";
+import { capture } from "~/lib/analytics";
+import { DISCORD_URL } from "~/lib/links";
 
 // Linked from the App Store listing as the support URL; App Review checks that
 // it gives a way to reach a person.
@@ -44,6 +46,19 @@ export default function Support() {
               </a>{" "}
               with what you tried, the city, and a screenshot if you can. A person reads every
               message.
+            </p>
+            <p class="leading-7 text-muted-foreground">
+              Rather ask in the open, or swap ideas with other travelers?{" "}
+              <a
+                class="text-primary underline underline-offset-4"
+                href={DISCORD_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => capture("discord_link_clicked", { surface: "support" })}
+              >
+                Join us on Discord
+              </a>
+              . Keep anything about your account or billing to email.
             </p>
           </header>
 

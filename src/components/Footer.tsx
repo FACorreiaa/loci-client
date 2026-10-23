@@ -1,5 +1,7 @@
 import { A } from "@solidjs/router";
 import { Compass, MapPin } from "lucide-solid";
+import { capture } from "~/lib/analytics";
+import { DISCORD_URL } from "~/lib/links";
 
 const links = [
   { label: "Discover", href: "/discover" },
@@ -57,6 +59,15 @@ export default function Footer() {
                 {link.label}
               </A>
             ))}
+            <a
+              href={DISCORD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => capture("discord_link_clicked", { surface: "footer" })}
+              class="text-primary-foreground transition-colors hover:underline hover:underline-offset-4"
+            >
+              Join us on Discord
+            </a>
           </div>
           <div class="mt-8 flex items-center gap-2 border-t border-primary-foreground/15 pt-5 text-xs text-primary-foreground">
             <Compass class="h-4 w-4" />
