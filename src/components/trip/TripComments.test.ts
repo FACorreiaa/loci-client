@@ -62,7 +62,7 @@ const comments: TripComment[] = [
   },
 ];
 
-const mount = () => {
+const mount = (extra: Partial<Parameters<typeof TripComments>[0]> = {}) => {
   const host = document.createElement("div");
   document.body.appendChild(host);
   dispose = render(
@@ -71,6 +71,7 @@ const mount = () => {
         tripId: "t1",
         comments,
         stops: [{ id: "s1", name: "Miradouro da Graça" }],
+        ...extra,
       }),
     host,
   );
@@ -129,5 +130,19 @@ describe("TripComments", () => {
     );
     expect(calls.add).toEqual([{ tripId: "t1", body: "Book ahead", stopId: "s1" }]);
     expect(body.value).toBe("");
+  });
+
+  it("loads older comments only when there are more", () => {
+    let asked = 0;
+    const host = mount({ hasMore: true, onLoadOlder: () => asked++ });
+    expect(host.querySelector("h2")?.textContent).toContain("2+");
+    buttons(host, "Load older comments")[0].click();
+    expect(asked).toBe(1);
+
+    dispose?.();
+    document.body.innerHTML = "";
+    const done = mount({ hasMore: false, onLoadOlder: () => asked++ });
+    expect(buttons(done, "Load older comments")).toHaveLength(0);
+    expect(done.querySelector("h2")?.textContent).not.toContain("+");
   });
 });

@@ -44,6 +44,12 @@ export default function BoardsAdminPage() {
         <p class="mt-1 text-muted-foreground">
           Mute or ban someone from the ⋯ menu on any post or comment.
         </p>
+        <A
+          href="/admin/reports"
+          class="mt-2 inline-block text-sm underline-offset-2 hover:underline"
+        >
+          Reported trip comments and reviews →
+        </A>
         <label class="mt-4 flex items-center gap-2 text-sm">
           <input
             type="checkbox"

@@ -23,6 +23,12 @@ export interface TripCommentsProps {
   /** The stop the composer is about, when the page picked one. */
   aboutStopId?: string;
   onAboutChange?: (stopId: string | undefined) => void;
+  /** There are comments older than the first one shown. */
+  hasMore?: boolean;
+  loadingOlder?: boolean;
+  /** The last "Load older" failed. */
+  olderFailed?: boolean;
+  onLoadOlder?: () => void;
 }
 
 const REASONS: { value: CommentReportReason; label: string }[] = [
@@ -70,7 +76,27 @@ export default function TripComments(props: TripCommentsProps) {
         class="font-coord mb-3 text-[11px] uppercase tracking-[0.16em] text-muted-foreground"
       >
         Comments · {props.comments.length}
+        {props.hasMore ? "+" : ""}
       </h2>
+
+      <Show when={props.hasMore && props.onLoadOlder}>
+        <div class="mb-3 flex items-center gap-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => props.onLoadOlder?.()}
+            disabled={props.loadingOlder}
+            data-testid="trip-comments-older"
+          >
+            {props.loadingOlder ? "Loading…" : "Load older comments"}
+          </Button>
+          <Show when={props.olderFailed && !props.loadingOlder}>
+            <span role="alert" class="text-[13px] text-destructive">
+              Couldn't load older comments. Try again.
+            </span>
+          </Show>
+        </div>
+      </Show>
 
       <Show
         when={props.comments.length > 0}

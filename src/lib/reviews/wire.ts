@@ -13,14 +13,21 @@ import {
   GetPOIReviewsRequestSchema,
   GetUserReviewsRequestSchema,
   LikeReviewRequestSchema,
+  ListReportedReviewsRequestSchema,
   ReportReviewRequestSchema,
+  ResolveReviewReportRequestSchema,
+  ReviewModerationAction,
   UpdateReviewRequestSchema,
   type CreateReviewRequest,
   type GetMyPOIReviewRequest,
   type GetPOIReviewsRequest,
   type GetUserReviewsRequest,
   type LikeReviewRequest,
+  type ListReportedReviewsRequest,
+  type ListReportedReviewsResponse,
   type ReportReviewRequest,
+  type ReportedReview as ProtoReportedReview,
+  type ResolveReviewReportRequest,
   type Review as ProtoReview,
   type ReviewStatistics as ProtoStatistics,
   type UpdateReviewRequest,
@@ -227,6 +234,71 @@ export function buildReportRequest(
     reviewId,
     reason,
     details: details.trim().slice(0, REPORT_DETAILS_MAX),
+  });
+}
+
+// --- moderation (admin only) ---
+
+export const REPORTED_PAGE_SIZE = 20;
+
+/** A review with open reports, as the moderation page reads it. */
+export interface ReportedReviewItem {
+  review?: ReviewItem;
+  /** Distinct people with an open report. */
+  reportCount: number;
+  reasons: { reason: string; count: number }[];
+  /** Reporters' free text, newest first. */
+  details: string[];
+  lastReportedAt?: string;
+  /** Out of public reads right now. */
+  hidden: boolean;
+}
+
+export interface ReportedReviewsPage {
+  reviews: ReportedReviewItem[];
+  page: number;
+  hasMore: boolean;
+  total: number;
+}
+
+export function toReportedReview(r: ProtoReportedReview): ReportedReviewItem {
+  return {
+    review: r.review ? toReview(r.review) : undefined,
+    reportCount: r.reportCount,
+    reasons: r.reasons.map((x) => ({ reason: x.reason, count: x.count })),
+    details: r.details.filter((d) => d.trim() !== ""),
+    lastReportedAt: tsToISO(r.lastReportedAt),
+    hidden: r.hidden,
+  };
+}
+
+export function toReportedReviewsPage(
+  res: ListReportedReviewsResponse,
+  page: number,
+): ReportedReviewsPage {
+  const reviews = res.reviews.map(toReportedReview);
+  return {
+    reviews,
+    page,
+    hasMore: pageHasMore(res.pagination, page, REPORTED_PAGE_SIZE, reviews.length),
+    total: res.pagination?.totalRecords ?? reviews.length,
+  };
+}
+
+export function buildReportedReviewsRequest(page: number): ListReportedReviewsRequest {
+  return create(ListReportedReviewsRequestSchema, {
+    limit: REPORTED_PAGE_SIZE,
+    page: Math.max(1, Math.floor(page)),
+  });
+}
+
+export function buildResolveReviewRequest(
+  reviewId: string,
+  action: "keep" | "remove",
+): ResolveReviewReportRequest {
+  return create(ResolveReviewReportRequestSchema, {
+    reviewId,
+    action: action === "remove" ? ReviewModerationAction.REMOVE : ReviewModerationAction.KEEP,
   });
 }
 

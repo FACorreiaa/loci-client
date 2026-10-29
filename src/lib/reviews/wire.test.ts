@@ -3,6 +3,8 @@ import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import {
+  ListReportedReviewsResponseSchema,
+  ReviewModerationAction,
   ReviewSchema,
   ReviewStatisticsSchema,
   UserReviewStatisticsSchema,
@@ -13,6 +15,8 @@ import {
   buildMyPOIReviewRequest,
   buildPOIReviewsRequest,
   buildReportRequest,
+  buildReportedReviewsRequest,
+  buildResolveReviewRequest,
   buildUpdateRequest,
   buildUserReviewsRequest,
   canReview,
@@ -21,6 +25,7 @@ import {
   pageHasMore,
   reviewErrorMessage,
   toMineSummary,
+  toReportedReviewsPage,
   toReview,
   toStats,
 } from "./wire";
@@ -186,5 +191,46 @@ describe("errors", () => {
       "too short",
     );
     expect(reviewErrorMessage("??", "Fallback")).toBe("Fallback");
+  });
+});
+
+describe("moderation", () => {
+  it("asks for a 1-based page of 20", () => {
+    expect(buildReportedReviewsRequest(0)).toMatchObject({ limit: 20, page: 1 });
+    expect(buildReportedReviewsRequest(3)).toMatchObject({ limit: 20, page: 3 });
+  });
+
+  it("sends keep and remove as the moderation enum", () => {
+    expect(buildResolveReviewRequest("r1", "keep")).toMatchObject({
+      reviewId: "r1",
+      action: ReviewModerationAction.KEEP,
+    });
+    expect(buildResolveReviewRequest("r1", "remove").action).toBe(ReviewModerationAction.REMOVE);
+  });
+
+  it("maps a page of reported reviews and pages on the total", () => {
+    const res = create(ListReportedReviewsResponseSchema, {
+      reviews: [
+        {
+          review: create(ReviewSchema, { id: "r1", poiId: POI, rating: 1, content: "Awful" }),
+          reportCount: 2,
+          reasons: [{ reason: "spam", count: 2 }],
+          details: ["", "ad link"],
+          hidden: false,
+        },
+      ],
+      pagination: { totalRecords: 21, page: 1, pageSize: 20 },
+    });
+    const page = toReportedReviewsPage(res, 1);
+    expect(page.total).toBe(21);
+    expect(page.hasMore).toBe(true);
+    expect(page.reviews[0]).toMatchObject({
+      reportCount: 2,
+      reasons: [{ reason: "spam", count: 2 }],
+      details: ["ad link"],
+      hidden: false,
+    });
+    expect(page.reviews[0].review?.id).toBe("r1");
+    expect(toReportedReviewsPage(res, 2).hasMore).toBe(false);
   });
 });
