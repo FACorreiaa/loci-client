@@ -3,7 +3,12 @@ import { useNavigate } from "@solidjs/router";
 import { Copy, LogOut, MessageSquare, Pencil, Users } from "lucide-solid";
 import { Button } from "~/ui/button";
 import UserAvatar from "~/components/social/UserAvatar";
-import { useCreateTripInvite, useRemoveTripMember, type TripInvite } from "~/lib/api/trip-members";
+import {
+  useCreateTripInvite,
+  useRemoveTripMember,
+  useSetCoPlannersMayApply,
+  type TripInvite,
+} from "~/lib/api/trip-members";
 import type { Trip } from "~/lib/api/trips";
 import { copyInviteLink, shareInvite, smsInviteHref, type ShareableInvite } from "~/lib/invite";
 import { capture } from "~/lib/analytics";
@@ -19,8 +24,9 @@ const whatsappHref = (inv: ShareableInvite) =>
  *
  * The owner gets Plan together: it makes (or reuses) the trip's invite link
  * and opens the share sheet. Without one, the link is copied or sent by text
- * or WhatsApp from the person's own phone. A member gets Leave trip, and a
- * co-planner the switch into suggesting changes.
+ * or WhatsApp from the person's own phone. Once someone has joined, the owner
+ * also decides whether co-planners may apply suggestions. A member gets Leave
+ * trip, and a co-planner the switch into suggesting changes.
  */
 export default function TripMembersBar(props: {
   trip: Trip;
@@ -32,6 +38,7 @@ export default function TripMembersBar(props: {
   const navigate = useNavigate();
   const createInvite = useCreateTripInvite();
   const remove = useRemoveTripMember();
+  const setMayApply = useSetCoPlannersMayApply();
   const [invite, setInvite] = createSignal<TripInvite>();
   const [copied, setCopied] = createSignal(false);
   const [confirmLeave, setConfirmLeave] = createSignal(false);
@@ -202,6 +209,28 @@ export default function TripMembersBar(props: {
             </div>
           </div>
         )}
+      </Show>
+      <Show when={isOwner() && members().length > 0}>
+        <label class="mt-3 flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            class="mt-0.5"
+            checked={!!props.trip.coPlannersMayApply}
+            disabled={setMayApply.isPending}
+            onChange={(e) =>
+              setMayApply.mutate({ tripId: props.trip.id, may: e.currentTarget.checked })
+            }
+          />
+          <span>
+            Co-planners can apply suggestions
+            <span class="block text-xs text-muted-foreground">
+              Otherwise only you change the trip.
+            </span>
+          </span>
+        </label>
+        <Show when={setMayApply.isError}>
+          <p class="mt-1 text-xs text-destructive">Couldn't change that setting. Try again.</p>
+        </Show>
       </Show>
     </section>
   );

@@ -17,6 +17,8 @@ export interface TripProposalsProps {
   tripId: string;
   proposals: TripProposal[];
   isOwner: boolean;
+  /** The owner, or a co-planner the owner lets apply. */
+  mayApply: boolean;
   currentUserId?: string;
   /** The trip's version as the owner sees it; undefined until loaded. */
   baseVersion: bigint | undefined;
@@ -26,8 +28,8 @@ export interface TripProposalsProps {
 
 /**
  * The trip's open suggestions. Everyone on the trip sees them and reacts;
- * the owner applies or turns them down; whoever suggested one can take it
- * back.
+ * the owner applies or turns them down (a co-planner applies too when the
+ * owner lets them); whoever suggested one can take it back.
  */
 export default function TripProposals(props: TripProposalsProps) {
   return (
@@ -141,7 +143,7 @@ function ProposalRow(props: TripProposalsProps & { proposal: TripProposal }) {
         </button>
 
         <div class="ml-auto flex flex-wrap gap-2">
-          <Show when={props.isOwner}>
+          <Show when={props.mayApply}>
             <Show
               when={!p().needsPick}
               fallback={

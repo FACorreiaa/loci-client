@@ -199,6 +199,8 @@ export interface Trip {
   viewerRole?: TripRole;
   /** The owner, then the members. Empty until someone joins. */
   members?: TripMember[];
+  /** The owner lets co-planners apply suggestions, not only make them. */
+  coPlannersMayApply?: boolean;
 }
 
 /**
@@ -318,6 +320,7 @@ export const mapTrip = (p: ProtoTripDraft): Trip => ({
   flights: (p.flights ?? []).map(mapFlight),
   viewerRole: roleFromProto(p.viewerRole),
   members: (p.members ?? []).map(mapTripMember).filter((m): m is TripMember => !!m),
+  coPlannersMayApply: p.coPlannersMayApply,
   userId: p.userId,
   cityId: p.cityId,
   cityName: p.cityName,
@@ -660,6 +663,14 @@ export const useReplaceStop = () =>
  * trip at a new version: cache it, keep the offline copy current, and mark
  * the list stale, since the calendar saves with the list's versions.
  */
+/**
+ * Who may apply suggestions: the owner, or a co-planner when the owner lets
+ * co-planners apply.
+ */
+export const mayApplySuggestions = (
+  trip: Pick<Trip, "owner" | "viewerRole" | "coPlannersMayApply">,
+) => !trip.owner || (trip.viewerRole === "co_planner" && !!trip.coPlannersMayApply);
+
 export const rememberTrip = (qc: QueryClient, trip: Trip) => {
   qc.setQueryData(tripKeys.detail(trip.id), trip);
   void qc.invalidateQueries({ queryKey: tripKeys.list() });
