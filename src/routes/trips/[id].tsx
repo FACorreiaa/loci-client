@@ -1,4 +1,4 @@
-import { createSignal, For, Show, createEffect, onMount } from "solid-js";
+import { createSignal, For, Show, createEffect, createMemo, onMount } from "solid-js";
 import { A, useParams, useSearchParams } from "@solidjs/router";
 import { AlertTriangle, Sparkles } from "lucide-solid";
 import TripChecklists from "~/components/trip/TripChecklists";
@@ -45,7 +45,7 @@ import TripSharePanel from "~/components/social/TripSharePanel";
 import TripMembersBar from "~/components/trip/TripMembersBar";
 import TripProposals from "~/components/trip/TripProposals";
 import TripComments from "~/components/trip/TripComments";
-import { useTripComments } from "~/lib/api/trip-comments";
+import { flattenCommentPages, useTripComments } from "~/lib/api/trip-comments";
 import {
   useProposeTripChange,
   useTripProposals,
@@ -125,6 +125,14 @@ export default function TripEditor() {
   /** A trip planned together has comments; one nobody else is on does not. */
   const shared = () => !!trip() && (!isOwner() || (trip()?.members?.length ?? 0) > 0);
   const commentsQuery = useTripComments(() => params.id, shared);
+  // Guarded read: touching .data while pending suspends the whole route. Not
+  // isSuccess: a failed "Load older" turns the status to error but keeps the
+  // pages already loaded, and those should stay on screen.
+  const comments = createMemo(() =>
+    flattenCommentPages(
+      commentsQuery.isPending || commentsQuery.isLoadingError ? undefined : commentsQuery.data,
+    ),
+  );
 
   /**
    * A trip brief that saw a closed stop links here with ?swap=<stop>: open the
@@ -423,7 +431,11 @@ export default function TripEditor() {
             <Show when={shared()}>
               <TripComments
                 tripId={t.id}
-                comments={commentsQuery.data?.comments ?? []}
+                comments={comments().comments}
+                hasMore={comments().hasMore}
+                loadingOlder={commentsQuery.isFetchingNextPage}
+                olderFailed={commentsQuery.isFetchNextPageError}
+                onLoadOlder={() => void commentsQuery.fetchNextPage()}
                 stops={t.days.flatMap((d) => d.stops.map((s) => ({ id: s.id, name: s.name })))}
               />
             </Show>

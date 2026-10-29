@@ -23,6 +23,8 @@ import {
   buildMyPOIReviewRequest,
   buildPOIReviewsRequest,
   buildReportRequest,
+  buildReportedReviewsRequest,
+  buildResolveReviewRequest,
   buildUpdateRequest,
   buildUserReviewsRequest,
   canReview,
@@ -30,8 +32,10 @@ import {
   isUnimplemented,
   pageHasMore,
   toMineSummary,
+  toReportedReviewsPage,
   toReview,
   toStats,
+  type ReportedReviewsPage,
   type ReviewItem,
   type ReviewPage,
   type ReviewStats,
@@ -39,7 +43,14 @@ import {
 } from "../reviews/wire";
 import type { MineSummary } from "../reviews/model";
 
-export type { ReviewItem, ReviewPage, ReviewStats, ReviewWrite } from "../reviews/wire";
+export type {
+  ReportedReviewItem,
+  ReportedReviewsPage,
+  ReviewItem,
+  ReviewPage,
+  ReviewStats,
+  ReviewWrite,
+} from "../reviews/wire";
 
 const reviewClient = createClient(ReviewService, transport);
 
@@ -105,6 +116,7 @@ export const reviewKeys = {
   stats: (poiId: string) => ["reviews", "stats", poiId] as const,
   mineFor: (poiId: string) => ["reviews", "mine-for", poiId] as const,
   mine: () => ["reviews", "me"] as const,
+  reported: (page: number) => ["reviews", "reported", page] as const,
 };
 
 /** The first page of a place's reviews; later pages come from fetchPOIReviewsPage. */
@@ -202,6 +214,36 @@ export function useDeleteReview() {
     mutationFn: async (reviewId: string): Promise<void> => {
       await reviewClient.deleteReview(create(DeleteReviewRequestSchema, { reviewId }));
     },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: reviewKeys.all }),
+  }));
+}
+
+// --- moderation (admin only; the server answers PermissionDenied to anyone else) ---
+
+/** Reviews with open reports, most reported first, one 1-based page at a time. */
+export function useReportedReviews(page: () => number, enabled: () => boolean) {
+  return useAppQuery(() => ({
+    queryKey: reviewKeys.reported(page()),
+    enabled: enabled(),
+    retry: false,
+    queryFn: async (): Promise<ReportedReviewsPage> => {
+      const p = Math.max(1, page());
+      return toReportedReviewsPage(
+        await reviewClient.listReportedReviews(buildReportedReviewsRequest(p)),
+        p,
+      );
+    },
+  }));
+}
+
+/** Keep closes the open reports; remove takes the review out of every public read. */
+export function useResolveReviewReport() {
+  const queryClient = useQueryClient();
+  return useMutation(() => ({
+    mutationFn: async (args: { reviewId: string; action: "keep" | "remove" }): Promise<void> => {
+      await reviewClient.resolveReviewReport(buildResolveReviewRequest(args.reviewId, args.action));
+    },
+    // The reported list and every place's reviews live under reviewKeys.all.
     onSuccess: () => queryClient.invalidateQueries({ queryKey: reviewKeys.all }),
   }));
 }
