@@ -18,7 +18,7 @@ import {
 import { chatService } from "@/lib/api";
 import { useAppQuery } from "./authed-query";
 import { mapPublicUser, type PublicUser } from "./social";
-import { mapTrip, rememberTrip, toProtoStop, type TripStop } from "./trips";
+import { mapTrip, rememberTrip, toProtoStop, tripKeys, type TripStop } from "./trips";
 import { tripActionApi } from "./trip-actions";
 
 /** A stop edit a co-planner suggests from the trip page. */
@@ -165,7 +165,11 @@ export const useReactToProposal = () => {
   }));
 };
 
-/** The owner applies a suggestion against the trip as they see it. */
+/**
+ * The owner (or a co-planner the owner lets apply) applies a suggestion
+ * against the trip as they see it. Only the owner gets the trip back; anyone
+ * else reads it again.
+ */
 export const useApplyProposal = () => {
   const qc = useQueryClient();
   return useMutation(() => ({
@@ -175,6 +179,7 @@ export const useApplyProposal = () => {
     },
     onSuccess: (trip, vars) => {
       if (trip) rememberTrip(qc, trip);
+      else void qc.invalidateQueries({ queryKey: tripKeys.detail(vars.tripId) });
       void qc.invalidateQueries({ queryKey: proposalKeys.forTrip(vars.tripId) });
     },
   }));

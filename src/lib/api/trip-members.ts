@@ -9,6 +9,7 @@ import {
   CreateTripInviteRequestSchema,
   GetTripInviteRequestSchema,
   RemoveTripMemberRequestSchema,
+  SetTripPlanningRulesRequestSchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/members_pb.js";
 import { transport } from "../connect-transport";
 import { useAppQuery } from "./authed-query";
@@ -18,6 +19,7 @@ import {
   roleFromProto,
   roleToProto,
   tripKeys,
+  type Trip,
   type TripMember,
   type TripRole,
 } from "./trips";
@@ -117,6 +119,24 @@ export const useRemoveTripMember = () => {
     onSuccess: (_res, vars) => {
       void qc.invalidateQueries({ queryKey: tripKeys.list() });
       void qc.invalidateQueries({ queryKey: tripKeys.detail(vars.tripId) });
+    },
+  }));
+};
+
+/** The owner lets co-planners apply suggestions too, or takes that back. */
+export const useSetCoPlannersMayApply = () => {
+  const qc = useQueryClient();
+  return useMutation(() => ({
+    mutationFn: async (i: { tripId: string; may: boolean }) => {
+      const res = await client.setTripPlanningRules(
+        create(SetTripPlanningRulesRequestSchema, { tripId: i.tripId, coPlannersMayApply: i.may }),
+      );
+      return res.coPlannersMayApply;
+    },
+    onSuccess: (may, vars) => {
+      qc.setQueryData<Trip>(tripKeys.detail(vars.tripId), (t) =>
+        t ? { ...t, coPlannersMayApply: may } : t,
+      );
     },
   }));
 };

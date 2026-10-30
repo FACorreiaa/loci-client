@@ -16,6 +16,7 @@ import {
   type TripStop,
   type TripConstraint,
   rememberTrip,
+  mayApplySuggestions,
 } from "~/lib/api/trips";
 import { useQueryClient } from "@tanstack/solid-query";
 import TripPlanPanel from "~/components/trip/TripPlanPanel";
@@ -422,6 +423,7 @@ export default function TripEditor() {
                 tripId={t.id}
                 proposals={proposals()}
                 isOwner={isOwner()}
+                mayApply={mayApplySuggestions(t)}
                 currentUserId={user()?.id}
                 baseVersion={tripQuery.isFetching ? undefined : t.version}
                 onConflict={() => tripQuery.refetch()}

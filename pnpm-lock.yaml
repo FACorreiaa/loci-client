@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@buf/loci_loci-proto.bufbuild_es':
-        specifier: 2.15.0-20261023122952-19e0f3a6b68a.1
-        version: 2.15.0-20261023122952-19e0f3a6b68a.1(@bufbuild/protobuf@2.15.0)
+        specifier: 2.15.0-20261029230935-e1d8da704a97.1
+        version: 2.15.0-20261029230935-e1d8da704a97.1(@bufbuild/protobuf@2.15.0)
       '@bufbuild/protobuf':
         specifier: ^2.15.0
         version: 2.15.0
@@ -696,8 +696,8 @@ packages:
     peerDependencies:
       '@bufbuild/protobuf': ^2.15.0
 
-  '@buf/loci_loci-proto.bufbuild_es@2.15.0-20261023122952-19e0f3a6b68a.1':
-    resolution: {integrity: sha512-6R5cHVOO52y8+E+tAC/nfvhdQM64koH6L4zrrBpGW2QOm9b51oSkuUOhFoLKz8m9LoCLqD88BQq63HHt6SIWBg==}
+  '@buf/loci_loci-proto.bufbuild_es@2.15.0-20261029230935-e1d8da704a97.1':
+    resolution: {integrity: sha512-tAEesNCXL4IAKoyFx1N0//EAVNg+DpGninLYDakta+aL28p4OccuNKbcsDpfWjcYGOXNL7/UXkBbXLPSYgAZyw==}
     peerDependencies:
       '@bufbuild/protobuf': ^2.15.0
 
@@ -3711,8 +3711,8 @@ packages:
   known-css-properties@0.30.0:
     resolution: {integrity: sha512-VSWXYUnsPu9+WYKkfmJyLKtIvaRJi1kXUqVmBACORXZQxT5oZDsoZ2vQP+bQFDnWtpI/4eq3MLoRMjI2fnLzTQ==}
 
-  legacy-javascript@0.0.3:
-    resolution: {integrity: sha512-1r6MT4dVaJyXt4G07Cm2cQ0AUaLJdefiEp4SmIAylA++gnEQ82YvmzE58RkM5EP0fk5hROLCslUPGnwIYdZQVA==}
+  legacy-javascript@0.0.4:
+    resolution: {integrity: sha512-UTmeKBVxnfJcpmpOvzzNnLsQT99BXHpPlc/ZKddIRmWmrR0fw6335I3lq4+sJoP60UTbBNaYsGYVPc65YB1x3A==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -6117,7 +6117,7 @@ snapshots:
     dependencies:
       '@bufbuild/protobuf': 2.15.0
 
-  '@buf/loci_loci-proto.bufbuild_es@2.15.0-20261023122952-19e0f3a6b68a.1(@bufbuild/protobuf@2.15.0)':
+  '@buf/loci_loci-proto.bufbuild_es@2.15.0-20261029230935-e1d8da704a97.1(@bufbuild/protobuf@2.15.0)':
     dependencies:
       '@buf/bufbuild_protovalidate.bufbuild_es': 2.15.0-20251209175733-2a1774d88802.1(@bufbuild/protobuf@2.15.0)
       '@buf/protocolbuffers_wellknowntypes.bufbuild_es': 2.15.0-20230331140314-f17e05fe4a76.1(@bufbuild/protobuf@2.15.0)
@@ -6740,7 +6740,7 @@ snapshots:
 
   '@paulirish/trace_engine@0.0.53':
     dependencies:
-      legacy-javascript: 0.0.3
+      legacy-javascript: 0.0.4
       third-party-web: 0.30.0
 
   '@poppinss/colors@4.1.6':
@@ -8984,7 +8984,7 @@ snapshots:
 
   known-css-properties@0.30.0: {}
 
-  legacy-javascript@0.0.3: {}
+  legacy-javascript@0.0.4: {}
 
   leven@3.1.0: {}
 
