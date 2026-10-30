@@ -19,11 +19,21 @@ type checkboxControlProps<T extends ValidComponent = "div"> = VoidProps<
 export const CheckboxControl = <T extends ValidComponent = "div">(
   props: PolymorphicProps<T, checkboxControlProps<T>>,
 ) => {
-  const [local, rest] = splitProps(props as checkboxControlProps, ["class", "children"]);
+  const [local, rest] = splitProps(props as checkboxControlProps & { "aria-label"?: string }, [
+    "class",
+    "children",
+    "aria-label",
+  ]);
 
+  // The accessible name belongs on the hidden input, not the visual control.
+  // Kobalte's Label/Input pairing was observed to leave the input unnamed after
+  // hydration (no `for`, no aria-labelledby), so callers may pass one directly.
   return (
     <>
-      <CheckboxPrimitive.Input class="[&:focus-visible+div]:ring-2 [&:focus-visible+div]:ring-ring [&:focus-visible+div]:ring-offset-2" />
+      <CheckboxPrimitive.Input
+        aria-label={local["aria-label"]}
+        class="[&:focus-visible+div]:ring-2 [&:focus-visible+div]:ring-ring [&:focus-visible+div]:ring-offset-2"
+      />
       <CheckboxPrimitive.Control
         class={cn(
           "h-5 w-5 shrink-0 rounded-lg transition-all",

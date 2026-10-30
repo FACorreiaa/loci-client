@@ -384,14 +384,14 @@ export default function Pricing() {
                 <ul class="space-y-2">
                   <For each={proPlanned}>
                     {(f) => (
-                      <li class="flex items-start gap-2 text-sm text-muted-foreground/80">
+                      <li class="flex items-start gap-2 text-sm text-muted-foreground">
                         <Clock class="w-5 h-5 text-muted-foreground shrink-0" />
                         {f}
                       </li>
                     )}
                   </For>
                 </ul>
-                <p class="mt-3 text-xs text-muted-foreground/80">
+                <p class="mt-3 text-xs text-muted-foreground">
                   Not available yet. Everything above the line works today.
                 </p>
               </div>

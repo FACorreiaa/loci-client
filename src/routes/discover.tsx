@@ -668,7 +668,11 @@ export default function DiscoverPage() {
                 <a href="/compare" class="loci-hero__action text-sm">
                   Weekend: compare two cities
                 </a>
-                <span class="text-xs text-muted-foreground">e.g. Évora vs Beja from Porto</span>
+                {/* The page's muted grey is tuned for the cream ground; on the
+                    dark hero it measured 2.49:1. Use the hero's own ink. */}
+                <span class="text-xs text-[hsl(var(--hero-foreground)/0.8)]">
+                  e.g. Évora vs Beja from Porto
+                </span>
               </div>
               <Show when={discoverData.isError}>
                 <p class="text-sm loci-hero__subtitle">

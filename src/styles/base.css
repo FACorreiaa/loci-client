@@ -7,27 +7,9 @@
     color: hsl(var(--foreground));
   }
 
-  h1,
-  h2,
-  h3,
-  h4 {
-    font-family: "Space Grotesk", "Epilogue", "Manrope", sans-serif;
-    letter-spacing: -0.02em;
-  }
-
-  /* LOCI Theme (The "Bold / Distinctive" Look) */
-  [data-theme="loci"] body {
-    font-family: "DM Sans", sans-serif;
-    font-weight: 400;
-  }
-
-  [data-theme="loci"] h1,
-  [data-theme="loci"] h2,
-  [data-theme="loci"] h3,
-  [data-theme="loci"] h4 {
-    font-family: "Space Grotesk", sans-serif;
-    font-weight: 700;
-  }
+  /* Headings are set further down (Fraunces, 600). The Space Grotesk rules
+     that used to sit here were overridden by that later block and were the
+     only non-brand family in the stylesheet. */
 
   /* Special Loci Rules */
   [data-theme="loci"] .card-kicker,
@@ -506,11 +488,13 @@
 @layer utilities {
   /* Set BOTH properties here. Splitting them let a theme override supply the
      background while this supplied the text colour, which produced near-white
-     on a pale tint (1.23:1). One rule, one layer, one guaranteed pairing:
-     primary on a 12% primary tint reads ~8:1 in light and dark alike. */
+     on a pale tint (1.23:1). One rule, one layer, one guaranteed pairing.
+     Measured 2026-10-30: primary (#C63C24) on the 12% primary tint over the
+     cream page is 3.95:1 at 14px, below AA. Ink on `--secondary` is 9.4:1
+     light and 11:1 dark; the tint stays as the shape of the active state. */
   .jb-tab.jb-tab-active {
-    background-color: hsl(var(--primary) / 0.12);
-    color: hsl(var(--primary));
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--foreground));
   }
 }
 

@@ -35,20 +35,20 @@ export default function UpgradePrompt() {
     <Show when={upgradePromptKind()}>
       {(kind) => (
         <div
-          class="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          class="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="upgrade-prompt-title"
           onClick={() => dismissUpgradePrompt()}
         >
           <div
-            class="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl"
+            class="island-panel w-full max-w-md rounded-xl p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div class="mb-3 flex items-start justify-between gap-3">
               <div class="flex items-center gap-2">
                 <Show when={kind() !== "fair_use"}>
-                  <Crown class="h-5 w-5 text-amber-500" />
+                  <Crown class="h-5 w-5 text-primary" aria-hidden="true" />
                 </Show>
                 <h2 id="upgrade-prompt-title" class="text-lg font-semibold text-foreground">
                   {TITLE[kind()] ?? "Upgrade"}
@@ -76,7 +76,7 @@ export default function UpgradePrompt() {
               </Show>
               <button
                 type="button"
-                class="inline-flex flex-1 items-center justify-center rounded-md border px-4 py-2 text-sm hover:bg-accent"
+                class="inline-flex flex-1 items-center justify-center rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-muted"
                 onClick={() => dismissUpgradePrompt()}
               >
                 {kind() === "fair_use" ? "Got it" : "Not now"}

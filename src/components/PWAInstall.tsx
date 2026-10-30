@@ -100,7 +100,7 @@ export default function PWAInstall() {
           onClick={handleInstallClick}
           variant="ghost"
           size="sm"
-          class="hidden md:flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/20"
+          class="hidden md:flex items-center gap-2 text-primary hover:bg-primary/10 hover:text-primary"
           title="Install Loci App"
         >
           <Download class="w-4 h-4" />
@@ -110,30 +110,26 @@ export default function PWAInstall() {
 
       {/* Install Banner */}
       <Show when={showInstallBanner() && !isInstalled() && !wasDismissed()}>
-        <div class="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 z-50 transition-all duration-300">
+        <div class="island-panel fixed bottom-4 left-4 right-4 z-50 rounded-xl p-4 md:left-auto md:right-4 md:max-w-sm">
           <div class="flex items-start gap-3">
-            <div class="w-10 h-10 bg-[#0c7df2] rounded-lg flex items-center justify-center flex-shrink-0 text-white shadow-[0_12px_32px_rgba(12,125,242,0.22)] ring-2 ring-white/50 dark:ring-slate-800">
-              <span class="text-white font-bold text-lg">L</span>
+            <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <span class="font-display text-lg font-semibold">L</span>
             </div>
             <div class="flex-1 min-w-0">
-              <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Install Loci App</h3>
-              <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              <h3 class="text-sm font-semibold text-foreground">Install Loci App</h3>
+              <p class="mt-1 text-xs text-muted-foreground">
                 Get the best experience with our mobile app. Install now for offline access and push
                 notifications.
               </p>
               <div class="flex gap-2 mt-3">
-                <Button
-                  onClick={handleInstallClick}
-                  size="sm"
-                  class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5"
-                >
+                <Button onClick={handleInstallClick} size="sm" class="px-3 py-1.5 text-xs">
                   Install
                 </Button>
                 <Button
                   onClick={dismissBanner}
                   variant="ghost"
                   size="sm"
-                  class="text-gray-600 dark:text-gray-400 text-xs px-3 py-1.5"
+                  class="px-3 py-1.5 text-xs text-muted-foreground"
                 >
                   Maybe Later
                 </Button>
@@ -145,7 +141,7 @@ export default function PWAInstall() {
               size="sm"
               // Icon-only dismiss: without a name it announces as "button".
               aria-label="Dismiss install prompt"
-              class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0"
+              class="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground"
             >
               <X class="w-4 h-4" aria-hidden="true" />
             </Button>

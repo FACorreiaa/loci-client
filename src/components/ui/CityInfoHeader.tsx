@@ -1,4 +1,4 @@
-import { Component, Show } from "solid-js";
+import { Component, For, Show } from "solid-js";
 import { Users, Ruler, Languages, CloudSun } from "lucide-solid";
 
 interface CityData {
@@ -19,77 +19,72 @@ interface CityInfoHeaderProps {
   description?: string;
 }
 
+// Everything on the hero is drawn in `--hero-foreground` so it follows the
+// token in both appearances. The previous `text-blue-*` labels were the only
+// blue in the product and measured as grey-on-colour.
+const heroInk = "text-[hsl(var(--hero-foreground))]";
+const heroInkSoft = "text-[hsl(var(--hero-foreground)/0.8)]";
+
 export const CityInfoHeader: Component<CityInfoHeaderProps> = (props) => {
+  const stats = () =>
+    [
+      { label: "Pop", value: props.cityData?.population, Icon: Users },
+      { label: "Area", value: props.cityData?.area, Icon: Ruler },
+      { label: "Lang", value: props.cityData?.language, Icon: Languages },
+      { label: "Weather", value: props.cityData?.weather, Icon: CloudSun },
+    ].filter((s) => Boolean(s.value));
+
   return (
     <Show when={props.cityData || props.isLoading}>
-      <div class="relative overflow-hidden rounded-2xl p-6 md:p-8 mb-6 text-white shadow-xl transition-all hover:shadow-2xl group">
-        {/* Animated Background - Glassy Gradient */}
-        {/* Was a hardcoded blue→purple→indigo gradient under a heavy blur, which
-            ignored the theme entirely and did not match any other surface. The
-            hero gradient is token-driven, so it follows light/dark and the Loci
-            palette. */}
+      <div class={`relative mb-6 overflow-hidden rounded-2xl p-6 md:p-8 ${heroInk}`}>
+        {/* Token-driven hero ground: follows light/dark and the Loci palette. */}
         <div class="loci-hero absolute inset-0 z-0 rounded-none border-0 shadow-none" />
-
-        {/* Accents/Noise for texture */}
-        <div class="absolute inset-0 domain-noise opacity-40 z-0" />
-        <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-white/20 transition-colors duration-500" />
+        <div class="domain-noise absolute inset-0 z-0 opacity-40" aria-hidden="true" />
 
         <div class="relative z-10">
           <Show
             when={!props.isLoading}
-            fallback={<div class="animate-pulse h-32 bg-white/20 rounded-xl" />}
+            fallback={
+              <div
+                class="h-32 animate-pulse rounded-xl bg-[hsl(var(--hero-foreground)/0.15)]"
+                aria-hidden="true"
+              />
+            }
           >
             <div class="space-y-4">
               <div>
-                <h1 class="text-3xl md:text-5xl font-bold tracking-tight mb-2 text-white drop-shadow-sm">
+                <h1 class="mb-2 font-display text-3xl font-semibold tracking-tight md:text-5xl">
                   {props.cityData?.city}
-                  <span class="text-blue-200 text-2xl md:text-4xl font-medium ml-2 opacity-80">
-                    , {props.cityData?.country}
-                  </span>
+                  <Show when={props.cityData?.country}>
+                    <span class={`ml-2 text-2xl font-medium md:text-4xl ${heroInkSoft}`}>
+                      , {props.cityData?.country}
+                    </span>
+                  </Show>
                 </h1>
-                <p class="text-blue-50/90 text-sm md:text-base leading-relaxed max-w-3xl font-medium">
+                <p class={`max-w-3xl text-sm leading-relaxed md:text-base ${heroInkSoft}`}>
                   {props.description ?? props.cityData?.description}
                 </p>
               </div>
 
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 flex flex-col items-center justify-center text-center hover:bg-white/20 transition-colors">
-                  <Users class="w-5 h-5 mb-1 text-blue-200" />
-                  <span class="text-xs text-blue-100 uppercase font-semibold tracking-wider">
-                    Pop
-                  </span>
-                  <span class="font-bold text-sm md:text-base">
-                    {props.cityData?.population || "N/A"}
-                  </span>
-                </div>
-                <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 flex flex-col items-center justify-center text-center hover:bg-white/20 transition-colors">
-                  <Ruler class="w-5 h-5 mb-1 text-blue-200" />
-                  <span class="text-xs text-blue-100 uppercase font-semibold tracking-wider">
-                    Area
-                  </span>
-                  <span class="font-bold text-sm md:text-base">
-                    {props.cityData?.area || "N/A"}
-                  </span>
-                </div>
-                <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 flex flex-col items-center justify-center text-center hover:bg-white/20 transition-colors">
-                  <Languages class="w-5 h-5 mb-1 text-blue-200" />
-                  <span class="text-xs text-blue-100 uppercase font-semibold tracking-wider">
-                    Lang
-                  </span>
-                  <span class="font-bold text-sm md:text-base">
-                    {props.cityData?.language || "N/A"}
-                  </span>
-                </div>
-                <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 flex flex-col items-center justify-center text-center hover:bg-white/20 transition-colors">
-                  <CloudSun class="w-5 h-5 mb-1 text-blue-200" />
-                  <span class="text-xs text-blue-100 uppercase font-semibold tracking-wider">
-                    Weather
-                  </span>
-                  <span class="font-bold text-[10px] md:text-xs leading-tight line-clamp-2">
-                    {props.cityData?.weather || "N/A"}
-                  </span>
-                </div>
-              </div>
+              {/* Only the facts we have. Four tiles reading "N/A" told the
+                  reader nothing and looked like a broken fetch. */}
+              <Show when={stats().length > 0}>
+                <dl class="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+                  <For each={stats()}>
+                    {(s) => (
+                      <div class="flex flex-col items-center justify-center rounded-xl border border-[hsl(var(--hero-foreground)/0.15)] bg-[hsl(var(--hero-foreground)/0.08)] p-3 text-center">
+                        <s.Icon class={`mb-1 h-5 w-5 ${heroInkSoft}`} aria-hidden="true" />
+                        <dt
+                          class={`font-coord text-[10px] uppercase tracking-[0.12em] ${heroInkSoft}`}
+                        >
+                          {s.label}
+                        </dt>
+                        <dd class="text-sm font-semibold leading-tight md:text-base">{s.value}</dd>
+                      </div>
+                    )}
+                  </For>
+                </dl>
+              </Show>
             </div>
           </Show>
         </div>

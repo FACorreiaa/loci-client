@@ -26,7 +26,7 @@ export default function Footer() {
               <MapPin class="h-5 w-5" />
             </span>
             <div>
-              <p class="font-serif text-2xl font-semibold">Loci</p>
+              <p class="font-display text-2xl font-semibold">Loci</p>
               <p class="font-coord text-[10px] uppercase tracking-[0.2em] text-primary-foreground">
                 Go somewhere worth remembering
               </p>
@@ -48,11 +48,13 @@ export default function Footer() {
           <p class="mb-4 font-coord text-[10px] uppercase tracking-[0.18em] text-primary-foreground">
             Pack your route
           </p>
-          <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+          {/* 44px rows on touch (the links measured 20px tall at 390px); the
+              gap collapses on wider screens where the pointer is fine. */}
+          <div class="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:gap-y-3">
             {links.map((link) => (
               <A
                 href={link.href}
-                class="text-primary-foreground transition-colors hover:underline hover:underline-offset-4"
+                class="flex min-h-11 items-center text-primary-foreground transition-colors hover:underline hover:underline-offset-4 sm:min-h-0"
               >
                 {link.label}
               </A>

@@ -591,6 +591,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
               type="number"
               min="1"
               max="5"
+              aria-label="Maximum star rating"
               value={formData().accommodation_preferences?.star_rating.max}
               onInput={(e) =>
                 updateNestedField("accommodation_preferences", "star_rating", {
@@ -624,6 +625,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
             <input
               type="number"
               min="0"
+              aria-label="Maximum price per night"
               value={formData().accommodation_preferences?.price_range_per_night.max}
               onInput={(e) =>
                 updateNestedField("accommodation_preferences", "price_range_per_night", {
@@ -751,6 +753,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
             <input
               type="number"
               min="0"
+              aria-label="Maximum price per person"
               value={formData().dining_preferences?.price_range_per_person.max}
               onInput={(e) =>
                 updateNestedField("dining_preferences", "price_range_per_person", {

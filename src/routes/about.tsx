@@ -3,6 +3,65 @@ import { A } from "@solidjs/router";
 import { Title, Meta } from "@solidjs/meta";
 import { Button } from "~/ui/button";
 
+// Quieter about page. One editorial column on the cream ground, Fraunces for
+// the headings, solid tokens for every colour. The earlier version carried
+// gradient tiles in hex, a "Catppuccin Latte" line that described the old
+// theme rather than the product, side-stripe phase markers and emoji in the
+// lede; all of them sat outside DESIGN.md and none said anything a reader
+// needed. The roadmap is a real sequence, so it is the one place numbers stay.
+
+const PILLARS = [
+  {
+    title: "Curation with sources",
+    body: "Every pick comes with a note on why it is here and where the claim came from. No anonymous top-ten lists.",
+  },
+  {
+    title: "Aligned to you, not to the average",
+    body: "Your interests, your pace, your budget and how you get around shape the plan before the first suggestion appears.",
+  },
+  {
+    title: "Knows what changed today",
+    body: "Opening hours, closures and weather are checked against the plan, so the itinerary you leave with still holds when you arrive.",
+  },
+];
+
+const STACK = [
+  {
+    title: "Recommendation engine",
+    body: "Direct Google Gemini integration for personalisation that adapts to your preferences over time.",
+  },
+  {
+    title: "Geospatial queries",
+    body: "PostgreSQL with PostGIS for precise location-based search and spatial analysis around where you are.",
+  },
+  {
+    title: "Semantic search",
+    body: "pgvector embeddings so a request like “quiet, old, good coffee” finds places that match the feeling, not the keyword.",
+  },
+  {
+    title: "Fast, everywhere",
+    body: "A Go backend and a SolidJS front end. Streaming responses, offline reading, one codebase from phone to desktop.",
+  },
+];
+
+const ROADMAP = [
+  {
+    phase: "Now",
+    title: "Core engine and itineraries",
+    body: "Recommendations powered by Gemini, accounts, the interactive map, and personalised itinerary creation.",
+  },
+  {
+    phase: "Next",
+    title: "Pro and a richer engine",
+    body: "Premium tier, embeddings-backed search, speech input, itinerary import and export, and an always-on travel agent.",
+  },
+  {
+    phase: "Later",
+    title: "More cities, native apps",
+    body: "Multi-city trips, curated content partnerships, and native iOS and Android apps.",
+  },
+];
+
 export default function About() {
   return (
     <>
@@ -55,179 +114,131 @@ export default function About() {
         })}
       </script>
 
-      <div class="min-h-screen bg-background text-foreground transition-colors">
-        <div class="max-w-5xl mx-auto px-4 py-12 space-y-12">
-          {/* Hero Section */}
-          <header class="text-center">
-            <div class="rounded-3xl bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 border border-border shadow-lg p-10">
-              <p class="text-sm uppercase tracking-[0.2em] text-primary mb-3">About Loci</p>
-              <h1 class="text-4xl md:text-6xl font-bold text-foreground mb-4">
-                The taste-aware travel OS.
-              </h1>
-              <p class="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                Personalized City Discovery 🗺️✨ powered by Catppuccin Latte hues for clarity in
-                light mode.
-              </p>
-            </div>
+      <div class="min-h-screen bg-background text-foreground">
+        <div class="mx-auto max-w-3xl px-4 py-14 sm:py-20">
+          {/* Hero */}
+          <header class="mb-16">
+            <p class="kicker mb-4">About Loci</p>
+            <h1 class="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-foreground text-balance sm:text-5xl md:text-6xl">
+              The plan that knows what changed today.
+            </h1>
+            <p class="mt-6 max-w-[62ch] text-lg leading-relaxed text-muted-foreground">
+              Loci is a travel companion that learns what you like, where you are and how much time
+              you have, and turns that into a city plan you can trust on the day. Itineraries,
+              restaurants and hotels, aligned to you.
+            </p>
           </header>
 
-          <section class="grid md:grid-cols-3 gap-4">
-            <For
-              each={[
-                {
-                  title: "Human-grade curation",
-                  body: "Annotated picks with source notes, not generic lists.",
-                  tone: "from-[#dc8a78]/25 to-[#dd7878]/20",
-                },
-                {
-                  title: "Glass accessibility",
-                  body: "High-contrast cards that stay legible in Latte or dark.",
-                  tone: "from-[#04a5e5]/25 to-[#1e66f5]/20",
-                },
-                {
-                  title: "Native-first future",
-                  body: "iOS + Android launching with offline brains for paid users.",
-                  tone: "from-[#40a02b]/25 to-[#df8e1d]/20",
-                },
-              ]}
-            >
-              {(item) => (
-                <div
-                  class={`rounded-2xl p-5 border border-border bg-gradient-to-br ${item.tone} backdrop-blur`}
-                >
-                  {/* h2, not h3: this grid is the first section after the page
-                      h1, so an h3 here skipped a level and broke the document
-                      outline for screen-reader navigation. Size is visual only. */}
-                  <h2 class="text-lg font-semibold text-foreground mb-2">{item.title}</h2>
-                  <p class="text-muted-foreground text-sm leading-relaxed">{item.body}</p>
-                </div>
-              )}
-            </For>
+          {/* Pillars */}
+          <section class="mb-16" aria-labelledby="pillars-heading">
+            <h2 id="pillars-heading" class="sr-only">
+              What makes Loci different
+            </h2>
+            <dl class="divide-y divide-border border-y border-border">
+              <For each={PILLARS}>
+                {(item) => (
+                  <div class="grid gap-2 py-6 sm:grid-cols-[14rem_1fr] sm:gap-8">
+                    <dt class="font-display text-xl font-semibold text-foreground">{item.title}</dt>
+                    <dd class="max-w-[60ch] leading-relaxed text-muted-foreground">{item.body}</dd>
+                  </div>
+                )}
+              </For>
+            </dl>
           </section>
 
-          {/* Main Content */}
-          <main class="max-w-none">
-            <section class="bg-muted/50 rounded-lg p-8 mb-12" aria-labelledby="what-is-loci">
-              <h2 id="what-is-loci" class="text-2xl font-semibold text-foreground mb-4">
-                What is Loci?
-              </h2>
-              <p class="text-foreground/80 text-lg leading-relaxed mb-6">
-                Loci is a smart, mobile-first web application delivering hyper-personalized city
-                exploration recommendations based on user interests, time, location, and an evolving
-                AI engine. It starts with an HTTP/REST API, utilizing WebSockets/SSE for real-time
-                features.
+          {/* What is Loci */}
+          <section class="mb-16" aria-labelledby="what-is-loci">
+            <h2 id="what-is-loci" class="font-display text-3xl font-semibold text-foreground">
+              What is Loci?
+            </h2>
+            <div class="mt-5 max-w-[65ch] space-y-5 text-lg leading-relaxed text-foreground">
+              <p>
+                Loci is a mobile-first web app that gives hyper-personalised city recommendations
+                based on your interests, your time, your location and an engine that keeps learning.
+                Ask it in plain words and the answer streams back as a plan.
               </p>
-              <p class="text-foreground/80 text-lg leading-relaxed">
-                Tired of generic city guides? Loci learns your preferences (history, food, art,
-                etc.) and combines them with your available time and location to suggest the perfect
-                spots.
+              <p>
+                Tired of generic city guides? Loci learns your preferences, history, food, art and
+                more, and combines them with the hours you actually have to suggest the spots that
+                fit.
               </p>
-            </section>
+            </div>
+          </section>
 
-            {/* Mission Section */}
-            <section class="mb-12" aria-labelledby="our-mission">
-              <h2 id="our-mission" class="text-3xl font-bold text-foreground mb-6">
-                Our Mission
-              </h2>
-              <p class="text-foreground/80 text-lg leading-relaxed mb-4">
-                Whether you're a tourist on a tight schedule or a local looking for something new,
-                discover your city like never before with hyper-personalized, intelligent
-                recommendations.
+          {/* Mission */}
+          <section class="mb-16" aria-labelledby="our-mission">
+            <h2 id="our-mission" class="font-display text-3xl font-semibold text-foreground">
+              Our mission
+            </h2>
+            <div class="mt-5 max-w-[65ch] space-y-5 text-lg leading-relaxed text-foreground">
+              <p>
+                Whether you are a visitor on a tight schedule or a local looking for something new,
+                you should be able to see your city as if a well-read friend were showing you
+                around.
               </p>
-              <p class="text-foreground/80 text-lg leading-relaxed">
-                We believe that every city has hidden gems waiting to be discovered, and our
-                AI-powered platform helps you find exactly what matches your interests and available
-                time.
+              <p>
+                Every city has places waiting to be found. Loci exists to match them to what you
+                care about and the time you have.
               </p>
-            </section>
+            </div>
+          </section>
 
-            {/* Technology Section */}
-            <section
-              class="bg-primary/5 border border-primary/20 rounded-lg p-8 mb-12"
-              aria-labelledby="technology"
+          {/* Technology */}
+          <section class="mb-16" aria-labelledby="technology">
+            <h2 id="technology" class="font-display text-3xl font-semibold text-foreground">
+              How it works
+            </h2>
+            <div class="mt-6 grid gap-x-10 gap-y-8 sm:grid-cols-2">
+              <For each={STACK}>
+                {(item) => (
+                  <div>
+                    <h3 class="text-lg font-semibold text-foreground">{item.title}</h3>
+                    <p class="mt-2 leading-relaxed text-muted-foreground">{item.body}</p>
+                  </div>
+                )}
+              </For>
+            </div>
+          </section>
+
+          {/* Roadmap. A real sequence, so the markers carry information. */}
+          <section class="mb-16" aria-labelledby="roadmap">
+            <h2 id="roadmap" class="font-display text-3xl font-semibold text-foreground">
+              What is coming next
+            </h2>
+            <ol class="mt-6 divide-y divide-border border-y border-border">
+              <For each={ROADMAP}>
+                {(item) => (
+                  <li class="grid gap-2 py-6 sm:grid-cols-[6rem_1fr] sm:gap-8">
+                    <span class="font-coord text-xs uppercase tracking-[0.12em] text-primary">
+                      {item.phase}
+                    </span>
+                    <div>
+                      <h3 class="text-xl font-semibold text-foreground">{item.title}</h3>
+                      <p class="mt-2 max-w-[60ch] leading-relaxed text-muted-foreground">
+                        {item.body}
+                      </p>
+                    </div>
+                  </li>
+                )}
+              </For>
+            </ol>
+          </section>
+
+          {/* Call to action */}
+          <section class="loci-card p-8 text-center sm:p-10" aria-labelledby="cta-heading">
+            <h2
+              id="cta-heading"
+              class="font-display text-2xl font-semibold text-card-foreground sm:text-3xl"
             >
-              <h2 id="technology" class="text-2xl font-semibold text-foreground mb-4">
-                Powered by Advanced Technology
-              </h2>
-              <div class="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h3 class="text-lg font-semibold text-foreground mb-2">AI & Machine Learning</h3>
-                  <p class="text-foreground/75">
-                    Direct Google Gemini API integration for deep personalization and intelligent
-                    recommendations that adapt to your preferences over time.
-                  </p>
-                </div>
-                <div>
-                  <h3 class="text-lg font-semibold text-foreground mb-2">
-                    Geospatial Intelligence
-                  </h3>
-                  <p class="text-foreground/75">
-                    PostgreSQL with PostGIS for precise location-based queries and spatial analysis
-                    to find the perfect spots near you.
-                  </p>
-                </div>
-                <div>
-                  <h3 class="text-lg font-semibold text-foreground mb-2">Modern Architecture</h3>
-                  <p class="text-foreground/75">
-                    Built with Go backend for performance and SolidJS frontend for a smooth,
-                    responsive user experience across all devices.
-                  </p>
-                </div>
-                <div>
-                  <h3 class="text-lg font-semibold text-foreground mb-2">Vector Embeddings</h3>
-                  <p class="text-foreground/75">
-                    Advanced semantic search capabilities using PostgreSQL with pgvector extension
-                    for more intelligent content matching.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Roadmap */}
-            <section class="mb-12" aria-labelledby="roadmap">
-              <h2 id="roadmap" class="text-3xl font-bold text-foreground mb-6">
-                What's Coming Next
-              </h2>
-              <div class="space-y-6" role="list">
-                <div class="border-l-4 border-primary pl-6" role="listitem">
-                  <h3 class="text-xl font-semibold text-foreground mb-2">Phase 1 (MVP)</h3>
-                  <p class="text-foreground/80">
-                    Core recommendation engine powered by Gemini, user accounts, interactive map
-                    view, and personalized itinerary creation.
-                  </p>
-                </div>
-                <div class="border-l-4 border-accent pl-6" role="listitem">
-                  <h3 class="text-xl font-semibold text-foreground mb-2">Phase 2</h3>
-                  <p class="text-foreground/80">
-                    Premium tier launch, enhanced AI with embeddings, speech-to-text capabilities,
-                    itinerary download/upload features, and 24/7 personalized AI agent.
-                  </p>
-                </div>
-                <div class="border-l-4 border-primary/60 pl-6" role="listitem">
-                  <h3 class="text-xl font-semibold text-foreground mb-2">Phase 3</h3>
-                  <p class="text-foreground/80">
-                    Multi-city expansion, curated content partnerships, and native mobile app
-                    exploration.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* Call to Action */}
-            <section class="text-center loci-card p-8" aria-labelledby="cta-heading">
-              <h2 id="cta-heading" class="text-2xl font-bold mb-4 text-foreground">
-                Ready to Discover Your City?
-              </h2>
-              <p class="text-lg mb-6 text-muted-foreground">
-                Join thousands of explorers who've already discovered their perfect spots with Loci.
-              </p>
-              <A href="/auth/signup" class="inline-block">
-                <Button aria-label="Sign up for Loci to start discovering your city">
-                  Get Started Today
-                </Button>
-              </A>
-            </section>
-          </main>
+              Ready to see your city differently?
+            </h2>
+            <p class="mx-auto mt-3 max-w-[48ch] text-muted-foreground">
+              Tell Loci what you like and how long you have. The first plan takes a minute.
+            </p>
+            <A href="/auth/signup" class="mt-6 inline-block">
+              <Button size="lg">Start exploring</Button>
+            </A>
+          </section>
         </div>
       </div>
     </>

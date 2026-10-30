@@ -1,4 +1,17 @@
-import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, Show, type Component } from "solid-js";
+import { Dynamic } from "solid-js/web";
+import {
+  Accessibility,
+  Backpack,
+  Car,
+  Coins,
+  Crown,
+  Footprints,
+  Leaf,
+  Sparkles,
+  TrainFront,
+  Zap,
+} from "lucide-solid";
 import { useNavigate, useSearchParams } from "@solidjs/router";
 import { useAuth } from "~/contexts/AuthContext";
 import { useInterests } from "~/lib/api/interests";
@@ -19,26 +32,26 @@ import {
 // so the very first chat/discover request is already personalised. Reuses the
 // existing profile API — no new backend surface.
 
-type Choice = { value: string; label: string; icon: string; hint?: string };
+type Choice = { value: string; label: string; icon: Component<{ class?: string }>; hint?: string };
 
 const BUDGETS: Choice[] = [
-  { value: "1", label: "Shoestring", icon: "🎒", hint: "Free & cheap picks" },
-  { value: "2", label: "Balanced", icon: "💶", hint: "Mix of value & treats" },
-  { value: "3", label: "Comfortable", icon: "✨", hint: "Lean into quality" },
-  { value: "4", label: "Luxury", icon: "👑", hint: "Best of everything" },
+  { value: "1", label: "Shoestring", icon: Backpack, hint: "Free & cheap picks" },
+  { value: "2", label: "Balanced", icon: Coins, hint: "Mix of value & treats" },
+  { value: "3", label: "Comfortable", icon: Sparkles, hint: "Lean into quality" },
+  { value: "4", label: "Luxury", icon: Crown, hint: "Best of everything" },
 ];
 
 const PACES: Choice[] = [
-  { value: "relaxed", label: "Relaxed", icon: "🌿", hint: "A few things, unhurried" },
-  { value: "moderate", label: "Moderate", icon: "🚶", hint: "A comfortable rhythm" },
-  { value: "packed", label: "Packed", icon: "⚡", hint: "See as much as possible" },
+  { value: "relaxed", label: "Relaxed", icon: Leaf, hint: "A few things, unhurried" },
+  { value: "moderate", label: "Moderate", icon: Footprints, hint: "A comfortable rhythm" },
+  { value: "packed", label: "Packed", icon: Zap, hint: "See as much as possible" },
 ];
 
 const MOBILITY: Choice[] = [
-  { value: "walking", label: "On foot", icon: "🚶" },
-  { value: "transit", label: "Public transit", icon: "🚇" },
-  { value: "car", label: "By car", icon: "🚗" },
-  { value: "wheelchair", label: "Step-free / accessible", icon: "♿" },
+  { value: "walking", label: "On foot", icon: Footprints },
+  { value: "transit", label: "Public transit", icon: TrainFront },
+  { value: "car", label: "By car", icon: Car },
+  { value: "wheelchair", label: "Step-free / accessible", icon: Accessibility },
 ];
 
 const STEPS = ["Budget", "Pace", "Getting around", "Interests"] as const;
@@ -276,7 +289,7 @@ function ChoiceGrid(props: { choices: Choice[]; selected: string; onSelect: (v: 
                 : "hover:bg-accent"
             }`}
           >
-            <span class="text-2xl">{c.icon}</span>
+            <Dynamic component={c.icon} class="h-6 w-6 text-primary" aria-hidden="true" />
             <span class="font-medium">{c.label}</span>
             <Show when={c.hint}>
               <span class="text-xs text-muted-foreground">{c.hint}</span>

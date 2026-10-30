@@ -24,16 +24,25 @@ interface ActionToolbarProps {
   status?: string;
 }
 
+// One vocabulary for every icon button in the bar: muted at rest, ink on
+// hover, primary tint when the state is on. The previous per-button blue,
+// emerald and green were the only places those hues appeared in the app.
+const idleButton =
+  "rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+const activeButton = "rounded-full p-2 bg-primary/10 text-primary transition-colors";
+
 export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
   return (
-    <div class="flex items-center gap-2 p-1.5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md rounded-full border border-white/50 dark:border-white/10 shadow-sm w-fit transition-all hover:bg-white/80 dark:hover:bg-slate-900/80">
+    <div class="island-panel flex w-fit items-center gap-2 rounded-full p-1.5">
       <Show when={props.onDownload}>
         <button
+          type="button"
           onClick={props.onDownload}
-          class="p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
-          title="Download Data"
+          class={idleButton}
+          title="Download data"
+          aria-label="Download data"
         >
-          <Download class="w-4 h-4" />
+          <Download class="h-4 w-4" aria-hidden="true" />
         </button>
       </Show>
 
@@ -42,45 +51,49 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
           type="button"
           onClick={props.onSave}
           disabled={props.saving}
-          class={`rounded-full p-2 transition-colors ${
-            props.isSaved
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-          }`}
+          class={props.isSaved ? activeButton : idleButton}
           title={props.isSaved ? "Saved on this device" : "Save"}
+          aria-label={props.isSaved ? "Saved on this device" : "Save"}
           aria-pressed={props.isSaved}
         >
-          <Show when={!props.saving} fallback={<Loader2 class="h-4 w-4 animate-spin" />}>
-            <Bookmark class={`h-4 w-4 ${props.isSaved ? "fill-current" : ""}`} />
+          <Show
+            when={!props.saving}
+            fallback={<Loader2 class="h-4 w-4 animate-spin" aria-hidden="true" />}
+          >
+            <Bookmark class={`h-4 w-4 ${props.isSaved ? "fill-current" : ""}`} aria-hidden="true" />
           </Show>
         </button>
       </Show>
 
       <Show when={props.onSaveOffline}>
         <button
+          type="button"
           onClick={props.onSaveOffline}
-          class={`p-2 rounded-full transition-colors ${
-            props.isSavedOffline
-              ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
-              : "text-gray-600 dark:text-gray-300 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-          }`}
-          title={props.isSavedOffline ? "Saved Offline" : "Save for Offline"}
+          class={props.isSavedOffline ? activeButton : idleButton}
+          title={props.isSavedOffline ? "Saved offline" : "Save for offline"}
+          aria-label={props.isSavedOffline ? "Saved offline" : "Save for offline"}
+          aria-pressed={props.isSavedOffline}
         >
-          <WifiOff class={`w-4 h-4 ${props.isSavedOffline ? "fill-current" : ""}`} />
+          <WifiOff
+            class={`h-4 w-4 ${props.isSavedOffline ? "fill-current" : ""}`}
+            aria-hidden="true"
+          />
         </button>
       </Show>
 
       <Show when={props.onBookmark}>
         <button
+          type="button"
           onClick={props.onBookmark}
-          class={`p-2 rounded-full transition-colors ${
-            props.isBookmarked
-              ? "text-blue-500 bg-blue-50 dark:bg-blue-900/10"
-              : "text-gray-600 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-          }`}
-          title={props.isBookmarked ? "Saved to Lists" : "Save to Lists"}
+          class={props.isBookmarked ? activeButton : idleButton}
+          title={props.isBookmarked ? "Saved to lists" : "Save to lists"}
+          aria-label={props.isBookmarked ? "Saved to lists" : "Save to lists"}
+          aria-pressed={props.isBookmarked}
         >
-          <Bookmark class={`w-4 h-4 ${props.isBookmarked ? "fill-current" : ""}`} />
+          <Bookmark
+            class={`h-4 w-4 ${props.isBookmarked ? "fill-current" : ""}`}
+            aria-hidden="true"
+          />
         </button>
       </Show>
 
@@ -90,11 +103,13 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
         fallback={
           <Show when={props.onShare}>
             <button
+              type="button"
               onClick={props.onShare}
-              class="p-2 text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors"
+              class={idleButton}
               title="Share"
+              aria-label="Share"
             >
-              <Share2 class="w-4 h-4" />
+              <Share2 class="h-4 w-4" aria-hidden="true" />
             </button>
           </Show>
         }
