@@ -76,11 +76,11 @@ const FavoriteButton: Component<FavoriteButtonProps> = (props) => {
         rounded-full transition-all duration-200
         ${
           isFavorited()
-            ? "bg-red-500 text-white hover:bg-red-600"
-            : "bg-white/90 dark:bg-gray-800/90 text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500"
+            ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            : "bg-white/90 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         }
         backdrop-blur-sm shadow-lg
-        border border-gray-200 dark:border-gray-700
+        border border-border
         disabled:opacity-50 disabled:cursor-not-allowed
         ${props.className || ""}
       `}

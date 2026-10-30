@@ -55,21 +55,21 @@ export default function ProfileQuickSelect() {
         disabled={profilesQuery.isLoading || isChangingProfile()}
         aria-haspopup="listbox"
         aria-expanded={isOpen()}
-        class="inline-flex max-w-full items-center gap-2 rounded-full border border-primary-foreground/25 bg-primary-foreground/10 px-3 py-1.5 text-left text-sm text-primary-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        class="inline-flex max-w-full items-center gap-2 rounded-full border border-hero-foreground/25 bg-hero-foreground/10 px-3 py-1.5 text-left text-sm text-hero-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <User class="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden="true" />
         <Show
           when={!profilesQuery.isLoading}
-          fallback={<span class="text-primary-foreground/70">Loading profile</span>}
+          fallback={<span class="text-hero-foreground/70">Loading profile</span>}
         >
           <Show
             when={currentProfile()}
-            fallback={<span class="text-primary-foreground/80">No profile</span>}
+            fallback={<span class="text-hero-foreground/80">No profile</span>}
           >
             {(profile) => (
               <span class="min-w-0 truncate">
                 <span class="font-medium">{profile().profile_name}</span>
-                <span class="ml-2 font-coord text-[10px] uppercase tracking-[0.12em] text-primary-foreground/65">
+                <span class="ml-2 font-coord text-[10px] uppercase tracking-[0.12em] text-hero-foreground/65">
                   {metaLine(profile().budget_level, profile().search_radius_km)}
                 </span>
               </span>

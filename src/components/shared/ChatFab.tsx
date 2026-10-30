@@ -14,7 +14,7 @@ export const ChatFab: Component<ChatFabProps> = (props) => {
         onClick={props.onClick}
         class={`
             fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-xl transition-all duration-300 hover:scale-105 active:scale-95
-            ${props.isOpen ? "bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 rotate-90" : "bg-blue-600 text-white hover:bg-blue-700"}
+            ${props.isOpen ? "bg-secondary text-secondary-foreground rotate-90" : "bg-primary text-primary-foreground hover:bg-primary/90"}
         `}
         aria-label={props.isOpen ? "Close chat" : "Open chat"}
       >

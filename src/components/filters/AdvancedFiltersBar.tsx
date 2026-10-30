@@ -60,7 +60,7 @@ export default function AdvancedFiltersBar(props: AdvancedFiltersBarProps) {
           Advanced filters
         </p>
         <Show when={!props.isPro}>
-          <span class="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+          <span class="inline-flex items-center gap-1 rounded-full border border-lantern/40 bg-lantern/10 px-2 py-0.5 text-[10px] font-medium text-lantern">
             <Crown class="h-3 w-3" />
             Pro
           </span>

@@ -2,39 +2,57 @@
 
 Implementation-ready parity guide for iOS and Android. Web SSOT: [DESIGN.md](../DESIGN.md).
 
-Quality bar: **Flighty-class** motion and density, **Loci field-guide** theme (parchment / forest / sage / terracotta). Not flight-tracker UI, not purple AI chrome, not Expo defaults.
+Quality bar: **Flighty-class** motion and density, **Loci "Explore your way"** theme (obsidian / cream / signal coral, dark-first). Not flight-tracker UI, not purple AI chrome, not Expo defaults. Native chrome stays native: system tab bar, sheets and navigation, tinted coral.
 
 ---
 
 ## 1. Color tokens
 
-HSL source matches web `themes.css`. Use sRGB in native.
+HSL source matches web `src/styles/themes.css`; the sRGB below is that HSL
+converted, so web and native render the same pixels. Dark is the flagship
+appearance and what the app shows with nothing saved.
 
 ### Light
 
-| Token             | HSL         | sRGB (approx) | Use                   |
-| ----------------- | ----------- | ------------- | --------------------- |
-| `background`      | 43 38% 94%  | `#F5F0E6`     | Screen base           |
-| `foreground`      | 157 28% 14% | `#1A2E26`     | Primary text          |
-| `card`            | 42 44% 98%  | `#FDFBF7`     | Surfaces              |
-| `primary`         | 157 35% 20% | `#214D3C`     | Actions, map clusters |
-| `secondary`       | 91 18% 84%  | `#D8E0D0`     | Chips, inactive tabs  |
-| `muted`           | 40 23% 88%  | `#E8E2D6`     | Subtle fills          |
-| `mutedForeground` | 151 10% 39% | `#5A6B62`     | Secondary text        |
-| `accent`          | 16 52% 48%  | `#C76B4A`     | Map marks, CTAs       |
-| `border`          | 42 18% 75%  | `#CFC5B5`     | 1px edges             |
-| `destructive`     | 2 58% 44%   | `#B33A32`     | Errors                |
+| Token             | HSL         | sRGB      | Use                          |
+| ----------------- | ----------- | --------- | ---------------------------- |
+| `background`      | 35 60% 96%  | `#FBF6EF` | Screen base (cream)          |
+| `foreground`      | 214 25% 11% | `#151B23` | Primary text (ink)           |
+| `card`            | 0 0% 100%   | `#FFFFFF` | Surfaces                     |
+| `primary`         | 10 60% 45%  | `#B8452E` | Actions, selection; white label |
+| `secondary`       | 35 40% 91%  | `#F1EADF` | Chips, inactive fills        |
+| `muted`           | 35 41% 92%  | `#F3ECE2` | Subtle fills                 |
+| `mutedForeground` | 215 12% 40% | `#5A6472` | Secondary text               |
+| `accent`          | 12 87% 66%  | `#F47B5D` | Fills and marks only, never text |
+| `lantern`         | 31 74% 35%  | `#9B5B17` | Discovery, in-season, achievements |
+| `holo`            | 209 40% 41% | `#3F6A92` | Info, spatial data, routes   |
+| `success`         | 150 59% 30% | `#1F7A4D` | Confirmations                |
+| `destructive`     | 2 63% 43%   | `#B32D29` | Errors                       |
+| `border`          | 34 30% 85%  | `#E4DACD` | 1px edges                    |
 
 ### Dark
 
-| Token        | HSL         | sRGB (approx) |
-| ------------ | ----------- | ------------- |
-| `background` | 157 22% 8%  | `#101A16`     |
-| `foreground` | 42 30% 91%  | `#EDE8DC`     |
-| `card`       | 157 20% 11% | `#162019`     |
-| `primary`    | 88 21% 68%  | `#A8B896`     |
-| `accent`     | 20 60% 61%  | `#D4845C`     |
-| `border`     | 154 12% 25% | `#384840`     |
+| Token             | HSL         | sRGB      | Use                          |
+| ----------------- | ----------- | --------- | ---------------------------- |
+| `background`      | 215 26% 9%  | `#11161D` | Screen base (obsidian)       |
+| `foreground`      | 37 45% 94%  | `#F7F1E9` | Primary text (cream)         |
+| `card`            | 215 25% 14% | `#1B222D` | Surfaces (graphite)          |
+| `primary`         | 12 87% 66%  | `#F47B5D` | Actions, selection; obsidian label |
+| `secondary`       | 213 23% 18% | `#232D38` | Chips, raised fills (steel)  |
+| `muted`           | 215 24% 15% | `#1D252F` | Subtle fills                 |
+| `mutedForeground` | 213 12% 68% | `#A4ACB7` | Secondary text               |
+| `accent`          | 19 90% 74%  | `#F8A781` | Peach highlight              |
+| `lantern`         | 29 94% 74%  | `#FBBB7E` | Discovery, in-season, achievements |
+| `holo`            | 212 37% 62% | `#7A9CC2` | Info, spatial data, routes   |
+| `success`         | 150 43% 51% | `#4CB882` | Confirmations                |
+| `destructive`     | 2 83% 65%   | `#F0615C` | Errors                       |
+| `border`          | 214 21% 21% | `#2A3441` | 1px edges                    |
+
+Brand gradient (the mark only, never text or button fills):
+`#F9A47C → #F68667 → #E8735D → #D2645A → #C25A52`, top to bottom.
+
+Bright coral is never text on a light ground (2.5:1 on cream). Hero bands and
+the launch screen are obsidian in both appearances.
 
 ### Map day palette (itinerary pins + routes)
 
@@ -45,24 +63,27 @@ Same order as web `LOCI_DAY_COLORS` in `src/lib/theme-colors.ts`:
 Indexed as web does: `colors[day % 8]` with the server's 1-based day, so Day 1
 is `#2f7d6e`; a list with no days is day 0, `#e2664a`.
 
-Cluster color: `#294d3c`. Ungrouped: `#6e7a82` (web `LOCI_MAP_UNGROUPED_COLOR`).
+Cluster color: `#AE3722` (web `LOCI_MAP_CLUSTER_COLOR`). Ungrouped: `#6e7a82` (web `LOCI_MAP_UNGROUPED_COLOR`).
 
 ---
 
 ## 2. Typography
 
-| Role                  | Web        | iOS                                                       | Android                               |
-| --------------------- | ---------- | --------------------------------------------------------- | ------------------------------------- |
-| Destination headlines | Fraunces   | `Font.custom("Fraunces", …)` or Fraunces via Google Fonts | `FontFamily(Font(R.font.fraunces))`   |
-| UI body               | DM Sans    | DM Sans                                                   | `FontFamily(Font(R.font.dm_sans))`    |
-| Coords / seq / status | Space Mono | Space Mono                                                | `FontFamily(Font(R.font.space_mono))` |
+| Role                  | Web        | iOS                                     | Android                               |
+| --------------------- | ---------- | --------------------------------------- | ------------------------------------- |
+| Display / brand       | Outfit     | `Font.custom("Outfit", …)`, bundled TTF | `FontFamily(Font(R.font.outfit))`     |
+| UI body               | DM Sans    | DM Sans                                 | `FontFamily(Font(R.font.dm_sans))`    |
+| Coords / seq / status | Space Mono | Space Mono                              | `FontFamily(Font(R.font.space_mono))` |
+
+Outfit is OFL (vendored with its licence in `tools/brand/fonts/`). It replaces
+Fraunces: its rounded geometry is the wordmark's.
 
 ### Scale (iOS Dynamic Type / Compose `sp`)
 
 | Style      | Size  | Weight   | Font                           |
 | ---------- | ----- | -------- | ------------------------------ |
-| `display`  | 34–40 | Semibold | Fraunces                       |
-| `title`    | 22–28 | Semibold | Fraunces                       |
+| `display`  | 34–40 | Semibold | Outfit                         |
+| `title`    | 22–28 | Semibold | Outfit                         |
 | `headline` | 17–20 | Medium   | DM Sans                        |
 | `body`     | 15–17 | Regular  | DM Sans                        |
 | `caption`  | 12–13 | Regular  | DM Sans                        |
@@ -91,10 +112,11 @@ Elevation: **flat + 1px border**. Shadow only for floating island panels and nav
 | `resultArrive`    | 400ms    | ease-out (0.16, 1, 0.3, 1)           | List/card stagger  |
 | `selectionSettle` | 250ms    | ease-out (0.22, 1, 0.36, 1)          | Map↔list selection |
 | `routeDraw`       | 800ms    | linear opacity                       | Route line appear  |
-| `sheetPresent`    | 300ms    | spring (iOS) / `FastOutSlowInEasing` | Bottom sheet, chat |
+| `sheetPresent`    | 320ms    | spring (iOS) / `FastOutSlowInEasing` | Bottom sheet, chat |
+| `mascotIdle`      | 4s loop  | ease-in-out, 2pt bob                 | Mascot on empty/welcome |
 | `press`           | 150ms    | scale 0.98                           | Buttons, cards     |
 
-**Reduce Motion:** disable stagger, route draw, scale press; keep opacity fades ≤200ms.
+**Reduce Motion:** disable stagger, route draw, scale press and the mascot bob; keep opacity fades ≤200ms.
 
 ### iOS
 
@@ -150,8 +172,9 @@ Elevation: **flat + 1px border**. Shadow only for floating island panels and nav
 
 ### Empty / error
 
-- Centered icon (Lucide → SF Symbol / Material icon map)
-- Fraunces title + DM Sans subtitle; single primary CTA
+- Where the moment earns it (saved, trips, lists, recents, no results, offline, error): the mascot in its state pose, decorative (hidden from VoiceOver/TalkBack — the title says what happened)
+- Everywhere else: centered icon (Lucide → SF Symbol / Material icon map)
+- Outfit title + DM Sans subtitle; single primary CTA
 
 ### Upgrade prompt
 

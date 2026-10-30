@@ -1,5 +1,6 @@
 // Global Error Boundary component for catching unhandled errors
 import { ErrorBoundary as SolidErrorBoundary, Component, JSX, Show, createSignal } from "solid-js";
+import { Mascot } from "~/components/brand/Mascot";
 import { capture, captureException } from "~/lib/analytics";
 import { DISCORD_URL } from "~/lib/links";
 
@@ -31,24 +32,12 @@ const ErrorFallback: Component<ErrorFallbackProps> = (props) => {
       {/* `bg-white/10` over a heavy blur only reads on a dark backdrop; on light
           it was a near-invisible card. Tokens work on both. */}
       <div class="loci-card max-w-md w-full p-8 text-center">
-        {/* Error Icon */}
-        <div class="w-16 h-16 mx-auto mb-6 rounded-full bg-destructive/15 flex items-center justify-center">
-          <svg
-            class="w-8 h-8 text-destructive"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
-        </div>
+        {/* Decorative: the heading says what happened. */}
+        <Mascot state="error" width={104} decorative class="mx-auto mb-6" />
 
-        <h1 class="text-2xl font-bold text-foreground mb-2">Something went wrong</h1>
+        <h1 class="font-display text-2xl font-semibold tracking-tight text-foreground mb-2">
+          Something went wrong
+        </h1>
         <p class="text-muted-foreground mb-6">
           We encountered an unexpected error. Don't worry, your data is safe.
         </p>

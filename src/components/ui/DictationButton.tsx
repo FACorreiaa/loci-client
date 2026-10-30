@@ -67,7 +67,7 @@ const variantClasses = {
     recording: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
   },
   hero: {
-    base: "h-12 w-12 rounded-xl border border-primary-foreground/25 text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground",
+    base: "h-12 w-12 rounded-xl border border-hero-foreground/25 text-hero-foreground/80 hover:bg-hero-foreground/10 hover:text-hero-foreground",
     recording:
       "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
   },

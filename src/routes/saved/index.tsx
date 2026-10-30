@@ -13,6 +13,7 @@ import { isSavedView, type SavedItem, type SavedView } from "~/lib/saved/types";
 import SavedFilters from "~/components/saved/SavedFilters";
 import SavedRow from "~/components/saved/SavedRow";
 import SectionHeader from "~/components/ui/SectionHeader";
+import { EmptyState } from "~/components/shared/EmptyState";
 
 const panel = "mt-4 rounded-xl border border-dashed border-border bg-card/70 px-5 py-10";
 
@@ -144,17 +145,22 @@ export default function SavedPage() {
                 when={visible().length > 0}
                 fallback={
                   <div class={panel}>
-                    <p class="font-display text-lg text-foreground">
-                      {items().length === 0 ? "Nothing kept yet" : "Nothing under this filter"}
-                    </p>
-                    <p class="mt-2 max-w-md text-sm text-muted-foreground">
-                      {items().length === 0
-                        ? "Star a place or press Save on an itinerary. It stays on this device, and in your account when you are signed in."
-                        : "Try another filter, or start something new."}
-                    </p>
-                    <A href="/discover" class="mt-4 inline-block text-sm font-medium text-primary">
-                      Open Discover
-                    </A>
+                    <EmptyState
+                      mascot="empty"
+                      title={
+                        items().length === 0 ? "Nothing kept yet" : "Nothing under this filter"
+                      }
+                      body={
+                        items().length === 0
+                          ? "Star a place or press Save on an itinerary. It stays on this device, and in your account when you are signed in."
+                          : "Try another filter, or start something new."
+                      }
+                      action={
+                        <A href="/discover" class="text-sm font-medium text-primary">
+                          Open Discover
+                        </A>
+                      }
+                    />
                   </div>
                 }
               >

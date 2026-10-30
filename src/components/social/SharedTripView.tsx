@@ -23,11 +23,11 @@ export default function SharedTripView(props: { trip: Trip; actions?: JSX.Elemen
     <article>
       <section class="loci-hero mb-4">
         <div class="loci-hero__content p-6 sm:p-9">
-          <p class="font-coord mb-3 text-[10px] uppercase tracking-[0.2em] text-primary-foreground/65">
+          <p class="font-coord mb-3 text-[10px] uppercase tracking-[0.2em] text-hero-foreground/65">
             Shared route · {dayCount()} day{dayCount() === 1 ? "" : "s"}
           </p>
-          <h1 class="max-w-3xl text-3xl text-primary-foreground sm:text-4xl">{props.trip.title}</h1>
-          <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-primary-foreground/75">
+          <h1 class="max-w-3xl text-3xl text-hero-foreground sm:text-4xl">{props.trip.title}</h1>
+          <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-hero-foreground/75">
             <Show when={props.trip.cityName}>
               <span class="inline-flex items-center gap-1.5">
                 <MapPin class="h-4 w-4" aria-hidden="true" />

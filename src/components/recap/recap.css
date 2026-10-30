@@ -3,17 +3,17 @@
    on a desk (a tag, a passport, a postcard), and are shared as images. */
 
 .rc {
-  --rc-cream: #fdf5ea;
-  --rc-ink: #323b42;
-  --rc-coral: #fa7862;
-  --rc-coral-deep: #c63c24;
-  --rc-night: #1f2930;
+  --rc-cream: #fbf6ef;
+  --rc-ink: #151b23;
+  --rc-coral: #f47b5e;
+  --rc-coral-deep: #b8452e;
+  --rc-night: #11161d;
   --rc-paper: #fffdf9;
   --rc-sand: #efe3d2;
   --rc-post: #e9ddca;
-  --rc-teal: #2d6a6a;
-  --rc-muted: #6c6458;
-  --rc-display: "Fraunces", Georgia, serif;
+  --rc-teal: #3f6a93; /* holo, the brand's cool partner */
+  --rc-muted: #5b6573;
+  --rc-display: "Outfit", "DM Sans", ui-sans-serif, sans-serif;
   --rc-body: "DM Sans", "Segoe UI", system-ui, sans-serif;
   --rc-mono: "Space Mono", ui-monospace, "SF Mono", monospace;
   --rc-dur: 7s;

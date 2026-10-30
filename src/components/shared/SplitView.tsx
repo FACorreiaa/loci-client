@@ -9,9 +9,7 @@ interface SplitViewProps {
 
 export const SplitView: Component<SplitViewProps> = (props) => {
   return (
-    <div
-      class={`flex h-[calc(100vh-64px)] overflow-hidden bg-gray-50 dark:bg-gray-900 ${props.className || ""}`}
-    >
+    <div class={`flex h-[calc(100vh-64px)] overflow-hidden bg-background ${props.className || ""}`}>
       {/* Scrollable Content Area */}
       <div class="w-full lg:w-1/2 h-full overflow-y-auto relative no-scrollbar">
         <div class="min-h-full pb-24 lg:pb-8">
@@ -22,11 +20,11 @@ export const SplitView: Component<SplitViewProps> = (props) => {
       </div>
 
       {/* Map Area - Hidden on mobile, half width on desktop */}
-      <div class="hidden lg:block lg:w-1/2 h-full relative border-l border-gray-200 dark:border-gray-800">
+      <div class="hidden lg:block lg:w-1/2 h-full relative border-l border-border">
         <Show
           when={props.map}
           fallback={
-            <div class="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+            <div class="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
               Map View
             </div>
           }

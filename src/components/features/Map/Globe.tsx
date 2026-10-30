@@ -62,22 +62,22 @@ export interface GlobeComponentProps {
 // mistaken for the leg passing through it. All measured against the globe's own
 // ground rather than the page: the ocean is what these actually sit on.
 const darkPalette: GlobePalette = {
-  arc: "#FA7862", // brand coral, 7.2:1 on the dark ocean
-  node: "#8FA6B5", // slate blue, 7.5:1 — distinct from the arcs crossing it
-  nodeStroke: "#0E1114",
-  pillFill: "#1B2126",
-  pillStroke: "#3A444C",
-  pillText: "#F5EDE1", // 14.0:1 on the pill
-  marker: "#F09A7E", // lighter coral, so the marker leads the arc
+  arc: "#F47B5E", // signal coral, the brand primary on dark
+  node: "#7A9CC2", // holo blue — the cool partner, distinct from the arcs crossing it
+  nodeStroke: "#11161D",
+  pillFill: "#1A212B",
+  pillStroke: "#2A3441",
+  pillText: "#F7F2EA", // cream ink, 14.5:1 on the graphite pill
+  marker: "#F8A67F", // the pin's peach top, so the marker leads the arc
 };
 
 const lightPalette: GlobePalette = {
-  arc: "#C63C24", // deep coral, 4.1:1 on a light ocean
-  node: "#2F7D6E", // pine teal, 3.9:1
+  arc: "#B8452E", // deep coral, the light-mode primary
+  node: "#3F6A93", // holo blue, light
   nodeStroke: "#FFFFFF",
-  pillFill: "#FFFDFA",
-  pillStroke: "#D6C7B0",
-  pillText: "#323B42", // 11.2:1 on the pill
+  pillFill: "#FFFFFF",
+  pillStroke: "#E4DACD",
+  pillText: "#151B23", // 17.3:1 on the pill
   marker: "#AE3722", // 4.9:1 — the darkest of the three, so it reads first
 };
 

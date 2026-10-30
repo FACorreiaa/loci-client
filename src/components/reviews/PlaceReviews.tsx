@@ -42,9 +42,9 @@ export interface PlaceReviewsProps {
 const PREVIEW = 3;
 
 const toneClass: Record<ReturnType<typeof ratingTone>, string> = {
-  high: "text-green-600 dark:text-green-400",
-  middle: "text-amber-600 dark:text-amber-400",
-  low: "text-red-600 dark:text-red-400",
+  high: "text-success",
+  middle: "text-lantern",
+  low: "text-destructive",
 };
 
 interface Composer {
@@ -248,10 +248,7 @@ export default function PlaceReviews(props: PlaceReviewsProps) {
               <li class="flex items-center gap-2 text-xs text-muted-foreground">
                 <span class="w-8">{star} ★</span>
                 <span class="h-2 flex-1 overflow-hidden rounded bg-muted">
-                  <span
-                    class="block h-full bg-yellow-500"
-                    style={{ width: `${shares()![star]}%` }}
-                  />
+                  <span class="block h-full bg-lantern" style={{ width: `${shares()![star]}%` }} />
                 </span>
                 <span class="w-8 text-right tabular-nums">{summary()!.breakdown[star]}</span>
               </li>

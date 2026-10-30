@@ -84,14 +84,16 @@ export const getBudgetLevel = (priceRange: string): { min: number; max: number }
 };
 
 export const getBudgetColor = (budget: string): string => {
+  // Brand tokens, cheapest to dearest: success, holo, lantern, coral. The
+  // symbols carry the meaning; colour only groups them.
   const colorMap = {
-    Free: "text-green-600 bg-green-50",
-    "€": "text-blue-600 bg-blue-50",
-    "€€": "text-orange-600 bg-orange-50",
-    "€€€": "text-red-600 bg-red-50",
-    "€€€€": "text-purple-600 bg-purple-50",
+    Free: "text-success bg-success/10",
+    "€": "text-holo bg-holo/10",
+    "€€": "text-lantern bg-lantern/10",
+    "€€€": "text-primary bg-primary/10",
+    "€€€€": "text-primary bg-primary/15",
   };
-  return colorMap[budget as keyof typeof colorMap] || "text-gray-600 bg-gray-50";
+  return colorMap[budget as keyof typeof colorMap] || "text-muted-foreground bg-muted";
 };
 
 // String utilities
@@ -293,14 +295,10 @@ export const isValidUrl = (url: string): boolean => {
 // Color and theme utilities
 export const getRandomColor = (): string => {
   const colors = [
-    "bg-red-100 text-red-800",
-    "bg-blue-100 text-blue-800",
-    "bg-green-100 text-green-800",
-    "bg-yellow-100 text-yellow-800",
-    "bg-purple-100 text-purple-800",
-    "bg-pink-100 text-pink-800",
-    "bg-indigo-100 text-indigo-800",
-    "bg-orange-100 text-orange-800",
+    "bg-primary/10 text-primary",
+    "bg-holo/10 text-holo",
+    "bg-lantern/10 text-lantern",
+    "bg-success/10 text-success",
   ];
   return colors[Math.floor(Math.random() * colors.length)];
 };
@@ -313,14 +311,10 @@ export const getTagColor = (tag: string): string => {
   }
 
   const colors = [
-    "bg-red-100 text-red-800",
-    "bg-blue-100 text-blue-800",
-    "bg-green-100 text-green-800",
-    "bg-yellow-100 text-yellow-800",
-    "bg-purple-100 text-purple-800",
-    "bg-pink-100 text-pink-800",
-    "bg-indigo-100 text-indigo-800",
-    "bg-orange-100 text-orange-800",
+    "bg-primary/10 text-primary",
+    "bg-holo/10 text-holo",
+    "bg-lantern/10 text-lantern",
+    "bg-success/10 text-success",
   ];
 
   return colors[Math.abs(hash) % colors.length];

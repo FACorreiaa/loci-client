@@ -908,7 +908,7 @@ export default function DiscoverPage() {
                           ]}
                         >
                           {(chip) => (
-                            <span class="px-2.5 py-1.5 rounded-full bg-card/90 dark:bg-white/10 border border-primary/30/60 text-foreground font-medium shadow-sm">
+                            <span class="px-2.5 py-1.5 rounded-full bg-card/90 border border-primary/30/60 text-foreground font-medium shadow-sm">
                               {chip}
                             </span>
                           )}

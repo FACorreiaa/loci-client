@@ -74,7 +74,7 @@ export default function InviteCard() {
                   alt="QR code for your invite link"
                   width="148"
                   height="148"
-                  class="h-[148px] w-[148px] rounded-lg bg-white p-1"
+                  class="h-[148px] w-[148px] rounded-lg bg-card p-1"
                 />
               )}
             </Show>

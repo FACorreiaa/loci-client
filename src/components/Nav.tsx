@@ -1,5 +1,6 @@
 import { A, useLocation } from "@solidjs/router";
 import ProPlanBadge from "~/components/ProPlanBadge";
+import { LociLogo, LociMark } from "~/components/brand/Logo";
 import {
   Bookmark,
   CalendarDays,
@@ -101,19 +102,9 @@ export default function Nav() {
       <ReportTimezone />
       <nav class="sticky top-0 z-50 island-nav">
         <div class="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6 lg:px-8">
-          <A href="/" class="group flex shrink-0 items-center gap-3" aria-label="Loci home">
-            <span class="relative grid h-9 w-9 place-items-center rounded-full border border-primary bg-primary text-primary-foreground">
-              <MapPin class="h-4 w-4" />
-              <span class="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-accent" />
-            </span>
-            <span>
-              <span class="block font-serif text-xl font-semibold leading-none tracking-tight">
-                Loci
-              </span>
-              <span class="font-coord hidden text-[9px] uppercase tracking-[0.2em] text-muted-foreground sm:block">
-                Field guide
-              </span>
-            </span>
+          <A href="/" class="group flex shrink-0 items-center" aria-label="Loci home">
+            <LociMark class="h-8 w-auto sm:hidden" />
+            <LociLogo class="hidden h-8 w-auto text-foreground sm:block" />
           </A>
 
           <Show when={!isLoading()}>

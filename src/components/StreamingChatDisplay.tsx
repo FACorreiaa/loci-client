@@ -36,13 +36,13 @@ export default function StreamingChatDisplay(props: StreamingChatDisplayProps) {
   return (
     <div class={`h-full flex flex-col ${props.className || ""}`}>
       {/* Header */}
-      <div class="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <div class="w-10 h-10 rounded-full bg-[#0c7df2] flex items-center justify-center text-white shadow ring-2 ring-white/50 dark:ring-slate-800">
+      <div class="flex items-center gap-3 p-4 border-b border-border bg-card">
+        <div class="w-10 h-10 rounded-full bg-[#0c7df2] flex items-center justify-center text-white shadow ring-2 ring-white/50">
           <MessageCircle class="w-5 h-5 text-white" />
         </div>
         <div>
-          <h3 class="font-semibold text-gray-900 dark:text-white">AI Travel Assistant</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-300">
+          <h3 class="font-semibold text-foreground">AI Travel Assistant</h3>
+          <p class="text-sm text-muted-foreground">
             <Show when={state.isStreaming} fallback="Ready to help">
               {state.currentStep}
             </Show>
@@ -52,38 +52,38 @@ export default function StreamingChatDisplay(props: StreamingChatDisplayProps) {
 
       {/* Processing steps indicator */}
       <Show when={state.isStreaming}>
-        <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800">
+        <div class="p-4 bg-holo/10 border-b border-holo/30">
           <div class="flex items-center gap-2 text-sm">
-            <Loader2 class="w-4 h-4 animate-spin text-blue-500 dark:text-blue-400" />
-            <span class="text-blue-700 dark:text-blue-300">
+            <Loader2 class="w-4 h-4 animate-spin text-primary" />
+            <span class="text-primary">
               {state.progress}% - {state.currentStep}
             </span>
           </div>
           {/* Simple progress bar */}
-          <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2 dark:bg-gray-700">
-            <div class="bg-blue-600 h-1.5 rounded-full" style={{ width: `${state.progress}%` }} />
+          <div class="w-full bg-muted rounded-full h-1.5 mt-2">
+            <div class="bg-primary h-1.5 rounded-full" style={{ width: `${state.progress}%` }} />
           </div>
         </div>
       </Show>
 
       {/* Messages Area - for now just showing status, we can expand to chat history later */}
-      <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-muted flex items-center justify-center">
         <Show when={!state.isStreaming && state.progress === 100}>
           <div class="text-center">
-            <CheckCircle class="w-12 h-12 text-green-500 mx-auto mb-2" />
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">All Set!</h3>
-            <p class="text-gray-500 dark:text-gray-400">Your itinerary is ready.</p>
+            <CheckCircle class="w-12 h-12 text-success mx-auto mb-2" />
+            <h3 class="text-lg font-medium text-foreground">All Set!</h3>
+            <p class="text-muted-foreground">Your itinerary is ready.</p>
           </div>
         </Show>
         <Show when={state.error}>
-          <div class="text-red-500 text-center">
+          <div class="text-destructive text-center">
             <p>{state.error}</p>
           </div>
         </Show>
         <Show when={state.isStreaming}>
           <div class="text-center opacity-75">
-            <Bot class="w-12 h-12 text-blue-500 mx-auto mb-2 animate-bounce" />
-            <p class="text-gray-500 dark:text-gray-400">Thinking...</p>
+            <Bot class="w-12 h-12 text-primary mx-auto mb-2 animate-bounce" />
+            <p class="text-muted-foreground">Thinking...</p>
           </div>
         </Show>
       </div>

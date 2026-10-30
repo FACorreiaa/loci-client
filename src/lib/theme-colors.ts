@@ -2,7 +2,7 @@ import type { DesignTheme } from "~/lib/theme-preference";
 
 /** Browser chrome / PWA theme-color per design + resolved color mode. */
 export const THEME_COLOR_PALETTE: Record<DesignTheme, { light: string; dark: string }> = {
-  loci: { light: "#FDF5EA", dark: "#323B42" },
+  loci: { light: "#FBF6EF", dark: "#11161D" },
   classic: { light: "#8a6e2f", dark: "#5c4033" },
   modern: { light: "#0c7df2", dark: "#1e3a8a" },
 };

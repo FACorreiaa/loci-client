@@ -1,111 +1,124 @@
 /*
- * The Loci palette: cream ground, slate ink, coral mark.
+ * The Loci palette, 2026-10: obsidian ground, cream ink, signal coral.
  *
- * Sampled from the approved brand art rather than chosen — cream #FDF5EA,
- * ink #323B42, coral #FA7862 — and expressed as the nearest integer HSL, which
- * is what these variables take. Each is within ΔE 0.6 of its hex.
+ * Sampled from the approved "Explore your way" art rather than chosen. The
+ * scene's ground measures #141518–#161C24, the wordmark #F9E7D6, the pin runs
+ * #F9A47C → #C25A52 top to bottom, the mascot's lit coral is #EF6F52 and the
+ * sky and holographic edges a steel blue around #5F85A9. Dark is the flagship
+ * appearance; light keeps the same family on a cream ground.
  *
- * The one number that shapes everything below: **coral on cream measures
- * 2.45:1**. That fails WCAG AA for text at every size, and fails 1.4.11 for a
- * control's boundary. So the brand colour cannot be `--primary`, which fills
- * buttons that carry small labels. It is `--accent`, and `--primary` is a
- * deeper coral (#C63C24) that clears 4.5:1 both as a label ground and against
- * the page. The two read as one family — ΔE 18 apart, the same hue — while only
- * one of them is asked to carry text.
+ * Every pair below was measured (WCAG 2.x relative luminance) after rounding
+ * to the integer HSL these variables take — see public/images/brand/README.md:
  *
- * `--accent` is deliberately left at the brand coral even though its fill is
- * 2.43:1 against the page. Accent is not the sole indicator of any control:
- * where it fills a badge, the badge is identified by its ink label (5.3:1), and
- * where an interactive element needs a perceivable boundary that is `--primary`
- * (4.7:1) or `--ring` (3.9:1). Darkening the accent to satisfy a rule it is not
- * subject to would mean the brand colour never actually appears.
+ *                               dark     light
+ *   foreground on background   16.3:1   16.1:1
+ *   muted-fg on muted           6.6:1    5.0:1
+ *   primary-fg on primary       6.8:1    5.4:1
+ *   primary on background       6.8:1    5.0:1   (a control's own boundary)
+ *   input on card               3.4:1    3.8:1
+ *   lantern / holo on page     10.7/6.4  5.0/5.3
  *
- * Every ratio quoted here was measured, not estimated.
+ * The constraint from the old palette still holds: the bright coral is 2.5:1
+ * on cream, so in light mode it cannot fill a labelled button. There it is
+ * `--accent`, and `--primary` is the deeper #B8452E. In dark mode the bright
+ * coral clears 6.8:1 and is the primary itself, with obsidian labels on it.
  */
 @layer base {
   :root,
   [data-theme="loci"] {
-    --brand-coral: #fa7862; /* the mark's colour, read by Logo.tsx */
-    --background: 34 80% 95%; /* #FDF5EA — the brand ground */
-    --foreground: 207 13% 23%; /* #323B42 — brand ink, 10.4:1 on the ground */
-    --card: 36 100% 99%; /* warm near-white, lifted off the cream page */
-    --card-foreground: 207 13% 23%;
-    --popover: 36 100% 99%;
-    --popover-foreground: 207 13% 23%;
+    --brand-coral: #f47b5e; /* the mark's mid coral, read by Logo.tsx */
+    --brand-gradient: linear-gradient(
+      180deg,
+      #f9a47c 0%,
+      #f68667 30%,
+      #e8735d 50%,
+      #d2645a 70%,
+      #c25a52 100%
+    );
+    --background: 35 60% 96%; /* #FBF6EF cream */
+    --foreground: 214 25% 11%; /* #151B23 */
+    --card: 0 0% 100%;
+    --card-foreground: 214 25% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 214 25% 11%;
 
-    /* Deep coral. Fills buttons, so it carries small labels: cream on it is
-       4.7:1, and it is 4.7:1 against the page for its own boundary. */
-    --primary: 9 69% 46%; /* #C63C24 */
-    --primary-foreground: 34 80% 95%;
+    --primary: 10 60% 45%; /* #B8452E deep coral, white labels 5.4:1 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 33 35% 88%;
-    --secondary-foreground: 207 13% 23%;
-    --muted: 33 40% 91%;
-    --muted-foreground: 210 5% 39%; /* 5.6:1 on the page, 5.1:1 on muted */
+    --secondary: 35 40% 91%;
+    --secondary-foreground: 214 25% 11%;
+    --muted: 35 41% 92%;
+    --muted-foreground: 215 12% 40%; /* #5B6573 */
 
-    /* The brand coral itself. See the note above on why it stays here. */
-    --accent: 9 93% 68%; /* #FA7862 */
-    --accent-foreground: 208 15% 17%; /* 5.3:1 on coral, so small labels pass */
+    /* The brand coral. Never the only indicator of a control; ink labels on it. */
+    --accent: 12 87% 66%; /* #F47B5E */
+    --accent-foreground: 214 25% 11%;
 
-    /* Far enough from coral to never be mistaken for it: ΔE 29, and much
-       darker. A destructive red that reads as "brand colour" is worse than an
-       ugly one. */
-    --destructive: 3 71% 37%; /* #A3231C, 7.0:1 on the page */
-    --destructive-foreground: 34 80% 95%;
+    --destructive: 2 63% 43%; /* #B42E29 — darker and redder than any coral */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 35 25% 82%; /* decorative separators */
-    --input: 30 12% 54%; /* an input's edge identifies it: 3.3:1 on card */
-    --ring: 9 68% 52%; /* #D8482F — coral, dark enough to be a visible focus */
+    /* Warm and cool companions from the art: lantern for discovery and
+       in-season moments, holo for information and spatial data. */
+    --lantern: 31 74% 35%;
+    --holo: 209 40% 41%;
+    --success: 150 59% 30%;
+
+    --border: 34 30% 85%;
+    --input: 32 7% 51%;
+    --ring: 11 58% 48%;
     --radius: 0.8rem;
 
-    --theme-color: #fdf5ea;
-    --hero-foreground: 34 80% 95%;
-    --hero-gradient: hsl(206 20% 15%);
+    --theme-color: #fbf6ef;
+    /* Hero bands are obsidian in both appearances: the brand's home ground. */
+    --hero-foreground: 37 45% 94%;
+    --hero-gradient: hsl(215 26% 9%);
     --hero-glow: none;
-    --map-line: 206 12% 52%;
+    --map-line: 209 30% 55%;
     color-scheme: light;
   }
 
   .dark,
   [data-kb-theme="dark"],
-  [data-theme="loci"].dark {
-    --brand-coral: #fa7862;
-    --background: 210 18% 9%;
-    --foreground: 35 47% 92%;
-    --card: 210 16% 12%;
-    --card-foreground: 35 47% 92%;
-    --popover: 210 17% 11%;
-    --popover-foreground: 35 47% 92%;
+  [data-theme="loci"].dark,
+  /* Hero bands are obsidian in both appearances, so inside one every token
+     takes its dark value: text, inputs and chips read as they do in dark. */
+  .loci-hero {
+    --brand-coral: #f47b5e;
+    --background: 215 26% 9%; /* #11161D obsidian */
+    --foreground: 37 45% 94%; /* #F7F2EA cream */
+    --card: 215 25% 14%; /* #1A212B graphite */
+    --card-foreground: 37 45% 94%;
+    --popover: 216 26% 15%;
+    --popover-foreground: 37 45% 94%;
 
-    /* On a dark ground the brand coral needs no darkening — it is 6.8:1 both
-       as a fill against the page and as a ground under dark labels. So dark
-       mode gets the actual brand colour as its primary, where light mode
-       cannot. */
-    --primary: 9 93% 68%; /* #FA7862 */
-    --primary-foreground: 210 17% 9%;
+    --primary: 12 87% 66%; /* #F47B5E signal coral */
+    --primary-foreground: 215 26% 9%;
 
-    --secondary: 207 14% 18%;
-    --secondary-foreground: 35 47% 92%;
-    --muted: 207 14% 16%;
-    --muted-foreground: 35 14% 68%;
+    --secondary: 213 23% 18%; /* #242E3A steel */
+    --secondary-foreground: 37 45% 94%;
+    --muted: 215 24% 15%;
+    --muted-foreground: 213 12% 68%; /* #A3ACB7 */
 
-    /* A shade lighter than primary, which here is the brand coral: adjacent
-       accent and primary surfaces have to be told apart. */
-    --accent: 14 88% 74%;
-    --accent-foreground: 210 17% 9%;
+    /* The pin's peach top: lighter than primary so the two stay distinct. */
+    --accent: 19 90% 74%;
+    --accent-foreground: 215 26% 9%;
 
-    --destructive: 2 65% 58%;
-    --destructive-foreground: 210 17% 9%;
+    --destructive: 2 83% 65%;
+    --destructive-foreground: 215 26% 9%;
 
-    --border: 207 12% 24%;
-    --input: 207 12% 46%; /* 3.6:1 on card */
-    --ring: 9 93% 68%;
+    --lantern: 29 94% 74%; /* #FBB97D */
+    --holo: 212 37% 62%; /* #7A9CC2 */
+    --success: 150 43% 51%;
 
-    --theme-color: #323b42;
-    --hero-foreground: 35 47% 93%;
-    --hero-gradient: hsl(207 18% 14%);
+    --border: 214 21% 21%;
+    --input: 217 15% 47%;
+    --ring: 12 87% 66%;
+
+    --theme-color: #11161d;
+    --hero-foreground: 37 45% 94%;
+    --hero-gradient: hsl(215 26% 9%);
     --hero-glow: none;
-    --map-line: 206 10% 46%;
+    --map-line: 212 25% 45%;
     color-scheme: dark;
   }
 }
@@ -113,46 +126,26 @@
 /*
  * Muse chat surface (apps/_reviews/muse-chat-contract.md).
  *
- * The chat screen shares one design across Loci, Lumina, Norviq and North, and
- * on Loci it matches the iOS app rather than the web palette above: canvas,
- * bubbles and pill are LociTheme.swift's lociPaper / lociCard / lociMuted, so a
- * conversation looks the same on both clients. Plain hex, not HSL triplets —
- * nothing composes these with an alpha.
- *
- * Measured (WCAG 2.x relative luminance):
- *   user text  #1A2E26 on #D4845C  4.96:1  (white on it is 2.89:1 — fails, so ink)
- *   agent text #EDE8DC on #162019 13.69:1  | #1A2E26 on #FDFBF7 13.89:1
- *   status     #B9AFA2 on #1F2923  6.94:1  | #52625A on #E8E2D6  5.00:1
- * The light secondary is a step darker than iOS lociMutedInk (#5A6B62), which
- * is 4.38:1 on the pill and fails AA for the 13px status line.
- *   ring       #B8653D on #F5F0E6  3.72:1  | #D4845C on #101A16  6.14:1
- * The avatar's working ring is a non-text graphic (3:1). The user-bubble coral
- * is 2.55:1 on the light canvas, so light mode uses a darker coral.
+ * The chat screen matches the iOS app, and both now draw from the brand
+ * tokens above, so these are aliases rather than a second palette: canvas is
+ * the page, the agent bubble a card, the user bubble primary with its own
+ * label colour, the status pill muted. The contrast table above covers every
+ * pair used here.
  */
 @layer base {
   :root,
-  [data-theme="loci"] {
-    --muse-canvas: #f5f0e6;
-    --muse-agent-bubble: #fdfbf7;
-    --muse-user-bubble: #d4845c;
-    --muse-pill: #e8e2d6;
-    --muse-text: #1a2e26;
-    --muse-text-secondary: #52625a;
-    --muse-user-text: #1a2e26;
-    --muse-ring: #b8653d;
-  }
-
+  [data-theme="loci"],
   .dark,
   [data-kb-theme="dark"],
   [data-theme="loci"].dark {
-    --muse-canvas: #101a16;
-    --muse-agent-bubble: #162019;
-    --muse-user-bubble: #d4845c;
-    --muse-pill: #1f2923;
-    --muse-text: #ede8dc;
-    --muse-text-secondary: #b9afa2;
-    --muse-user-text: #1a2e26;
-    --muse-ring: #d4845c;
+    --muse-canvas: hsl(var(--background));
+    --muse-agent-bubble: hsl(var(--card));
+    --muse-user-bubble: hsl(var(--primary));
+    --muse-pill: hsl(var(--muted));
+    --muse-text: hsl(var(--foreground));
+    --muse-text-secondary: hsl(var(--muted-foreground));
+    --muse-user-text: hsl(var(--primary-foreground));
+    --muse-ring: hsl(var(--primary));
   }
 }
 
@@ -173,21 +166,9 @@
 }
 
 .muse-ring[data-phase="working"] {
-  background: conic-gradient(
-    from 0deg,
-    transparent 0 30%,
-    var(--muse-ring) 85%
-  );
-  -webkit-mask: radial-gradient(
-    farthest-side,
-    transparent calc(100% - 3px),
-    #000 calc(100% - 3px)
-  );
-  mask: radial-gradient(
-    farthest-side,
-    transparent calc(100% - 3px),
-    #000 calc(100% - 3px)
-  );
+  background: conic-gradient(from 0deg, transparent 0 30%, var(--muse-ring) 85%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
   animation: muse-ring-spin 1.1s linear infinite;
 }
 

@@ -33,7 +33,7 @@ export default function EntitlementsBadge() {
         href="/pricing"
         class={`hidden sm:inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-primary/40 ${
           nearListLimit() || nearPlaceLimit()
-            ? "border-amber-400/50 bg-amber-500/10 text-amber-800 dark:text-amber-200"
+            ? "border-lantern/50 bg-lantern/10 text-lantern"
             : "border-border bg-muted/40 text-muted-foreground"
         }`}
         title="Free plan usage — upgrade for unlimited saves"

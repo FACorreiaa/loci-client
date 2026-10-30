@@ -1,7 +1,8 @@
 import { Component, For, Show, createSignal, onMount } from "solid-js";
 import { A } from "@solidjs/router";
 import { Button } from "@/ui/button";
-import { Wifi, RefreshCw, Map, Trash2, Bookmark } from "lucide-solid";
+import { Mascot } from "~/components/brand/Mascot";
+import { RefreshCw, Map, Trash2, Bookmark } from "lucide-solid";
 import {
   clearOfflineTripCache,
   currentOfflineUserId,
@@ -38,8 +39,8 @@ const OfflinePage: Component = () => {
     <div class="min-h-screen flex items-center justify-center px-4 bg-background py-12">
       <div class="w-full max-w-md mx-auto px-6 loci-card py-8">
         <div class="text-center">
-          <div class="w-20 h-20 mx-auto mb-6 bg-primary rounded-full flex items-center justify-center shadow-lg ring-4 ring-border">
-            <Wifi class="w-10 h-10 text-primary-foreground" />
+          <div class="mb-6 flex justify-center">
+            <Mascot state="offline" width={104} decorative />
           </div>
 
           <h1 class="text-2xl font-bold text-foreground mb-4">You're Offline</h1>

@@ -93,7 +93,7 @@ export const ThemeProvider = (props: ThemeProviderProps) => {
     } else {
       const saved = localStorage.getItem("theme");
       const mode: ColorTheme =
-        saved === "dark" || saved === "light" || saved === "system" ? saved : "system";
+        saved === "dark" || saved === "light" || saved === "system" ? saved : "dark";
 
       setColorMode(mode);
       setDesignThemeSignal("loci");

@@ -128,25 +128,25 @@ export default function StreamingTransition(props: StreamingTransitionProps) {
     if (!preview) return null;
 
     return (
-      <div class="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+      <div class="h-full flex flex-col items-center justify-center p-8 bg-background">
         <div class="text-center max-w-md mx-auto">
           {/* Success animation */}
-          <div class="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center animate-pulse">
-            <Sparkles class="w-10 h-10 text-white" />
+          <div class="w-20 h-20 mx-auto mb-6 bg-primary/15 rounded-full flex items-center justify-center motion-safe:animate-pulse">
+            <Sparkles class="w-10 h-10 text-primary" />
           </div>
 
           {/* Title */}
-          <h2 class="text-2xl font-bold text-gray-900 mb-2">{preview.title}</h2>
-          <p class="text-lg text-gray-600 mb-4">{preview.subtitle}</p>
-          <p class="text-sm text-gray-500 mb-6">{preview.description}</p>
+          <h2 class="text-2xl font-bold text-foreground mb-2">{preview.title}</h2>
+          <p class="text-lg text-muted-foreground mb-4">{preview.subtitle}</p>
+          <p class="text-sm text-muted-foreground mb-6">{preview.description}</p>
 
           {/* Preview items */}
           <Show when={preview.items.length > 0}>
             <div class="space-y-2 mb-6">
               <For each={preview.items}>
                 {(item) => (
-                  <div class="flex items-center gap-2 text-sm text-gray-700 bg-white/60 rounded-lg px-3 py-2">
-                    <MapPin class="w-4 h-4 text-blue-500" />
+                  <div class="flex items-center gap-2 text-sm text-foreground bg-card/60 rounded-lg px-3 py-2">
+                    <MapPin class="w-4 h-4 text-primary" />
                     <span>{item}</span>
                   </div>
                 )}
@@ -155,7 +155,7 @@ export default function StreamingTransition(props: StreamingTransitionProps) {
           </Show>
 
           {/* Navigation indicator */}
-          <div class="flex items-center gap-2 text-blue-600 font-medium">
+          <div class="flex items-center gap-2 text-primary font-medium">
             <span>Taking you to your results</span>
             <ArrowRight class="w-4 h-4 animate-bounce" />
           </div>
@@ -165,11 +165,11 @@ export default function StreamingTransition(props: StreamingTransitionProps) {
   };
 
   const renderNavigating = () => (
-    <div class="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-600 to-purple-600">
-      <div class="text-center text-white">
-        <div class="w-16 h-16 mx-auto mb-6 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+    <div class="h-full flex flex-col items-center justify-center p-8 bg-hero">
+      <div class="text-center text-hero-foreground">
+        <div class="w-16 h-16 mx-auto mb-6 border-4 border-hero-foreground/20 border-t-primary rounded-full animate-spin" />
         <h2 class="text-xl font-semibold mb-2">Almost there...</h2>
-        <p class="text-blue-100">Preparing your personalized experience</p>
+        <p class="text-hero-foreground/80">Preparing your personalized experience</p>
       </div>
     </div>
   );
@@ -180,7 +180,7 @@ export default function StreamingTransition(props: StreamingTransitionProps) {
         class={`fixed inset-0 z-50 ${props.fullScreen ? "" : "bg-black/50 flex items-center justify-center"}`}
       >
         <div
-          class={`${props.fullScreen ? "h-full w-full" : "w-full max-w-2xl h-[600px] bg-white rounded-xl shadow-2xl overflow-hidden"}`}
+          class={`${props.fullScreen ? "h-full w-full" : "w-full max-w-2xl h-[600px] bg-card rounded-xl shadow-2xl overflow-hidden"}`}
         >
           <Show when={transitionPhase() === "chat"}>
             <StreamingChatDisplay session={props.session} onComplete={handleChatComplete} />

@@ -91,7 +91,7 @@ export default function ReviewForm(props: ReviewFormProps) {
           onClick={() => setRating(value)}
           onMouseEnter={() => setHoverRating(value)}
           onMouseLeave={() => setHoverRating(0)}
-          class={filled ? "text-yellow-500" : "text-muted-foreground"}
+          class={filled ? "text-lantern" : "text-muted-foreground"}
         >
           <Star class={`w-8 h-8 ${filled ? "fill-current" : ""}`} />
         </Button>

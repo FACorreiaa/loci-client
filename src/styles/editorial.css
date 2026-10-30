@@ -18,7 +18,7 @@
 }
 
 /* Oversized editorial headline. Pairs the display font from the
-   active theme (Space Grotesk on loci) with tight tracking. */
+   active theme (Outfit on loci) with tight tracking. */
 .editorial-title {
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -77,12 +77,11 @@
 .pi-lqip {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(
-      120% 120% at 20% 15%,
-      hsl(var(--pi-hue, 210) 55% 62% / 0.9),
-      hsl(var(--pi-hue, 210) 45% 38% / 0.95) 70%
-    );
+  background: radial-gradient(
+    120% 120% at 20% 15%,
+    hsl(var(--pi-hue, 210) 55% 62% / 0.9),
+    hsl(var(--pi-hue, 210) 45% 38% / 0.95) 70%
+  );
   z-index: 0;
 }
 

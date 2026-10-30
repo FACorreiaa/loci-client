@@ -6,7 +6,6 @@ import { prefersReducedMotion } from "~/lib/hooks/useInView";
 import { detectDomain } from "~/lib/api/llm";
 import { startErrorMessage } from "~/lib/errors";
 import { createStreamingSession, getDomainRoute, streamingService } from "~/lib/chat-stream";
-import HeroCardWall from "./landing/HeroCardWall";
 import SvgGlobe from "./landing/SvgGlobe";
 import HowItWorks from "./landing/HowItWorks";
 import WhatItFinds from "./landing/WhatItFinds";
@@ -137,89 +136,107 @@ export default function PublicLandingPage() {
     <div class="relative min-h-screen bg-background text-foreground">
       <div class="contour-grid pointer-events-none absolute inset-0" aria-hidden="true" />
 
-      {/* HERO — centred copy, store row, the web search funnel, and a wall of
-          postcards fanned along the bottom. Full-bleed, so it sits above the
-          route spine rather than on it. */}
-      <section aria-labelledby="landing-hero-heading" class="landing-hero pt-14 sm:pt-20">
-        <div class="hero-glow" aria-hidden="true" />
-        <div class="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-4 text-center sm:px-6">
-          <a href="#how" class="hero-pill">
-            <span class="hero-pill-dot" aria-hidden="true" />
-            Loci · cities, with friends
-            <span class="hero-pill-arrow" aria-hidden="true">
-              →
-            </span>
-          </a>
-          <h1
-            id="landing-hero-heading"
-            class="mt-6 text-[2.25rem] font-bold leading-[1.05] tracking-[-0.025em] sm:text-5xl lg:text-[3.75rem]"
-          >
-            <span class="block text-balance">Explore a city</span>
-            <span class="block text-balance text-muted-foreground">
-              with your <span class="text-primary">friends</span>.
-            </span>
-          </h1>
-          <p class="mt-5 max-w-[36rem] text-base text-balance text-muted-foreground sm:text-lg">
-            Plan a trip in one sentence, walk it stop by stop, and collect the places you've really
-            been. See who's explored most this week.
-          </p>
-
-          <AppButtons class="mt-8" />
-
-          <div class="mt-9 w-full max-w-xl">
-            <div
-              class="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5 pl-4 text-left shadow-sm focus-within:border-accent"
-              classList={{ "opacity-70": isLoading() }}
+      {/* HERO — copy, the search funnel and the store row on one side, the
+          approved brand scene on the other. The scene is the 2026-10 art
+          itself (the mascot over a city at dusk), cropped, not a mock-up of
+          the product. Width and height are set so it cannot shift layout,
+          and it is AVIF/WebP at two widths. */}
+      <section aria-labelledby="landing-hero-heading" class="landing-hero pt-12 sm:pt-16">
+        <div class="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-14">
+          <div class="flex flex-col items-center text-center lg:items-start lg:text-left">
+            <a href="#how" class="hero-pill">
+              <span class="hero-pill-dot" aria-hidden="true" />
+              Loci · cities, with friends
+              <span class="hero-pill-arrow" aria-hidden="true">
+                →
+              </span>
+            </a>
+            <h1
+              id="landing-hero-heading"
+              class="font-display mt-6 text-[2.75rem] font-semibold leading-[1.02] tracking-[-0.03em] sm:text-6xl lg:text-[4.25rem]"
             >
-              <input
-                type="text"
-                value={message()}
-                onInput={(e) => setMessage(e.currentTarget.value)}
-                onKeyDown={onKeyDown}
-                disabled={isLoading()}
-                placeholder="Where to? Try 'three chill days in Lisbon for food and views'"
-                aria-label="Describe your trip"
-                class="min-w-0 flex-1 bg-transparent text-[0.98rem] outline-none placeholder:text-muted-foreground"
-              />
-              <button
-                type="button"
-                onClick={runSearch}
-                disabled={isLoading()}
-                aria-label="Plot this trip"
-                class="grid h-10 w-10 flex-none place-items-center rounded-xl bg-accent text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
+              Explore your <span class="hero-accent">way</span>.
+            </h1>
+            <p class="mt-5 max-w-[34rem] text-base text-balance text-muted-foreground sm:text-lg">
+              Plan a trip in one sentence, walk it stop by stop, and collect the places you've
+              really been — with your friends along for the route.
+            </p>
+
+            <div class="mt-8 w-full max-w-xl">
+              <div
+                class="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5 pl-4 text-left shadow-sm focus-within:border-accent"
+                classList={{ "opacity-70": isLoading() }}
               >
-                <Show
-                  when={!isLoading()}
-                  fallback={<Loader2 class="h-[18px] w-[18px] animate-spin" />}
+                <input
+                  type="text"
+                  value={message()}
+                  onInput={(e) => setMessage(e.currentTarget.value)}
+                  onKeyDown={onKeyDown}
+                  disabled={isLoading()}
+                  placeholder="Where to? Try 'three chill days in Lisbon for food and views'"
+                  aria-label="Describe your trip"
+                  class="min-w-0 flex-1 bg-transparent text-[0.98rem] outline-none placeholder:text-muted-foreground"
+                />
+                <button
+                  type="button"
+                  onClick={runSearch}
+                  disabled={isLoading()}
+                  aria-label="Plot this trip"
+                  class="grid h-10 w-10 flex-none place-items-center rounded-xl bg-accent text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
                 >
-                  <ArrowRight class="h-[18px] w-[18px]" />
-                </Show>
-              </button>
-            </div>
-            <Show when={searchError()}>
-              <p class="mt-2 text-sm text-destructive">{searchError()}</p>
-            </Show>
-
-            <div class="mt-3.5 flex flex-wrap justify-center gap-2">
-              <For each={examplePrompts}>
-                {(p, i) => (
-                  <button
-                    type="button"
-                    onClick={() => prefill(p)}
-                    disabled={isLoading()}
-                    // Two fit on one phone row; a third would wrap onto its own.
-                    class="font-coord rounded-full border border-border bg-background/70 px-2.5 py-1.5 text-[0.7rem] text-muted-foreground sm:px-3 sm:text-xs transition hover:border-accent hover:text-foreground"
-                    classList={{ "hidden sm:inline-block": i() >= 2 }}
+                  <Show
+                    when={!isLoading()}
+                    fallback={<Loader2 class="h-[18px] w-[18px] animate-spin" />}
                   >
-                    {p}
-                  </button>
-                )}
-              </For>
-            </div>
-          </div>
-        </div>
+                    <ArrowRight class="h-[18px] w-[18px]" />
+                  </Show>
+                </button>
+              </div>
+              <Show when={searchError()}>
+                <p class="mt-2 text-sm text-destructive">{searchError()}</p>
+              </Show>
 
-        <HeroCardWall />
+              <div class="mt-3.5 flex flex-wrap justify-center gap-2 lg:justify-start">
+                <For each={examplePrompts}>
+                  {(p, i) => (
+                    <button
+                      type="button"
+                      onClick={() => prefill(p)}
+                      disabled={isLoading()}
+                      // Two fit on one phone row; a third would wrap onto its own.
+                      class="font-coord rounded-full border border-border bg-background/70 px-2.5 py-1.5 text-[0.7rem] text-muted-foreground sm:px-3 sm:text-xs transition hover:border-accent hover:text-foreground"
+                      classList={{ "hidden sm:inline-block": i() >= 2 }}
+                    >
+                      {p}
+                    </button>
+                  )}
+                </For>
+              </div>
+            </div>
+
+            <AppButtons class="mt-8" />
+          </div>
+
+          <figure class="hero-scene">
+            <picture>
+              <source
+                type="image/avif"
+                srcset="/images/hero/explore-scene-640.avif 640w, /images/hero/explore-scene-936.avif 936w"
+                sizes="(min-width: 1024px) 34rem, 92vw"
+              />
+              <img
+                src="/images/hero/explore-scene-936.webp"
+                srcset="/images/hero/explore-scene-640.webp 640w, /images/hero/explore-scene-936.webp 936w"
+                sizes="(min-width: 1024px) 34rem, 92vw"
+                width="936"
+                height="1024"
+                fetchpriority="high"
+                decoding="async"
+                alt="Loci, a small coral explorer with a backpack and a glowing map, looking out over a city at dusk"
+              />
+            </picture>
+          </figure>
+        </div>
       </section>
 
       <main class="relative mx-auto max-w-[1160px] px-6">

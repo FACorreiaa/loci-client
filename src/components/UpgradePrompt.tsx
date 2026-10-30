@@ -48,7 +48,7 @@ export default function UpgradePrompt() {
             <div class="mb-3 flex items-start justify-between gap-3">
               <div class="flex items-center gap-2">
                 <Show when={kind() !== "fair_use"}>
-                  <Crown class="h-5 w-5 text-amber-500" />
+                  <Crown class="h-5 w-5 text-lantern" />
                 </Show>
                 <h2 id="upgrade-prompt-title" class="text-lg font-semibold text-foreground">
                   {TITLE[kind()] ?? "Upgrade"}

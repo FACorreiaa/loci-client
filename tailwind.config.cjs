@@ -54,6 +54,22 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        lantern: "hsl(var(--lantern))",
+        holo: "hsl(var(--holo))",
+        success: "hsl(var(--success))",
+        // Obsidian bands (hero, footer) in both appearances.
+        hero: {
+          DEFAULT: "var(--hero-gradient)",
+          foreground: "hsl(var(--hero-foreground))",
+        },
+      },
+      fontFamily: {
+        sans: ['"DM Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Outfit", '"DM Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
+        // The old serif headings moved to the display face; `font-serif`
+        // call sites keep working and land on the brand typeface.
+        serif: ["Outfit", '"DM Sans"', "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ['"Space Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
       },
       borderRadius: {
         lg: "var(--radius)",
