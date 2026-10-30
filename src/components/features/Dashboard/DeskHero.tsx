@@ -158,13 +158,13 @@ export default function DeskHero() {
             <Show
               when={userLocation()}
               fallback={
-                <p class="font-coord text-[10px] uppercase tracking-[0.2em] text-primary-foreground/65">
+                <p class="font-coord text-[10px] uppercase tracking-[0.2em] text-hero-foreground/65">
                   Plan
                 </p>
               }
             >
               {(loc) => (
-                <p class="font-coord text-[10px] uppercase tracking-[0.2em] text-primary-foreground/65">
+                <p class="font-coord text-[10px] uppercase tracking-[0.2em] text-hero-foreground/65">
                   <Show when={placeLabel(settledBrief(here))}>{(name) => <>{name()} · </>}</Show>
                   {formatCoord(loc().latitude, loc().longitude)}
                 </p>
@@ -173,14 +173,14 @@ export default function DeskHero() {
             <button
               type="button"
               onClick={() => setIsQuickSettingsOpen(true)}
-              class="rounded-lg border border-primary-foreground/25 p-2 text-primary-foreground/80 transition-transform hover:bg-primary-foreground/10 hover:text-primary-foreground active:scale-[0.98]"
+              class="rounded-lg border border-hero-foreground/25 p-2 text-hero-foreground/80 transition-transform hover:bg-hero-foreground/10 hover:text-hero-foreground active:scale-[0.98]"
               title="Quick settings"
             >
               <Settings class="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
 
-          <h1 class="max-w-2xl font-display text-3xl tracking-tight text-primary-foreground sm:text-5xl">
+          <h1 class="max-w-2xl font-display text-3xl tracking-tight text-hero-foreground sm:text-5xl">
             Where next
           </h1>
           <p class="loci-hero__subtitle mt-3 max-w-xl text-sm leading-6 sm:text-base">
@@ -198,7 +198,7 @@ export default function DeskHero() {
                 value={currentMessage()}
                 onInput={(e) => setCurrentMessage(e.target.value)}
                 placeholder="Lisbon for two days, walking, late dinners"
-                class="min-h-12 w-full flex-1 resize-none rounded-xl border border-primary-foreground/20 bg-primary-foreground/95 px-4 py-3 text-primary placeholder:text-primary/45 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+                class="min-h-12 w-full flex-1 resize-none rounded-xl border border-border bg-card px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
                 rows="1"
                 disabled={dictating()}
                 onKeyDown={(e) => {
@@ -240,11 +240,11 @@ export default function DeskHero() {
           </div>
           <DictationHint
             status={dictation()}
-            class="mt-2 text-xs text-primary-foreground/75"
-            errorClass="text-sm text-primary-foreground/90"
+            class="mt-2 text-xs text-hero-foreground/75"
+            errorClass="text-sm text-hero-foreground/90"
           />
           <Show when={searchError()}>
-            <p role="alert" class="mt-3 text-sm text-primary-foreground/90">
+            <p role="alert" class="mt-3 text-sm text-hero-foreground/90">
               {searchError()}
             </p>
           </Show>

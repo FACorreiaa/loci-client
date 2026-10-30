@@ -237,7 +237,7 @@ export default function TwoFactor(props: TwoFactorProps) {
                     alt="QR code for two-factor authentication setup"
                     width={220}
                     height={220}
-                    class="rounded-lg bg-white p-2 shrink-0"
+                    class="rounded-lg bg-card p-2 shrink-0"
                   />
                 )}
               </Show>

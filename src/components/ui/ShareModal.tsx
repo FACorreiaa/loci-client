@@ -90,16 +90,16 @@ export function ShareModal(props: ShareModalProps) {
   return (
     <Show when={props.isOpen}>
       <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
           {/* Header */}
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-border">
             <div class="flex items-center gap-2">
-              <Share2 class="w-5 h-5 text-blue-500" />
-              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Share</h2>
+              <Share2 class="w-5 h-5 text-primary" />
+              <h2 class="text-lg font-semibold text-foreground">Share</h2>
             </div>
             <button
               onClick={props.onClose}
-              class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              class="p-2 text-muted-foreground hover:text-muted-foreground rounded-lg hover:bg-muted transition-colors"
             >
               <X class="w-5 h-5" />
             </button>
@@ -108,14 +108,12 @@ export function ShareModal(props: ShareModalProps) {
           {/* Content */}
           <div class="p-6 space-y-4">
             {/* Title preview */}
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-              <h3 class="font-medium text-gray-900 dark:text-white">{props.title}</h3>
+            <div class="bg-muted rounded-lg p-4">
+              <h3 class="font-medium text-foreground">{props.title}</h3>
               <Show when={props.description}>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-                  {props.description}
-                </p>
+                <p class="text-sm text-muted-foreground mt-1 line-clamp-2">{props.description}</p>
               </Show>
-              <span class="inline-block px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full mt-2">
+              <span class="inline-block px-2 py-0.5 text-xs font-medium bg-holo/10 text-holo rounded-full mt-2">
                 {props.contentType}
               </span>
             </div>
@@ -145,12 +143,12 @@ export function ShareModal(props: ShareModalProps) {
                   type="text"
                   value={shareUrl()}
                   readonly
-                  class="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm truncate"
+                  class="flex-1 px-4 py-2.5 rounded-xl border border-border bg-muted text-foreground text-sm truncate"
                 />
                 <Button onClick={handleCopy} variant="secondary" class="gap-1.5">
                   {isCopied() ? (
                     <>
-                      <Check class="w-4 h-4 text-green-500" />
+                      <Check class="w-4 h-4 text-success" />
                       Copied
                     </>
                   ) : (
@@ -166,31 +164,31 @@ export function ShareModal(props: ShareModalProps) {
               <div class="flex gap-3 justify-center pt-2">
                 <button
                   onClick={handleNativeShare}
-                  class="p-3 bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-800/60 rounded-full transition-colors"
+                  class="p-3 bg-holo/10 hover:bg-holo/10 rounded-full transition-colors"
                   title="Share"
                 >
-                  <Share2 class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <Share2 class="w-5 h-5 text-primary" />
                 </button>
                 <button
                   onClick={handleTwitterShare}
-                  class="p-3 bg-sky-100 dark:bg-sky-900/40 hover:bg-sky-200 dark:hover:bg-sky-800/60 rounded-full transition-colors"
+                  class="p-3 bg-holo/10 hover:bg-holo/10 rounded-full transition-colors"
                   title="Share on Twitter"
                 >
-                  <Twitter class="w-5 h-5 text-sky-600 dark:text-sky-400" />
+                  <Twitter class="w-5 h-5 text-primary" />
                 </button>
                 <button
                   onClick={handleWhatsAppShare}
-                  class="p-3 bg-green-100 dark:bg-green-900/40 hover:bg-green-200 dark:hover:bg-green-800/60 rounded-full transition-colors"
+                  class="p-3 bg-success/10 hover:bg-success/10 rounded-full transition-colors"
                   title="Share on WhatsApp"
                 >
-                  <MessageCircle class="w-5 h-5 text-green-600 dark:text-green-400" />
+                  <MessageCircle class="w-5 h-5 text-success" />
                 </button>
               </div>
             </Show>
 
             {/* Error */}
             <Show when={error()}>
-              <p class="text-sm text-red-500 text-center">{error()}</p>
+              <p class="text-sm text-destructive text-center">{error()}</p>
             </Show>
           </div>
         </div>

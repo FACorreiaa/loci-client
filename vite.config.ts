@@ -150,16 +150,23 @@ const pwa = VitePWA({
     short_name: "Loci",
     description:
       "Discover, plan, and explore your next adventure with AI-powered travel recommendations",
-    theme_color: "#1a1a1a",
-    background_color: "#fafafa",
+    // Mirrors public/manifest.json, which is the one the page links. This copy
+    // previously pointed at /images/loci.png, a file that does not exist.
+    theme_color: "#11161D",
+    background_color: "#11161D",
     display: "standalone",
     orientation: "portrait",
     scope: "/",
     start_url: "/",
     icons: [
-      { src: "/images/loci.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/images/loci.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/images/loci.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/images/brand/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/images/brand/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      {
+        src: "/images/brand/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
     ],
   },
   devOptions: {

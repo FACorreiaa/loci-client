@@ -1,6 +1,7 @@
 import { Component, Show, For } from "solid-js";
 import { FiArrowLeft, FiCheck } from "solid-icons/fi";
 import { LociLogo } from "~/components/brand/Logo";
+import { LociLockup } from "~/components/brand/Lockup";
 
 // Auth Layout Component
 const AuthLayout: Component<{ children: any; showBackButton?: boolean; onBack?: () => void }> = (
@@ -19,9 +20,7 @@ const AuthLayout: Component<{ children: any; showBackButton?: boolean; onBack?: 
           {/* Story column */}
           <div class="hidden lg:block">
             <div class="loci-card space-y-6 p-8">
-              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary text-xs font-semibold uppercase tracking-[0.2em]">
-                Travel OS
-              </div>
+              <LociLockup class="h-36 w-auto text-foreground" />
               <h1 class="text-4xl font-extrabold leading-tight text-foreground">
                 Join the taste-aware planner.
                 <span class="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary">
@@ -67,11 +66,11 @@ const AuthLayout: Component<{ children: any; showBackButton?: boolean; onBack?: 
               </button>
             </Show>
 
-            <div class="rounded-3xl p-5 sm:p-6 lg:p-7 bg-card border border-border text-card-foreground shadow-lg dark:shadow-[0_30px_100px_rgba(3,7,18,0.65)]">
+            <div class="rounded-3xl p-5 sm:p-6 lg:p-7 bg-card border border-border text-card-foreground shadow-lg dark:shadow-[0_30px_100px_-40px_hsl(215_40%_4%/0.8)]">
               <div class="flex items-center gap-2 mb-6">
-                {/* The lockup already reads "Loci", so the tile and the text
-                    label it stood in for are both gone rather than doubled. */}
-                <LociLogo class="h-7 sm:h-8 w-auto" />
+                {/* From lg up the lockup beside this card already says "Loci";
+                    below lg that panel is hidden, so the card carries the logo. */}
+                <LociLogo class="h-7 sm:h-8 w-auto lg:hidden" />
                 <span class="text-xs px-2 py-1 rounded-full ml-auto bg-primary/10 border border-primary/30 text-primary">
                   Private beta
                 </span>

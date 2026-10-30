@@ -26,11 +26,11 @@ interface ActionToolbarProps {
 
 export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
   return (
-    <div class="flex items-center gap-2 p-1.5 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md rounded-full border border-white/50 dark:border-white/10 shadow-sm w-fit transition-all hover:bg-white/80 dark:hover:bg-slate-900/80">
+    <div class="flex items-center gap-2 p-1.5 bg-white/50 backdrop-blur-md rounded-full border border-white/50 shadow-sm w-fit transition-all hover:bg-white/80">
       <Show when={props.onDownload}>
         <button
           onClick={props.onDownload}
-          class="p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+          class="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
           title="Download Data"
         >
           <Download class="w-4 h-4" />
@@ -61,8 +61,8 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
           onClick={props.onSaveOffline}
           class={`p-2 rounded-full transition-colors ${
             props.isSavedOffline
-              ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/10"
-              : "text-gray-600 dark:text-gray-300 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+              ? "text-success bg-success/10"
+              : "text-muted-foreground hover:text-success hover:bg-success/10"
           }`}
           title={props.isSavedOffline ? "Saved Offline" : "Save for Offline"}
         >
@@ -75,8 +75,8 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
           onClick={props.onBookmark}
           class={`p-2 rounded-full transition-colors ${
             props.isBookmarked
-              ? "text-blue-500 bg-blue-50 dark:bg-blue-900/10"
-              : "text-gray-600 dark:text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+              ? "text-holo bg-holo/10"
+              : "text-muted-foreground hover:text-primary hover:bg-primary/10"
           }`}
           title={props.isBookmarked ? "Saved to Lists" : "Save to Lists"}
         >
@@ -91,7 +91,7 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
           <Show when={props.onShare}>
             <button
               onClick={props.onShare}
-              class="p-2 text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors"
+              class="p-2 text-muted-foreground hover:text-success hover:bg-success/10 rounded-full transition-colors"
               title="Share"
             >
               <Share2 class="w-4 h-4" />

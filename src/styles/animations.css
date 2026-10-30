@@ -149,3 +149,41 @@
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
 }
+
+/* Reduced motion: entrances land in place, decorative loops stop. Spinners
+   (animate-spin) keep turning — they are the only sign that work is
+   happening — but pulses, pings and bounces are decoration. This file sits
+   outside Tailwind's layers, so these win over the utilities. */
+@media (prefers-reduced-motion: reduce) {
+  .stagger-animation,
+  .progressive-fade-in,
+  .scale-in {
+    animation: none;
+    opacity: 1;
+  }
+
+  .pulse-slow,
+  .skeleton-shimmer,
+  .animate-pulse,
+  .animate-ping,
+  .animate-bounce {
+    animation: none;
+  }
+}
+
+/* The mascot breathing: two pixels, four seconds. Only when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes mascot-idle {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+  }
+
+  .mascot-idle {
+    animation: mascot-idle 4s ease-in-out infinite;
+  }
+}

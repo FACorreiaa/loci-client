@@ -36,3 +36,6 @@ tmp
 dev-dist
 .lighthouse
 .lighthouseci
+
+# Approved source art for the brand traces: large raster, kept out of the repo.
+tools/brand/source/

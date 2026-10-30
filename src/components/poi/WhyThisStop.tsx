@@ -13,9 +13,9 @@ export interface WhyThisStopProps {
 
 const confidenceLabel = (uncertainty: number) => {
   const confidence = 1 - uncertainty;
-  if (confidence >= 0.75) return { label: "High confidence", tone: "text-emerald-600" };
-  if (confidence >= 0.5) return { label: "Medium confidence", tone: "text-amber-600" };
-  return { label: "Low confidence", tone: "text-orange-600" };
+  if (confidence >= 0.75) return { label: "High confidence", tone: "text-success" };
+  if (confidence >= 0.5) return { label: "Medium confidence", tone: "text-lantern" };
+  return { label: "Low confidence", tone: "text-lantern" };
 };
 
 /** Compact transparency block — "Why this", confidence, and missing-data notice. */

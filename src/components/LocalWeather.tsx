@@ -66,7 +66,7 @@ export default function LocalWeather(props: {
                       {Math.round(w.highC)}° / {Math.round(w.lowC)}°
                     </span>
                     <Show when={w.precipProb >= 0.3}>
-                      <span class="text-[10px] text-sky-600">
+                      <span class="text-[10px] text-primary">
                         {Math.round(w.precipProb * 100)}%
                       </span>
                     </Show>

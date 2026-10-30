@@ -1,23 +1,18 @@
 import { A } from "@solidjs/router";
-import { MapPin, Home, Search, Compass } from "lucide-solid";
+import { Home, Search, Compass } from "lucide-solid";
+import { Mascot } from "~/components/brand/Mascot";
 import { Button } from "~/ui/button";
 
 export default function NotFound() {
   return (
     <div class="min-h-screen flex items-center justify-center px-4 py-8">
       <div class="text-center max-w-md mx-auto loci-card p-8">
-        {/* Animated Icon */}
-        <div class="mb-8 relative">
-          <div class="w-24 h-24 mx-auto bg-primary rounded-full flex items-center justify-center shadow-lg ring-4 ring-border animate-pulse">
-            <MapPin class="w-12 h-12 text-primary-foreground" />
-          </div>
-          <div class="absolute -top-2 -right-2 w-6 h-6 bg-accent rounded-full flex items-center justify-center shadow-lg">
-            <span class="text-accent-foreground text-xs font-bold">!</span>
-          </div>
+        <div class="mb-6 flex justify-center">
+          <Mascot state="error" width={120} decorative idle />
         </div>
 
         {/* Error Message */}
-        <h1 class="text-4xl sm:text-5xl font-bold text-foreground mb-4">404</h1>
+        <h1 class="font-display text-4xl sm:text-5xl font-semibold text-foreground mb-4">404</h1>
         <h2 class="text-xl sm:text-2xl font-semibold text-muted-foreground mb-4">
           Destination Not Found
         </h2>

@@ -114,7 +114,7 @@ export default function TripExportMenu(props: TripExportMenuProps) {
         </Show>
         {busy() === "pdf" ? "…" : "PDF"}
         <Show when={!props.isPro && props.dayCount > 1}>
-          <Crown class="h-3.5 w-3.5 text-amber-500" />
+          <Crown class="h-3.5 w-3.5 text-lantern" />
         </Show>
       </button>
       <button
@@ -129,7 +129,7 @@ export default function TripExportMenu(props: TripExportMenuProps) {
         </Show>
         {busy() === "md" ? "…" : ".md"}
         <Show when={!props.isPro}>
-          <Crown class="h-3.5 w-3.5 text-amber-500" />
+          <Crown class="h-3.5 w-3.5 text-lantern" />
         </Show>
       </button>
       <Show when={!props.isPro}>

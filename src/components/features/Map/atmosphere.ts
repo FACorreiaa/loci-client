@@ -60,9 +60,9 @@ export const apply3DConfig = (map: mapboxgl.Map, isDark: boolean, options: Apply
     map.setFog({
       range: [1, 12],
       "horizon-blend": 0.2,
-      color: isDark ? "#0b1220" : "#dfe8f5",
-      "high-color": isDark ? "#0a0f1e" : "#a9c6ff",
-      "space-color": isDark ? "#05070d" : "#0a1a3a",
+      color: isDark ? "#11161d" : "#dfe8f5",
+      "high-color": isDark ? "#1e2a3a" : "#a9c6ff",
+      "space-color": isDark ? "#07090d" : "#0a1a3a",
       "star-intensity": isDark ? 0.35 : 0.0,
     });
   } catch {
@@ -96,11 +96,11 @@ export const applyGlobeAtmosphere = (map: mapboxgl.Map, isDark: boolean) => {
       range: [0.8, 8],
       // Thin blend = crisp rim. Raise toward 0.15 for a softer halo.
       "horizon-blend": isDark ? 0.06 : 0.1,
-      color: isDark ? "#0b1a14" : "#dfe8f5",
-      "high-color": isDark ? "#1d4f3f" : "#a9c6ff",
+      color: isDark ? "#11161d" : "#dfe8f5",
+      "high-color": isDark ? "#24364a" : "#a9c6ff",
       // Matches --background (157 22% 8%) so the globe sits in the page rather
       // than on it.
-      "space-color": isDark ? "#050807" : "#0a1a3a",
+      "space-color": isDark ? "#07090d" : "#0a1a3a",
       "star-intensity": isDark ? 0.55 : 0.0,
     });
   } catch {

@@ -1,7 +1,7 @@
 /**
  * PageLoading is the route-transition fallback shown while a lazily-loaded
  * page resolves — replacing a blank flash on navigation. Keeps the
- * cartographic register of the redesign (mono label, teal accent arc) and
+ * cartographic register (mono label, coral accent arc) and
  * respects reduced-motion.
  */
 export default function PageLoading() {

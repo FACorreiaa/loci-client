@@ -137,21 +137,21 @@ export function StreamingChatMessage(props: StreamingChatMessageProps) {
     <div class="streaming-chat-message">
       {/* Message header with bot avatar */}
       <div class="flex items-start gap-3 mb-4">
-        <div class="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+        <div class="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center">
           <Bot class="w-4 h-4 text-white" />
         </div>
         <div class="flex-1 min-w-0">
-          <div class="text-sm font-medium text-gray-900 mb-1">AI Assistant</div>
+          <div class="text-sm font-medium text-foreground mb-1">AI Assistant</div>
 
           {/* Streaming status */}
           <Show when={currentState.isStreaming}>
-            <div class="flex items-center gap-2 text-sm text-blue-600 mb-3">
+            <div class="flex items-center gap-2 text-sm text-primary mb-3">
               <Loader2 class="w-4 h-4 animate-spin" />
               <span>{currentState.currentStep}</span>
               <Show when={currentState.isConnected}>
                 <div class="flex items-center gap-1">
-                  <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span class="text-xs text-green-600">Live</span>
+                  <div class="w-2 h-2 bg-success rounded-full animate-pulse" />
+                  <span class="text-xs text-success">Live</span>
                 </div>
               </Show>
             </div>
@@ -160,13 +160,13 @@ export function StreamingChatMessage(props: StreamingChatMessageProps) {
           {/* Progress bar */}
           <Show when={currentState.isStreaming && currentState.progress > 0}>
             <div class="mb-4">
-              <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="w-full bg-muted rounded-full h-2">
                 <div
-                  class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  class="bg-primary h-2 rounded-full transition-all duration-300"
                   style={{ width: `${currentState.progress}%` }}
                 />
               </div>
-              <div class="text-xs text-gray-500 mt-1">
+              <div class="text-xs text-muted-foreground mt-1">
                 {Math.round(currentState.progress)}% complete
               </div>
             </div>
@@ -174,9 +174,9 @@ export function StreamingChatMessage(props: StreamingChatMessageProps) {
 
           {/* Error state */}
           <Show when={currentState.error}>
-            <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-              <p class="text-red-600 text-sm font-medium">Error</p>
-              <p class="text-red-700 text-sm">{currentState.error}</p>
+            <div class="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mb-4">
+              <p class="text-destructive text-sm font-medium">Error</p>
+              <p class="text-destructive text-sm">{currentState.error}</p>
             </div>
           </Show>
 
@@ -184,21 +184,21 @@ export function StreamingChatMessage(props: StreamingChatMessageProps) {
           <div class="space-y-3">
             <For each={displayedResults()}>
               {(result) => (
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 animate-fade-in">
+                <div class="bg-muted rounded-lg p-4 border border-border animate-fade-in">
                   <div class="flex items-start gap-3">
-                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <result.icon class="w-4 h-4 text-blue-600" />
+                    <div class="flex-shrink-0 w-8 h-8 bg-holo/10 rounded-lg flex items-center justify-center">
+                      <result.icon class="w-4 h-4 text-primary" />
                     </div>
                     <div class="flex-1">
-                      <h4 class="font-medium text-gray-900 mb-1">{result.title}</h4>
-                      <p class="text-sm text-gray-600 mb-2">{result.content}</p>
+                      <h4 class="font-medium text-foreground mb-1">{result.title}</h4>
+                      <p class="text-sm text-muted-foreground mb-2">{result.content}</p>
 
                       {/* Show partial data preview */}
                       <Show when={result.type === "pois" && result.data?.length > 0}>
                         <div class="space-y-1">
                           <For each={result.data.slice(0, 3)}>
                             {(poi: any) => (
-                              <div class="text-xs text-gray-500 bg-white rounded px-2 py-1">
+                              <div class="text-xs text-muted-foreground bg-card rounded px-2 py-1">
                                 <span class="font-medium">{poi.name}</span>
                                 {poi.description && (
                                   <span class="ml-2">- {poi.description.substring(0, 50)}...</span>
@@ -207,7 +207,7 @@ export function StreamingChatMessage(props: StreamingChatMessageProps) {
                             )}
                           </For>
                           <Show when={result.data.length > 3}>
-                            <div class="text-xs text-blue-600 font-medium">
+                            <div class="text-xs text-primary font-medium">
                               +{result.data.length - 3} more places
                             </div>
                           </Show>
@@ -215,14 +215,14 @@ export function StreamingChatMessage(props: StreamingChatMessageProps) {
                       </Show>
 
                       <Show when={result.type === "city" && result.data?.city}>
-                        <div class="text-xs text-gray-500 bg-white rounded px-2 py-1">
+                        <div class="text-xs text-muted-foreground bg-card rounded px-2 py-1">
                           📍 {result.data.city}
                           {result.data.country && `, ${result.data.country}`}
                         </div>
                       </Show>
 
                       <Show when={result.type === "itinerary" && result.data?.itinerary_name}>
-                        <div class="text-xs text-gray-500 bg-white rounded px-2 py-1">
+                        <div class="text-xs text-muted-foreground bg-card rounded px-2 py-1">
                           📅 {result.data.itinerary_name}
                           {result.data.duration_days && ` (${result.data.duration_days} days)`}
                         </div>
@@ -238,8 +238,8 @@ export function StreamingChatMessage(props: StreamingChatMessageProps) {
           <Show
             when={!currentState.isStreaming && !currentState.error && displayedResults().length > 0}
           >
-            <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p class="text-sm text-green-700 font-medium">
+            <div class="mt-4 p-3 bg-success/10 border border-success/30 rounded-lg">
+              <p class="text-sm text-success font-medium">
                 ✓ Your travel plan is ready! Click on any section above to explore in detail.
               </p>
             </div>
@@ -250,7 +250,7 @@ export function StreamingChatMessage(props: StreamingChatMessageProps) {
             <div class="mt-4">
               <button
                 onClick={stopStream}
-                class="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-300 hover:border-gray-400"
+                class="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded border border-border hover:border-border"
               >
                 Stop Generation
               </button>

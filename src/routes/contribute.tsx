@@ -113,13 +113,13 @@ export default function ContributePage() {
       <section class="loci-hero">
         <div class="loci-hero__content grid gap-6 p-6 sm:p-8 md:grid-cols-[1fr_auto] md:items-end">
           <div>
-            <p class="font-coord text-[10px] uppercase tracking-[0.2em] text-primary-foreground/65">
+            <p class="font-coord text-[10px] uppercase tracking-[0.2em] text-hero-foreground/65">
               Local scout network
             </p>
-            <h1 class="mt-3 max-w-2xl text-3xl text-primary-foreground sm:text-4xl">
+            <h1 class="mt-3 max-w-2xl text-3xl text-hero-foreground sm:text-4xl">
               Make the field guide more true.
             </h1>
-            <p class="mt-3 max-w-xl text-sm leading-6 text-primary-foreground/72">
+            <p class="mt-3 max-w-xl text-sm leading-6 text-hero-foreground/72">
               Confirm the useful details algorithms miss: current hours, accessibility, noise,
               crowds, and the feel of a place.
             </p>
@@ -127,15 +127,15 @@ export default function ContributePage() {
           <div class="grid grid-cols-3 gap-3 text-center">
             <div class="loci-hero__stat">
               <b class="block text-xl">{profile.data?.reputation || 0}</b>
-              <span class="text-[10px] text-primary-foreground/60">Reputation</span>
+              <span class="text-[10px] text-hero-foreground/60">Reputation</span>
             </div>
             <div class="loci-hero__stat">
               <b class="block text-xl">{profile.data?.submittedClaims || 0}</b>
-              <span class="text-[10px] text-primary-foreground/60">Reports</span>
+              <span class="text-[10px] text-hero-foreground/60">Reports</span>
             </div>
             <div class="loci-hero__stat">
               <b class="block text-xl">{profile.data?.acceptedClaims || 0}</b>
-              <span class="text-[10px] text-primary-foreground/60">Verified</span>
+              <span class="text-[10px] text-hero-foreground/60">Verified</span>
             </div>
           </div>
           <Show when={isAuthenticated()}>
@@ -143,12 +143,12 @@ export default function ContributePage() {
               <For each={profile.data?.badges ?? []}>
                 {(badge) => (
                   <span
-                    class="rounded-full border border-primary-foreground/25 px-3 py-1 text-xs text-primary-foreground"
+                    class="rounded-full border border-hero-foreground/25 px-3 py-1 text-xs text-hero-foreground"
                     title={badge.description || undefined}
                   >
                     <b class="font-semibold">{badge.name}</b>
                     <Show when={badge.description}>
-                      <span class="hidden text-primary-foreground/65 sm:inline">
+                      <span class="hidden text-hero-foreground/65 sm:inline">
                         {" "}
                         — {badge.description}
                       </span>
@@ -158,7 +158,7 @@ export default function ContributePage() {
               </For>
               <a
                 href="#my-reports"
-                class="text-xs font-semibold text-primary-foreground underline underline-offset-4 hover:text-primary-foreground/80"
+                class="text-xs font-semibold text-hero-foreground underline underline-offset-4 hover:text-hero-foreground/80"
               >
                 My reports
               </a>

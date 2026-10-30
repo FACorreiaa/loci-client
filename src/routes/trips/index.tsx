@@ -14,13 +14,13 @@ export default function TripsList() {
       <section class="loci-hero mb-8">
         <div class="loci-hero__content grid gap-8 p-6 sm:p-9 md:grid-cols-[1fr_auto] md:items-end">
           <div>
-            <p class="font-coord mb-3 text-[10px] uppercase tracking-[0.2em] text-primary-foreground/65">
+            <p class="font-coord mb-3 text-[10px] uppercase tracking-[0.2em] text-hero-foreground/65">
               Expedition desk · {trips.data?.length || 0} routes
             </p>
-            <h1 class="max-w-2xl text-4xl text-primary-foreground sm:text-5xl">
+            <h1 class="max-w-2xl text-4xl text-hero-foreground sm:text-5xl">
               Your adventures, made workable.
             </h1>
-            <p class="mt-4 max-w-xl text-sm leading-6 text-primary-foreground/72 sm:text-base">
+            <p class="mt-4 max-w-xl text-sm leading-6 text-hero-foreground/72 sm:text-base">
               Keep the places that feel right, move the rest, and leave with a day-by-day route you
               can actually follow.
             </p>
@@ -29,14 +29,14 @@ export default function TripsList() {
             <A href="/calendar">
               <Button
                 variant="outline"
-                class="gap-2 border-primary-foreground/25 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
+                class="gap-2 border-hero-foreground/25 bg-transparent text-hero-foreground hover:bg-hero-foreground/10"
               >
                 <CalendarDays class="h-4 w-4" />
                 Calendar
               </Button>
             </A>
             <A href="/discover">
-              <Button class="gap-2 border border-primary-foreground/25 bg-primary-foreground text-primary hover:bg-primary-foreground/90">
+              <Button class="gap-2 border border-hero-foreground/25 bg-hero-foreground text-background hover:bg-hero-foreground/90">
                 <Plus class="h-4 w-4" />
                 Plan a new trip
               </Button>

@@ -18,7 +18,7 @@ export function SelectionToolbar(props: SelectionToolbarProps) {
   return (
     <Show when={props.count > 0}>
       <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-        <div class="flex items-center gap-3 px-5 py-3 bg-blue-600 dark:bg-blue-700 text-white rounded-full shadow-2xl border border-blue-500/50 backdrop-blur-sm">
+        <div class="flex items-center gap-3 px-5 py-3 bg-primary text-primary-foreground rounded-full shadow-2xl border border-primary/50 backdrop-blur-sm">
           <div class="flex items-center gap-2">
             <CheckSquare class="w-4 h-4" />
             <span class="text-sm font-medium">

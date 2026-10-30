@@ -45,12 +45,12 @@ export default function LocationPermissionPrompt(props: LocationPermissionPrompt
   return (
     <Show when={isVisible() && permissionStatus() !== "granted"}>
       <div
-        class={`fixed bottom-4 right-4 max-w-sm bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50 ${props.className || ""}`}
+        class={`fixed bottom-4 right-4 max-w-sm bg-card rounded-lg shadow-lg border border-border p-4 z-50 ${props.className || ""}`}
       >
         {/* Close button */}
         <button
           onClick={handleDismiss}
-          class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-muted-foreground transition-colors"
           aria-label="Close"
         >
           <X class="w-4 h-4" />
@@ -59,20 +59,18 @@ export default function LocationPermissionPrompt(props: LocationPermissionPrompt
         <div class="pr-6">
           {/* Header */}
           <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-              <MapPin class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div class="w-10 h-10 bg-holo/10 rounded-full flex items-center justify-center">
+              <MapPin class="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 class="font-semibold text-gray-900 dark:text-white text-sm">
-                Better Recommendations
-              </h3>
-              <p class="text-xs text-gray-600 dark:text-gray-300">Find places near you</p>
+              <h3 class="font-semibold text-foreground text-sm">Better Recommendations</h3>
+              <p class="text-xs text-muted-foreground">Find places near you</p>
             </div>
           </div>
 
           {/* Content */}
           <Show when={!hasRequested()}>
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+            <p class="text-sm text-muted-foreground mb-4">
               Allow location access to get personalized recommendations and accurate distances to
               nearby places.
             </p>
@@ -81,7 +79,7 @@ export default function LocationPermissionPrompt(props: LocationPermissionPrompt
               <button
                 onClick={handleRequestLocation}
                 disabled={isLoadingLocation()}
-                class="flex-1 bg-blue-600 dark:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                class="flex-1 bg-primary text-primary-foreground text-sm font-medium px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Show when={isLoadingLocation()} fallback={<Navigation class="w-4 h-4" />}>
                   <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -91,7 +89,7 @@ export default function LocationPermissionPrompt(props: LocationPermissionPrompt
 
               <button
                 onClick={handleDismiss}
-                class="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                class="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Skip
               </button>
@@ -100,11 +98,11 @@ export default function LocationPermissionPrompt(props: LocationPermissionPrompt
 
           {/* Error state */}
           <Show when={error()}>
-            <div class="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <AlertCircle class="w-4 h-4 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
+            <div class="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+              <AlertCircle class="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
               <div class="text-sm">
-                <p class="text-red-800 dark:text-red-200 font-medium">Location access denied</p>
-                <p class="text-red-600 dark:text-red-300 text-xs mt-1">
+                <p class="text-destructive font-medium">Location access denied</p>
+                <p class="text-destructive text-xs mt-1">
                   You can still use the app, but distances won't be calculated.
                 </p>
               </div>
@@ -113,9 +111,9 @@ export default function LocationPermissionPrompt(props: LocationPermissionPrompt
 
           {/* Success state */}
           <Show when={permissionStatus() === "granted"}>
-            <div class="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
-              <div class="w-4 h-4 bg-green-600 rounded-full flex items-center justify-center">
-                <div class="w-2 h-2 bg-white dark:bg-gray-800 rounded-full" />
+            <div class="flex items-center gap-2 text-success text-sm">
+              <div class="w-4 h-4 bg-success rounded-full flex items-center justify-center">
+                <div class="w-2 h-2 bg-card rounded-full" />
               </div>
               <span>Location enabled! You'll see distances to nearby places.</span>
             </div>

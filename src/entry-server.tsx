@@ -16,10 +16,10 @@ export default createHandler(() => (
           <link
             rel="preload"
             as="style"
-            href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Fraunces:opsz,wght@9..144,500..700&family=Space+Mono:wght@400;700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Outfit:wght@300..700&family=Space+Mono:wght@400;700&display=swap"
           />
           <link
-            href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Fraunces:opsz,wght@9..144,500..700&family=Space+Mono:wght@400;700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Outfit:wght@300..700&family=Space+Mono:wght@400;700&display=swap"
             rel="stylesheet"
             media="print"
             onLoad={(e) => {
@@ -28,7 +28,7 @@ export default createHandler(() => (
           />
           <noscript>
             <link
-              href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Fraunces:opsz,wght@9..144,500..700&family=Space+Mono:wght@400;700&display=swap"
+              href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Outfit:wght@300..700&family=Space+Mono:wght@400;700&display=swap"
               rel="stylesheet"
             />
           </noscript>
@@ -40,10 +40,10 @@ export default createHandler(() => (
           <meta name="apple-mobile-web-app-title" content="Loci" />
           <meta name="format-detection" content="telephone=no" />
           <meta name="mobile-web-app-capable" content="yes" />
-          <meta name="theme-color" content="#FDF5EA" />
+          <meta name="theme-color" content="#11161D" />
 
           {/* Apple Touch Icons. iOS ignores transparency here and composites onto
-              black, so these are the opaque cream-tiled icon, not the favicon. */}
+              black, so these are the opaque obsidian-tiled icon, not the favicon. */}
           <link rel="apple-touch-icon" sizes="180x180" href="/images/brand/icon-180.png" />
 
           {/* Icons. The SVG is what a modern browser picks; the .ico is the
@@ -57,7 +57,7 @@ export default createHandler(() => (
           <link rel="manifest" href="/manifest.json" />
 
           {/* Microsoft */}
-          <meta name="msapplication-TileColor" content="#FDF5EA" />
+          <meta name="msapplication-TileColor" content="#11161D" />
           <meta name="msapplication-TileImage" content="/images/brand/icon-144.png" />
           <meta name="msapplication-config" content="/browserconfig.xml" />
 
@@ -78,7 +78,7 @@ export default createHandler(() => (
                 try {
                   var localTheme = localStorage.getItem('theme');
                   var supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  var useDark = localTheme === 'dark' || (localTheme === 'system' && supportDarkMode) || (!localTheme && supportDarkMode);
+                  var useDark = localTheme === 'dark' || (localTheme === 'system' && supportDarkMode) || !localTheme;
                   if (useDark) {
                     document.documentElement.classList.add('dark');
                     document.documentElement.setAttribute('data-kb-theme', 'dark');
@@ -94,7 +94,7 @@ export default createHandler(() => (
                   
                   document.documentElement.setAttribute('data-theme', 'loci');
                   localStorage.setItem('designTheme', 'loci');
-                  var themeColor = useDark ? '#323B42' : '#FDF5EA';
+                  var themeColor = useDark ? '#11161D' : '#FBF6EF';
                   var themeMeta = document.querySelector('meta[name="theme-color"]');
                   if (themeMeta) themeMeta.setAttribute('content', themeColor);
                 } catch (e) {

@@ -10,7 +10,6 @@ import {
   Globe,
   Loader2,
   X,
-  FolderPlus,
   ChevronRight,
   Calendar,
   Bookmark,
@@ -30,6 +29,7 @@ import { useSelection, type SelectionItem } from "~/lib/hooks/useSelection";
 import { SelectionToolbar } from "~/components/ui/SelectionToolbar";
 import { ErrorView } from "~/components/ErrorView";
 import { friendlyError } from "~/lib/connect-errors";
+import { EmptyState } from "~/components/shared/EmptyState";
 
 export default function ListsPage() {
   // State
@@ -281,23 +281,20 @@ export default function ListsPage() {
 
           {/* Empty State */}
           <Show when={!isLoading() && !listsQuery.isError && filteredLists().length === 0}>
-            <div class="text-center py-16">
-              <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-accent/10 flex items-center justify-center">
-                <FolderPlus class="w-10 h-10 text-accent" />
-              </div>
-              <h3 class="text-xl font-semibold text-foreground mb-2">
-                {activeTab() === "all"
-                  ? "No Lists Yet"
-                  : `No ${activeTab() === "custom" ? "Custom Lists" : "Itineraries"} Yet`}
-              </h3>
-              <p class="text-muted-foreground mb-6 max-w-md mx-auto">
-                Create your first list to start organizing your favorite places and travel plans.
-              </p>
-              <Button onClick={openCreateModal} class="gap-2">
-                <Plus class="w-5 h-5" />
-                Create Your First List
-              </Button>
-            </div>
+            <EmptyState
+              title={
+                activeTab() === "all"
+                  ? "No lists yet"
+                  : `No ${activeTab() === "custom" ? "custom lists" : "itineraries"} yet`
+              }
+              body="Create your first list to start organizing your favorite places and travel plans."
+              action={
+                <Button onClick={openCreateModal} class="gap-2">
+                  <Plus class="w-5 h-5" />
+                  Create your first list
+                </Button>
+              }
+            />
           </Show>
 
           {/* Lists Grid */}
@@ -405,7 +402,7 @@ export default function ListsPage() {
 
                     <A
                       href={`/lists/${list.id}`}
-                      class="flex items-center justify-center gap-2 w-full py-2.5 bg-muted dark:bg-white/5 hover:bg-primary/10 text-foreground hover:text-primary rounded-xl font-medium text-sm transition-colors"
+                      class="flex items-center justify-center gap-2 w-full py-2.5 bg-muted hover:bg-primary/10 text-foreground hover:text-primary rounded-xl font-medium text-sm transition-colors"
                     >
                       View List
                       <ChevronRight class="w-4 h-4" />

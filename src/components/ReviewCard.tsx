@@ -87,7 +87,7 @@ export default function ReviewCard(props: ReviewCardProps) {
               <For each={[1, 2, 3, 4, 5]}>
                 {(i) => (
                   <Star
-                    class={`h-4 w-4 ${i <= r().rating ? "fill-current text-yellow-500" : "text-muted-foreground/40"}`}
+                    class={`h-4 w-4 ${i <= r().rating ? "fill-current text-lantern" : "text-muted-foreground/40"}`}
                     aria-hidden="true"
                   />
                 )}

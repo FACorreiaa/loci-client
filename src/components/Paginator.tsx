@@ -55,14 +55,14 @@ export default function Paginator(props: PaginatorProps) {
 
   return (
     <div
-      class={`flex items-center justify-between bg-white dark:bg-gray-800 px-4 py-3 sm:px-6 border-t border-gray-200 dark:border-gray-700 ${props.className || ""}`}
+      class={`flex items-center justify-between bg-card px-4 py-3 sm:px-6 border-t border-border ${props.className || ""}`}
     >
       {/* Mobile pagination */}
       <div class="flex flex-1 justify-between sm:hidden">
         <button
           onClick={() => props.currentPage > 1 && props.onPageChange(props.currentPage - 1)}
           disabled={props.currentPage === 1}
-          class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronLeft class="w-4 h-4 mr-1" />
           Previous
@@ -72,7 +72,7 @@ export default function Paginator(props: PaginatorProps) {
             props.currentPage < props.totalPages && props.onPageChange(props.currentPage + 1)
           }
           disabled={props.currentPage === props.totalPages}
-          class="relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Next
           <ChevronRight class="w-4 h-4 ml-1" />
@@ -82,7 +82,7 @@ export default function Paginator(props: PaginatorProps) {
       {/* Desktop pagination */}
       <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
-          <p class="text-sm text-gray-700 dark:text-gray-300">
+          <p class="text-sm text-foreground">
             Showing <span class="font-medium">{startItem()}</span> to{" "}
             <span class="font-medium">{endItem()}</span> of{" "}
             <span class="font-medium">{props.totalItems}</span> results
@@ -97,7 +97,7 @@ export default function Paginator(props: PaginatorProps) {
             <button
               onClick={() => props.currentPage > 1 && props.onPageChange(props.currentPage - 1)}
               disabled={props.currentPage === 1}
-              class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span class="sr-only">Previous</span>
               <ChevronLeft class="w-5 h-5" />
@@ -109,7 +109,7 @@ export default function Paginator(props: PaginatorProps) {
                 <Show
                   when={typeof page === "number"}
                   fallback={
-                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span class="relative inline-flex items-center px-4 py-2 border border-border bg-card text-sm font-medium text-foreground">
                       <MoreHorizontal class="w-4 h-4" />
                     </span>
                   }
@@ -118,8 +118,8 @@ export default function Paginator(props: PaginatorProps) {
                     onClick={() => props.onPageChange(page as number)}
                     class={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                       props.currentPage === page
-                        ? "z-10 bg-blue-50 dark:bg-blue-900 border-blue-500 text-blue-600 dark:text-blue-400"
-                        : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        ? "z-10 bg-holo/10 border-holo text-holo"
+                        : "bg-card border-border text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     {page}
@@ -134,7 +134,7 @@ export default function Paginator(props: PaginatorProps) {
                 props.currentPage < props.totalPages && props.onPageChange(props.currentPage + 1)
               }
               disabled={props.currentPage === props.totalPages}
-              class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-border bg-card text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span class="sr-only">Next</span>
               <ChevronRight class="w-5 h-5" />

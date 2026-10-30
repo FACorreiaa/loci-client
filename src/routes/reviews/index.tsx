@@ -110,7 +110,7 @@ export default function MyReviewsPage() {
             </span>
             <span>·</span>
             <span class="inline-flex items-center gap-1">
-              <Star class="h-4 w-4 fill-current text-yellow-500" aria-hidden="true" />
+              <Star class="h-4 w-4 fill-current text-lantern" aria-hidden="true" />
               {summary().averageGiven.toFixed(1)} average given
             </span>
             <Show when={summary().helpfulReceived > 0}>
@@ -127,10 +127,7 @@ export default function MyReviewsPage() {
                 <li class="flex items-center gap-2 text-xs text-muted-foreground">
                   <span class="w-8">{star} ★</span>
                   <span class="h-2 flex-1 overflow-hidden rounded bg-muted">
-                    <span
-                      class="block h-full bg-yellow-500"
-                      style={{ width: `${shares()[star]}%` }}
-                    />
+                    <span class="block h-full bg-lantern" style={{ width: `${shares()[star]}%` }} />
                   </span>
                   <span class="w-8 text-right tabular-nums">{summary().distribution[star]}</span>
                 </li>

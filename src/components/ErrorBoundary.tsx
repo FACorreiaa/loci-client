@@ -59,10 +59,10 @@ const ErrorBoundary: Component<ErrorBoundaryProps> = (props) => {
                   <div
                     class={`w-24 h-24 mx-auto rounded-full flex items-center justify-center animate-pulse shadow-[0_18px_38px_rgba(248,113,113,0.25)] ${
                       error instanceof APIError && error.code === "CONNECTION_REFUSED"
-                        ? "bg-orange-500"
+                        ? "bg-lantern"
                         : error instanceof APIError && error.code === "NETWORK_ERROR"
-                          ? "bg-amber-500"
-                          : "bg-red-500"
+                          ? "bg-lantern"
+                          : "bg-destructive"
                     }`}
                   >
                     <Show
@@ -82,7 +82,7 @@ const ErrorBoundary: Component<ErrorBoundaryProps> = (props) => {
                 </div>
 
                 {/* Error Message */}
-                <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                <h1 class="text-3xl sm:text-4xl font-bold text-foreground mb-4">
                   {error instanceof APIError && error.code === "CONNECTION_REFUSED"
                     ? "Server Unavailable"
                     : error instanceof APIError && error.code === "NETWORK_ERROR"
@@ -90,7 +90,7 @@ const ErrorBoundary: Component<ErrorBoundaryProps> = (props) => {
                       : "Something went wrong"}
                 </h1>
 
-                <p class="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+                <p class="text-muted-foreground mb-6 leading-relaxed">
                   {error instanceof APIError && error.code === "CONNECTION_REFUSED"
                     ? "We't reach our servers right now. They might be down for maintenance or experiencing issues."
                     : error instanceof APIError && error.code === "NETWORK_ERROR"
@@ -101,10 +101,10 @@ const ErrorBoundary: Component<ErrorBoundaryProps> = (props) => {
                 {/* Error Details (in development) */}
                 <Show when={import.meta.env.DEV}>
                   <details class="mb-6 text-left">
-                    <summary class="cursor-pointer text-sm text-gray-500 dark:text-gray-400 mb-2">
+                    <summary class="cursor-pointer text-sm text-muted-foreground mb-2">
                       Error Details (dev only)
                     </summary>
-                    <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs font-mono text-gray-700 dark:text-gray-300 overflow-auto max-h-32">
+                    <div class="bg-muted p-3 rounded text-xs font-mono text-foreground overflow-auto max-h-32">
                       <div class="mb-2">
                         <strong>Message:</strong> {error!.message}
                       </div>
@@ -130,14 +130,14 @@ const ErrorBoundary: Component<ErrorBoundaryProps> = (props) => {
                 <div class="space-y-3 sm:space-y-0 sm:space-x-4 sm:flex sm:justify-center mb-8">
                   <button
                     onClick={retry}
-                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                   >
                     <RefreshCw class="w-4 h-4" />
                     Try Again
                   </button>
                   <A
                     href="/"
-                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium"
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
                   >
                     <Home class="w-4 h-4" />
                     Back to Home
@@ -146,18 +146,18 @@ const ErrorBoundary: Component<ErrorBoundaryProps> = (props) => {
 
                 {/* Helpful Links for specific errors */}
                 <Show when={error instanceof APIError && error.code === "CONNECTION_REFUSED"}>
-                  <div class="text-sm text-gray-500 dark:text-gray-400">
+                  <div class="text-sm text-muted-foreground">
                     <p class="mb-2">While our servers are down, you can still:</p>
                     <div class="flex flex-wrap justify-center gap-2">
-                      <A href="/saved" class="text-blue-600 hover:text-blue-700">
+                      <A href="/saved" class="text-primary hover:text-primary">
                         View Favorites
                       </A>
                       <span>•</span>
-                      <A href="/lists" class="text-blue-600 hover:text-blue-700">
+                      <A href="/lists" class="text-primary hover:text-primary">
                         Browse Lists
                       </A>
                       <span>•</span>
-                      <A href="/profile" class="text-blue-600 hover:text-blue-700">
+                      <A href="/profile" class="text-primary hover:text-primary">
                         Edit Profile
                       </A>
                     </div>
