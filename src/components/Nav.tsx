@@ -113,110 +113,105 @@ export default function Nav() {
               public page. Public items are the default; the journey items swap
               in once `isAuthenticated()` settles. Only the account cluster on
               the right waits, and it reserves its width while it does. */}
-          <>
-            <div class="hidden flex-1 items-center justify-center gap-1 md:flex">
-              <For each={isAuthenticated() ? journeyItems : publicItems}>
-                {(item) => {
-                  const Icon = "icon" in item ? (item.icon as typeof Compass) : undefined;
-                  return (
-                    <A
-                      href={item.href}
-                      onMouseEnter={() => handleLinkPreload(item.href)}
-                      class="jb-tab flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground"
-                      activeClass="jb-tab-active"
-                    >
-                      <Show when={Icon}>
-                        <Dynamic component={Icon} class="h-4 w-4" />
-                      </Show>
-                      {item.name}
-                      <Show when={item.href === "/friends"}>
-                        <FriendRequestBadge />
-                      </Show>
-                    </A>
-                  );
-                }}
-              </For>
-            </div>
-
-            <div class="ml-auto hidden items-center gap-2 md:flex">
-              <SocialXLink />
-              <ConnectAgentCta />
-              <ThemeSelector />
-              <Show
-                when={!isLoading()}
-                fallback={<span class="inline-block h-10 w-56" aria-hidden="true" />}
-              >
-                <Show
-                  when={isAuthenticated()}
-                  fallback={
-                    <>
-                      <A
-                        href="/auth/signin"
-                        class="px-3 py-2 text-sm font-semibold text-foreground"
-                      >
-                        Sign in
-                      </A>
-                      <A href="/auth/signup">
-                        <Button class="gap-2 rounded-lg">
-                          <Sparkles class="h-4 w-4" />
-                          Start exploring
-                        </Button>
-                      </A>
-                    </>
-                  }
-                >
-                  <ProPlanBadge size="sm" />
-                  <div class="relative">
-                    <button
-                      type="button"
-                      onClick={() => setAccountOpen(!accountOpen())}
-                      class="flex items-center gap-2 rounded-lg border border-border bg-card px-2 py-1.5 text-sm font-semibold hover:border-accent"
-                      aria-expanded={accountOpen()}
-                    >
-                      <span class="grid h-8 w-8 place-items-center rounded-full bg-secondary text-xs text-secondary-foreground">
-                        {initials()}
-                      </span>
-                      <span class="max-w-28 truncate">
-                        {user()?.display_name || user()?.username || "Traveler"}
-                      </span>
-                      <ChevronDown class="h-4 w-4 text-muted-foreground" />
-                    </button>
-                    <Show when={accountOpen()}>
-                      <div class="absolute right-0 top-full mt-2 w-60 rounded-xl border border-border bg-popover p-2 shadow-xl">
-                        <p class="px-3 pb-2 pt-1 font-coord text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                          Your field kit
-                        </p>
-                        <For each={accountItems}>
-                          {(item) => (
-                            <A
-                              href={item.href}
-                              onClick={() => setAccountOpen(false)}
-                              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
-                            >
-                              <Dynamic component={item.icon} class="h-4 w-4" />
-                              {item.name}
-                              <Show when={item.href === "/friends"}>
-                                <FriendRequestBadge />
-                              </Show>
-                            </A>
-                          )}
-                        </For>
-                        <div class="my-2 border-t border-border" />
-                        <button
-                          type="button"
-                          onClick={() => void logout()}
-                          class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10"
-                        >
-                          <LogOut class="h-4 w-4" />
-                          Sign out
-                        </button>
-                      </div>
+          <div class="hidden flex-1 items-center justify-center gap-1 md:flex">
+            <For each={isAuthenticated() ? journeyItems : publicItems}>
+              {(item) => {
+                const Icon = "icon" in item ? (item.icon as typeof Compass) : undefined;
+                return (
+                  <A
+                    href={item.href}
+                    onMouseEnter={() => handleLinkPreload(item.href)}
+                    class="jb-tab flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground"
+                    activeClass="jb-tab-active"
+                  >
+                    <Show when={Icon}>
+                      <Dynamic component={Icon} class="h-4 w-4" />
                     </Show>
-                  </div>
-                </Show>
+                    {item.name}
+                    <Show when={item.href === "/friends"}>
+                      <FriendRequestBadge />
+                    </Show>
+                  </A>
+                );
+              }}
+            </For>
+          </div>
+
+          <div class="ml-auto hidden items-center gap-2 md:flex">
+            <SocialXLink />
+            <ConnectAgentCta />
+            <ThemeSelector />
+            <Show
+              when={!isLoading()}
+              fallback={<span class="inline-block h-10 w-56" aria-hidden="true" />}
+            >
+              <Show
+                when={isAuthenticated()}
+                fallback={
+                  <>
+                    <A href="/auth/signin" class="px-3 py-2 text-sm font-semibold text-foreground">
+                      Sign in
+                    </A>
+                    <A href="/auth/signup">
+                      <Button class="gap-2 rounded-lg">
+                        <Sparkles class="h-4 w-4" />
+                        Start exploring
+                      </Button>
+                    </A>
+                  </>
+                }
+              >
+                <ProPlanBadge size="sm" />
+                <div class="relative">
+                  <button
+                    type="button"
+                    onClick={() => setAccountOpen(!accountOpen())}
+                    class="flex items-center gap-2 rounded-lg border border-border bg-card px-2 py-1.5 text-sm font-semibold hover:border-accent"
+                    aria-expanded={accountOpen()}
+                  >
+                    <span class="grid h-8 w-8 place-items-center rounded-full bg-secondary text-xs text-secondary-foreground">
+                      {initials()}
+                    </span>
+                    <span class="max-w-28 truncate">
+                      {user()?.display_name || user()?.username || "Traveler"}
+                    </span>
+                    <ChevronDown class="h-4 w-4 text-muted-foreground" />
+                  </button>
+                  <Show when={accountOpen()}>
+                    <div class="absolute right-0 top-full mt-2 w-60 rounded-xl border border-border bg-popover p-2 shadow-xl">
+                      <p class="px-3 pb-2 pt-1 font-coord text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                        Your field kit
+                      </p>
+                      <For each={accountItems}>
+                        {(item) => (
+                          <A
+                            href={item.href}
+                            onClick={() => setAccountOpen(false)}
+                            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          >
+                            <Dynamic component={item.icon} class="h-4 w-4" />
+                            {item.name}
+                            <Show when={item.href === "/friends"}>
+                              <FriendRequestBadge />
+                            </Show>
+                          </A>
+                        )}
+                      </For>
+                      <div class="my-2 border-t border-border" />
+                      <button
+                        type="button"
+                        onClick={() => void logout()}
+                        class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-destructive hover:bg-destructive/10"
+                      >
+                        <LogOut class="h-4 w-4" />
+                        Sign out
+                      </button>
+                    </div>
+                  </Show>
+                </div>
               </Show>
-            </div>
-          </>
+            </Show>
+          </div>
 
           {/* The desktop row carries its own; this one sits by the menu button. */}
           <SocialXLink class="-mr-3 ml-auto md:hidden" />
