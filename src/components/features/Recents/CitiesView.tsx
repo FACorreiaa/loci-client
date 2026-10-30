@@ -17,7 +17,10 @@ import {
   Bookmark,
   CheckSquare,
   Square,
+  Flame,
+  Building2,
 } from "lucide-solid";
+import { Dynamic } from "solid-js/web";
 import { useRecentInteractions } from "~/lib/api/recents";
 import type { CityInteractions } from "~/lib/api/types";
 import { Button } from "~/ui/button";
@@ -141,18 +144,18 @@ export default function CitiesView() {
       return {
         level: "high",
         color: "text-destructive bg-destructive/10",
-        icon: "🔥",
+        icon: Flame,
       };
     if (interactionCount >= 5)
       return {
         level: "medium",
         color: "text-accent bg-accent/10",
-        icon: "⭐",
+        icon: Star,
       };
     return {
       level: "low",
       color: "text-primary bg-primary/10",
-      icon: "📍",
+      icon: MapPin,
     };
   };
 
@@ -170,12 +173,16 @@ export default function CitiesView() {
       >
         {/* Header Image */}
         <div class="relative h-32 bg-muted/50 border-b border-border">
-          <div class="absolute inset-0 flex items-center justify-center text-3xl">🏙️</div>
+          <div class="absolute inset-0 flex items-center justify-center text-muted-foreground">
+            <Building2 class="h-9 w-9" aria-hidden="true" />
+          </div>
 
           {/* Activity Badge */}
           <div class="absolute top-3 left-3">
-            <span class={`px-2 py-1 rounded-full text-xs font-medium ${activityInfo.color}`}>
-              <span class="mr-1">{activityInfo.icon}</span>
+            <span
+              class={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${activityInfo.color}`}
+            >
+              <Dynamic component={activityInfo.icon} class="h-3 w-3" aria-hidden="true" />
               {activityInfo.level === "high"
                 ? "Very Active"
                 : activityInfo.level === "medium"
@@ -263,8 +270,8 @@ export default function CitiesView() {
       >
         <div class="flex items-center gap-4">
           {/* City Icon */}
-          <div class="w-12 h-12 bg-muted/50 border border-border rounded-lg flex items-center justify-center text-xl flex-shrink-0">
-            🏙️
+          <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-muted/50 text-muted-foreground">
+            <Building2 class="h-5 w-5" aria-hidden="true" />
           </div>
 
           {/* Content */}
@@ -280,8 +287,10 @@ export default function CitiesView() {
                 </p>
               </div>
               <div class="flex items-center gap-2">
-                <span class={`px-2 py-1 rounded-full text-xs font-medium ${activityInfo.color}`}>
-                  <span class="mr-1">{activityInfo.icon}</span>
+                <span
+                  class={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${activityInfo.color}`}
+                >
+                  <Dynamic component={activityInfo.icon} class="h-3 w-3" aria-hidden="true" />
                   {activityInfo.level === "high"
                     ? "Very Active"
                     : activityInfo.level === "medium"

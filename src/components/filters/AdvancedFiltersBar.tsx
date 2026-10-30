@@ -56,9 +56,7 @@ export default function AdvancedFiltersBar(props: AdvancedFiltersBarProps) {
   return (
     <div class="mb-4">
       <div class="mb-2 flex items-center gap-2">
-        <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Advanced filters
-        </p>
+        <p class="text-xs font-medium uppercase tracking-wide text-foreground">Advanced filters</p>
         <Show when={!props.isPro}>
           <span class="inline-flex items-center gap-1 rounded-full border border-lantern/40 bg-lantern/10 px-2 py-0.5 text-[10px] font-medium text-lantern">
             <Crown class="h-3 w-3" />
@@ -76,8 +74,8 @@ export default function AdvancedFiltersBar(props: AdvancedFiltersBarProps) {
                 class={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
                   on()
                     ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                } ${!props.isPro ? "opacity-80" : ""}`}
+                    : "border-border text-foreground hover:border-primary/40"
+                }`}
                 onClick={() => toggle(f.id)}
                 aria-pressed={on()}
               >

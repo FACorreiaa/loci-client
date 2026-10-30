@@ -20,6 +20,9 @@ module.exports = {
       },
     },
     extend: {
+      // Without these, Tailwind's `font-serif` and `font-mono` resolve to the
+      // browser's ui-serif / ui-monospace stacks, which is how the nav wordmark
+      // shipped in Times. The brand faces are the only serif and mono here.
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

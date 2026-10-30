@@ -73,21 +73,24 @@ const FavoriteButton: Component<FavoriteButtonProps> = (props) => {
       class={`
         ${sizeClasses()}
         flex items-center justify-center gap-2
-        rounded-full transition-all duration-200
+        rounded-full border transition-colors duration-200
         ${
           isFavorited()
-            ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            : "bg-white/90 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            ? "border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            : "border-border bg-card text-muted-foreground hover:border-destructive/40 hover:text-destructive"
         }
-        backdrop-blur-sm shadow-lg
-        border border-border
         disabled:opacity-50 disabled:cursor-not-allowed
         ${props.className || ""}
       `}
       title={isFavorited() ? "Remove from favorites" : "Add to favorites"}
+      aria-label={isFavorited() ? "Remove from favorites" : "Add to favorites"}
+      aria-pressed={isFavorited()}
     >
-      <Show when={!isLoading()} fallback={<Loader2 class={`${iconSizes()} animate-spin`} />}>
-        <Heart class={`${iconSizes()} ${isFavorited() ? "fill-current" : ""}`} />
+      <Show
+        when={!isLoading()}
+        fallback={<Loader2 class={`${iconSizes()} animate-spin`} aria-hidden="true" />}
+      >
+        <Heart class={`${iconSizes()} ${isFavorited() ? "fill-current" : ""}`} aria-hidden="true" />
       </Show>
       <Show when={props.showLabel}>
         <span class="text-sm font-medium">{isFavorited() ? "Favorited" : "Favorite"}</span>

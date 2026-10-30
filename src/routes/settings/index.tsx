@@ -508,11 +508,16 @@ function SettingsPageContent() {
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div class="sm:col-span-2 pb-2">
-                  <label class="block text-xs sm:text-sm font-semibold text-foreground mb-2">
+                  <label
+                    for="settings-username"
+                    class="block text-xs sm:text-sm font-semibold text-foreground mb-2"
+                  >
                     Username
                   </label>
                   <input
+                    id="settings-username"
                     type="text"
+                    autocomplete="username"
                     value={userProfile().username}
                     onInput={(e) => updateProfile("username", e.target.value)}
                     class="w-full px-3 sm:px-4 py-2.5 rounded-xl border border-border focus:ring-2 focus:ring-ring focus:border-transparent text-sm sm:text-base bg-background text-foreground shadow-inner"
@@ -520,11 +525,16 @@ function SettingsPageContent() {
                   />
                 </div>
                 <div class="pb-2">
-                  <label class="block text-xs sm:text-sm font-semibold text-foreground mb-2">
+                  <label
+                    for="settings-firstname"
+                    class="block text-xs sm:text-sm font-semibold text-foreground mb-2"
+                  >
                     First Name
                   </label>
                   <input
+                    id="settings-firstname"
                     type="text"
+                    autocomplete="given-name"
                     value={userProfile().firstname}
                     onInput={(e) => updateProfile("firstname", e.target.value)}
                     class="w-full px-3 sm:px-4 py-2.5 rounded-xl border border-border focus:ring-2 focus:ring-ring focus:border-transparent text-sm sm:text-base bg-background text-foreground shadow-inner"
@@ -532,11 +542,16 @@ function SettingsPageContent() {
                   />
                 </div>
                 <div class="pb-2">
-                  <label class="block text-xs sm:text-sm font-semibold text-foreground mb-2">
+                  <label
+                    for="settings-lastname"
+                    class="block text-xs sm:text-sm font-semibold text-foreground mb-2"
+                  >
                     Last Name
                   </label>
                   <input
+                    id="settings-lastname"
                     type="text"
+                    autocomplete="family-name"
                     value={userProfile().lastname}
                     onInput={(e) => updateProfile("lastname", e.target.value)}
                     class="w-full px-3 sm:px-4 py-2.5 rounded-xl border border-border focus:ring-2 focus:ring-ring focus:border-transparent text-sm sm:text-base bg-background text-foreground shadow-inner"
@@ -544,13 +559,18 @@ function SettingsPageContent() {
                   />
                 </div>
                 <div class="pb-2">
-                  <label class="block text-xs sm:text-sm font-semibold text-foreground mb-2">
+                  <label
+                    for="settings-email"
+                    class="block text-xs sm:text-sm font-semibold text-foreground mb-2"
+                  >
                     Email
                   </label>
                   <div class="relative">
                     <Mail class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <input
+                      id="settings-email"
                       type="email"
+                      autocomplete="email"
                       value={userProfile().email}
                       onInput={(e) => updateProfile("email", e.target.value)}
                       class="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 rounded-xl border border-border focus:ring-2 focus:ring-ring focus:border-transparent text-sm sm:text-base bg-background text-foreground shadow-inner"
@@ -559,13 +579,18 @@ function SettingsPageContent() {
                   </div>
                 </div>
                 <div class="pb-2">
-                  <label class="block text-xs sm:text-sm font-semibold text-foreground mb-2">
+                  <label
+                    for="settings-phone"
+                    class="block text-xs sm:text-sm font-semibold text-foreground mb-2"
+                  >
                     Phone
                   </label>
                   <div class="relative">
                     <Phone class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <input
+                      id="settings-phone"
                       type="tel"
+                      autocomplete="tel"
                       value={userProfile().phone}
                       onInput={(e) => updateProfile("phone", e.target.value)}
                       class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border focus:ring-2 focus:ring-ring focus:border-transparent text-sm sm:text-base bg-background text-foreground shadow-inner"
@@ -574,12 +599,16 @@ function SettingsPageContent() {
                   </div>
                 </div>
                 <div class="pb-2">
-                  <label class="block text-xs sm:text-sm font-semibold text-foreground mb-2">
+                  <label
+                    for="settings-city"
+                    class="block text-xs sm:text-sm font-semibold text-foreground mb-2"
+                  >
                     City
                   </label>
                   <div class="relative">
                     <MapPin class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <input
+                      id="settings-city"
                       type="text"
                       value={userProfile().city}
                       onInput={(e) => updateProfile("city", e.target.value)}
@@ -589,12 +618,16 @@ function SettingsPageContent() {
                   </div>
                 </div>
                 <div class="pb-2">
-                  <label class="block text-xs sm:text-sm font-semibold text-foreground mb-2">
+                  <label
+                    for="settings-country"
+                    class="block text-xs sm:text-sm font-semibold text-foreground mb-2"
+                  >
                     Country
                   </label>
                   <div class="relative">
                     <Globe class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <input
+                      id="settings-country"
                       type="text"
                       value={userProfile().country}
                       onInput={(e) => updateProfile("country", e.target.value)}
@@ -604,10 +637,14 @@ function SettingsPageContent() {
                   </div>
                 </div>
                 <div class="sm:col-span-2 pb-2">
-                  <label class="block text-xs sm:text-sm font-semibold text-foreground mb-2">
+                  <label
+                    for="settings-bio"
+                    class="block text-xs sm:text-sm font-semibold text-foreground mb-2"
+                  >
                     Bio
                   </label>
                   <textarea
+                    id="settings-bio"
                     value={userProfile().bio}
                     onInput={(e) => updateProfile("bio", e.target.value)}
                     rows={3}

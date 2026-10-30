@@ -3,21 +3,7 @@ import { Star, MapPin, Clock, ChevronRight, Copyright } from "lucide-solid";
 import ProgressiveImage from "./ProgressiveImage";
 import type { ItineraryStop } from "@/lib/itinerary/createItineraryStream";
 import { cn } from "@/cn";
-
-const categoryEmoji = (category = "") => {
-  const c = category.toLowerCase();
-  if (c.includes("museum")) return "🏛️";
-  if (c.includes("park") || c.includes("garden")) return "🌳";
-  if (c.includes("beach")) return "🏖️";
-  if (c.includes("historic") || c.includes("castle")) return "🏰";
-  if (c.includes("church") || c.includes("cathedral")) return "⛪";
-  if (c.includes("market")) return "🛒";
-  if (c.includes("hotel") || c.includes("hostel") || c.includes("ryokan")) return "🏨";
-  if (c.includes("restaurant") || c.includes("food") || c.includes("bar")) return "🍽️";
-  if (c.includes("view") || c.includes("lookout")) return "👁️";
-  if (c.includes("shop")) return "🛍️";
-  return "📍";
-};
+import { CategoryIcon } from "~/components/shared/CategoryIcon";
 
 export interface StopCardProps {
   stop: ItineraryStop;
@@ -159,8 +145,9 @@ export default function StopCard(props: StopCardProps) {
       {/* Content */}
       <div class="flex-1 min-w-0 self-center">
         <Show when={props.stop.category}>
-          <p class="kicker mb-1 truncate">
-            {categoryEmoji(props.stop.category)} {props.stop.category}
+          <p class="kicker mb-1 flex items-center gap-1.5 truncate">
+            <CategoryIcon category={props.stop.category} class="h-3.5 w-3.5 shrink-0" />
+            {props.stop.category}
           </p>
         </Show>
 

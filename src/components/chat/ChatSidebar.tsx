@@ -1,5 +1,15 @@
 import { For, Show, Component, type JSX } from "solid-js";
-import { MapPin, Sparkles, MessageCircle, Loader2, Plus, X } from "lucide-solid";
+import {
+  MapPin,
+  Sparkles,
+  MessageCircle,
+  Loader2,
+  Plus,
+  X,
+  Backpack,
+  Smartphone,
+  Zap,
+} from "lucide-solid";
 
 export interface ChatSessionSummary {
   id: string;
@@ -105,8 +115,8 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
               onClick={props.onToggleProfileSelector}
               class="w-full flex items-center gap-2 p-2 sm:p-3 bg-secondary/50 rounded-lg hover:bg-secondary transition-all border border-border"
             >
-              <div class="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-xs sm:text-sm">
-                🎒
+              <div class="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
+                <Backpack class="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
               </div>
               <div class="flex-1 text-left min-w-0">
                 <p class="text-xs sm:text-sm font-medium text-foreground truncate">
@@ -223,10 +233,11 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
                             </h4>
                             {session.isLocal && (
                               <span
-                                class="text-xs bg-accent/15 text-accent px-1 py-0.5 rounded"
+                                class="inline-flex items-center rounded bg-accent/15 px-1 py-0.5 text-accent"
                                 title="Stored locally (backend unavailable)"
+                                aria-label="Stored locally"
                               >
-                                📱
+                                <Smartphone class="h-3 w-3" aria-hidden="true" />
                               </span>
                             )}
                           </div>
@@ -300,10 +311,10 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
                             }
                           >
                             <span
-                              class="text-xs hidden sm:inline"
+                              class="hidden items-center gap-1 text-xs sm:inline-flex"
                               title={`Avg response: ${session.performanceMetrics!.avg_response_time_ms}ms`}
                             >
-                              ⚡{" "}
+                              <Zap class="h-3 w-3" aria-hidden="true" />
                               {Math.round(session.performanceMetrics!.avg_response_time_ms / 1000)}s
                             </span>
                           </Show>

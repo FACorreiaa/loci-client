@@ -2,7 +2,7 @@
 import { Button } from "~/ui/button";
 import { TextField, TextFieldRoot } from "~/ui/textfield";
 import { Label } from "~/ui/label";
-import { Checkbox, CheckboxControl } from "~/ui/checkbox";
+import { Checkbox, CheckboxControl, CheckboxLabel } from "~/ui/checkbox";
 import { A, useNavigate, useSearchParams } from "@solidjs/router";
 import { Component, createSignal, Show } from "solid-js";
 import { VsEye, VsEyeClosed } from "solid-icons/vs";
@@ -279,12 +279,17 @@ const SignIn: Component = () => {
             </div>
           </Show>
           <div>
-            <Label class="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2 text-foreground">
+            <Label
+              for="signin-email"
+              class="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2 text-foreground"
+            >
               Email address
             </Label>
             <TextFieldRoot>
               <TextField
+                id="signin-email"
                 type="email"
+                autocomplete="email"
                 placeholder="Enter your email"
                 value={formData().email || ""}
                 onInput={(e) => {
@@ -298,13 +303,18 @@ const SignIn: Component = () => {
           </div>
 
           <div>
-            <Label class="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2 text-foreground">
+            <Label
+              for="signin-password"
+              class="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2 text-foreground"
+            >
               Password
             </Label>
             <div class="relative">
               <TextFieldRoot>
                 <TextField
+                  id="signin-password"
                   type={showPassword() ? "text" : "password"}
+                  autocomplete="current-password"
                   placeholder="Enter your password"
                   value={formData().password || ""}
                   onInput={(e) => {
@@ -320,12 +330,14 @@ const SignIn: Component = () => {
                 size="icon"
                 type="button"
                 onClick={() => setShowPassword(!showPassword())}
-                class="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-primary"
+                aria-label={showPassword() ? "Hide password" : "Show password"}
+                aria-pressed={showPassword()}
+                class="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10 text-muted-foreground hover:text-primary"
               >
                 {showPassword() ? (
-                  <VsEyeClosed class="w-4 h-4 sm:w-5 sm:h-5" />
+                  <VsEyeClosed class="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
                 ) : (
-                  <VsEye class="w-4 h-4 sm:w-5 sm:h-5" />
+                  <VsEye class="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
                 )}
               </Button>
             </div>
@@ -335,14 +347,14 @@ const SignIn: Component = () => {
             <Checkbox
               checked={formData().rememberMe ?? true}
               onChange={(checked) => setFormData((prev) => ({ ...prev, rememberMe: checked }))}
-              class="flex items-center gap-2"
+              class="flex min-h-11 items-center gap-2 sm:min-h-0"
             >
-              <CheckboxControl />
-              <span class="text-muted-foreground">Remember me</span>
+              <CheckboxControl aria-label="Remember me" />
+              <CheckboxLabel class="text-muted-foreground">Remember me</CheckboxLabel>
             </Checkbox>
             <A
               href="/auth/forgot-password"
-              class="text-primary hover:text-primary/80 underline-offset-4"
+              class="inline-flex min-h-11 items-center text-primary hover:text-primary/80 underline-offset-4 sm:min-h-0"
             >
               Forgot password?
             </A>
@@ -414,7 +426,7 @@ const SignIn: Component = () => {
           <span class="text-muted-foreground text-sm sm:text-base">Don't have an account? </span>
           <A
             href="/auth/signup"
-            class="text-primary hover:text-primary/80 underline-offset-4 font-semibold text-sm sm:text-base"
+            class="inline-flex min-h-11 items-center text-primary hover:text-primary/80 underline-offset-4 font-semibold text-sm sm:min-h-0 sm:text-base"
           >
             Sign up
           </A>

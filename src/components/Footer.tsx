@@ -43,11 +43,13 @@ export default function Footer() {
           <p class="mb-4 font-coord text-[10px] uppercase tracking-[0.18em] text-hero-foreground">
             Pack your route
           </p>
-          <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+          {/* 44px rows on touch (the links measured 20px tall at 390px); the
+              gap collapses on wider screens where the pointer is fine. */}
+          <div class="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:gap-y-3">
             {links.map((link) => (
               <A
                 href={link.href}
-                class="text-hero-foreground transition-colors hover:underline hover:underline-offset-4"
+                class="flex min-h-11 items-center text-hero-foreground transition-colors hover:underline hover:underline-offset-4 sm:min-h-0"
               >
                 {link.label}
               </A>
@@ -57,7 +59,7 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => capture("discord_link_clicked", { surface: "footer" })}
-              class="text-hero-foreground transition-colors hover:underline hover:underline-offset-4"
+              class="flex min-h-11 items-center text-hero-foreground transition-colors hover:underline hover:underline-offset-4 sm:min-h-0"
             >
               Join us on Discord
             </a>

@@ -220,6 +220,7 @@ export default function InterestsComponent(props: InterestsUIProps) {
                     <div class="space-y-1">
                       <input
                         type="text"
+                        aria-label="New interest name"
                         value={newInterest()}
                         onInput={(e) => {
                           setNewInterest(e.target.value);
@@ -384,6 +385,7 @@ export default function InterestsComponent(props: InterestsUIProps) {
                         <div class="space-y-1">
                           <input
                             type="text"
+                            aria-label="Interest name"
                             value={editInterestName()}
                             onInput={(e) => {
                               setEditInterestName(e.target.value);

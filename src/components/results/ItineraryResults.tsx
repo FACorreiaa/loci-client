@@ -9,8 +9,10 @@ import {
   ChevronDown,
   ChevronUp,
   Share2,
+  Sparkles,
 } from "lucide-solid";
 import FavoriteButton from "~/components/shared/FavoriteButton";
+import { CategoryIcon } from "~/components/shared/CategoryIcon";
 import WhyThisStop from "~/components/poi/WhyThisStop";
 import { deriveWhyThis } from "~/lib/why-this";
 import { POIDetailedInfo, AIItineraryResponse } from "~/lib/api/types";
@@ -103,27 +105,12 @@ export default function ItineraryResults(props: ItineraryResultsProps) {
     return "bg-primary";
   };
 
-  const getCategoryEmoji = (category: string) => {
-    const categoryLower = category.toLowerCase();
-    if (categoryLower.includes("museum")) return "🏛️";
-    if (categoryLower.includes("park") || categoryLower.includes("garden")) return "🌳";
-    if (categoryLower.includes("beach")) return "🏖️";
-    if (categoryLower.includes("historic") || categoryLower.includes("castle")) return "🏰";
-    if (categoryLower.includes("church") || categoryLower.includes("cathedral")) return "⛪";
-    if (categoryLower.includes("market")) return "🛒";
-    if (categoryLower.includes("restaurant") || categoryLower.includes("food")) return "🍽️";
-    if (categoryLower.includes("viewpoint") || categoryLower.includes("lookout")) return "👁️";
-    if (categoryLower.includes("landmark")) return "📍";
-    if (categoryLower.includes("shopping")) return "🛍️";
-    return "📍";
-  };
-
   return (
     <div class="space-y-3">
       <div class="mb-4">
         <div class="flex items-center gap-2 mb-2">
-          <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs">
-            ✨
+          <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+            <Sparkles class="h-3.5 w-3.5" aria-hidden="true" />
           </div>
           <h3 class="font-semibold text-foreground">
             {itineraryName()} ({displayPOIs().length} stops)
@@ -177,8 +164,8 @@ export default function ItineraryResults(props: ItineraryResultsProps) {
                           {poi.name}
                         </h4>
                         <Show when={poi.category}>
-                          <span class="text-sm" title={poi.category}>
-                            {getCategoryEmoji(poi.category!)}
+                          <span class="text-muted-foreground" title={poi.category}>
+                            <CategoryIcon category={poi.category} class="h-4 w-4" />
                           </span>
                         </Show>
                       </div>

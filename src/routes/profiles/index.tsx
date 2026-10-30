@@ -1,5 +1,22 @@
 import { createSignal, createMemo, For, Show } from "solid-js";
-import { User, Plus, Edit3, Trash2, Copy, X } from "lucide-solid";
+import {
+  User,
+  Plus,
+  Edit3,
+  Trash2,
+  Copy,
+  X,
+  Coins,
+  Wallet,
+  Gem,
+  Palette,
+  Utensils,
+  Mountain,
+  Leaf,
+  Users,
+  Scale,
+} from "lucide-solid";
+import { Dynamic } from "solid-js/web";
 import { Button } from "~/ui/button";
 import {
   useSearchProfiles,
@@ -259,26 +276,20 @@ function ProfilesPageContent() {
     }
   };
 
-  const getBudgetIcon = (budget: string) => {
-    const icons: Record<string, string> = {
-      low: "💰",
-      medium: "💰💰",
-      high: "💰💰💰",
-    };
-    return icons[budget] || "💰";
-  };
+  // Lucide marks in place of emoji: they take the theme's colour, render the
+  // same on every OS, and sit on the icon grid the rest of the page uses.
+  const budgetIcon = (budget: string) =>
+    ({ low: Coins, medium: Wallet, high: Gem })[budget] ?? Coins;
 
-  const getTravelStyleIcon = (style: string) => {
-    const icons: Record<string, string> = {
-      cultural: "🎨",
-      culinary: "🍽️",
-      adventure: "🏔️",
-      relaxed: "🧘",
-      family: "👨‍👩‍👧‍👦",
-      balanced: "⚖️",
-    };
-    return icons[style] || "⚖️";
-  };
+  const travelStyleIcon = (style: string) =>
+    ({
+      cultural: Palette,
+      culinary: Utensils,
+      adventure: Mountain,
+      relaxed: Leaf,
+      family: Users,
+      balanced: Scale,
+    })[style] ?? Scale;
 
   const renderProfileCard = (profile: Profile) => (
     <div
@@ -333,12 +344,20 @@ function ProfilesPageContent() {
         {/* Profile details */}
         <div class="space-y-3 mb-4">
           <div class="flex items-center gap-2 text-sm">
-            <span class="text-2xl">{getTravelStyleIcon(profile.travelStyle)}</span>
+            <Dynamic
+              component={travelStyleIcon(profile.travelStyle)}
+              class="h-5 w-5 text-primary"
+              aria-hidden="true"
+            />
             <span class="font-medium text-muted-foreground">
               {travelStyleOptions.find((s) => s.id === profile.travelStyle)?.label}
             </span>
             <span class="text-muted-foreground">•</span>
-            <span class="text-2xl">{getBudgetIcon(profile.budget)}</span>
+            <Dynamic
+              component={budgetIcon(profile.budget)}
+              class="h-5 w-5 text-primary"
+              aria-hidden="true"
+            />
             <span class="text-muted-foreground">
               {budgetOptions.find((b) => b.id === profile.budget)?.label}
             </span>
@@ -433,7 +452,11 @@ function ProfilesPageContent() {
                   }`}
                 >
                   <div class="text-center">
-                    <div class="text-2xl mb-1">{getTravelStyleIcon(style.id)}</div>
+                    <Dynamic
+                      component={travelStyleIcon(style.id)}
+                      class="mx-auto mb-1 h-6 w-6 text-primary"
+                      aria-hidden="true"
+                    />
                     <div class="text-sm font-medium text-foreground">{style.label}</div>
                     <div class="text-xs text-muted-foreground">{style.description}</div>
                   </div>
@@ -463,7 +486,11 @@ function ProfilesPageContent() {
                 />
                 <div class="ml-3 flex-1">
                   <div class="flex items-center gap-2">
-                    <span class="text-lg">{getBudgetIcon(budget.id)}</span>
+                    <Dynamic
+                      component={budgetIcon(budget.id)}
+                      class="h-4 w-4 text-primary"
+                      aria-hidden="true"
+                    />
                     <span class="font-medium text-foreground">{budget.label}</span>
                   </div>
                   <p class="text-sm text-muted-foreground">{budget.description}</p>

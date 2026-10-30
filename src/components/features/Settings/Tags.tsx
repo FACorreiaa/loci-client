@@ -237,6 +237,7 @@ export default function TagsComponent(props: TagsUIProps) {
                     <div class="space-y-1">
                       <input
                         type="text"
+                        aria-label="New tag name"
                         value={newTagName()}
                         onInput={(e) => {
                           setNewTagName(e.target.value);
@@ -257,6 +258,7 @@ export default function TagsComponent(props: TagsUIProps) {
                     <div class="space-y-1">
                       <input
                         type="text"
+                        aria-label="New tag type"
                         value={newTagType()}
                         onInput={(e) => {
                           setNewTagType(e.target.value);
@@ -422,6 +424,7 @@ export default function TagsComponent(props: TagsUIProps) {
                       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <input
                           type="text"
+                          aria-label="Tag name"
                           value={editTagName()}
                           onInput={(e) => setEditTagName(e.target.value)}
                           placeholder="Tag name..."
@@ -429,6 +432,7 @@ export default function TagsComponent(props: TagsUIProps) {
                         />
                         <input
                           type="text"
+                          aria-label="Tag type"
                           value={editTagType()}
                           onInput={(e) => setEditTagType(e.target.value)}
                           placeholder="Tag type..."
