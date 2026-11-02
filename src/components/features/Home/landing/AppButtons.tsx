@@ -3,13 +3,11 @@ import { Show } from "solid-js";
 /**
  * Store listings. Swapping to a real listing is one line here.
  *
- * Loci is not on the App Store yet, so the TestFlight invite is the only way
- * onto an iPhone; the Apple badge links there with a "Beta · TestFlight"
- * caption. When the listing ships, set IOS_APP_STORE_URL and the caption goes.
  * Android has no build, so the Play badge is muted and is not a link.
  */
-export const IOS_APP_STORE_URL: string | null = null;
-export const IOS_BETA_URL: string | null = "https://testflight.apple.com/join/cws22xMw";
+export const IOS_APP_STORE_URL: string | null =
+  "https://apps.apple.com/to/app/loci-city-trip-planner/id6814013376";
+export const IOS_BETA_URL: string | null = null;
 export const ANDROID_PLAY_URL: string | null = null;
 
 export type StoreState =

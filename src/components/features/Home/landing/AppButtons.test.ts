@@ -3,7 +3,12 @@
 import { createComponent } from "solid-js";
 import { render } from "solid-js/web";
 import { afterEach, describe, expect, it } from "vitest";
-import AppButtons, { IOS_BETA_URL, StoreBadge, storeState, type StoreState } from "./AppButtons";
+import AppButtons, {
+  IOS_APP_STORE_URL,
+  StoreBadge,
+  storeState,
+  type StoreState,
+} from "./AppButtons";
 import SocialXLink, { X_PROFILE_URL } from "~/components/SocialXLink";
 
 let dispose: (() => void) | undefined;
@@ -43,17 +48,18 @@ describe("storeState", () => {
 });
 
 describe("AppButtons", () => {
-  it("links the App Store badge to TestFlight with a beta caption", () => {
+  it("links the App Store badge to the live listing with no caption", () => {
     const el = mount(() => createComponent(AppButtons, {}));
     const apple = el.querySelector('[data-store="apple"]')!;
     const link = apple.querySelector("a")!;
-    expect(link.getAttribute("href")).toBe(IOS_BETA_URL);
+    expect(link.getAttribute("href")).toBe(IOS_APP_STORE_URL);
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");
     expect(link.querySelector("img")!.getAttribute("src")).toContain(
       "download-on-the-app-store.svg",
     );
-    expect(apple.textContent).toContain("Beta · TestFlight");
+    expect(apple.textContent).not.toContain("Beta");
+    expect(apple.textContent).not.toContain("TestFlight");
   });
 
   it("renders Google Play muted, unlinked, and announced as coming soon", () => {
