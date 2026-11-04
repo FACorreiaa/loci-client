@@ -33,6 +33,44 @@ const body = async (): Promise<string> => {
 };
 
 describe("downloadCalendarForTrip", () => {
+  const fourDays: TripStop[] = [1, 2, 3, 4].map((day) => ({ name: `Stop ${day}`, day }));
+
+  it("exports only the range, dated from its start, under its true day numbers", async () => {
+    const result = downloadCalendarForTrip(
+      { title: "Funchal", cityName: "Funchal", stops: fourDays, isPro: true, stopsPerDay: 4 },
+      { startDate: new Date(2026, 10, 14, 9, 0, 0) },
+      { from: 2, to: 3 },
+    );
+    expect(result.ok).toBe(true);
+    const ics = await body();
+    expect(ics).toContain("Stop 3");
+    expect(ics).toContain("Stop 4");
+    expect(ics).not.toContain("Stop 1");
+    expect(ics).not.toContain("Stop 2");
+    expect(ics).toContain("DTSTART;VALUE=DATE:20261114");
+    expect(ics).toContain("DTSTART;VALUE=DATE:20261115");
+    expect(ics).toContain("Day 3");
+    expect(ics).toContain("Day 4");
+    expect(ics).not.toContain("Day 1");
+  });
+
+  // Chunked stops have no day of their own until grouped, so a range cut from
+  // the flat list would re-chunk from its first stop and export the wrong ones.
+  it("cuts chunked stops by their days", async () => {
+    const chunked: TripStop[] = ["A", "B", "C", "D", "E"].map((name) => ({ name }));
+    downloadCalendarForTrip(
+      { title: "Funchal", cityName: "Funchal", stops: chunked, isPro: true, stopsPerDay: 2 },
+      { startDate: new Date(2026, 10, 14, 9, 0, 0) },
+      { from: 1, to: 1 },
+    );
+    const ics = await body();
+    expect(ics).toContain("SUMMARY:C");
+    expect(ics).toContain("SUMMARY:D");
+    expect(ics).not.toContain("SUMMARY:A");
+    expect(ics).not.toContain("SUMMARY:E");
+    expect(ics).toContain("Day 2");
+  });
+
   // The bug as reported: a trip on 8-11 October was written into the calendar
   // starting tomorrow, because this function had no parameter to receive a
   // date and silently dropped the one buildItineraryIcs already accepted.

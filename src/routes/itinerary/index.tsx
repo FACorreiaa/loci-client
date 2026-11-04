@@ -65,7 +65,8 @@ import FloatingChat from "@/components/features/Chat/FloatingChat";
 import { useSaveItineraryMutation } from "@/lib/api/itineraries";
 import { useUserSubscription } from "@/lib/api/billing";
 import { canUsePro } from "@/lib/subscription";
-import type { TripStop } from "@/lib/trip-kit";
+import { pinnedTripStart, type TripStop } from "@/lib/trip-kit";
+import { parseTripDate } from "@/lib/trip-format";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   saveItineraryOffline,
@@ -593,6 +594,20 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     });
 
     return out;
+  });
+
+  // A trip already pinned to dates starts there, unless this itinerary has a
+  // start of its own. Best effort: without it Trip Kit keeps its default.
+  createEffect(() => {
+    const tripId = store.tripId || (searchParams.tripId as string | undefined);
+    if (!tripId) return;
+    void fetchTrip(tripId)
+      .then((trip) => {
+        if (tripStartDate()) return;
+        const pinned = pinnedTripStart(trip.days, parseTripDate);
+        if (pinned) setTripStartDate(pinned);
+      })
+      .catch(() => {});
   });
 
   // Trip Kit stops: itinerary order + geo/address from full POI map.

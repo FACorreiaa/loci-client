@@ -11,13 +11,22 @@ import {
 } from "lucide-solid";
 import {
   FREE_STOPS_PER_DAY,
+  allDays,
+  dateInputValue,
+  dateOfDay,
+  dayIndexOf,
+  dayRouteUrls,
   downloadCalendarForTrip,
+  fitDayRange,
   groupStopsByDay,
   lockedDayCount,
-  openMapsForTrip,
-  openAppleMapsForTrip,
+  moveRangeFrom,
+  moveRangeTo,
   parseLocalDate,
+  sliceDays,
   tripDateRange,
+  unlockedStops,
+  type TripDayRange,
   type TripStop,
 } from "~/lib/trip-kit";
 import { PLAN_GATING_ENABLED } from "~/lib/subscription";
@@ -70,7 +79,7 @@ export interface TripKitProps {
 }
 
 export default function TripKit(props: TripKitProps) {
-  const [busy, setBusy] = createSignal<"maps" | "apple-maps" | "cal" | "pdf" | null>(null);
+  const [busy, setBusy] = createSignal<"cal" | "pdf" | null>(null);
   const [toast, setToast] = createSignal<string | null>(null);
   const [notesOpen, setNotesOpen] = createSignal(false);
   // Local notes state — starts from props and updates live.
@@ -108,13 +117,57 @@ export default function TripKit(props: TripKitProps) {
     if (props.startDate) setStartValue(props.startDate);
   });
   const startDate = createMemo(() => parseLocalDate(startValue(), DAY_START_HOUR));
-  // Free downloads carry day 1 only, so the range has to describe what will
-  // actually be written rather than how long the trip is.
-  const exportedDayCount = createMemo(() => (props.isPro ? dayCount() : Math.min(1, dayCount())));
-  const rangeLabel = createMemo(() => {
-    const start = startDate();
-    return start ? tripDateRange(start, exportedDayCount()) : "";
+  // Free plans export day 1 only, so the range is cut from what will actually
+  // be written rather than from how long the trip is.
+  const unlockedDays = createMemo(() =>
+    groupStopsByDay(unlockedStops({ ...props, stopsPerDay: perDay() }), perDay()),
+  );
+  // Undefined until the range is touched: every day, however many there turn
+  // out to be once the plan has loaded.
+  const [pickedRange, setPickedRange] = createSignal<TripDayRange | undefined>();
+  const range = createMemo(() => {
+    const count = unlockedDays().length;
+    return fitDayRange(pickedRange() ?? allDays(count), count);
   });
+  const selectedDays = createMemo(() => sliceDays(unlockedDays(), range()));
+  const rangeStart = createMemo(() => {
+    const start = startDate();
+    return start ? dateOfDay(start, range().from) : null;
+  });
+  const rangeLabel = createMemo(() => {
+    const start = rangeStart();
+    return start ? tripDateRange(start, selectedDays().length) : "";
+  });
+  const dayValue = (index: number) => {
+    const start = startDate();
+    return start ? dateInputValue(dateOfDay(start, index)) : "";
+  };
+  const lastDayValue = () => dayValue(Math.max(unlockedDays().length - 1, 0));
+  // Typing can get past min and max, and clearing a field gives "": a date
+  // that isn't real leaves the range as it was.
+  const pickDay = (value: string, move: typeof moveRangeFrom) => {
+    const start = startDate();
+    const picked = parseLocalDate(value, DAY_START_HOUR);
+    if (!start || !picked) return;
+    const count = unlockedDays().length;
+    setPickedRange(move(range(), dayIndexOf(picked, start, count), count));
+  };
+  const dayRoutes = createMemo(() =>
+    selectedDays().map((day, position) => {
+      const start = rangeStart();
+      return {
+        label: `Day ${range().from + position + 1}`,
+        date: start
+          ? dateOfDay(start, position).toLocaleDateString(undefined, {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+            })
+          : "",
+        ...dayRouteUrls(day.stops, props.cityName),
+      };
+    }),
+  );
 
   const flash = (msg: string) => {
     setToast(msg);
@@ -146,45 +199,18 @@ export default function TripKit(props: TripKitProps) {
     stops: stopsWithNotes(),
   });
 
-  const handleMaps = () => {
-    setBusy("maps");
-    try {
-      const result = openMapsForTrip(kitInput());
-      if (!result.ok) {
-        flash("Add places with locations before opening Maps.");
-      } else if (result.locked) {
-        flash("Opened Day 1 in Maps. Upgrade to Pro for the full multi-day route.");
-      } else {
-        flash("Opened route in Google Maps.");
-      }
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const handleAppleMaps = () => {
-    setBusy("apple-maps");
-    try {
-      const result = openAppleMapsForTrip(kitInput());
-      if (!result.ok) {
-        flash("Add places with locations before opening Maps.");
-      } else if (result.locked) {
-        flash("Opened Day 1 in Apple Maps. Upgrade to Pro for the full route.");
-      } else {
-        flash("Opened route in Apple Maps.");
-      }
-    } finally {
-      setBusy(null);
-    }
-  };
-
   const handleCalendar = () => {
     setBusy("cal");
     try {
-      const start = startDate();
+      const start = rangeStart();
+      if (!start) {
+        flash("Pick the first day of the trip first.");
+        return;
+      }
       const result = downloadCalendarForTrip(
         kitInputWithNotes(),
-        start ? { startDate: start, dayStartHour: DAY_START_HOUR } : {},
+        { startDate: start, dayStartHour: DAY_START_HOUR },
+        range(),
       );
       if (!result.ok) {
         flash("Nothing to add to the calendar yet.");
@@ -300,52 +326,12 @@ export default function TripKit(props: TripKitProps) {
 
         {/* ── Action grid ───────────────────────────────────────────── */}
         <div class="p-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Google Maps */}
-          <button
-            type="button"
-            class="flex flex-col items-start gap-2 rounded-xl border border-border bg-background px-4 py-3 text-left hover:border-primary/40 hover:bg-muted/40 transition focus:outline-none focus:ring-2 focus:ring-ring"
-            onClick={handleMaps}
-            disabled={busy() !== null || planPending()}
-          >
-            <MapPinned class="w-5 h-5 text-primary" />
-            <span class="font-semibold text-foreground text-sm">
-              {busy() === "maps" ? "Opening…" : "Google Maps"}
-            </span>
-            <span class="text-xs text-muted-foreground">
-              {planPending()
-                ? "Checking your plan…"
-                : props.isPro
-                  ? "Full multi-stop walking route"
-                  : "Day 1 multi-stop route"}
-            </span>
-          </button>
-
-          {/* Apple Maps */}
-          <button
-            type="button"
-            class="flex flex-col items-start gap-2 rounded-xl border border-border bg-background px-4 py-3 text-left hover:border-primary/40 hover:bg-muted/40 transition focus:outline-none focus:ring-2 focus:ring-ring"
-            onClick={handleAppleMaps}
-            disabled={busy() !== null || planPending()}
-          >
-            <MapPinned class="w-5 h-5 text-muted-foreground" />
-            <span class="font-semibold text-foreground text-sm">
-              {busy() === "apple-maps" ? "Opening…" : "Apple Maps"}
-            </span>
-            <span class="text-xs text-muted-foreground">
-              {planPending()
-                ? "Checking your plan…"
-                : props.isPro
-                  ? "Full multi-stop walking route"
-                  : "Day 1 walking route"}
-            </span>
-          </button>
-
           {/* Add to calendar */}
           <button
             type="button"
             class="flex flex-col items-start gap-2 rounded-xl border border-border bg-background px-4 py-3 text-left hover:border-primary/40 hover:bg-muted/40 transition focus:outline-none focus:ring-2 focus:ring-ring"
             onClick={handleCalendar}
-            disabled={busy() !== null || planPending()}
+            disabled={busy() !== null || planPending() || !rangeStart()}
           >
             <CalendarPlus class="w-5 h-5 text-primary" />
             <span class="font-semibold text-foreground text-sm">
@@ -354,9 +340,9 @@ export default function TripKit(props: TripKitProps) {
             <span class="text-xs text-muted-foreground">
               {planPending()
                 ? "Checking your plan…"
-                : props.isPro
-                  ? "All days as timed events (.ics)"
-                  : "Day 1 timed blocks (.ics)"}
+                : rangeLabel()
+                  ? `Timed events for ${rangeLabel()} (.ics)`
+                  : "Pick the first day of the trip"}
             </span>
           </button>
 
@@ -381,9 +367,45 @@ export default function TripKit(props: TripKitProps) {
               }}
             />
             <span class="text-xs text-muted-foreground">
-              {rangeLabel() ? `Calendar covers ${rangeLabel()}` : "Pick the first day of the trip"}
+              {rangeLabel() ? `Exporting ${rangeLabel()}` : "Pick the first day of the trip"}
             </span>
           </div>
+
+          {/* From / To: which days Maps and Calendar export */}
+          <Show when={unlockedDays().length > 1 && startDate()}>
+            <div class="flex flex-col items-start gap-2 rounded-xl border border-border bg-background px-4 py-3">
+              <label for="trip-range-from" class="font-semibold text-foreground text-sm">
+                From · Day {range().from + 1}
+              </label>
+              <input
+                id="trip-range-from"
+                type="date"
+                class="w-full rounded-lg border border-border bg-background px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                min={dayValue(0)}
+                max={lastDayValue()}
+                value={dayValue(range().from)}
+                onChange={(e) => {
+                  pickDay(e.currentTarget.value, moveRangeFrom);
+                  e.currentTarget.value = dayValue(range().from);
+                }}
+              />
+              <label for="trip-range-to" class="font-semibold text-foreground text-sm">
+                To · Day {range().to + 1}
+              </label>
+              <input
+                id="trip-range-to"
+                type="date"
+                class="w-full rounded-lg border border-border bg-background px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                min={dayValue(range().from)}
+                max={lastDayValue()}
+                value={dayValue(range().to)}
+                onChange={(e) => {
+                  pickDay(e.currentTarget.value, moveRangeTo);
+                  e.currentTarget.value = dayValue(range().to);
+                }}
+              />
+            </div>
+          </Show>
 
           {/* Download PDF */}
           <button
@@ -400,6 +422,60 @@ export default function TripKit(props: TripKitProps) {
               {props.isPro ? "Full city pack PDF" : "Day 1 PDF pack"}
             </span>
           </button>
+        </div>
+
+        {/* ── Routes: real links, because several window.open calls in a
+            row get popup-blocked ─────────────────────────────────── */}
+        <div class="px-5 pb-5">
+          <p class="flex items-center gap-2 font-semibold text-foreground text-sm mb-2">
+            <MapPinned class="w-5 h-5 text-primary" />
+            Walking routes
+          </p>
+          <Show
+            when={!planPending()}
+            fallback={<p class="text-xs text-muted-foreground">Checking your plan…</p>}
+          >
+            <ul class="divide-y divide-border rounded-xl border border-border bg-background">
+              <For each={dayRoutes()}>
+                {(route) => (
+                  <li class="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
+                    <span class="text-sm text-foreground">
+                      {route.label}
+                      <Show when={route.date}>
+                        <span class="text-muted-foreground"> · {route.date}</span>
+                      </Show>
+                    </span>
+                    <span class="flex gap-3 text-sm font-medium">
+                      <Show when={route.google}>
+                        {(url) => (
+                          <a
+                            href={url()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring rounded"
+                          >
+                            Google Maps
+                          </a>
+                        )}
+                      </Show>
+                      <Show when={route.apple}>
+                        {(url) => (
+                          <a
+                            href={url()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring rounded"
+                          >
+                            Apple Maps
+                          </a>
+                        )}
+                      </Show>
+                    </span>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </Show>
         </div>
 
         {/* ── Stop notes section ────────────────────────────────────── */}
