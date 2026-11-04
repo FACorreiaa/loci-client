@@ -4,10 +4,20 @@ import {
   buildAppleMapsMultiStopUrl,
   buildGoogleMapsMultiStopUrl,
   buildGoogleMapsUrl,
+  allDays,
   buildItineraryIcs,
+  dateInputValue,
+  dateOfDay,
+  dayIndexOf,
+  dayRouteUrls,
+  fitDayRange,
   groupStopsByDay,
   lockedDayCount,
+  moveRangeFrom,
+  moveRangeTo,
   parseLocalDate,
+  pinnedTripStart,
+  sliceDays,
   tripDateRange,
   unlockedStops,
   type TripKitInput,
@@ -322,5 +332,80 @@ describe("buildItineraryIcs start date", () => {
       `${String(tomorrow.getUTCMonth() + 1).padStart(2, "0")}` +
       `${String(tomorrow.getUTCDate()).padStart(2, "0")}`;
     expect(dtstarts(ics)[0].slice(0, 8)).toBe(expected);
+  });
+});
+
+describe("export day range", () => {
+  it("defaults to every day", () => {
+    expect(allDays(4)).toEqual({ from: 0, to: 3 });
+    expect(allDays(1)).toEqual({ from: 0, to: 0 });
+    expect(allDays(0)).toEqual({ from: 0, to: 0 });
+  });
+
+  it("clamps to the days it has", () => {
+    expect(fitDayRange({ from: -3, to: 40 }, 4)).toEqual({ from: 0, to: 3 });
+    expect(fitDayRange({ from: 2, to: 3 }, 2)).toEqual({ from: 1, to: 1 });
+  });
+
+  it("brings To along when From moves past it", () => {
+    expect(moveRangeFrom({ from: 0, to: 1 }, 3, 4)).toEqual({ from: 3, to: 3 });
+  });
+
+  it("does not let To go before From", () => {
+    expect(moveRangeTo({ from: 2, to: 3 }, 0, 4)).toEqual({ from: 2, to: 2 });
+  });
+
+  it("slices the selected days", () => {
+    expect(sliceDays(["a", "b", "c", "d"], { from: 1, to: 2 })).toEqual(["b", "c"]);
+  });
+
+  it("keeps the same days when the start moves", () => {
+    const moved = new Date(2026, 11, 1);
+    const second = dateOfDay(moved, 1);
+    expect(dateInputValue(second)).toBe("2026-12-02");
+    expect(dayIndexOf(second, moved, 4)).toBe(1);
+  });
+
+  it("maps picked dates inside the trip", () => {
+    const start = new Date(2026, 10, 12);
+    expect(dayIndexOf(new Date(2026, 10, 14), start, 4)).toBe(2);
+    expect(dayIndexOf(new Date(2026, 10, 1), start, 4)).toBe(0);
+    expect(dayIndexOf(new Date(2027, 0, 1), start, 4)).toBe(3);
+  });
+
+  // 25 October 2026 is 25 hours long in Europe; adding 24-hour steps would
+  // land a day short or repeat one in zones that change clocks then.
+  it("counts days across a clock change", () => {
+    const start = new Date(2026, 9, 24);
+    expect(dateInputValue(dateOfDay(start, 2))).toBe("2026-10-26");
+    expect(dayIndexOf(new Date(2026, 9, 26), start, 4)).toBe(2);
+  });
+
+  it("gives each day its own route", () => {
+    const urls = dayRouteUrls(stops.slice(0, 2), "Lisbon");
+    expect(urls.google).toContain("google.com/maps/dir");
+    expect(urls.apple).toContain("maps.apple.com");
+    expect(dayRouteUrls([], "Lisbon")).toEqual({ google: null, apple: null });
+  });
+});
+
+describe("pinnedTripStart", () => {
+  const parse = (iso?: string) => (iso ? new Date(`${iso}T00:00:00`) : undefined);
+
+  it("walks the first dated day back to Day 1", () => {
+    expect(
+      pinnedTripStart(
+        [
+          { dayNumber: 1 },
+          { dayNumber: 2, date: "2026-11-13" },
+          { dayNumber: 3, date: "2026-11-14" },
+        ],
+        parse,
+      ),
+    ).toBe("2026-11-12");
+  });
+
+  it("has nothing for a relative plan", () => {
+    expect(pinnedTripStart([{ dayNumber: 1 }, { dayNumber: 2 }], parse)).toBeUndefined();
   });
 });

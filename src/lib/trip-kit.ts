@@ -83,6 +83,75 @@ export function groupStopsByDay<T extends TripStop>(
   return groups;
 }
 
+/**
+ * The days an export covers, as positions in the day list. Positions rather
+ * than dates: Day 1's date can change under them, and the same days stay
+ * selected while their dates move.
+ */
+export interface TripDayRange {
+  from: number;
+  to: number;
+}
+
+export function fitDayRange(range: TripDayRange, dayCount: number): TripDayRange {
+  const last = Math.max(dayCount - 1, 0);
+  const from = Math.min(Math.max(range.from, 0), last);
+  return { from, to: Math.min(Math.max(range.to, from), last) };
+}
+
+export const allDays = (dayCount: number): TripDayRange =>
+  fitDayRange({ from: 0, to: dayCount - 1 }, dayCount);
+
+/** From moves freely; moved past To, it brings To along. */
+export function moveRangeFrom(range: TripDayRange, index: number, dayCount: number): TripDayRange {
+  const last = Math.max(dayCount - 1, 0);
+  const from = Math.min(Math.max(index, 0), last);
+  return fitDayRange({ from, to: Math.max(range.to, from) }, dayCount);
+}
+
+/** To can't go before From. */
+export function moveRangeTo(range: TripDayRange, index: number, dayCount: number): TripDayRange {
+  return fitDayRange({ from: range.from, to: index }, dayCount);
+}
+
+export function sliceDays<T>(days: T[], range: TripDayRange): T[] {
+  return days.slice(range.from, range.to + 1);
+}
+
+/** Calendar arithmetic, not 24-hour steps: a day isn't always 24 hours long. */
+export function dateOfDay(start: Date, index: number): Date {
+  const d = new Date(start);
+  d.setDate(start.getDate() + index);
+  return d;
+}
+
+/** Which position a picked date falls on, inside the trip. */
+export function dayIndexOf(date: Date, start: Date, dayCount: number): number {
+  const utc = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  const offset = Math.round((utc(date) - utc(start)) / 86_400_000);
+  return Math.min(Math.max(offset, 0), Math.max(dayCount - 1, 0));
+}
+
+/** A `yyyy-mm-dd` value for a date input, in local time. */
+export function dateInputValue(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/**
+ * Day 1's date for a trip whose days are pinned: the first dated day, walked
+ * back by its number. Undefined for a relative "Day N" plan.
+ */
+export function pinnedTripStart(
+  days: { dayNumber: number; date?: string }[],
+  parse: (iso?: string) => Date | undefined,
+): string | undefined {
+  for (const day of days) {
+    const date = parse(day.date);
+    if (date) return dateInputValue(dateOfDay(date, 1 - day.dayNumber));
+  }
+  return undefined;
+}
+
 /** Stops unlocked for free users (day 1 only). Pro gets all. */
 export function unlockedStops(input: TripKitInput): TripStop[] {
   const days = groupStopsByDay(input.stops, input.stopsPerDay ?? FREE_STOPS_PER_DAY);
@@ -294,9 +363,14 @@ export function tripDateRange(startDate: Date, dayCount: number): string {
 }
 
 export interface CalendarOptions {
-  /** Local start of day 1 (defaults to tomorrow 09:00 local). */
+  /** Local start of the first exported day (defaults to tomorrow 09:00 local). */
   startDate?: Date;
   dayStartHour?: number;
+  /**
+   * The number the first exported day goes by. A range starting at Day 3 keeps
+   * calling it Day 3, where position alone would relabel it Day 1.
+   */
+  firstDayNumber?: number;
 }
 
 /**
@@ -318,6 +392,7 @@ export function buildItineraryIcs(
     })();
 
   const days = groupStopsByDay(input.stops, input.stopsPerDay ?? FREE_STOPS_PER_DAY);
+  const firstDayNumber = options.firstDayNumber ?? 1;
   const now = toIcsUtc(new Date());
   const lines: string[] = [
     "BEGIN:VCALENDAR",
@@ -347,7 +422,7 @@ export function buildItineraryIcs(
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${toIcsDate(dayStart)}`,
       `DTEND;VALUE=DATE:${toIcsDate(dayEnd)}`,
-      `SUMMARY:${escapeIcsText(`${input.title || input.cityName} \u2014 ${day.label}`)}`,
+      `SUMMARY:${escapeIcsText(`${input.title || input.cityName} \u2014 Day ${firstDayNumber + dayIndex}`)}`,
       `DESCRIPTION:${escapeIcsText(stopNames)}`,
       "END:VEVENT",
     );
@@ -407,36 +482,30 @@ export function downloadIcs(icsBody: string, filename: string): void {
 }
 
 /** Open Google Maps for the unlocked portion of the trip. */
-export function openMapsForTrip(input: TripKitInput): { ok: boolean; locked: boolean } {
-  const stops = unlockedStops(input);
-  const url = buildGoogleMapsMultiStopUrl(stops, input.cityName);
-  if (!url) return { ok: false, locked: false };
-  window.open(url, "_blank", "noopener,noreferrer");
-  return { ok: true, locked: lockedDayCount(input) > 0 };
-}
-
-/** Open Apple Maps for the unlocked portion of the trip. */
-export function openAppleMapsForTrip(input: TripKitInput): { ok: boolean; locked: boolean } {
-  const stops = unlockedStops(input);
-  const url = buildAppleMapsMultiStopUrl(stops, input.cityName);
-  if (!url) return { ok: false, locked: false };
-  window.open(url, "_blank", "noopener,noreferrer");
-  return { ok: true, locked: lockedDayCount(input) > 0 };
-}
-
 /**
- * Download calendar for unlocked stops.
- *
- * `options` is forwarded to buildItineraryIcs, which is the whole point: the
- * start date seam has existed on buildItineraryIcs since it was written, and
- * this function had no parameter to carry one — so every download anybody has
- * ever made started tomorrow at 09:00 regardless of when the trip was.
+ * One day's route URLs. A maps route has no date and Google takes about ten
+ * stops, so a range is a route per day rather than one long walk.
  */
+export function dayRouteUrls(
+  stops: TripStop[],
+  cityName: string,
+): { google: string | null; apple: string | null } {
+  return {
+    google: buildGoogleMapsMultiStopUrl(stops, cityName),
+    apple: buildAppleMapsMultiStopUrl(stops, cityName),
+  };
+}
+
 export function downloadCalendarForTrip(
   input: TripKitInput,
   options: CalendarOptions = {},
+  range?: TripDayRange,
 ): { ok: boolean; locked: boolean } {
-  const stops = unlockedStops(input);
+  const unlocked = groupStopsByDay(unlockedStops(input), input.stopsPerDay ?? FREE_STOPS_PER_DAY);
+  const days = range ? sliceDays(unlocked, range) : unlocked;
+  // Flattened from the groups, which have numbered chunked stops by now: a
+  // range cut from the flat list would re-chunk from its own first stop.
+  const stops = days.flatMap((d) => d.stops);
   if (stops.length === 0) return { ok: false, locked: false };
   const ics = buildItineraryIcs(
     {
@@ -446,9 +515,19 @@ export function downloadCalendarForTrip(
       stops,
       stopsPerDay: input.stopsPerDay,
     },
-    options,
+    { ...options, firstDayNumber: (range?.from ?? 0) + 1 },
   );
   const slugCity2 = slug(input.cityName) || "trip";
-  downloadIcs(ics, `loci-${slugCity2}${input.isPro ? "-full" : "-day1"}.ics`);
+  downloadIcs(ics, `loci-${slugCity2}-${calendarFileSuffix(input, unlocked.length, range)}.ics`);
   return { ok: true, locked: lockedDayCount(input) > 0 };
+}
+
+/** "full" and "day1" as ever; a narrowed range says which days it holds. */
+function calendarFileSuffix(input: TripKitInput, dayCount: number, range?: TripDayRange): string {
+  if (range && (range.from > 0 || range.to < dayCount - 1)) {
+    return range.from === range.to
+      ? `day${range.from + 1}`
+      : `days${range.from + 1}-${range.to + 1}`;
+  }
+  return input.isPro ? "full" : "day1";
 }
