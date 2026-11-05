@@ -1,4 +1,4 @@
-import { For, Show, createSignal, createEffect, on } from "solid-js";
+import { For, Show, createSignal, createEffect, on, untrack } from "solid-js";
 import { useQueryClient } from "@tanstack/solid-query";
 import { lazyChunk } from "~/lib/lazyChunk";
 import { Loader2, MapPin } from "lucide-solid";
@@ -14,6 +14,7 @@ import {
 import ChatMessage from "~/components/chat/ChatMessage";
 import TripActionCard from "~/components/chat/TripActionCard";
 import { useChat } from "~/lib/hooks/useChat";
+import { clearHandoff, pendingHandoff } from "~/lib/assistant/open-state";
 import { tripKeys, useTrip } from "~/lib/api/trips";
 import { A, useSearchParams } from "@solidjs/router";
 const DetailedItemModal = lazyChunk(() => import("~/components/DetailedItemModal"));
@@ -73,6 +74,18 @@ export default function ChatPage() {
   // Another trip (or none) is another conversation: its cards would apply to
   // the wrong trip's version.
   createEffect(on(tripId, () => chat.newChat(), { defer: true }));
+  // Ask Loci sent something to plan. If a search is still running here it waits
+  // for that one, as sendMessage would otherwise drop it without a word.
+  createEffect(() => {
+    const query = pendingHandoff();
+    if (!query || chat.isLoading()) return;
+    untrack(() => {
+      clearHandoff();
+      chat.newChat();
+      chat.setCurrentMessage(query);
+      chat.sendMessage();
+    });
+  });
   const [selectedItem, setSelectedItem] = createSignal<any | null>(null);
   const [showDetailModal, setShowDetailModal] = createSignal(false);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);

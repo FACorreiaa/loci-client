@@ -6,6 +6,8 @@
  * what the words mean lives on the server.
  */
 
+import { createSilenceDetector, rms } from "./silence";
+
 /** How long a recording may run before it stops itself.
  *
  * Matches the server's own cap. Transcription runs on CPU at roughly two and a
@@ -13,6 +15,9 @@
  * long recording is not just a long upload — it is a long queue for everybody.
  */
 export const MAX_RECORDING_MS = 45_000;
+
+/** How often loudness is checked when listening for the end of speech. */
+const SILENCE_POLL_MS = 100;
 
 /** The sample rate asked of the microphone. Speech needs no more. */
 const SAMPLE_RATE = 16_000;
@@ -50,6 +55,14 @@ export interface Recording {
   mimeType: string;
 }
 
+export interface RecordingOptions {
+  /**
+   * Called once when somebody has stopped talking. Off unless asked for: the
+   * search box wants people to read what they said before it goes anywhere.
+   */
+  onSilence?: () => void;
+}
+
 export interface Recorder {
   /** Resolves with the recording, or rejects if it could not be made. */
   stop(): Promise<Recording>;
@@ -64,7 +77,7 @@ export interface Recorder {
  * location prompt follows: a permission asked for out of nowhere gets refused,
  * and a refusal is much harder to undo than a question not yet asked.
  */
-export async function startRecording(): Promise<Recorder> {
+export async function startRecording(options: RecordingOptions = {}): Promise<Recorder> {
   if (!canRecord()) {
     throw new RecorderError("unavailable", "This browser cannot record audio.");
   }
@@ -97,6 +110,8 @@ export async function startRecording(): Promise<Recorder> {
   };
   recorder.start();
 
+  const stopListening = options.onSilence ? listenForSilence(stream, options.onSilence) : () => {};
+
   // A recording that runs on forever is a microphone left open by accident,
   // and an upload nobody meant to make.
   const selfStop = setTimeout(() => {
@@ -107,6 +122,7 @@ export async function startRecording(): Promise<Recorder> {
     new Promise((resolve, reject) => {
       recorder.onstop = () => {
         clearTimeout(selfStop);
+        stopListening();
         releaseAll(stream);
         void (async () => {
           try {
@@ -129,6 +145,7 @@ export async function startRecording(): Promise<Recorder> {
       };
       recorder.onerror = () => {
         clearTimeout(selfStop);
+        stopListening();
         releaseAll(stream);
         reject(new RecorderError("failed", "The recording stopped unexpectedly."));
       };
@@ -142,11 +159,42 @@ export async function startRecording(): Promise<Recorder> {
     },
     cancel() {
       clearTimeout(selfStop);
+      stopListening();
       recorder.onstop = null;
       recorder.onerror = null;
       if (recorder.state === "recording") recorder.stop();
       releaseAll(stream);
     },
+  };
+}
+
+/**
+ * Watches the stream's loudness and calls back when speech has ended. Returns
+ * how to stop watching. A browser without Web Audio simply never calls back, and
+ * the stop button still works.
+ */
+function listenForSilence(stream: MediaStream, onSilence: () => void): () => void {
+  let context: AudioContext;
+  try {
+    context = new AudioContext();
+  } catch {
+    return () => {};
+  }
+  const analyser = context.createAnalyser();
+  analyser.fftSize = 1024;
+  context.createMediaStreamSource(stream).connect(analyser);
+  const samples = new Uint8Array(analyser.fftSize);
+  const detector = createSilenceDetector();
+  const poll = setInterval(() => {
+    analyser.getByteTimeDomainData(samples);
+    if (detector.feed(rms(samples), performance.now())) {
+      clearInterval(poll);
+      onSilence();
+    }
+  }, SILENCE_POLL_MS);
+  return () => {
+    clearInterval(poll);
+    void context.close().catch(() => {});
   };
 }
 
