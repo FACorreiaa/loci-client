@@ -32,6 +32,16 @@ import { Button } from "~/ui/button";
 import { handleLinkPreload } from "~/lib/preload";
 import FriendRequestBadge from "~/components/social/FriendRequestBadge";
 import ReportTimezone from "~/components/field/ReportTimezone";
+import { createLongPress } from "~/lib/assistant/long-press";
+import { openAssistant } from "~/lib/assistant/open-state";
+
+const ASK_LINK = "/chat";
+// A tap on Ask Loci opens the chat. Holding it opens the assistant, here and now.
+const askHold = createLongPress(() => openAssistant("hold"));
+const holdFor = (href: string) => (href === ASK_LINK ? { ...askHold, draggable: false } : {});
+// iOS would otherwise answer a hold on a link with its own preview and selection.
+const holdClass = (href: string) =>
+  href === ASK_LINK ? "select-none touch-manipulation [-webkit-touch-callout:none]" : "";
 
 const publicItems = [
   // A public surface, and the one page here meant to be found from outside.
@@ -119,9 +129,10 @@ export default function Nav() {
                 const Icon = "icon" in item ? (item.icon as typeof Compass) : undefined;
                 return (
                   <A
+                    {...holdFor(item.href)}
                     href={item.href}
                     onMouseEnter={() => handleLinkPreload(item.href)}
-                    class="jb-tab flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground"
+                    class={`jb-tab flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground ${holdClass(item.href)}`}
                     activeClass="jb-tab-active"
                   >
                     <Show when={Icon}>
@@ -273,8 +284,9 @@ export default function Nav() {
               const active = () => location.pathname.startsWith(item.href);
               return (
                 <A
+                  {...holdFor(item.href)}
                   href={item.href}
-                  class={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold transition-colors ${active() ? "bg-secondary text-foreground" : "text-muted-foreground"}`}
+                  class={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold transition-colors ${holdClass(item.href)} ${active() ? "bg-secondary text-foreground" : "text-muted-foreground"}`}
                 >
                   <Icon class="h-4 w-4" />
                   {item.name === "Ask Loci" ? "Ask" : item.name}

@@ -52,7 +52,10 @@ export interface Dictation {
  * most of it; putting the words in the box fixes the rest, in the second it
  * takes. That is the part a chat platform cannot offer.
  */
-export function useDictation(onTranscript: (text: string) => void): Dictation {
+export function useDictation(
+  onTranscript: (text: string) => void,
+  options: { stopOnSilence?: boolean } = {},
+): Dictation {
   const [state, setState] = createSignal<DictationState>("idle");
   const [problem, setProblem] = createSignal<{ message: string; kind: DictationErrorKind } | null>(
     null,
@@ -78,7 +81,9 @@ export function useDictation(onTranscript: (text: string) => void): Dictation {
   const begin = async () => {
     setError(null);
     try {
-      recorder = await startRecording();
+      recorder = await startRecording(
+        options.stopOnSilence ? { onSilence: () => void finish() } : {},
+      );
       setState("recording");
     } catch (failure) {
       recorder = null;

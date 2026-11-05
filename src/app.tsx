@@ -24,6 +24,7 @@ import ThemeMetaSync from "~/components/ThemeMetaSync";
 import UpgradePrompt from "~/components/UpgradePrompt";
 import Toaster from "~/components/toast/Toaster";
 import RunWatcher from "~/components/runs/RunWatcher";
+import { AssistantMount } from "~/components/assistant/AssistantMount";
 
 const CARD = "https://lociai.fyi/images/brand/og-image.png";
 const CARD_ALT =
@@ -133,6 +134,7 @@ export default function App() {
                                 <Footer />
                                 <PWAInstall />
                                 <UpgradePrompt />
+                                <AssistantMount />
                               </Show>
                               {/* Outside the bare() guard: a chromeless page
                                 (e.g. the map) still hears a background search
