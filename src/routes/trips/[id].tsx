@@ -56,6 +56,7 @@ import { useAuth } from "~/contexts/AuthContext";
 import { useMarkStop, type StopMark } from "~/lib/api/gamification";
 import { showToast } from "~/lib/toast-store";
 import { tripHasEnded } from "~/lib/recap/recap";
+import { FindFlightsButton } from "~/components/flights/FindFlightsDialog";
 
 /** Per-trip edit-mode memory, so a reload mid-edit does not drop you back into read mode. */
 const editingKey = (tripId: string) => `loci.trip.editing.${tripId}`;
@@ -492,6 +493,18 @@ export default function TripEditor() {
 
             {/* The plan (dates, stays, flights) is the owner's to edit; a friend
                 reading a shared trip sees it in the day list and header. */}
+            <Show when={!t.owner && t.cityName}>
+              <div class="mb-3">
+                <FindFlightsButton
+                  source="trip"
+                  city={t.cityName}
+                  lat={t.days[0]?.cityLat}
+                  lon={t.days[0]?.cityLon}
+                  startDate={t.startDate}
+                  endDate={t.endDate}
+                />
+              </div>
+            </Show>
             <Show when={!t.owner}>
               <TripPlanPanel
                 trip={t}

@@ -7,6 +7,7 @@ import { mapTrip, type Trip } from "~/lib/api/trips";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { tripActionApi, tripActionErrorMessage, type TripActionApi } from "~/lib/api/trip-actions";
 import { ProactiveCaption } from "./ProactiveCaption";
+import { trackFlightClicked } from "~/lib/flights/analytics";
 
 export interface TripActionCardProps {
   proposal: ActionProposal;
@@ -46,6 +47,18 @@ const TripActionCard: Component<TripActionCardProps> = (props) => {
     return choice?.case === "flight"
       ? choice.value.links.filter((l) => l.url.startsWith("https://"))
       : [];
+  };
+  /** The proposed search, for analytics: codes only, when the agent had them. */
+  const flightSearch = () => {
+    const choice = props.proposal.options[0]?.choice;
+    if (choice?.case !== "flight") return undefined;
+    const f = choice.value;
+    return {
+      origin: { name: f.origin?.name ?? "", iata: f.origin?.iata },
+      destination: { name: f.destination?.name ?? "", iata: f.destination?.iata },
+      departDate: f.departDate,
+      passengers: f.passengers || 1,
+    };
   };
   /** Nothing can be applied until the trip's version is known. */
   const waiting = () => props.baseVersion === undefined;
@@ -135,7 +148,19 @@ const TripActionCard: Component<TripActionCardProps> = (props) => {
                     class="text-sm underline underline-offset-2"
                     href={l.url}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel={l.sponsored ? "sponsored noopener noreferrer" : "noopener noreferrer"}
+                    onClick={() =>
+                      trackFlightClicked(
+                        "chat",
+                        {
+                          provider: l.provider,
+                          label: l.label,
+                          url: l.url,
+                          sponsored: l.sponsored,
+                        },
+                        flightSearch(),
+                      )
+                    }
                   >
                     {l.label}
                   </a>
