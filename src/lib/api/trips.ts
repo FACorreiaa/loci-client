@@ -130,6 +130,8 @@ export interface FlightLink {
   provider: string;
   label: string;
   url: string;
+  /** The URL carries an affiliate tag: render it rel="sponsored". */
+  sponsored?: boolean;
 }
 
 /** A flight the traveller chose. Loci never quotes a fare. */
@@ -301,7 +303,12 @@ export const mapFlight = (f: ProtoTripFlight): TripFlight => ({
   returnDate: f.returnDate || undefined,
   passengers: f.passengers,
   cabin: CABIN_NAMES[f.cabin],
-  links: f.links.map((l) => ({ provider: l.provider, label: l.label, url: l.url })),
+  links: f.links.map((l) => ({
+    provider: l.provider,
+    label: l.label,
+    url: l.url,
+    sponsored: l.sponsored,
+  })),
   carrier: f.carrier || undefined,
   flightNo: f.flightNo || undefined,
   priceText: f.priceText || undefined,

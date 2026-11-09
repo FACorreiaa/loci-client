@@ -9,10 +9,14 @@ import {
   BuildFlightLinksRequestSchema,
   ClearStayRequestSchema,
   FlightCabin,
+  FlightPlaceKind,
   RemoveFlightRequestSchema,
+  ResolveFlightDestinationRequestSchema,
+  SearchAirportsRequestSchema,
   SetStayRequestSchema,
   SetTripDatesRequestSchema,
   TripService,
+  type FlightPlaceOption as ProtoFlightPlaceOption,
   type TripDraft as ProtoTripDraft,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import {
@@ -58,6 +62,23 @@ const place = (p: FlightPlace) => ({
   iata: p.iata?.trim().toUpperCase() || undefined,
 });
 
+/** An airport, or a metro code covering several (LON), to fly from or to. */
+export interface FlightPlaceOption {
+  iata: string;
+  name: string;
+  city: string;
+  countryCode: string;
+  kind: "airport" | "metro";
+}
+
+export const mapPlaceOption = (o: ProtoFlightPlaceOption): FlightPlaceOption => ({
+  iata: o.iata,
+  name: o.name,
+  city: o.city,
+  countryCode: o.countryCode,
+  kind: o.kind === FlightPlaceKind.METRO ? "metro" : "airport",
+});
+
 /** The plan calls the panel makes. Components take this so tests can fake it. */
 export interface PlanApi {
   setDates(
@@ -71,6 +92,15 @@ export interface PlanApi {
   addFlight(tripId: string, flight: FlightSearch, baseVersion: bigint): Promise<ProtoTripDraft>;
   removeFlight(tripId: string, flightId: string, baseVersion: bigint): Promise<ProtoTripDraft>;
   buildLinks(flight: FlightSearch): Promise<FlightLink[]>;
+  /** Airport autocomplete; [] for a query under 2 characters. */
+  searchAirports(query: string): Promise<FlightPlaceOption[]>;
+  /** The airport a city's flight search should land at, if any. */
+  resolveDestination(
+    city: string,
+    countryCode?: string,
+    lat?: number,
+    lon?: number,
+  ): Promise<FlightPlaceOption | undefined>;
   hotelsNear(lat: number, lon: number): Promise<HotelDetailedInfo[]>;
 }
 
@@ -126,7 +156,32 @@ export const planApi: PlanApi = {
         cabin: cabinFromName(f.cabin),
       }),
     );
-    return res.links.map((l) => ({ provider: l.provider, label: l.label, url: l.url }));
+    return res.links.map((l) => ({
+      provider: l.provider,
+      label: l.label,
+      url: l.url,
+      sponsored: l.sponsored,
+    }));
+  },
+  async searchAirports(query) {
+    if (query.trim().length < 2) return [];
+    const res = await tripClient.searchAirports(
+      create(SearchAirportsRequestSchema, { query: query.trim() }),
+    );
+    return res.options.map(mapPlaceOption);
+  },
+  async resolveDestination(city, countryCode, latitude, longitude) {
+    const res = await tripClient.resolveFlightDestination(
+      create(ResolveFlightDestinationRequestSchema, {
+        city,
+        // The validator takes ISO-2 or nothing; a country name is dropped and
+        // the coordinates tell same-name cities apart instead.
+        countryCode: countryCode && /^[A-Za-z]{2}$/.test(countryCode) ? countryCode : "",
+        latitude,
+        longitude,
+      }),
+    );
+    return res.destination ? mapPlaceOption(res.destination) : undefined;
   },
   async hotelsNear(latitude, longitude) {
     const res = await favoritesClient.getNearbyHotels(
