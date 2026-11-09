@@ -160,4 +160,46 @@ describe("FindFlightsDialog", () => {
     await flush();
     expect(q<HTMLAnchorElement>('a[data-testid="flight-link"]')!.rel).toContain("sponsored");
   });
+
+  it("offers Save to trip when the page passes onSave", async () => {
+    const onSave = vi.fn(async () => true);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    dispose = render(
+      () => (
+        <FindFlightsDialog
+          open={true}
+          onOpenChange={() => {}}
+          source="trip"
+          city="Barcelona"
+          api={fakeApi()}
+          onSave={onSave}
+        />
+      ),
+      host,
+    );
+    await flush();
+    type(q<HTMLInputElement>('[data-testid="flight-from"]')!, "Lisbon");
+    type(q<HTMLInputElement>('[data-testid="flight-depart"]')!, "2026-12-04");
+    q<HTMLButtonElement>('[data-testid="flight-search"]')!.click();
+    await flush();
+    q<HTMLButtonElement>('[data-testid="flight-save"]')!.click();
+    await flush();
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        destination: { name: "Barcelona", iata: "BCN" },
+        departDate: "2026-12-04",
+      }),
+    );
+  });
+
+  it("has no Save on a city page", async () => {
+    mount(fakeApi());
+    await flush();
+    type(q<HTMLInputElement>('[data-testid="flight-from"]')!, "Lisbon");
+    type(q<HTMLInputElement>('[data-testid="flight-depart"]')!, "2026-12-04");
+    q<HTMLButtonElement>('[data-testid="flight-search"]')!.click();
+    await flush();
+    expect(q('[data-testid="flight-save"]')).toBeNull();
+  });
 });

@@ -57,6 +57,9 @@ import { useMarkStop, type StopMark } from "~/lib/api/gamification";
 import { showToast } from "~/lib/toast-store";
 import { tripHasEnded } from "~/lib/recap/recap";
 import { FindFlightsButton } from "~/components/flights/FindFlightsDialog";
+import { planApi } from "~/lib/api/trip-plan";
+import { mapTrip } from "~/lib/api/trips";
+import { Code, ConnectError } from "@connectrpc/connect";
 
 /** Per-trip edit-mode memory, so a reload mid-edit does not drop you back into read mode. */
 const editingKey = (tripId: string) => `loci.trip.editing.${tripId}`;
@@ -502,6 +505,21 @@ export default function TripEditor() {
                   lon={t.days[0]?.cityLon}
                   startDate={t.startDate}
                   endDate={t.endDate}
+                  onSave={async (search) => {
+                    try {
+                      rememberTrip(
+                        queryClient,
+                        mapTrip(await planApi.addFlight(t.id, search, t.version)),
+                      );
+                      return true;
+                    } catch (err) {
+                      if (err instanceof ConnectError && err.code === Code.FailedPrecondition) {
+                        setConflict(true);
+                        tripQuery.refetch();
+                      }
+                      return false;
+                    }
+                  }}
                 />
               </div>
             </Show>

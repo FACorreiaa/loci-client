@@ -2,7 +2,12 @@ import { Show, createEffect, createSignal, on } from "solid-js";
 import { Plane } from "lucide-solid";
 import { Button } from "~/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "~/ui/dialog";
-import { planApi, type FlightPlaceOption, type PlanApi } from "~/lib/api/trip-plan";
+import {
+  planApi,
+  type FlightPlaceOption,
+  type FlightSearch,
+  type PlanApi,
+} from "~/lib/api/trip-plan";
 import { trackFlightOpened, type FlightSource } from "~/lib/flights/analytics";
 import FlightSearchForm from "./FlightSearchForm";
 import { optionLabel, optionPlace } from "./AirportField";
@@ -17,6 +22,11 @@ export interface FindFlightsProps {
   lon?: number;
   startDate?: string;
   endDate?: string;
+  /**
+   * Saves the search to the page's trip; resolves true when it was saved.
+   * Only a trip page passes it, so only there does the dialog offer Save.
+   */
+  onSave?: (search: FlightSearch) => Promise<boolean>;
   /** Injected in tests. */
   api?: PlanApi;
 }
@@ -31,6 +41,19 @@ export default function FindFlightsDialog(
 ) {
   const api = () => props.api ?? planApi;
   const [dest, setDest] = createSignal<FlightPlaceOption | null | undefined>(undefined);
+  const [saving, setSaving] = createSignal(false);
+  const [saveFailed, setSaveFailed] = createSignal(false);
+  const save = async (search: FlightSearch) => {
+    if (!props.onSave) return;
+    setSaving(true);
+    setSaveFailed(false);
+    try {
+      if (await props.onSave(search)) props.onOpenChange(false);
+      else setSaveFailed(true);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   createEffect(
     on(
@@ -76,7 +99,26 @@ export default function FindFlightsDialog(
               departDate: props.startDate,
               returnDate: props.endDate,
             }}
+            extraActions={
+              props.onSave
+                ? (search) => (
+                    <Button
+                      size="sm"
+                      data-testid="flight-save"
+                      disabled={saving()}
+                      onClick={() => void save(search)}
+                    >
+                      Save to trip
+                    </Button>
+                  )
+                : undefined
+            }
           />
+          <Show when={saveFailed()}>
+            <p class="mt-2 text-xs text-destructive" role="alert">
+              Couldn't save the flight to the trip. Try again.
+            </p>
+          </Show>
         </Show>
       </DialogContent>
     </Dialog>
