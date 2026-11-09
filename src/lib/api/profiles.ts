@@ -34,6 +34,11 @@ import {
   labelToTransport,
   timestampToISO,
 } from "./profile-enums";
+import {
+  accessibilityCreateFields,
+  accessibilityUpdateFields,
+  needsFromProto,
+} from "../accessibility";
 
 const profileClient = createClient(ProfileService, transport);
 
@@ -83,6 +88,7 @@ const mapProtoToSearchProfile = (profile: any): SearchProfile => ({
   itinerary_preferences: profile.itineraryPreferences
     ? mapProtoToItineraryPreferences(profile.itineraryPreferences)
     : null,
+  accessibility_needs: needsFromProto(profile.accessibilityNeeds),
 });
 
 const mapProtoToAccommodationPreferences = (prefs: any): AccommodationPreferences => ({
@@ -381,6 +387,9 @@ export const useCreateSearchProfileMutation = () => {
         diningPreferences: diningToProto(data.dining_preferences),
         activityPreferences: activityToProto(data.activity_preferences),
         itineraryPreferences: itineraryToProto(data.itinerary_preferences),
+        // Only with consent ticked in this form; the server rejects needs
+        // without it.
+        ...accessibilityCreateFields(data.accessibility),
       });
       const response = await profileClient.createUserPreferenceProfile(request);
       return response;
@@ -431,6 +440,8 @@ export const useUpdateSearchProfileMutation = () => {
         diningPreferences: diningToProto(data.dining_preferences),
         activityPreferences: activityToProto(data.activity_preferences),
         itineraryPreferences: itineraryToProto(data.itinerary_preferences),
+        // Unlike the fields above, needs are sent only when they changed.
+        ...accessibilityUpdateFields(data.accessibility),
       });
       const response = await profileClient.updateUserPreferenceProfile(request);
       return response;

@@ -13,13 +13,23 @@ export type AdvancedFilterId =
 export interface AdvancedFilterOption {
   id: AdvancedFilterId;
   label: string;
-  /** Appended to the discover/chat prompt when active (Pro only). */
+  /** Appended to the discover/chat prompt when active. */
   promptHint: string;
+  /**
+   * Free on every plan. Access is not a premium feature: a traveller who
+   * needs step-free places must never meet a paywall to ask for them.
+   */
+  free?: boolean;
 }
 
 export const ADVANCED_FILTERS: AdvancedFilterOption[] = [
   { id: "cuisine", label: "Cuisine", promptHint: "prefer specific cuisine types" },
-  { id: "accessible", label: "Accessible", promptHint: "wheelchair accessible and step-free" },
+  {
+    id: "accessible",
+    label: "Accessible",
+    promptHint: "wheelchair accessible and step-free",
+    free: true,
+  },
   { id: "quiet", label: "Quiet", promptHint: "low noise, calm spots" },
   { id: "hidden_gems", label: "Hidden gems", promptHint: "less touristy local favorites" },
   { id: "open_now", label: "Open now", promptHint: "currently open" },
@@ -32,15 +42,20 @@ export interface AdvancedFiltersBarProps {
   onChange: (next: AdvancedFilterId[]) => void;
 }
 
+/** Whether a filter can be used on this plan. */
+export const filterAvailable = (f: AdvancedFilterOption, isPro: boolean) => isPro || !!f.free;
+
 /**
- * Premium advanced filters. Free users see locked chips → upgrade prompt.
- * Pro users toggle filters; parent folds promptHint into the stream message.
+ * Advanced filters, mostly Pro. Free users see locked chips → upgrade prompt,
+ * except for the free ones (Accessible). The parent folds promptHint into the
+ * stream message.
  */
 export default function AdvancedFiltersBar(props: AdvancedFiltersBarProps) {
   const activeSet = createMemo(() => new Set(props.active));
 
-  const toggle = (id: AdvancedFilterId) => {
-    if (!props.isPro) {
+  const toggle = (f: AdvancedFilterOption) => {
+    const id = f.id;
+    if (!filterAvailable(f, props.isPro)) {
       showUpgradePrompt(
         "entitlement",
         "Advanced filters (cuisine, accessibility, niche tags, precise hours) are included with Pro.",
@@ -76,11 +91,12 @@ export default function AdvancedFiltersBar(props: AdvancedFiltersBarProps) {
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-foreground hover:border-primary/40"
                 }`}
-                onClick={() => toggle(f.id)}
+                onClick={() => toggle(f)}
                 aria-pressed={on()}
               >
-                <Show when={!props.isPro}>
-                  <Lock class="h-3 w-3" />
+                <Show when={!filterAvailable(f, props.isPro)}>
+                  <Lock class="h-3 w-3" aria-hidden="true" />
+                  <span class="sr-only">Pro: </span>
                 </Show>
                 {f.label}
               </button>
@@ -92,10 +108,12 @@ export default function AdvancedFiltersBar(props: AdvancedFiltersBarProps) {
   );
 }
 
-/** Build a prompt suffix from active advanced filters. */
-export function advancedFilterPromptSuffix(active: AdvancedFilterId[]): string {
+/** Build a prompt suffix from the active filters this plan can use. */
+export function advancedFilterPromptSuffix(active: AdvancedFilterId[], isPro: boolean): string {
   if (!active.length) return "";
-  const hints = ADVANCED_FILTERS.filter((f) => active.includes(f.id)).map((f) => f.promptHint);
+  const hints = ADVANCED_FILTERS.filter(
+    (f) => active.includes(f.id) && filterAvailable(f, isPro),
+  ).map((f) => f.promptHint);
   if (!hints.length) return "";
   return ` Constraints: ${hints.join("; ")}.`;
 }

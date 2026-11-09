@@ -9,17 +9,17 @@ importers:
   .:
     dependencies:
       '@buf/loci_loci-proto.bufbuild_es':
-        specifier: 2.15.0-20261105100257-2a83982bf72f.1
-        version: 2.15.0-20261105100257-2a83982bf72f.1(@bufbuild/protobuf@2.16.0)
+        specifier: 2.17.0-20261106165749-de03bad46039.1
+        version: 2.17.0-20261106165749-de03bad46039.1(@bufbuild/protobuf@2.17.0)
       '@bufbuild/protobuf':
-        specifier: ^2.16.0
-        version: 2.16.0
+        specifier: ^2.17.0
+        version: 2.17.0
       '@connectrpc/connect':
         specifier: ^2.3.0
-        version: 2.3.0(@bufbuild/protobuf@2.16.0)
+        version: 2.3.0(@bufbuild/protobuf@2.17.0)
       '@connectrpc/connect-web':
         specifier: ^2.3.0
-        version: 2.3.0(@bufbuild/protobuf@2.16.0)(@connectrpc/connect@2.3.0(@bufbuild/protobuf@2.16.0))
+        version: 2.3.0(@bufbuild/protobuf@2.17.0)(@connectrpc/connect@2.3.0(@bufbuild/protobuf@2.17.0))
       '@kobalte/core':
         specifier: ^0.13.14
         version: 0.13.14(solid-js@1.9.18)
@@ -691,23 +691,23 @@ packages:
     resolution: {integrity: sha512-WCsemW40Cpc6gouC1SrY6PBaZ+oLRlEVY9XBvZBI7il/HyUrb2nJ505wE1MHEFyDZNnrWDEuy4jL50WVHfTTSQ==}
     engines: {node: '>=6.9.0'}
 
-  '@buf/bufbuild_protovalidate.bufbuild_es@2.15.0-20251209175733-2a1774d88802.1':
-    resolution: {integrity: sha512-QToyH8zFMIkrTNvQ1hQ6ZwJJyIphP5ppUDKgIbSKedKDEf+/VykKpg897gP2N1G6mcK3aL97bvxm1WIa5be/OQ==}
+  '@buf/bufbuild_protovalidate.bufbuild_es@2.17.0-20251209175733-2a1774d88802.1':
+    resolution: {integrity: sha512-PNnC/+3tlKN//6JbQaEu6w1rvPfCRY4OUMaAlGZGZoTk6uq+NMJMV4CS/Bb0Rsy/E7zedEdyAz239WZq85GGSw==}
     peerDependencies:
-      '@bufbuild/protobuf': ^2.15.0
+      '@bufbuild/protobuf': ^2.17.0
 
-  '@buf/loci_loci-proto.bufbuild_es@2.15.0-20261105100257-2a83982bf72f.1':
-    resolution: {integrity: sha512-bVpxK+VkWL00BytMl0qNgsDummbG5g02pEHHdwMtzp0/JVY3e7j9T5T3LPGpJAmO4fKmibEKTJENWSgTOUopBg==}
+  '@buf/loci_loci-proto.bufbuild_es@2.17.0-20261106165749-de03bad46039.1':
+    resolution: {integrity: sha512-MTC303wqRZThxXj934XyfKJnjKhkCIRsu8YmLt2z9c77R02N4NfgMgCwHAqjXOCInSyQqIPfRKj9C3rp7gJXHg==}
     peerDependencies:
-      '@bufbuild/protobuf': ^2.15.0
+      '@bufbuild/protobuf': ^2.17.0
 
-  '@buf/protocolbuffers_wellknowntypes.bufbuild_es@2.15.0-20230331140314-f17e05fe4a76.1':
-    resolution: {integrity: sha512-7UxL/jR7eOiydWgZn5Uk+weWdRye6OtpOYyF8kSdEtD8VzaI55OLNnpfwl21qUFez4laU7hzJvOhGEwI8+Uj8g==}
+  '@buf/protocolbuffers_wellknowntypes.bufbuild_es@2.17.0-20230331140314-f17e05fe4a76.1':
+    resolution: {integrity: sha512-okECVAY6IGizbvnf040traJP9IU7lJGvRUT/4iQOqhvdGJ9OpWFjvArEWFXGd8xhe1VYnVAVw2DUkfPKhrNMEw==}
     peerDependencies:
-      '@bufbuild/protobuf': ^2.15.0
+      '@bufbuild/protobuf': ^2.17.0
 
-  '@bufbuild/protobuf@2.16.0':
-    resolution: {integrity: sha512-FWa0sPlqYGJgpTs6OxBRcL/AW4JT0OIO+W1ajerluoTVh8CV0B7XM1qsNCRgnkSCkRCgOICKHRQlY17jrsm0+Q==}
+  '@bufbuild/protobuf@2.17.0':
+    resolution: {integrity: sha512-hcPkSz6D7MiTU/5VBBhK+kxaYDoOdQ6yJRFJ3kS8Nydp+VZXfg1vrpABKPNod8bXMufsVCmiUJVIKFzCzta4uw==}
 
   '@cloudflare/kv-asset-handler@0.5.0':
     resolution: {integrity: sha512-jxQYkj8dSIzc0cD6cMMNdOc1UVjqSqu8BZdor5s8cGjW2I8BjODt/kWPVdY+u9zj3ms75Q5qaZgnxUad83+eAg==}
@@ -6185,21 +6185,21 @@ snapshots:
       '@babel/helper-string-parser': 7.29.11
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@buf/bufbuild_protovalidate.bufbuild_es@2.15.0-20251209175733-2a1774d88802.1(@bufbuild/protobuf@2.16.0)':
+  '@buf/bufbuild_protovalidate.bufbuild_es@2.17.0-20251209175733-2a1774d88802.1(@bufbuild/protobuf@2.17.0)':
     dependencies:
-      '@bufbuild/protobuf': 2.16.0
+      '@bufbuild/protobuf': 2.17.0
 
-  '@buf/loci_loci-proto.bufbuild_es@2.15.0-20261105100257-2a83982bf72f.1(@bufbuild/protobuf@2.16.0)':
+  '@buf/loci_loci-proto.bufbuild_es@2.17.0-20261106165749-de03bad46039.1(@bufbuild/protobuf@2.17.0)':
     dependencies:
-      '@buf/bufbuild_protovalidate.bufbuild_es': 2.15.0-20251209175733-2a1774d88802.1(@bufbuild/protobuf@2.16.0)
-      '@buf/protocolbuffers_wellknowntypes.bufbuild_es': 2.15.0-20230331140314-f17e05fe4a76.1(@bufbuild/protobuf@2.16.0)
-      '@bufbuild/protobuf': 2.16.0
+      '@buf/bufbuild_protovalidate.bufbuild_es': 2.17.0-20251209175733-2a1774d88802.1(@bufbuild/protobuf@2.17.0)
+      '@buf/protocolbuffers_wellknowntypes.bufbuild_es': 2.17.0-20230331140314-f17e05fe4a76.1(@bufbuild/protobuf@2.17.0)
+      '@bufbuild/protobuf': 2.17.0
 
-  '@buf/protocolbuffers_wellknowntypes.bufbuild_es@2.15.0-20230331140314-f17e05fe4a76.1(@bufbuild/protobuf@2.16.0)':
+  '@buf/protocolbuffers_wellknowntypes.bufbuild_es@2.17.0-20230331140314-f17e05fe4a76.1(@bufbuild/protobuf@2.17.0)':
     dependencies:
-      '@bufbuild/protobuf': 2.16.0
+      '@bufbuild/protobuf': 2.17.0
 
-  '@bufbuild/protobuf@2.16.0': {}
+  '@bufbuild/protobuf@2.17.0': {}
 
   '@cloudflare/kv-asset-handler@0.5.0': {}
 
@@ -6224,14 +6224,14 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20261023.1':
     optional: true
 
-  '@connectrpc/connect-web@2.3.0(@bufbuild/protobuf@2.16.0)(@connectrpc/connect@2.3.0(@bufbuild/protobuf@2.16.0))':
+  '@connectrpc/connect-web@2.3.0(@bufbuild/protobuf@2.17.0)(@connectrpc/connect@2.3.0(@bufbuild/protobuf@2.17.0))':
     dependencies:
-      '@bufbuild/protobuf': 2.16.0
-      '@connectrpc/connect': 2.3.0(@bufbuild/protobuf@2.16.0)
+      '@bufbuild/protobuf': 2.17.0
+      '@connectrpc/connect': 2.3.0(@bufbuild/protobuf@2.17.0)
 
-  '@connectrpc/connect@2.3.0(@bufbuild/protobuf@2.16.0)':
+  '@connectrpc/connect@2.3.0(@bufbuild/protobuf@2.17.0)':
     dependencies:
-      '@bufbuild/protobuf': 2.16.0
+      '@bufbuild/protobuf': 2.17.0
 
   '@corvu/utils@0.4.2(solid-js@1.9.18)':
     dependencies:

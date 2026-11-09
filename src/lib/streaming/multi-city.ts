@@ -5,6 +5,7 @@
 // half of the projection: applyCityEvent is exactly what streaming-service
 // does to one result, and applyStopEvent routes a tagged event to its city.
 import type { LociStreamEvent, RouteInfo } from "./chatStream";
+import { withAccessibleRoute } from "~/lib/accessibility";
 import type {
   AccommodationResponse,
   ActivitiesResponse,
@@ -82,6 +83,15 @@ export function applyCityEvent(
         session_id:
           (data as Partial<AiCityResponse> | null)?.session_id || ev.sessionId || sessionId,
       } as Data;
+    case "accessible_route": {
+      // Arrives after the itinerary it routes; merged beside it, by day.
+      if (!isCity || !data) return data;
+      const city = data as Partial<AiCityResponse>;
+      return {
+        ...city,
+        accessible_routes: withAccessibleRoute(city.accessible_routes, ev.route),
+      } as Data;
+    }
     default:
       return data;
   }

@@ -17,6 +17,7 @@
 
 import { createStore, produce } from "solid-js/store";
 import type { AiCityResponse, POIDetailedInfo, POIImageCredit } from "@/lib/api/types";
+import { routeRef, type AccessibilityNote } from "@/lib/accessibility";
 
 export type StreamPhase = "idle" | "skeleton" | "enriching" | "done" | "error";
 
@@ -49,6 +50,10 @@ export interface ItineraryStop {
   enriched: boolean;
   /** true if enrichment explicitly failed for this stop. */
   failed?: boolean;
+  /** Access evidence for this place; only when the traveller has needs set. */
+  accessibilityNotes?: AccessibilityNote[];
+  /** How the server's walking legs name this stop (see routeRef). */
+  routeRef?: string;
 }
 
 export interface ItineraryState {
@@ -303,6 +308,8 @@ export function stopFromPoi(poi: POIDetailedInfo, index: number): ItineraryStop 
     imageCredit: credit && credit.url === imageUrl ? credit : undefined,
     rating: poi.rating,
     enriched,
+    accessibilityNotes: poi.accessibility_notes,
+    routeRef: routeRef(poi),
   };
 }
 

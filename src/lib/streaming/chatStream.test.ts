@@ -369,3 +369,52 @@ describe("trip actions", () => {
     expect(buildRequest({ message: "x", tripId: "" }).tripId).toBeUndefined();
   });
 });
+
+describe("accessible route events", () => {
+  it("maps ACCESSIBLE_ROUTE onto one day's walks", () => {
+    const out = mapProtoEvent(
+      create(StreamEventSchema, {
+        eventType: StreamEventType.ACCESSIBLE_ROUTE,
+        stopIndex: 0,
+        payload: {
+          case: "accessibleRoute",
+          value: {
+            day: 2,
+            totalWalkMinutes: 25,
+            warnings: ["Day 2 is over your daily limit."],
+            legs: [
+              {
+                fromPoiId: "a",
+                toPoiId: "b",
+                distanceM: 1200,
+                durationMin: 25,
+                ascentM: 30,
+                routed: false,
+                suggestMode: "taxi",
+                notes: [{ text: "Steep climb", severity: 2, source: 3 }],
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(out).toMatchObject({
+      kind: "accessible_route",
+      stopIndex: 0,
+      route: {
+        day: 2,
+        total_walk_minutes: 25,
+        warnings: ["Day 2 is over your daily limit."],
+        legs: [
+          {
+            from_ref: "a",
+            to_ref: "b",
+            routed: false,
+            suggest_mode: "taxi",
+            notes: [{ text: "Steep climb", severity: "caution", source: "routed" }],
+          },
+        ],
+      },
+    });
+  });
+});
