@@ -8,6 +8,9 @@ import AddToListButton from "~/components/lists/AddToListButton";
 import { stopFromPoi, type ItineraryStop } from "~/lib/itinerary/createItineraryStream";
 import type { POIDetailedInfo } from "~/lib/api/types";
 import { recordRecommendationEvents } from "~/lib/api/recommendations";
+import type { HotelPrice } from "~/lib/api/pricing";
+import { formatPrice } from "~/lib/locale";
+import { tierLabel } from "~/lib/results/price-filter";
 import { outcomeEvent, resultKey, withoutDismissed } from "~/lib/results/outcome";
 import {
   DOMAINS,
@@ -42,6 +45,15 @@ export interface ResultsListProps {
    * Without it the list hides dismissed places itself.
    */
   onDismiss?: (poi: POIDetailedInfo) => void;
+  /**
+   * Live hotel prices by resultKey. Given, hotel cards show the partner's
+   * nightly price instead of the model's free-text band; left out (chat,
+   * previews), they keep the band.
+   */
+  prices?: ReadonlyMap<string, HotelPrice>;
+  pricesLoading?: boolean;
+  /** Currency the restaurant tier symbols use. */
+  currency?: string;
 }
 
 const MAX_AMENITIES = 4;
@@ -91,7 +103,16 @@ export default function ResultsList(props: ResultsListProps) {
                   }
                 : undefined
             }
-            meta={<DomainMeta poi={row.poi} domain={props.domain} />}
+            meta={
+              <DomainMeta
+                poi={row.poi}
+                domain={props.domain}
+                price={props.prices?.get(resultKey(row.poi))}
+                livePrices={props.prices !== undefined || props.pricesLoading === true}
+                pricesLoading={props.pricesLoading}
+                currency={props.currency}
+              />
+            }
             action={
               <Show when={props.showFavorite ?? true}>
                 <span class="inline-flex items-center gap-1">
@@ -147,8 +168,18 @@ const Chip = (p: { children: any; tone?: "accent" | "destructive" | "muted" }) =
 );
 
 /** Hotel: stars and a few amenities. Restaurant: cuisine, today, price. Activity: category. */
-function DomainMeta(props: { poi: POIDetailedInfo; domain: ResultsDomain }) {
-  const price = () => props.poi.price_range || props.poi.price_level || "";
+function DomainMeta(props: {
+  poi: POIDetailedInfo;
+  domain: ResultsDomain;
+  price?: HotelPrice;
+  livePrices?: boolean;
+  pricesLoading?: boolean;
+  currency?: string;
+}) {
+  const price = () =>
+    props.poi.price_tier
+      ? tierLabel(props.poi.price_tier, props.currency)
+      : props.poi.price_range || props.poi.price_level || "";
   const stars = () => {
     const n = Math.round(props.poi.star_rating ?? 0);
     return n > 0 && n <= 5 ? n : 0;
@@ -175,8 +206,15 @@ function DomainMeta(props: { poi: POIDetailedInfo; domain: ResultsDomain }) {
           </span>
         </Show>
         <For each={amenities()}>{(a) => <Chip>{a}</Chip>}</For>
-        <Show when={price()}>
-          <Chip tone="accent">{price()}</Chip>
+        <Show
+          when={props.livePrices}
+          fallback={
+            <Show when={price()}>
+              <Chip tone="accent">{price()}</Chip>
+            </Show>
+          }
+        >
+          <HotelPriceChip poi={props.poi} price={props.price} loading={props.pricesLoading} />
         </Show>
       </Show>
 
@@ -207,5 +245,65 @@ function DomainMeta(props: { poi: POIDetailedInfo; domain: ResultsDomain }) {
         </Show>
       </Show>
     </div>
+  );
+}
+
+/**
+ * A hotel's live price and the partner link, or why there is no price. The
+ * link is marked sponsored: Loci earns from it, and ranking never depends on
+ * that (docs/business/partnerships-and-revenue.md, loci-connect-server).
+ */
+function HotelPriceChip(props: { poi: POIDetailedInfo; price?: HotelPrice; loading?: boolean }) {
+  const priced = () => (props.price?.status === "priced" ? props.price : undefined);
+  const openBooking = () => {
+    const event = outcomeEvent(props.poi, "RECOMMENDATION_EVENT_TYPE_BOOKING_OPENED");
+    if (event) void recordRecommendationEvents([event]);
+  };
+  return (
+    <Show
+      when={!props.loading}
+      fallback={
+        <span
+          class="inline-block h-5 w-20 animate-pulse rounded-full bg-muted"
+          aria-label="Checking price"
+          data-testid="price-loading"
+        />
+      }
+    >
+      <Show
+        when={priced()}
+        fallback={
+          <Chip>
+            {props.price?.status === "sold_out" ? "Sold out for these dates" : "No live price"}
+          </Chip>
+        }
+      >
+        {(p) => (
+          <span class="inline-flex items-center gap-1.5">
+            <Chip tone="accent">
+              <span data-testid="hotel-price">
+                {formatPrice(Math.round(p().nightly), p().currency)}
+                <span class="font-normal"> / night</span>
+              </span>
+            </Chip>
+            <Show when={p().bookingUrl}>
+              <a
+                href={p().bookingUrl}
+                target="_blank"
+                rel="sponsored noopener noreferrer"
+                class="text-[11px] font-medium text-primary underline-offset-2 hover:underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openBooking();
+                }}
+              >
+                Check availability
+                <span class="sr-only"> for {props.poi.name} (opens partner site)</span>
+              </a>
+            </Show>
+          </span>
+        )}
+      </Show>
+    </Show>
   );
 }

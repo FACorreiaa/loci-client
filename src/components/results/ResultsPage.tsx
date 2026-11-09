@@ -51,6 +51,25 @@ import FloatingChat from "~/components/features/Chat/FloatingChat";
 import StopCardSkeleton from "~/components/itinerary/StopCardSkeleton";
 import TripKit from "~/components/itinerary/TripKit";
 import ResultsList from "./ResultsList";
+import PriceRangeFilter from "./PriceRangeFilter";
+import StayControl from "./StayControl";
+import TierFilter from "./TierFilter";
+import { useLocale } from "~/contexts/LocaleContext";
+import {
+  defaultStay,
+  fetchHotelRates,
+  RatesUnavailableError,
+  type HotelPrice,
+  type Stay,
+} from "~/lib/api/pricing";
+import {
+  applyPriceFilter,
+  filterByTier,
+  priceBounds,
+  sortByPrice,
+  type PriceRange,
+  type PriceSort,
+} from "~/lib/results/price-filter";
 import "~/styles/editorial.css";
 
 const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
@@ -263,7 +282,106 @@ export default function ResultsPage(props: ResultsPageProps) {
     setDismissed((current) => new Set(current).add(resultKey(poi)));
   const rawList = createMemo<POIDetailedInfo[]>(() => results()?.list ?? []);
   const visible = createMemo(() => visibleResults(rawList(), results()?.extras ?? [], dismissed()));
-  const list = createMemo<POIDetailedInfo[]>(() => visible().list);
+
+  // ---- Prices -------------------------------------------------------
+  // Hotels: live partner prices for a stay, fetched once the list is final
+  // and again when the stay changes; never part of the session, because they
+  // go stale. Restaurants: the price tier the server derives. Both filter
+  // `list`, so the cards, the pins and the count agree.
+  const locale = useLocale();
+  const isHotels = () => props.domain === "hotels";
+  const [stay, setStay] = createSignal<Stay>(defaultStay(locale.currency()));
+  const [prices, setPrices] = createSignal<ReadonlyMap<string, HotelPrice>>();
+  const [pricesLoading, setPricesLoading] = createSignal(false);
+  const [pricesUnavailable, setPricesUnavailable] = createSignal(false);
+  const [priceRange, setPriceRange] = createSignal<PriceRange | null>(null);
+  const [includeUnpriced, setIncludeUnpriced] = createSignal(false);
+  const [priceSort, setPriceSort] = createSignal<PriceSort>("relevance");
+  const [tiers, setTiers] = createSignal<ReadonlySet<number>>(new Set());
+
+  // The account currency can arrive after the page mounts.
+  createEffect(
+    on(locale.currency, (currency) =>
+      setStay((s) => (s.currency === currency ? s : { ...s, currency })),
+    ),
+  );
+
+  const hotelsToPrice = createMemo(() => (isHotels() && !isStreaming() ? visible().list : []), [], {
+    equals: (a, b) => a.length === b.length && a.every((p, i) => resultKey(p) === resultKey(b[i])),
+  });
+  let priceRequest = 0;
+  createEffect(
+    on([hotelsToPrice, stay], ([hotels, s]) => {
+      if (hotels.length === 0) return;
+      const id = ++priceRequest;
+      setPricesLoading(true);
+      setPricesUnavailable(false);
+      fetchHotelRates(hotels, s)
+        .then((r) => {
+          if (id !== priceRequest || !mounted) return;
+          setPrices(r.prices);
+        })
+        .catch((err) => {
+          if (id !== priceRequest || !mounted) return;
+          if (!(err instanceof RatesUnavailableError))
+            console.warn("[prices] hotel rates failed", err);
+          setPrices(new Map());
+          setPricesUnavailable(true);
+        })
+        .finally(() => {
+          if (id === priceRequest && mounted) setPricesLoading(false);
+        });
+    }),
+  );
+
+  const nightlyOf = (poi: POIDetailedInfo) => {
+    const p = prices()?.get(resultKey(poi));
+    return p?.status === "priced" ? p.nightly : undefined;
+  };
+  const nightlyPrices = createMemo(() =>
+    visible()
+      .list.map(nightlyOf)
+      .filter((n): n is number => n !== undefined),
+  );
+  const unpricedCount = createMemo(() => visible().list.length - nightlyPrices().length);
+  // New prices, new bounds: start again from the full range.
+  createEffect(
+    on(
+      () => priceBounds(nightlyPrices())?.join("-"),
+      () => setPriceRange(null),
+    ),
+  );
+  const priceCurrency = () => {
+    for (const p of prices()?.values() ?? []) if (p.status === "priced") return p.currency;
+    return stay().currency;
+  };
+  const tierCounts = createMemo(() => {
+    const m = new Map<number, number>();
+    for (const p of visible().list)
+      if (p.price_tier) m.set(p.price_tier, (m.get(p.price_tier) ?? 0) + 1);
+    return m;
+  });
+
+  const list = createMemo<POIDetailedInfo[]>(() => {
+    let out = visible().list;
+    if (isHotels() && prices()) {
+      out = applyPriceFilter(
+        out,
+        nightlyOf,
+        priceRange(),
+        priceBounds(nightlyPrices()),
+        includeUnpriced(),
+      );
+      out = sortByPrice(out, nightlyOf, priceSort());
+    }
+    if (props.domain === "restaurants") out = filterByTier(out, (p) => p.price_tier, tiers());
+    return out;
+  });
+  const filteredOut = () => visible().list.length > 0 && list().length === 0;
+  const resetPriceFilters = () => {
+    setPriceRange(null);
+    setTiers(new Set<number>());
+  };
   const extras = createMemo<POIDetailedInfo[]>(() => visible().extras);
   const title = () => listTitle(props.domain, resolvedCity());
 
@@ -619,6 +737,36 @@ export default function ResultsPage(props: ResultsPageProps) {
           </div>
         </Show>
 
+        <Show when={isHotels() && visible().list.length > 0 && !isStreaming()}>
+          <div class="mb-4 space-y-3">
+            <StayControl stay={stay()} onChange={setStay} />
+            <PriceRangeFilter
+              prices={nightlyPrices()}
+              currency={priceCurrency()}
+              range={priceRange()}
+              onRangeChange={setPriceRange}
+              unpricedCount={unpricedCount()}
+              includeUnpriced={includeUnpriced()}
+              onIncludeUnpricedChange={setIncludeUnpriced}
+              sort={priceSort()}
+              onSortChange={setPriceSort}
+              loading={pricesLoading()}
+              unavailable={pricesUnavailable()}
+              unitLabel="/ night"
+            />
+          </div>
+        </Show>
+        <Show when={props.domain === "restaurants" && tierCounts().size > 0}>
+          <div class="mb-4">
+            <TierFilter
+              selected={tiers()}
+              onChange={setTiers}
+              currency={locale.currency()}
+              counts={tierCounts()}
+            />
+          </div>
+        </Show>
+
         <Show when={list().length > 0}>
           <ResultsList
             pois={list()}
@@ -627,7 +775,20 @@ export default function ResultsPage(props: ResultsPageProps) {
             selectedKey={selectedId()}
             onSelect={onCardSelect}
             onDismiss={dismiss}
+            prices={isHotels() ? prices() : undefined}
+            pricesLoading={isHotels() && pricesLoading()}
+            currency={locale.currency()}
           />
+        </Show>
+        <Show when={filteredOut()}>
+          <div class="loci-card rounded-2xl p-6 text-center space-y-3">
+            <p class="text-sm text-muted-foreground">
+              No {meta().label.toLowerCase()} in this price range.
+            </p>
+            <button type="button" class="loci-hero__action mx-auto" onClick={resetPriceFilters}>
+              Show all prices
+            </button>
+          </div>
         </Show>
 
         <Show when={phase() === "done" && rawList().length === 0 && !streamError()}>

@@ -254,6 +254,13 @@ describe("Edge Cases", () => {
 });
 
 describe("mapPoi", () => {
+  it("maps the price tier, and leaves it unset when the server has none", () => {
+    expect(
+      mapPoi(create(POIDetailedInfoSchema, { name: "Can Culleretes", priceTier: 2 })).price_tier,
+    ).toBe(2);
+    expect(mapPoi(create(POIDetailedInfoSchema, { name: "Bar" })).price_tier).toBeUndefined();
+  });
+
   it("preserves server recommendation attribution", () => {
     const proto = create(POIDetailedInfoSchema, {
       id: "f6d8ed0a-eade-4a77-a82d-a72d8fa5833e",
