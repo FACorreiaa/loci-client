@@ -71,6 +71,7 @@ import {
   type PriceSort,
 } from "~/lib/results/price-filter";
 import "~/styles/editorial.css";
+import { FindFlightsButton } from "~/components/flights/FindFlightsDialog";
 
 const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 const DetailedItemModal = lazyChunk(() => import("~/components/DetailedItemModal"));
@@ -704,6 +705,20 @@ export default function ResultsPage(props: ResultsPageProps) {
             </Show>
           </h1>
         </header>
+        {/* Coordinates, not cityData().country: that field is model prose,
+            and the server tells same-name cities apart by position. */}
+        <Show when={resolvedCity()}>
+          {(city) => (
+            <div class="mb-4">
+              <FindFlightsButton
+                source={props.domain}
+                city={city()}
+                lat={cityData()?.center_latitude}
+                lon={cityData()?.center_longitude}
+              />
+            </div>
+          )}
+        </Show>
 
         {/* ---- Status rail ------------------------------------- */}
         <Show when={phase() === "skeleton" || phase() === "enriching"}>

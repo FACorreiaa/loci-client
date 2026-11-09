@@ -2,7 +2,7 @@ import { For, Show, createSignal, type Component } from "solid-js";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { TripDraft as ProtoTripDraft } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import { Button } from "~/ui/button";
-import { mapTrip, type FlightCabinName, type FlightLink, type Trip } from "~/lib/api/trips";
+import { mapTrip, type Trip } from "~/lib/api/trips";
 import {
   cityCoords,
   hotelsWithStars,
@@ -12,6 +12,8 @@ import {
   type PlanApi,
 } from "~/lib/api/trip-plan";
 import type { HotelDetailedInfo } from "~/lib/api/types";
+import FlightSearchForm, { httpsOnly, linkRel } from "~/components/flights/FlightSearchForm";
+import { trackFlightClicked } from "~/lib/flights/analytics";
 
 export interface TripPlanPanelProps {
   trip: Trip;
@@ -26,9 +28,6 @@ export interface TripPlanPanelProps {
 const label = "font-coord text-[11px] uppercase tracking-[0.16em] text-muted-foreground";
 const field = "rounded-md border border-input bg-background px-2 py-1 text-sm";
 const link = "text-sm text-primary underline-offset-2 hover:underline";
-
-/** Links come from the server, but only https ones ever become an href. */
-const httpsOnly = (links: FlightLink[]) => links.filter((l) => l.url.startsWith("https://"));
 
 const errorText = (err: unknown, fallback: string) =>
   err instanceof ConnectError && err.rawMessage ? err.rawMessage : fallback;
@@ -115,35 +114,11 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
     if (ok) setFound({ ...found(), [city]: [] });
   };
 
-  // Flights
-  const [from, setFrom] = createSignal("");
-  const [to, setTo] = createSignal(tripCities(props.trip)[0] ?? "");
-  const [depart, setDepart] = createSignal(props.trip.startDate ?? "");
-  const [ret, setRet] = createSignal(props.trip.endDate ?? "");
-  const [pax, setPax] = createSignal(1);
-  const [cabin, setCabin] = createSignal<FlightCabinName | "">("");
-  const [links, setLinks] = createSignal<FlightLink[]>([]);
-  const search = (): FlightSearch => ({
-    origin: { name: from() },
-    destination: { name: to() },
-    departDate: depart(),
-    returnDate: ret() || undefined,
-    passengers: pax(),
-    cabin: cabin() || undefined,
-  });
-  const flightReady = () =>
-    from().trim() !== "" && to().trim() !== "" && depart() !== "" && (!ret() || ret() >= depart());
-  const buildLinks = async () => {
-    setError(null);
-    try {
-      setLinks(await api().buildLinks(search()));
-    } catch (err) {
-      setError(errorText(err, "Couldn't build the flight search."));
-    }
-  };
-  const saveFlight = async () => {
-    const ok = await run(() => api().addFlight(props.trip.id, search(), props.trip.version));
-    if (ok) setLinks([]);
+  // Flights: the shared search form; saving remounts it empty.
+  const [flightForm, setFlightForm] = createSignal(0);
+  const saveFlight = async (search: FlightSearch) => {
+    const ok = await run(() => api().addFlight(props.trip.id, search, props.trip.version));
+    if (ok) setFlightForm((n) => n + 1);
   };
 
   return (
@@ -285,7 +260,20 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
               <span class="flex flex-wrap items-center gap-3">
                 <For each={httpsOnly(f.links)}>
                   {(l) => (
-                    <a class={link} href={l.url} target="_blank" rel="noopener noreferrer">
+                    <a
+                      class={link}
+                      href={l.url}
+                      target="_blank"
+                      rel={linkRel(l)}
+                      onClick={() =>
+                        trackFlightClicked("trip", l, {
+                          origin: f.origin,
+                          destination: f.destination,
+                          departDate: f.departDate,
+                          passengers: f.passengers,
+                        })
+                      }
+                    >
                       {l.label}
                     </a>
                   )}
@@ -304,87 +292,30 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
             </div>
           )}
         </For>
-        <div class="mt-2 grid gap-2 sm:grid-cols-2">
-          <input
-            class={field}
-            aria-label="From"
-            placeholder="From (city or airport)"
-            data-testid="plan-from"
-            value={from()}
-            onInput={(e) => setFrom(e.currentTarget.value)}
-          />
-          <input
-            class={field}
-            aria-label="To"
-            placeholder="To"
-            data-testid="plan-to"
-            value={to()}
-            onInput={(e) => setTo(e.currentTarget.value)}
-          />
-          <input
-            type="date"
-            aria-label="Departure date"
-            class={field}
-            data-testid="plan-depart"
-            value={depart()}
-            onInput={(e) => setDepart(e.currentTarget.value)}
-          />
-          <input
-            type="date"
-            aria-label="Return date"
-            class={field}
-            data-testid="plan-return"
-            value={ret()}
-            min={depart()}
-            onInput={(e) => setRet(e.currentTarget.value)}
-          />
-          <input
-            type="number"
-            min="1"
-            max="9"
-            aria-label="Travellers"
-            class={field}
-            value={pax()}
-            onInput={(e) => setPax(Math.min(9, Math.max(1, Number(e.currentTarget.value) || 1)))}
-          />
-          <select
-            aria-label="Cabin"
-            class={field}
-            onChange={(e) => setCabin(e.currentTarget.value as FlightCabinName | "")}
-          >
-            <option value="">Any cabin</option>
-            <option value="economy">Economy</option>
-            <option value="premium_economy">Premium economy</option>
-            <option value="business">Business</option>
-            <option value="first">First</option>
-          </select>
-        </div>
-        <div class="mt-2 flex flex-wrap items-center gap-3">
-          <Button
-            size="sm"
-            variant="outline"
-            data-testid="plan-links"
-            disabled={!flightReady()}
-            onClick={buildLinks}
-          >
-            Search flights
-          </Button>
-          <For each={httpsOnly(links())}>
-            {(l) => (
-              <a class={link} href={l.url} target="_blank" rel="noopener noreferrer">
-                {l.label}
-              </a>
-            )}
-          </For>
-          <Show when={links().length > 0}>
-            <Button size="sm" data-testid="plan-save-flight" disabled={busy()} onClick={saveFlight}>
-              Save to trip
-            </Button>
-          </Show>
-        </div>
-        <p class="mt-1 text-xs text-muted-foreground">
-          Prices are on the airline sites; Loci only saves your search.
-        </p>
+        <Show when={flightForm() + 1} keyed>
+          <div class="mt-2">
+            <FlightSearchForm
+              source="trip"
+              api={api()}
+              testIdPrefix="plan"
+              initial={{
+                toText: tripCities(props.trip)[0] ?? "",
+                departDate: props.trip.startDate ?? "",
+                returnDate: props.trip.endDate ?? "",
+              }}
+              extraActions={(search) => (
+                <Button
+                  size="sm"
+                  data-testid="plan-save-flight"
+                  disabled={busy()}
+                  onClick={() => saveFlight(search)}
+                >
+                  Save to trip
+                </Button>
+              )}
+            />
+          </div>
+        </Show>
       </div>
     </section>
   );

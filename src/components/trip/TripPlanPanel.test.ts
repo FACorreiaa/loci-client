@@ -44,6 +44,8 @@ const fakeApi = (over: Partial<PlanApi> = {}): PlanApi => ({
   buildLinks: vi.fn(async () => [
     { provider: "google_flights", label: "Google Flights", url: "https://g.example" },
   ]),
+  searchAirports: vi.fn(async () => []),
+  resolveDestination: vi.fn(async () => undefined),
   hotelsNear: vi.fn(
     async () =>
       [

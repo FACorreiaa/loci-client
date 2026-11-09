@@ -2,6 +2,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/api", () => ({ chatService: {} }));
 vi.mock("~/lib/connect-transport", () => ({ transport: {} }));
+const capture = vi.fn();
+vi.mock("~/lib/analytics", () => ({ capture: (...a: unknown[]) => capture(...a) }));
 import { createComponent } from "solid-js";
 import { render } from "solid-js/web";
 import { create } from "@bufbuild/protobuf";
@@ -155,6 +157,23 @@ describe("TripActionCard", () => {
     byId(host, "trip-action-confirm")!.click();
     await flush();
     expect(a.apply).toHaveBeenCalledWith("p3", 0, 3n);
+  });
+
+  it("a flight card counts a partner link click as source chat", () => {
+    capture.mockReset();
+    const host = mount({
+      proposal: flight,
+      baseVersion: 3n,
+      onApplied: vi.fn(),
+      onDismissed: vi.fn(),
+      api: api(),
+    });
+    const a = host.querySelector<HTMLAnchorElement>('a[href="https://g.example"]')!;
+    a.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    expect(capture).toHaveBeenCalledWith("flight_link_clicked", {
+      source: "chat",
+      provider: "google_flights",
+    });
   });
 
   it("a stale trip keeps the card and says why", async () => {

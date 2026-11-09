@@ -74,6 +74,7 @@ import {
   updateItineraryMeta,
 } from "@/lib/itinerary-offline-store";
 import { SHARE_HOME_URL, type SharePayload } from "@/lib/share";
+import { FindFlightsButton } from "~/components/flights/FindFlightsDialog";
 
 /**
  * Keyed on the search it shows, so Open from a toast to this same route with
@@ -936,6 +937,19 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
             isLoading={store.isLoading && !cityData()}
             description={typedDescription()}
           />
+
+          <Show when={cityData()?.city}>
+            {(city) => (
+              <div class="mt-3">
+                <FindFlightsButton
+                  source="itinerary"
+                  city={city()}
+                  lat={cityData()?.center_latitude}
+                  lon={cityData()?.center_longitude}
+                />
+              </div>
+            )}
+          </Show>
 
           <Show when={cityData()?.center_latitude}>
             <div class="mt-3 space-y-3">

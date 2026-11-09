@@ -58,6 +58,12 @@ export type AnalyticsEvent =
   | "stream_mapper_error"
   /** A trip recap was opened. kind: owner | shared. */
   | "recap_opened"
+  /** The Find flights sheet opened. Properties: source, destination_iata?. Same name as iOS. */
+  | "flight_search_opened"
+  /** A flight search was built. Properties: source, origin_iata?, destination_iata?, has_return, passengers, cabin. */
+  | "flight_search_built"
+  /** A partner flight link was opened. Properties: source, provider, origin_iata?, destination_iata?. */
+  | "flight_link_clicked"
   /** A recap was shared. kind: link | image. */
   | "recap_shared"
   /** Places were read from a shared link. source, places, resolved. Same name as iOS. */
