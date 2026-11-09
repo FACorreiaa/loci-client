@@ -178,6 +178,7 @@ export const mapPoi = (poi: ProtoPOIDetailedInfo): POIDetailedInfo => {
         : (poi.openingHours as unknown as string) || "",
     price_level: poi.priceLevel || "",
     price_range: poi.priceRange || "",
+    price_tier: poi.priceTier,
     rating: poi.rating,
     tags: poi.tags || [],
     // A credited picture is still a picture: keep it in `images` so every

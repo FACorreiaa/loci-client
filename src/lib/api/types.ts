@@ -773,6 +773,8 @@ export interface POIDetailedInfo {
   opening_hours?: string;
   price_level?: string;
   price_range?: string;
+  /** Price band 1 ($) to 4 ($$$$), from the server; unset when unknown. */
+  price_tier?: number;
   amenities?: string[];
   tags?: string[];
   images?: string[];
