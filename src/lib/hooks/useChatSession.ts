@@ -69,6 +69,9 @@ function toLegacyEvent(ev: LociStreamEvent): LegacyStreamEvent {
     case "route":
       // A multi-city trip: the outline is the progress line.
       return { Type: "progress", Data: ev.route.outline };
+    case "accessible_route":
+      // This legacy view draws no walking legs.
+      return { Type: "progress", Data: "" };
     case "error":
       // One city of a multi-city trip failing is not the conversation's end.
       if (ev.stopIndex !== undefined) return { Type: "progress", Data: ev.userMessage };

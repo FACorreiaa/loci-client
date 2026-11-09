@@ -214,7 +214,7 @@ export default function DiscoverPage() {
   const handleSearch = async (e?: Event) => {
     e?.preventDefault();
     if (!searchQuery().trim() || dictating()) return;
-    const filterSuffix = isPro() ? advancedFilterPromptSuffix(advancedFilters()) : "";
+    const filterSuffix = advancedFilterPromptSuffix(advancedFilters(), isPro());
     const message = `${searchQuery().trim()}${filterSuffix}`;
     const cacheKey = `${streamDomain()}:${message.toLowerCase()}:${searchLocation().trim().toLowerCase()}`;
 

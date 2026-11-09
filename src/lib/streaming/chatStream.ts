@@ -38,6 +38,7 @@ import type {
 import { capture } from "~/lib/analytics";
 import { logger } from "~/lib/logger";
 import { domainName } from "./domain-name";
+import { accessibleRouteFromProto, type AccessibleRoute } from "~/lib/accessibility";
 
 export interface NavigationInfo {
   url: string;
@@ -101,6 +102,8 @@ export type LociStreamEvent = { eventId?: string; stopIndex?: number } & (
   | { kind: "action_proposal"; proposal: ActionProposal }
   | { kind: "progress"; stage: string; percent?: number }
   | { kind: "route"; route: RouteInfo }
+  /** One day's walks between stops, routed for the traveller's access needs. */
+  | { kind: "accessible_route"; route: AccessibleRoute }
   | {
       kind: "error";
       userMessage: string;
@@ -270,6 +273,8 @@ function mapPayload(ev: ProtoStreamEvent): LociStreamEvent | null {
       if (!gastronomy) return null;
       return { kind: "gastronomy", gastronomy, sessionId: p.value.sessionId };
     }
+    case "accessibleRoute":
+      return { kind: "accessible_route", route: accessibleRouteFromProto(p.value) };
     case "actionProposal":
       return p.value.proposal ? { kind: "action_proposal", proposal: p.value.proposal } : null;
     case "progress":

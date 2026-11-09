@@ -132,3 +132,26 @@ describe("gastronomy projection", () => {
     expect(after).toMatchObject({ gastronomy, session_id: "s9" });
   });
 });
+
+describe("accessible routes", () => {
+  const walk = (day: number, minutes: number) => ({
+    kind: "accessible_route" as const,
+    route: { day, legs: [], total_walk_minutes: minutes, warnings: [] },
+  });
+
+  it("merge beside the itinerary they route, one per day", () => {
+    const itinerary = { session_id: "s1", points_of_interest: [{ id: "p" }] } as any;
+    let data = applyCityEvent(itinerary, walk(2, 30), true, "s1") as any;
+    data = applyCityEvent(data, walk(1, 10), true, "s1") as any;
+    data = applyCityEvent(data, walk(2, 35), true, "s1") as any;
+    expect(data.points_of_interest).toEqual([{ id: "p" }]);
+    expect(data.accessible_routes.map((r: any) => [r.day, r.total_walk_minutes])).toEqual([
+      [1, 10],
+      [2, 35],
+    ]);
+  });
+
+  it("are ignored with nothing to attach to", () => {
+    expect(applyCityEvent(null, walk(1, 10), true, "s1")).toBeNull();
+  });
+});

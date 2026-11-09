@@ -314,6 +314,14 @@ export class StreamingChatService {
         mgr.onProgress(mgr.session);
         break;
 
+      case "accessible_route":
+        mgr.session.data =
+          applyCityEvent(mgr.session.data, event, isCity, mgr.session.sessionId) ??
+          mgr.session.data;
+        this.publish(run);
+        mgr.onProgress(mgr.session);
+        break;
+
       case "progress":
         mgr.onProgress(mgr.session);
         break;
@@ -340,7 +348,13 @@ export class StreamingChatService {
 
     // Prefer the aggregate on the complete event only when it has content.
     if (event.result && responseHasContent(event.result)) {
-      mgr.session.data = event.result;
+      // The aggregate does not carry the walking legs; they came on their
+      // own events and would be lost with the object they sat on.
+      const routes = (mgr.session.data as Partial<AiCityResponse> | null)?.accessible_routes;
+      mgr.session.data =
+        routes && !event.result.accessible_routes
+          ? { ...event.result, accessible_routes: routes }
+          : event.result;
       if (event.result.general_city_data?.city) {
         mgr.session.city = event.result.general_city_data.city;
       }

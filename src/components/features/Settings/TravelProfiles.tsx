@@ -15,6 +15,7 @@ import {
   Calendar,
   Activity,
   Power,
+  Accessibility,
 } from "lucide-solid";
 import {
   useSearchProfiles,
@@ -27,6 +28,8 @@ import { useTags } from "~/lib/api/tags";
 import { errorMessage } from "~/lib/connect-error";
 import { useInterests } from "~/lib/api/interests";
 import type { SearchProfile, TravelProfileFormData } from "~/lib/api/types";
+import { accessibilityFormFor } from "~/lib/accessibility";
+import AccessibilityNeedsSection from "./AccessibilityNeedsSection";
 
 interface TravelProfilesProps {
   // (message, type), matching every other child of the settings page. This
@@ -187,6 +190,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
         adventure_vs_relaxation: "balanced",
         spontaneous_vs_planned: "semi_planned",
       },
+      accessibility: accessibilityFormFor(null),
     });
     setIsCreating(true);
     setActiveSection("basic");
@@ -260,6 +264,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
         adventure_vs_relaxation: "balanced",
         spontaneous_vs_planned: "semi_planned",
       },
+      accessibility: accessibilityFormFor(profile.accessibility_needs ?? null),
     });
 
     setEditingProfile(profile.id);
@@ -365,6 +370,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
     { id: "dining", label: "Dining", icon: UtensilsCrossed },
     { id: "activities", label: "Activities", icon: Activity },
     { id: "itinerary", label: "Planning", icon: Calendar },
+    { id: "access", label: "Access", icon: Accessibility },
   ];
 
   const renderBasicSection = () => (
@@ -1019,6 +1025,13 @@ export default function TravelProfiles(props: TravelProfilesProps) {
         return renderActivitiesSection();
       case "itinerary":
         return renderItinerarySection();
+      case "access":
+        return (
+          <AccessibilityNeedsSection
+            state={formData().accessibility ?? accessibilityFormFor(null)}
+            onChange={(next) => updateField("accessibility", next)}
+          />
+        );
       default:
         return renderBasicSection();
     }

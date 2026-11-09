@@ -29,6 +29,7 @@ import {
 import { transport } from "../connect-transport";
 import { fromProtoRecommendationTrace } from "./recommendations";
 import { fromProtoTasteMatch } from "../taste/match";
+import { noteFromProto } from "../accessibility";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 //import { createGraphQLClient, gql } from '@solid-primitives/graphql';
 import type {
@@ -201,6 +202,9 @@ export const mapPoi = (poi: ProtoPOIDetailedInfo): POIDetailedInfo => {
     uncertainty_score: poi.uncertaintyScore,
     taste_match: fromProtoTasteMatch(poi.tasteMatch),
     missing_data: poi.missingData || [],
+    accessibility_notes: poi.accessibilityNotes?.length
+      ? poi.accessibilityNotes.map(noteFromProto)
+      : undefined,
     recommendation_trace: fromProtoRecommendationTrace(poi.recommendationTrace),
     created_at:
       poi.createdAt && typeof (poi.createdAt as any).toDate === "function"

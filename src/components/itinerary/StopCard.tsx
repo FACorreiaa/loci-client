@@ -4,6 +4,7 @@ import ProgressiveImage from "./ProgressiveImage";
 import type { ItineraryStop } from "@/lib/itinerary/createItineraryStream";
 import { cn } from "@/cn";
 import { CategoryIcon } from "~/components/shared/CategoryIcon";
+import { AccessibilityNotesList } from "~/components/poi/AccessibilityNotes";
 
 export interface StopCardProps {
   stop: ItineraryStop;
@@ -162,6 +163,8 @@ export default function StopCard(props: StopCardProps) {
         <Show when={props.meta}>
           <div class="mt-2 text-xs text-muted-foreground">{props.meta}</div>
         </Show>
+
+        <AccessibilityNotesList notes={props.stop.accessibilityNotes} limit={2} class="mt-2" />
 
         <div class="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
           <Show when={props.stop.timeToSpend}>

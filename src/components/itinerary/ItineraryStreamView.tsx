@@ -6,6 +6,8 @@ import type { ItineraryStop, StreamPhase } from "@/lib/itinerary/createItinerary
 import { groupStopsByDay } from "@/lib/trip-kit";
 import { INITIAL_DAYS, windowDays } from "@/lib/itinerary/day-paging";
 import { colorForMapDay } from "@/lib/theme-colors";
+import { legBetween, type AccessibleRoute } from "@/lib/accessibility";
+import { RouteDaySummary, WalkingLegRow } from "@/components/poi/AccessibilityNotes";
 import "@/styles/editorial.css";
 
 /**
@@ -38,6 +40,11 @@ export interface ItineraryStreamViewProps {
   stopsPerDay?: number;
   /** Currently selected stop name (synced with the map). */
   selectedKey?: string;
+  /**
+   * Walks between each day's stops, routed for the traveller's access needs.
+   * Absent for everyone without needs, and the view is unchanged.
+   */
+  accessibleRoutes?: AccessibleRoute[];
 }
 
 export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
@@ -100,6 +107,9 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
   );
 
   const dayWindow = createMemo(() => windowDays(dayGroups(), visibleDays()));
+
+  // Groups are 0-based days; the server numbers them from 1.
+  const routeFor = (day: number) => props.accessibleRoutes?.find((r) => r.day === day + 1);
 
   return (
     <div class="space-y-4">
@@ -216,14 +226,28 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
                     />
                     <p class="kicker">{group.label}</p>
                   </div>
+                  <Show when={routeFor(group.day)}>
+                    {(route) => <RouteDaySummary route={route()} />}
+                  </Show>
                   <For each={group.items}>
-                    {(item) => (
-                      <StopCard
-                        stop={item.stop}
-                        index={item.index}
-                        onClick={props.onStopClick}
-                        selected={props.selectedKey === item.stop.name}
-                      />
+                    {(item, i) => (
+                      <>
+                        <Show
+                          when={legBetween(
+                            routeFor(group.day),
+                            group.items[i() - 1]?.stop.routeRef,
+                            item.stop.routeRef,
+                          )}
+                        >
+                          {(leg) => <WalkingLegRow leg={leg()} />}
+                        </Show>
+                        <StopCard
+                          stop={item.stop}
+                          index={item.index}
+                          onClick={props.onStopClick}
+                          selected={props.selectedKey === item.stop.name}
+                        />
+                      </>
                     )}
                   </For>
                 </div>

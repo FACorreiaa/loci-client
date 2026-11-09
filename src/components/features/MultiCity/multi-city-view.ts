@@ -4,6 +4,7 @@ import type { RouteInfo, RouteLeg } from "~/lib/streaming/chatStream";
 import { SIGNATURE } from "~/lib/share";
 import type { StopState } from "~/lib/streaming/multi-city";
 import type { POIDetailedInfo } from "~/lib/api/types";
+import type { AccessibleRoute } from "~/lib/accessibility";
 
 export type StopInput = { cityName: string; nights?: number };
 
@@ -84,6 +85,7 @@ type CityData = {
   general_city_data?: unknown;
   itinerary_response?: { points_of_interest?: POIDetailedInfo[]; [k: string]: unknown };
   points_of_interest?: POIDetailedInfo[];
+  accessible_routes?: AccessibleRoute[];
   [k: string]: unknown;
 };
 
@@ -93,11 +95,11 @@ const withTripDays = (
 ): POIDetailedInfo[] =>
   (pois ?? []).map((p) => {
     const local = (p as { day?: number }).day ?? 1;
-    return {
-      ...p,
-      day: dayNumbers[local - 1] ?? dayNumbers[dayNumbers.length - 1] ?? local,
-    } as POIDetailedInfo;
+    return { ...p, day: tripDay(local, dayNumbers) } as POIDetailedInfo;
   });
+
+const tripDay = (local: number, dayNumbers: number[]) =>
+  dayNumbers[local - 1] ?? dayNumbers[dayNumbers.length - 1] ?? local;
 
 /** One city's result with its days numbered across the whole trip. */
 export function tripWideResponse(stop: StopState): CityData | null {
@@ -105,6 +107,15 @@ export function tripWideResponse(stop: StopState): CityData | null {
   if (!d) return null;
   return {
     ...d,
+    // The walking legs name the city's own days too.
+    ...(d.accessible_routes
+      ? {
+          accessible_routes: d.accessible_routes.map((r) => ({
+            ...r,
+            day: tripDay(r.day, stop.dayNumbers),
+          })),
+        }
+      : {}),
     points_of_interest: withTripDays(d.points_of_interest, stop.dayNumbers),
     itinerary_response: d.itinerary_response
       ? {
@@ -124,6 +135,7 @@ export function mergedResponse(stops: StopState[]): CityData | null {
   if (parts.length === 0) return null;
   return {
     ...parts[0],
+    accessible_routes: parts.flatMap((d) => d.accessible_routes ?? []),
     points_of_interest: parts.flatMap((d) => d.points_of_interest ?? []),
     itinerary_response: {
       ...parts[0].itinerary_response,

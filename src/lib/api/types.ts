@@ -16,6 +16,12 @@ export interface POIImageCredit {
 
 // Type definitions for API responses
 import type { RecommendationTrace } from "./recommendations";
+import type {
+  AccessibilityFormState,
+  AccessibilityNeeds,
+  AccessibilityNote,
+  AccessibleRoute,
+} from "../accessibility";
 
 export interface UserProfile {
   id: string;
@@ -371,6 +377,11 @@ export interface SearchProfile {
   dining_preferences?: DiningPreferences | null;
   activity_preferences?: ActivityPreferences | null;
   itinerary_preferences?: ItineraryPreferences | null;
+  /**
+   * Consented access needs, or null when the profile holds none. Health data
+   * (GDPR Art. 9): never log it or send it to analytics.
+   */
+  accessibility_needs?: AccessibilityNeeds | null;
 }
 
 export interface ProfileInterest {
@@ -456,6 +467,8 @@ export interface TravelProfileFormData {
   dining_preferences?: DiningPreferences;
   activity_preferences?: ActivityPreferences;
   itinerary_preferences?: ItineraryPreferences;
+  /** The access-needs editor's state; see lib/accessibility.ts. */
+  accessibility?: AccessibilityFormState;
 }
 
 // ==================
@@ -584,6 +597,12 @@ export interface AiCityResponse {
    * domains and when its generation failed.
    */
   gastronomy?: CityGastronomy;
+  /**
+   * The walks between each day's stops, routed for the traveller's access
+   * needs (STREAM_EVENT_TYPE_ACCESSIBLE_ROUTE). Stream-only: a restored session
+   * does not carry them.
+   */
+  accessible_routes?: AccessibleRoute[];
   session_id: string;
 }
 
@@ -782,6 +801,11 @@ export interface POIDetailedInfo {
    * predates grounding and nothing was checked either way.
    */
   grounded?: boolean;
+  /**
+   * What is known about getting in and around, each claim with its source.
+   * Only sent when the traveller's profile holds access needs.
+   */
+  accessibility_notes?: AccessibilityNote[];
 }
 
 // Domain-specific response types

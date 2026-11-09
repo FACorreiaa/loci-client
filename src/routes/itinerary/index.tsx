@@ -971,6 +971,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
                     stopsPerDay={STOPS_PER_DAY}
                     selectedKey={selectedId()}
                     onStopClick={(stop) => setSelectedId(stop.name)}
+                    accessibleRoutes={viewData()?.accessible_routes}
                   />
                 }
               >
@@ -1019,6 +1020,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
                         stopsPerDay={STOPS_PER_DAY}
                         selectedKey={selectedId()}
                         onStopClick={(s) => setSelectedId(s.name)}
+                        accessibleRoutes={tripWideResponse(stop)?.accessible_routes}
                       />
                     </Show>
                     <Show when={leg()}>
