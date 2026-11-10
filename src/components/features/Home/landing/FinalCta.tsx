@@ -4,9 +4,9 @@ import AppButtons from "./AppButtons";
 
 export default function FinalCta() {
   return (
-    <RouteStop id="pricing" class="pt-24 pb-4">
+    <RouteStop id="pricing" class="pb-4">
       <div class="rounded-3xl border border-border bg-card px-7 py-12 text-center sm:py-14">
-        <span class="font-coord text-xs uppercase tracking-[0.18em] text-accent">destination</span>
+        <span class="font-coord text-xs uppercase tracking-[0.18em] text-primary">destination</span>
         <h2 class="mx-auto mt-3 max-w-[20ch] text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
           Your next trip is one sentence away.
         </h2>
@@ -16,7 +16,7 @@ export default function FinalCta() {
         <div class="mt-7 flex flex-wrap justify-center gap-3">
           <A
             href="/auth/signup"
-            class="inline-flex items-center rounded-lg bg-accent px-5 py-2.5 font-medium text-accent-foreground transition hover:opacity-90"
+            class="inline-flex items-center rounded-lg bg-primary px-5 py-2.5 font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
           >
             Plot a trip free
           </A>

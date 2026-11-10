@@ -147,6 +147,11 @@ export default function DeskHero() {
       console.error("Error sending message:", error);
       setIsLoading(false);
       setStreamProgress("");
+      // Reached when the travel profile has not loaded (or there is none):
+      // without this the button just stopped spinning.
+      setSearchError(
+        "Your travel profile hasn't loaded yet. Try again in a moment, or pick one above.",
+      );
     }
   };
 
@@ -173,7 +178,8 @@ export default function DeskHero() {
             <button
               type="button"
               onClick={() => setIsQuickSettingsOpen(true)}
-              class="rounded-lg border border-hero-foreground/25 p-2 text-hero-foreground/80 transition-transform hover:bg-hero-foreground/10 hover:text-hero-foreground active:scale-[0.98]"
+              class="inline-flex min-w-11 shrink-0 items-center justify-center rounded-lg border border-hero-foreground/25 text-hero-foreground/80 transition-colors hover:bg-hero-foreground/10 hover:text-hero-foreground active:scale-[0.98] sm:min-w-10"
+              aria-label="Quick settings"
               title="Quick settings"
             >
               <Settings class="h-4 w-4" aria-hidden="true" />
@@ -198,7 +204,8 @@ export default function DeskHero() {
                 value={currentMessage()}
                 onInput={(e) => setCurrentMessage(e.target.value)}
                 placeholder="Lisbon for two days, walking, late dinners"
-                class="min-h-12 w-full flex-1 resize-none rounded-xl border border-border bg-card px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
+                aria-label="Describe a trip"
+                class="max-h-40 min-h-[4.75rem] w-full flex-1 resize-none rounded-xl [field-sizing:content] sm:min-h-12 border border-border bg-card px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
                 rows="1"
                 disabled={dictating()}
                 onKeyDown={(e) => {

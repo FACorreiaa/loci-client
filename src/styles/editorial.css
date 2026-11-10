@@ -7,13 +7,14 @@
 /* ---- Typographic accents ---------------------------------- */
 
 /* Small uppercase label that sits above titles — the editorial
-   "kicker". Uses the accent token so it pops on any theme. */
+   "kicker". The action colour: deep coral on cream (5.4:1), signal coral on
+   obsidian. --accent is the bright coral in both, 2.7:1 on the light ground. */
 .kicker {
   font-size: 0.6875rem; /* 11px */
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: hsl(var(--accent));
+  color: hsl(var(--primary));
   line-height: 1;
 }
 

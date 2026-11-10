@@ -35,7 +35,7 @@ export default function TierFilter(props: {
               aria-pressed={props.selected.has(tier)}
               aria-label={`${NAMES[tier]} (${tierLabel(tier, props.currency)})`}
               disabled={empty() && !props.selected.has(tier)}
-              class="rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-40"
+              class="min-w-11 rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-40 sm:min-w-10"
               classList={{
                 "border-primary bg-primary text-primary-foreground": props.selected.has(tier),
                 "border-border bg-background text-foreground hover:bg-muted":

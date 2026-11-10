@@ -21,9 +21,9 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <RouteStop id="how" class="pt-24">
+    <RouteStop id="how">
       <div class="flex items-baseline gap-3.5">
-        <span class="font-coord text-xs uppercase tracking-[0.18em] text-accent">stop 01</span>
+        <span class="font-coord text-xs uppercase tracking-[0.18em] text-primary">stop 01</span>
         <span class="font-coord text-xs text-muted-foreground">describe → plot → go</span>
       </div>
       <h2 class="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight text-balance">
@@ -37,7 +37,7 @@ export default function HowItWorks() {
         <For each={steps}>
           {(s) => (
             <div class="rounded-2xl border border-border bg-card p-5">
-              <div class="font-coord text-xs tracking-wide text-accent">{s.n}</div>
+              <div class="font-coord text-xs tracking-wide text-primary">{s.n}</div>
               <h3 class="mt-3 text-lg font-semibold">{s.title}</h3>
               <p class="mt-2 text-sm text-muted-foreground">{s.body}</p>
             </div>

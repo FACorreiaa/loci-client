@@ -593,10 +593,14 @@ export default function DiscoverPage() {
                 <form onSubmit={handleSearch} class="relative">
                   <div class="flex flex-col md:flex-row gap-4">
                     <div class="flex-1 relative">
-                      <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+                      <Search
+                        class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5"
+                        aria-hidden="true"
+                      />
                       <input
                         id="discover-search-input"
                         type="text"
+                        aria-label="What are you looking for?"
                         placeholder="What are you looking for? (e.g., 'best ramen in Tokyo')"
                         value={searchQuery()}
                         onInput={(e) => setSearchQuery(e.currentTarget.value)}
@@ -626,6 +630,7 @@ export default function DiscoverPage() {
                       <input
                         type="text"
                         placeholder="Location (optional)"
+                        aria-label="Location (optional)"
                         value={searchLocation()}
                         onInput={(e) => setSearchLocation(e.currentTarget.value)}
                         class="px-4 py-3 rounded-xl border-2 border-border focus:ring-2 focus:ring-ring focus:border-ring bg-card/95 text-foreground placeholder:text-muted-foreground w-40 md:w-48 backdrop-blur transition-all"
@@ -633,9 +638,11 @@ export default function DiscoverPage() {
                       <Button
                         type="submit"
                         disabled={!searchQuery().trim() || dictating()}
-                        class="gap-2"
+                        // Stretches to the inputs beside it instead of sitting
+                        // short and top-aligned.
+                        class="h-auto gap-2 rounded-xl px-5"
                       >
-                        <Search class="w-5 h-5" />
+                        <Search class="w-5 h-5" aria-hidden="true" />
                         Search
                       </Button>
                     </div>
@@ -665,7 +672,10 @@ export default function DiscoverPage() {
                 />
               </div>
               <div class="flex flex-wrap items-center gap-3">
-                <a href="/compare" class="loci-hero__action text-sm">
+                <a
+                  href="/compare"
+                  class="loci-hero__action min-h-11 px-3 py-1.5 text-sm sm:min-h-0"
+                >
                   Weekend: compare two cities
                 </a>
                 {/* The page's muted grey is tuned for the cream ground; on the

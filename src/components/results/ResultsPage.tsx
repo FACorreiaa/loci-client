@@ -70,7 +70,6 @@ import {
   type PriceRange,
   type PriceSort,
 } from "~/lib/results/price-filter";
-import "~/styles/editorial.css";
 import { FindFlightsButton } from "~/components/flights/FindFlightsDialog";
 
 const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
@@ -697,7 +696,7 @@ export default function ResultsPage(props: ResultsPageProps) {
         <header class="mb-4">
           <p class="kicker mb-2">Your {meta().label.toLowerCase()}</p>
           <h1 class="editorial-title text-2xl sm:text-3xl text-foreground">
-            {meta().emoji} {title()}
+            {title()}
             <Show when={list().length > 0}>
               <span class="ml-2 text-base font-normal text-muted-foreground">
                 ({list().length})
@@ -730,7 +729,7 @@ export default function ResultsPage(props: ResultsPageProps) {
               <div class="stream-rail-fill" style={{ width: `${progress()}%` }} />
             </div>
             <span class="text-xs font-medium text-muted-foreground inline-flex items-center gap-1.5 shrink-0">
-              <Sparkles class="w-3.5 h-3.5 text-accent animate-pulse" />
+              <Sparkles class="w-3.5 h-3.5 text-primary animate-pulse" aria-hidden="true" />
               <Show when={list().length > 0} fallback={meta().searching}>
                 {enrichedCount() >= list().length
                   ? "Finishing up…"
@@ -741,7 +740,7 @@ export default function ResultsPage(props: ResultsPageProps) {
         </Show>
         <Show when={phase() === "done"}>
           <p class="mb-4 text-xs font-medium text-muted-foreground inline-flex items-center gap-1.5">
-            <Check class="w-3.5 h-3.5 text-accent" /> {list().length}{" "}
+            <Check class="w-3.5 h-3.5 text-primary" aria-hidden="true" /> {list().length}{" "}
             {list().length === 1 ? meta().singular : meta().label.toLowerCase()} ready
           </p>
         </Show>

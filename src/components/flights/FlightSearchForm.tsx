@@ -1,13 +1,16 @@
 import { For, Show, createSignal, type JSX } from "solid-js";
 import { ConnectError } from "@connectrpc/connect";
-import { Button } from "~/ui/button";
+import { ExternalLink, Loader2 } from "lucide-solid";
+import { Button, buttonVariants } from "~/ui/button";
+import { fieldControlClass } from "~/ui/textfield";
+import { cn } from "~/lib/utils";
 import type { FlightCabinName, FlightLink, FlightPlace } from "~/lib/api/trips";
 import type { FlightSearch, PlanApi } from "~/lib/api/trip-plan";
 import { trackFlightBuilt, trackFlightClicked, type FlightSource } from "~/lib/flights/analytics";
 import AirportField from "./AirportField";
 
-const field = "w-full rounded-md border border-input bg-background px-2 py-1 text-sm";
-const link = "text-sm text-primary underline-offset-2 hover:underline";
+const field = fieldControlClass;
+const fieldLabel = "mb-1 block text-xs font-medium text-muted-foreground";
 
 /** Links come from the server, but only https ones ever become an href. */
 export const httpsOnly = (links: FlightLink[]) => links.filter((l) => l.url.startsWith("https://"));
@@ -54,6 +57,7 @@ export default function FlightSearchForm(props: FlightSearchFormProps) {
   const [links, setLinks] = createSignal<FlightLink[]>([]);
   const [built, setBuilt] = createSignal<FlightSearch>();
   const [error, setError] = createSignal<string | null>(null);
+  const [pending, setPending] = createSignal(false);
 
   const search = (): FlightSearch => ({
     origin: { ...from(), name: from().name.trim() },
@@ -63,14 +67,17 @@ export default function FlightSearchForm(props: FlightSearchFormProps) {
     passengers: pax(),
     cabin: cabin() || undefined,
   });
+  const returnBeforeDeparture = () => ret() !== "" && depart() !== "" && ret() < depart();
   const ready = () =>
     from().name.trim() !== "" &&
     to().name.trim() !== "" &&
     depart() !== "" &&
-    (!ret() || ret() >= depart());
+    !returnBeforeDeparture();
 
   const buildLinks = async () => {
+    if (pending()) return;
     setError(null);
+    setPending(true);
     const s = search();
     try {
       const got = await props.api.buildLinks(s);
@@ -82,18 +89,20 @@ export default function FlightSearchForm(props: FlightSearchFormProps) {
       setError(
         err instanceof ConnectError && err.rawMessage
           ? err.rawMessage
-          : "Couldn't build the flight search.",
+          : "Couldn't build the flight search. Check your connection and try again.",
       );
+    } finally {
+      setPending(false);
     }
   };
 
   return (
     <div>
-      <div class="grid gap-2 sm:grid-cols-2">
+      <div class="grid gap-3 sm:grid-cols-2">
         <AirportField
           class={field}
           label="From"
-          placeholder="From (city or airport)"
+          placeholder="City or airport"
           testId={id("from")}
           text={fromText()}
           onChange={(text, place) => {
@@ -105,7 +114,7 @@ export default function FlightSearchForm(props: FlightSearchFormProps) {
         <AirportField
           class={field}
           label="To"
-          placeholder="To"
+          placeholder="City or airport"
           testId={id("to")}
           text={toText()}
           onChange={(text, place) => {
@@ -114,78 +123,104 @@ export default function FlightSearchForm(props: FlightSearchFormProps) {
           }}
           search={(q) => props.api.searchAirports(q)}
         />
-        <input
-          type="date"
-          aria-label="Departure date"
-          class={field}
-          data-testid={id("depart")}
-          value={depart()}
-          onInput={(e) => setDepart(e.currentTarget.value)}
-        />
-        <input
-          type="date"
-          aria-label="Return date"
-          class={field}
-          data-testid={id("return")}
-          value={ret()}
-          min={depart()}
-          onInput={(e) => setRet(e.currentTarget.value)}
-        />
-        <input
-          type="number"
-          min="1"
-          max="9"
-          aria-label="Travellers"
-          class={field}
-          value={pax()}
-          onInput={(e) => setPax(Math.min(9, Math.max(1, Number(e.currentTarget.value) || 1)))}
-        />
-        <select
-          aria-label="Cabin"
-          class={field}
-          onChange={(e) => setCabin(e.currentTarget.value as FlightCabinName | "")}
-        >
-          <option value="">Any cabin</option>
-          <option value="economy">Economy</option>
-          <option value="premium_economy">Premium economy</option>
-          <option value="business">Business</option>
-          <option value="first">First</option>
-        </select>
+        <label class="block">
+          <span class={fieldLabel}>Departure</span>
+          <input
+            type="date"
+            class={field}
+            data-testid={id("depart")}
+            value={depart()}
+            onInput={(e) => setDepart(e.currentTarget.value)}
+          />
+        </label>
+        <label class="block">
+          <span class={fieldLabel}>Return (optional)</span>
+          <input
+            type="date"
+            class={field}
+            data-testid={id("return")}
+            value={ret()}
+            min={depart()}
+            aria-invalid={returnBeforeDeparture() ? true : undefined}
+            onInput={(e) => setRet(e.currentTarget.value)}
+          />
+        </label>
+        <label class="block">
+          <span class={fieldLabel}>Travellers</span>
+          <input
+            type="number"
+            inputmode="numeric"
+            min="1"
+            max="9"
+            class={field}
+            value={pax()}
+            onInput={(e) => setPax(Math.min(9, Math.max(1, Number(e.currentTarget.value) || 1)))}
+          />
+        </label>
+        <label class="block">
+          <span class={fieldLabel}>Cabin</span>
+          <select
+            class={field}
+            onChange={(e) => setCabin(e.currentTarget.value as FlightCabinName | "")}
+          >
+            <option value="">Any cabin</option>
+            <option value="economy">Economy</option>
+            <option value="premium_economy">Premium economy</option>
+            <option value="business">Business</option>
+            <option value="first">First</option>
+          </select>
+        </label>
       </div>
-      <div class="mt-2 flex flex-wrap items-center gap-3">
+      <Show when={returnBeforeDeparture()}>
+        <p class="mt-2 text-sm text-destructive" role="alert">
+          The return date is before the departure. Pick a later return, or clear it for one way.
+        </p>
+      </Show>
+      <div class="mt-4">
         <Button
-          size="sm"
-          variant="outline"
           data-testid={props.testIdPrefix === "plan" ? "plan-links" : id("search")}
-          disabled={!ready()}
+          disabled={!ready() || pending()}
+          aria-busy={pending()}
           onClick={buildLinks}
         >
-          Search flights
+          <Show when={pending()} fallback="Search flights">
+            <Loader2 class="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+            Building search…
+          </Show>
         </Button>
-        <For each={httpsOnly(links())}>
-          {(l) => (
-            <a
-              class={link}
-              href={l.url}
-              target="_blank"
-              rel={linkRel(l)}
-              data-testid={id("link")}
-              onClick={() => trackFlightClicked(props.source, l, built())}
-            >
-              {l.label}
-            </a>
-          )}
-        </For>
-        <Show when={links().length > 0 && built() && props.extraActions}>
-          {props.extraActions!(built()!)}
-        </Show>
       </div>
       <Show when={error()}>
-        <p class="mt-1 text-xs text-destructive" role="alert">
+        <p class="mt-2 text-sm text-destructive" role="alert">
           {error()}
         </p>
       </Show>
-      <p class="mt-1 text-xs text-muted-foreground">
+      <Show when={links().length > 0}>
+        <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+          <span class="mr-1 text-xs text-muted-foreground">Open on</span>
+          <For each={httpsOnly(links())}>
+            {(l) => (
+              <a
+                class={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  // An anchor misses the base rule that sizes buttons for touch.
+                  "min-h-11 sm:min-h-0",
+                )}
+                href={l.url}
+                target="_blank"
+                rel={linkRel(l)}
+                data-testid={id("link")}
+                onClick={() => trackFlightClicked(props.source, l, built())}
+              >
+                {l.label}
+                <ExternalLink class="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                <span class="sr-only"> (opens in a new tab)</span>
+              </a>
+            )}
+          </For>
+          <Show when={built() && props.extraActions}>{props.extraActions!(built()!)}</Show>
+        </div>
+      </Show>
+      <p class="mt-3 text-xs text-muted-foreground">
         Prices are on the airline sites; Loci only builds your search.
       </p>
     </div>

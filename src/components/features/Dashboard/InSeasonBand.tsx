@@ -25,7 +25,6 @@ function TripChip(props: { item: InSeasonItem; decorative?: boolean }) {
       aria-label={`Plan ${props.item.city}: ${props.item.hook}`}
       class="loci-chip--surface loci-marquee__item inline-flex shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm active:scale-[0.98]"
     >
-      <span aria-hidden="true">{props.item.emoji}</span>
       <Show when={flagFor(props.item.countryCode)}>
         {(f) => <span aria-hidden="true">{f()}</span>}
       </Show>

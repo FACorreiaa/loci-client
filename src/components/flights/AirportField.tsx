@@ -36,6 +36,7 @@ let nextId = 0;
  */
 export default function AirportField(props: AirportFieldProps) {
   const listId = `airport-list-${++nextId}`;
+  const inputId = `${listId}-input`;
   const [options, setOptions] = createSignal<FlightPlaceOption[]>([]);
   const [active, setActive] = createSignal(-1);
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -89,10 +90,13 @@ export default function AirportField(props: AirportFieldProps) {
 
   return (
     <div class="relative">
+      <label for={inputId} class="mb-1 block text-xs font-medium text-muted-foreground">
+        {props.label}
+      </label>
       <input
+        id={inputId}
         class={props.class}
         role="combobox"
-        aria-label={props.label}
         aria-autocomplete="list"
         aria-expanded={options().length > 0}
         aria-controls={listId}
@@ -113,7 +117,7 @@ export default function AirportField(props: AirportFieldProps) {
         <ul
           id={listId}
           role="listbox"
-          class="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-md border border-border bg-popover p-1 text-sm shadow-md"
+          class="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-border bg-popover p-1 text-sm text-popover-foreground shadow-md"
         >
           <For each={options()}>
             {(o, i) => (
@@ -121,8 +125,9 @@ export default function AirportField(props: AirportFieldProps) {
                 id={`${listId}-${i()}`}
                 role="option"
                 aria-selected={active() === i()}
-                class="cursor-pointer rounded px-2 py-1.5"
-                classList={{ "bg-muted": active() === i() }}
+                class="flex min-h-11 cursor-pointer flex-col justify-center rounded-md px-2.5 py-1.5 sm:min-h-0"
+                classList={{ "bg-foreground/10": active() === i() }}
+                onMouseEnter={() => setActive(i())}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   pick(o);
