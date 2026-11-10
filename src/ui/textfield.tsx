@@ -91,6 +91,20 @@ export const TextFieldDescription = <T extends ValidComponent = "div">(
   );
 };
 
+/**
+ * The text-field look, for native inputs and selects that are not Kobalte
+ * fields (date pickers, selects, comboboxes). One definition, so a control
+ * looks the same wherever it sits.
+ */
+export const fieldControlClass = cn(
+  "flex h-10 w-full rounded-lg px-3 py-2 text-sm transition-shadow",
+  "border border-input bg-background text-foreground",
+  "shadow-sm",
+  "placeholder:text-muted-foreground",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  "disabled:cursor-not-allowed disabled:opacity-50",
+);
+
 type textFieldInputProps<T extends ValidComponent = "input"> = VoidProps<
   TextFieldInputProps<T> & {
     class?: string;
@@ -105,13 +119,7 @@ export const TextField = <T extends ValidComponent = "input">(
   return (
     <TextFieldPrimitive.Input
       class={cn(
-        "flex h-10 w-full rounded-lg px-3 py-2 text-sm transition-shadow",
-        // Theme-aware styling
-        "border border-input bg-background text-foreground",
-        "shadow-sm",
-        "placeholder:text-muted-foreground",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        "disabled:cursor-not-allowed disabled:opacity-50",
+        fieldControlClass,
         "file:border-0 file:bg-transparent file:text-sm file:font-medium",
         local.class,
       )}

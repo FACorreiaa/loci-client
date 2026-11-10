@@ -48,12 +48,20 @@ export default function ProfileQuickSelect() {
   };
 
   return (
-    <div class="relative">
+    <div
+      class="relative"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && isOpen()) {
+          e.stopPropagation();
+          setIsOpen(false);
+        }
+      }}
+    >
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen())}
         disabled={profilesQuery.isLoading || isChangingProfile()}
-        aria-haspopup="listbox"
+        aria-haspopup="menu"
         aria-expanded={isOpen()}
         class="inline-flex max-w-full items-center gap-2 rounded-full border border-hero-foreground/25 bg-hero-foreground/10 px-3 py-1.5 text-left text-sm text-hero-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
       >
@@ -84,7 +92,11 @@ export default function ProfileQuickSelect() {
 
       <Show when={isOpen()}>
         <div class="fixed inset-0 z-40" onClick={() => setIsOpen(false)} aria-hidden="true" />
-        <div class="loci-card absolute left-0 top-full z-50 mt-2 min-w-[16rem] overflow-hidden">
+        <div
+          role="menu"
+          aria-label="Travel profile"
+          class="loci-card absolute left-0 top-full z-50 mt-2 min-w-[16rem] overflow-hidden"
+        >
           <Show
             when={profiles().length > 0}
             fallback={
@@ -110,10 +122,12 @@ export default function ProfileQuickSelect() {
                 return (
                   <button
                     type="button"
+                    role="menuitemradio"
+                    aria-checked={isSelected()}
                     onClick={() => handleSelectProfile(profile.id)}
                     disabled={isChangingProfile()}
                     class={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors disabled:opacity-50 ${
-                      isSelected() ? "bg-muted" : "hover:bg-muted/70"
+                      isSelected() ? "bg-foreground/10" : "hover:bg-foreground/5"
                     }`}
                   >
                     <div
@@ -158,7 +172,8 @@ export default function ProfileQuickSelect() {
                 setIsOpen(false);
                 navigate("/profiles");
               }}
-              class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/70"
+              role="menuitem"
+              class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-foreground/5"
             >
               <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
                 <Plus class="h-4 w-4 text-muted-foreground" aria-hidden="true" />

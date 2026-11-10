@@ -8,6 +8,8 @@ import {
   type PriceSort,
 } from "~/lib/results/price-filter";
 import { RangeSlider } from "~/ui/slider";
+import { fieldControlClass } from "~/ui/textfield";
+import { cn } from "~/lib/utils";
 
 const BUCKETS = 20;
 
@@ -66,7 +68,7 @@ export default function PriceRangeFilter(props: PriceRangeFilterProps) {
         <label class="flex items-center gap-2 text-sm text-muted-foreground">
           Sort
           <select
-            class="rounded-md border border-border bg-background px-2 py-1 text-sm text-foreground"
+            class={cn(fieldControlClass, "w-auto")}
             value={props.sort}
             onChange={(e) => props.onSortChange(e.currentTarget.value as PriceSort)}
           >
@@ -134,9 +136,10 @@ export default function PriceRangeFilter(props: PriceRangeFilterProps) {
       </Show>
 
       <Show when={props.unpricedCount > 0 && !props.loading}>
-        <label class="mt-3 flex items-center gap-2 text-sm">
+        <label class="mt-3 flex min-h-11 items-center gap-2 text-sm sm:min-h-0">
           <input
             type="checkbox"
+            class="h-4 w-4 min-h-0 shrink-0"
             checked={props.includeUnpriced}
             onChange={(e) => props.onIncludeUnpricedChange(e.currentTarget.checked)}
           />

@@ -243,6 +243,19 @@
     animation: loci-marquee var(--loci-marquee-duration, 45s) linear infinite;
   }
 
+  /* On a phone the label beside the strip took nearly half the row; it sits
+     above it instead. */
+  @media (max-width: 639px) {
+    .loci-marquee {
+      flex-direction: column;
+    }
+
+    .loci-marquee__label {
+      padding-block: 0.5rem 0;
+      border-inline-end: 0;
+    }
+  }
+
   .loci-marquee:hover .loci-marquee__track,
   .loci-marquee:focus-within .loci-marquee__track {
     animation-play-state: paused;
@@ -413,6 +426,13 @@
 
   ::selection {
     background: hsl(var(--accent) / 0.24);
+  }
+
+  /* Native checkboxes, radios, range thumbs and the text caret take the
+     action colour instead of the browser's blue. */
+  :root {
+    accent-color: hsl(var(--primary));
+    caret-color: hsl(var(--primary));
   }
 
   .font-coord,

@@ -33,20 +33,25 @@ export default function PublicLandingPage() {
 
   onMount(() => {
     const reduce = prefersReducedMotion();
-    const stops = Array.from(document.querySelectorAll<HTMLElement>(".route-stop"));
+    const marks = Array.from(document.querySelectorAll<HTMLElement>(".route-stop-mark"));
 
     const onScroll = () => {
       if (!railRef || !fillRef) return;
       const box = railRef.getBoundingClientRect();
       if (!reduce) {
+        // The line starts at the first marker, below the top of the rail.
+        const start = fillRef.offsetTop;
+        const length = box.height - start;
         const progress = Math.min(
           1,
-          Math.max(0, (window.innerHeight * 0.55 - box.top) / box.height),
+          Math.max(0, (window.innerHeight * 0.55 - box.top - start) / length),
         );
-        fillRef.style.height = `${progress * box.height}px`;
+        fillRef.style.height = `${progress * length}px`;
       }
-      for (const s of stops) {
-        if (s.getBoundingClientRect().top < window.innerHeight * 0.62) s.classList.add("is-lit");
+      for (const m of marks) {
+        if (m.getBoundingClientRect().top < window.innerHeight * 0.62) {
+          m.parentElement?.classList.add("is-lit");
+        }
       }
     };
 
@@ -147,9 +152,7 @@ export default function PublicLandingPage() {
             <a href="#how" class="hero-pill">
               <span class="hero-pill-dot" aria-hidden="true" />
               Loci · cities, with friends
-              <span class="hero-pill-arrow" aria-hidden="true">
-                →
-              </span>
+              <ArrowRight class="hero-pill-arrow" aria-hidden="true" />
             </a>
             <h1
               id="landing-hero-heading"
@@ -164,7 +167,7 @@ export default function PublicLandingPage() {
 
             <div class="mt-8 w-full max-w-xl">
               <div
-                class="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5 pl-4 text-left shadow-sm focus-within:border-accent"
+                class="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5 pl-4 text-left shadow-sm transition-shadow focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/30"
                 classList={{ "opacity-70": isLoading() }}
               >
                 <input
@@ -175,6 +178,8 @@ export default function PublicLandingPage() {
                   disabled={isLoading()}
                   placeholder="Where to? Try 'three chill days in Lisbon for food and views'"
                   aria-label="Describe your trip"
+                  aria-invalid={searchError() ? true : undefined}
+                  aria-describedby={searchError() ? "landing-search-error" : undefined}
                   class="min-w-0 flex-1 bg-transparent text-[0.98rem] outline-none placeholder:text-muted-foreground"
                 />
                 <button
@@ -182,7 +187,7 @@ export default function PublicLandingPage() {
                   onClick={runSearch}
                   disabled={isLoading()}
                   aria-label="Plot this trip"
-                  class="grid h-10 w-10 flex-none place-items-center rounded-xl bg-accent text-accent-foreground transition hover:opacity-90 disabled:opacity-60"
+                  class="grid h-10 w-10 flex-none place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60"
                 >
                   <Show
                     when={!isLoading()}
@@ -193,7 +198,9 @@ export default function PublicLandingPage() {
                 </button>
               </div>
               <Show when={searchError()}>
-                <p class="mt-2 text-sm text-destructive">{searchError()}</p>
+                <p id="landing-search-error" role="alert" class="mt-2 text-sm text-destructive">
+                  {searchError()}
+                </p>
               </Show>
 
               <div class="mt-3.5 flex flex-wrap justify-center gap-2 lg:justify-start">
@@ -203,9 +210,10 @@ export default function PublicLandingPage() {
                       type="button"
                       onClick={() => prefill(p)}
                       disabled={isLoading()}
-                      // Two fit on one phone row; a third would wrap onto its own.
-                      class="font-coord rounded-full border border-border bg-background/70 px-2.5 py-1.5 text-[0.7rem] text-muted-foreground sm:px-3 sm:text-xs transition hover:border-accent hover:text-foreground"
-                      classList={{ "hidden sm:inline-block": i() >= 2 }}
+                      // Two fit on one phone row and beside the scene on a
+                      // desktop; a third would wrap onto a row of its own.
+                      class="font-coord rounded-full border border-border bg-background/70 px-2.5 py-1.5 text-[0.7rem] text-muted-foreground sm:px-3 sm:text-xs transition hover:border-primary hover:text-foreground"
+                      classList={{ "hidden sm:inline-block lg:hidden": i() >= 2 }}
                     >
                       {p}
                     </button>
@@ -240,7 +248,7 @@ export default function PublicLandingPage() {
       </section>
 
       <main class="relative mx-auto max-w-[1160px] px-6">
-        <div class="grid grid-cols-[44px_1fr] sm:grid-cols-[96px_1fr]">
+        <div class="route-grid">
           {/* route spine */}
           <div class="route-rail" ref={railRef} aria-hidden="true">
             <div class="route-fill" ref={fillRef} />
@@ -257,23 +265,22 @@ export default function PublicLandingPage() {
                 of the one route audited at performance >= 0.95. Here it costs
                 nothing until someone scrolls to it, and it is the moment the
                 page stops explaining and just says hello. */}
-            <section
-              aria-labelledby="landing-mascot-heading"
-              class="route-stop mx-auto flex w-full max-w-4xl flex-col-reverse items-center gap-8 px-4 py-14 sm:flex-row sm:gap-12 sm:py-20"
-            >
+            <section aria-labelledby="landing-mascot-heading" class="route-stop">
               <span class="route-stop-mark" aria-hidden="true" />
-              <MascotScene class="h-56 w-44 flex-none sm:h-72 sm:w-56" />
-              <div class="max-w-sm">
-                <p class="font-coord text-[0.66rem] uppercase tracking-[0.12em] text-muted-foreground">
-                  Your guide
-                </p>
-                <h2 id="landing-mascot-heading" class="mt-3 text-3xl leading-tight sm:text-4xl">
-                  Someone who has already read the map.
-                </h2>
-                <p class="mt-4 text-sm leading-6 text-muted-foreground">
-                  Loci reads the reviews, the opening hours, and the walk between one place and the
-                  next, so the plan you get is one you can actually follow.
-                </p>
+              <div class="mx-auto flex w-full max-w-4xl flex-col-reverse items-center gap-8 sm:flex-row sm:gap-12">
+                <MascotScene class="h-56 w-44 flex-none sm:h-72 sm:w-56" />
+                <div class="max-w-sm">
+                  <p class="font-coord text-[0.66rem] uppercase tracking-[0.12em] text-muted-foreground">
+                    Your guide
+                  </p>
+                  <h2 id="landing-mascot-heading" class="mt-3 text-3xl leading-tight sm:text-4xl">
+                    Someone who has already read the map.
+                  </h2>
+                  <p class="mt-4 text-sm leading-6 text-muted-foreground">
+                    Loci reads the reviews, the opening hours, and the walk between one place and
+                    the next, so the plan you get is one you can actually follow.
+                  </p>
+                </div>
               </div>
             </section>
 
@@ -283,7 +290,7 @@ export default function PublicLandingPage() {
                 the page. */}
             <section
               aria-labelledby="landing-globe-heading"
-              class="mx-auto flex w-full max-w-5xl flex-col items-center gap-8 px-4 py-16 md:flex-row md:justify-between md:py-24"
+              class="mx-auto flex w-full max-w-5xl flex-col items-center gap-8 pt-24 md:flex-row md:justify-between"
             >
               <div class="max-w-sm">
                 <p class="font-coord text-[0.66rem] uppercase tracking-[0.12em] text-muted-foreground">

@@ -20,36 +20,57 @@
   mask-image: radial-gradient(120% 90% at 50% -10%, black 38%, transparent 76%);
 }
 
-/* ---- Route spine ---- */
+/* ---- Route spine ----
+   One grid: a rail column and the content. The rail's x and the column width
+   are variables so the stop markers, which live in the content column, can
+   place themselves back on the line. */
+.route-grid {
+  --rail-col: 44px;
+  --rail-x: 8px;
+  --stop-pad: 6rem;
+  display: grid;
+  grid-template-columns: var(--rail-col) minmax(0, 1fr);
+}
+@media (min-width: 640px) {
+  .route-grid {
+    --rail-col: 96px;
+    --rail-x: 23px;
+  }
+}
 .route-rail {
   position: relative;
 }
+/* The line starts at the first marker, not above it. */
 .route-rail::before {
   content: "";
   position: absolute;
-  left: 23px;
-  top: 8px;
+  left: var(--rail-x);
+  top: var(--stop-pad);
   bottom: 0;
   width: 2px;
   background: hsl(var(--border));
 }
 .route-fill {
   position: absolute;
-  left: 23px;
-  top: 8px;
+  left: var(--rail-x);
+  top: var(--stop-pad);
   width: 2px;
   height: 0;
   background: hsl(var(--accent));
   box-shadow: 0 0 12px hsl(var(--accent) / 0.5);
   transition: height 0.1s linear;
 }
+/* Every stop owns the space above it and none below, so the gap between any
+   two sections is the same. */
 .route-stop {
   position: relative;
+  padding-top: var(--stop-pad);
 }
 .route-stop-mark {
   position: absolute;
-  left: 16px;
-  top: 4px;
+  /* centred on the 2px rail: rail centre minus half the 18px marker */
+  left: calc(var(--rail-x) - 8px - var(--rail-col));
+  top: calc(var(--stop-pad) - 1px);
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -77,25 +98,16 @@
   background: hsl(var(--accent));
 }
 
-@media (max-width: 900px) {
-  .route-rail::before,
-  .route-fill {
-    left: 8px;
-  }
-  .route-stop-mark {
-    left: 1px;
-  }
-}
-
 /* ---- Hero ---- */
+/* The first stop brings its own 6rem above it; the hero adds only a little. */
 .landing-hero {
   position: relative;
   overflow: hidden;
-  padding-bottom: 4rem;
+  padding-bottom: 1rem;
 }
 @media (min-width: 1024px) {
   .landing-hero {
-    padding-bottom: 6rem;
+    padding-bottom: 2rem;
   }
 }
 
@@ -156,7 +168,9 @@
   background: hsl(var(--accent));
 }
 .hero-pill-arrow {
-  opacity: 0.5;
+  width: 0.8rem;
+  height: 0.8rem;
+  opacity: 0.6;
   transition: translate 0.2s ease;
 }
 .hero-pill:hover .hero-pill-arrow {
@@ -174,6 +188,14 @@
 .reveal.is-in {
   opacity: 1;
   transform: none;
+}
+
+/* Without script nothing ever adds .is-in, so nothing may start hidden. */
+@media (scripting: none) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

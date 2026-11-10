@@ -24,13 +24,13 @@ export default function WhereYouveBeen() {
               <span class="flex items-center gap-4">
                 <A
                   href="/visited"
-                  class="text-sm font-medium text-muted-foreground hover:text-foreground"
+                  class="-my-3 inline-block py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
                 >
                   Places
                 </A>
                 <A
                   href="/globe"
-                  class="text-sm font-medium text-muted-foreground hover:text-foreground"
+                  class="-my-3 inline-block py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
                 >
                   Open the globe
                 </A>

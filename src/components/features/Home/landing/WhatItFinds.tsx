@@ -31,9 +31,9 @@ const cats = [
 
 export default function WhatItFinds() {
   return (
-    <RouteStop id="find" class="pt-24">
+    <RouteStop id="find">
       <div class="flex items-baseline gap-3.5">
-        <span class="font-coord text-xs uppercase tracking-[0.18em] text-accent">stop 02</span>
+        <span class="font-coord text-xs uppercase tracking-[0.18em] text-primary">stop 02</span>
         <span class="font-coord text-xs text-muted-foreground">everything on one map</span>
       </div>
       <h2 class="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight text-balance">
@@ -47,7 +47,7 @@ export default function WhatItFinds() {
         <For each={cats}>
           {(c) => (
             <div class="flex items-start gap-3.5 rounded-2xl border border-border bg-card p-4">
-              <span class="grid h-9 w-9 flex-none place-items-center rounded-lg bg-accent/10 text-accent">
+              <span class="grid h-9 w-9 flex-none place-items-center rounded-lg bg-primary/10 text-primary">
                 <c.icon class="h-[18px] w-[18px]" />
               </span>
               <div>

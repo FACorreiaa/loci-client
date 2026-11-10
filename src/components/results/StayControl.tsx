@@ -1,5 +1,9 @@
 import { For } from "solid-js";
 import { nightsBetween, type Stay } from "~/lib/api/pricing";
+import { fieldControlClass } from "~/ui/textfield";
+import { cn } from "~/lib/utils";
+
+const control = cn(fieldControlClass, "w-auto");
 
 const MAX_NIGHTS = 30;
 
@@ -44,7 +48,7 @@ export default function StayControl(props: {
         <span class="text-xs text-muted-foreground">Check-in</span>
         <input
           type="date"
-          class="rounded-md border border-border bg-background px-2 py-1"
+          class={control}
           min={today()}
           value={props.stay.checkin}
           onChange={(e) => setCheckin(e.currentTarget.value)}
@@ -54,7 +58,7 @@ export default function StayControl(props: {
         <span class="text-xs text-muted-foreground">Check-out</span>
         <input
           type="date"
-          class="rounded-md border border-border bg-background px-2 py-1"
+          class={control}
           min={addDays(props.stay.checkin, 1)}
           max={addDays(props.stay.checkin, MAX_NIGHTS)}
           value={props.stay.checkout}
@@ -64,7 +68,7 @@ export default function StayControl(props: {
       <label class="flex flex-col gap-1">
         <span class="text-xs text-muted-foreground">Guests</span>
         <select
-          class="rounded-md border border-border bg-background px-2 py-1"
+          class={control}
           value={String(props.stay.adults)}
           onChange={(e) => props.onChange({ ...props.stay, adults: Number(e.currentTarget.value) })}
         >
@@ -77,7 +81,7 @@ export default function StayControl(props: {
           </For>
         </select>
       </label>
-      <span class="pb-1.5 text-xs text-muted-foreground" aria-live="polite">
+      <span class="pb-3 text-xs text-muted-foreground" aria-live="polite">
         {nights()} {nights() === 1 ? "night" : "nights"}
       </span>
     </fieldset>

@@ -8,7 +8,6 @@ import { INITIAL_DAYS, windowDays } from "@/lib/itinerary/day-paging";
 import { colorForMapDay } from "@/lib/theme-colors";
 import { legBetween, type AccessibleRoute } from "@/lib/accessibility";
 import { RouteDaySummary, WalkingLegRow } from "@/components/poi/AccessibilityNotes";
-import "@/styles/editorial.css";
 
 /**
  * Orchestrates the three phases visually:

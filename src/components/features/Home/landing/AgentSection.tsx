@@ -8,9 +8,9 @@ const clients = ["Claude", "Codex", "Gemini", "Grok", "+ any MCP client"];
 
 export default function AgentSection() {
   return (
-    <RouteStop id="agent" class="pt-24">
+    <RouteStop id="agent">
       <div class="flex items-baseline gap-3.5">
-        <span class="font-coord text-xs uppercase tracking-[0.18em] text-accent">stop 03</span>
+        <span class="font-coord text-xs uppercase tracking-[0.18em] text-primary">stop 03</span>
         <span class="font-coord text-xs text-muted-foreground">bring your own AI</span>
       </div>
       <h2 class="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight text-balance">
@@ -25,9 +25,9 @@ export default function AgentSection() {
         <div>
           <pre class="font-coord overflow-x-auto rounded-xl border border-border bg-background p-4 text-[0.82rem] leading-relaxed text-muted-foreground">
             <code>
-              <span class="text-accent">claude mcp add</span>
+              <span class="text-primary">claude mcp add</span>
               {` --transport http loci \\\n  ${MCP_ENDPOINT} \\\n  --header "Authorization: Bearer `}
-              <span class="text-accent">loci_sk_…</span>
+              <span class="text-primary">loci_sk_…</span>
               {`"`}
             </code>
           </pre>

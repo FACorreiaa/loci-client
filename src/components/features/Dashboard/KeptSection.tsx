@@ -16,7 +16,9 @@ interface Props {
 }
 
 const rowMeta = "font-coord shrink-0 text-[10px] uppercase tracking-[0.12em] text-muted-foreground";
-const listAction = "text-sm font-medium text-muted-foreground hover:text-foreground";
+// Padding grows the tap target; the negative margin keeps the header's height.
+const listAction =
+  "-my-3 inline-block py-3 text-sm font-medium text-muted-foreground hover:text-foreground";
 
 export default function KeptSection(props: Props) {
   const saved = createMemo(() => recentFavorites(props.favorites));
@@ -28,12 +30,15 @@ export default function KeptSection(props: Props) {
       <Show
         when={!empty()}
         fallback={
-          <div class="mb-10 rounded-xl border border-dashed border-border bg-card/70 px-5 py-10">
+          <div class="mb-10 rounded-xl border border-dashed border-border bg-card/70 px-5 pb-7 pt-10">
             <p class="font-display text-lg text-foreground">Nothing logged yet</p>
             <p class="mt-2 max-w-md text-sm text-muted-foreground">
               Start with a city, a mood, or one stop you refuse to miss.
             </p>
-            <A href="/discover" class="mt-4 inline-block text-sm font-medium text-primary">
+            <A
+              href="/discover"
+              class="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-primary hover:underline"
+            >
               Open Discover
             </A>
           </div>

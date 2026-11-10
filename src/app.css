@@ -6,6 +6,10 @@
 @import "./styles/motion-tokens.css";
 @import "./styles/theme-utilities.css";
 @import "./styles/animations.css";
+/* .kicker, .editorial-title and the card/stream primitives are used on most
+   signed-in routes; importing them per component left them unstyled on every
+   route that did not happen to load that component first. */
+@import "./styles/editorial.css";
 
 /* Print: strip chrome so a trip page prints clean (Slice 3 printable itinerary). */
 @media print {

@@ -1,6 +1,7 @@
-import { Show, createEffect, createSignal, on } from "solid-js";
+import { For, Show, createEffect, createSignal, on } from "solid-js";
 import { Plane } from "lucide-solid";
 import { Button } from "~/ui/button";
+import { Skeleton } from "~/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "~/ui/dialog";
 import {
   planApi,
@@ -75,7 +76,7 @@ export default function FindFlightsDialog(
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent class="max-w-lg">
+      <DialogContent class="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Find flights to {props.city}</DialogTitle>
           <DialogDescription>
@@ -85,9 +86,21 @@ export default function FindFlightsDialog(
         <Show
           when={dest() !== undefined}
           fallback={
-            <p class="text-sm text-muted-foreground" role="status">
-              Finding the airport…
-            </p>
+            // The shape of the form, so the dialog does not jump when it lands.
+            <div role="status">
+              <p class="mb-3 text-sm text-muted-foreground">Finding the airport…</p>
+              <div class="grid gap-3 sm:grid-cols-2" aria-hidden="true">
+                <For each={[0, 1, 2, 3, 4, 5]}>
+                  {() => (
+                    <div>
+                      <Skeleton class="mb-1 h-4 w-16" />
+                      <Skeleton class="h-11 w-full rounded-lg sm:h-10" />
+                    </div>
+                  )}
+                </For>
+              </div>
+              <Skeleton class="mt-4 h-11 w-32 rounded-lg sm:h-10" aria-hidden="true" />
+            </div>
           }
         >
           <FlightSearchForm
@@ -115,7 +128,7 @@ export default function FindFlightsDialog(
             }
           />
           <Show when={saveFailed()}>
-            <p class="mt-2 text-xs text-destructive" role="alert">
+            <p class="mt-2 text-sm text-destructive" role="alert">
               Couldn't save the flight to the trip. Try again.
             </p>
           </Show>
