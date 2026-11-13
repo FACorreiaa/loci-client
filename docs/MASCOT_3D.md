@@ -46,3 +46,19 @@ Signing in on beta needs `beta.lociai.fyi` allowed as an origin by the API and t
 ## Local dev note
 
 Every server-rendered request in a local `vite dev` takes about 49 s when the PostHog middleware cannot reach its host (a sandboxed shell, offline). Static files are instant. It is not the mascot.
+
+## Verified (2026-11-13, before any deploy)
+
+Web, `vite dev` with the model URL set, sign-in at 1280 px, headless Chrome (SwiftShader) driven over CDP:
+
+| Case | Canvas | Model fetched | Result |
+|---|---|---|---|
+| Normal | 1 | yes | live after the first frame |
+| `prefers-reduced-motion: reduce` | 0 | no | still |
+| Save-Data on | 0 | no | still |
+| WebGL disabled | 0 | no | still |
+| Model URL 404 | 0 | tried | still |
+
+In a real Chrome, earlier: the swap is seamless, the pointer is followed, exactly one canvas on the landing page, and the loop pauses off-screen (rAF calls halved).
+
+iOS, Beta build in the iPhone 17 Pro Max simulator (iOS 26.2): the mascot is live on LoginScreen; with Reduce Motion on, consecutive frames are identical and the still shows. `scripts/verify-release-no-mascot3d.sh` passes (Release 0 of 8 files and types, Beta 8 of 8). Not checkable in the simulator: Low Power Mode. **Known difference:** the iOS still is the web's three.js render, and RealityKit lights the model a shade more saturated, so the swap on iOS is visible. Judge it on the device; the fix, if wanted, is a still rendered by RealityKit.
