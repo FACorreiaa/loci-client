@@ -1,0 +1,70 @@
+name: Deploy to Beta
+
+# beta.lociai.fyi — the production app plus the experiments that only beta
+# carries (today: the 3D mascot, BRD-001). The only workflow that sets
+# VITE_MASCOT_3D_URL. Not connected to Workers Builds.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "24"
+  # A new model cut is a new path on the CDN, never an overwrite
+  # (tools/brand/cdn/README.md).
+  MASCOT_3D_URL: https://cdn.lociai.fyi/loci/mascot3d/v1/mascot.glb
+
+concurrency:
+  group: deploy-beta
+  cancel-in-progress: true
+
+jobs:
+  deploy-beta:
+    name: Deploy to Beta
+    runs-on: ubuntu-latest
+    environment:
+      name: beta
+      url: https://beta.lociai.fyi
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build for beta
+        run: pnpm run build
+        env:
+          VITE_CONNECT_BASE_URL: ${{ secrets.PRODUCTION_API_URL }}
+          VITE_MAPBOX_API_KEY: ${{ secrets.VITE_MAPBOX_API_KEY }}
+          VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
+          VITE_POSTHOG_HOST: ${{ vars.VITE_POSTHOG_HOST || secrets.VITE_POSTHOG_HOST }}
+          VITE_STRIPE_PRICE_ID_MONTHLY: ${{ vars.VITE_STRIPE_PRICE_ID_MONTHLY }}
+          VITE_STRIPE_PRICE_ID_ANNUAL: ${{ vars.VITE_STRIPE_PRICE_ID_ANNUAL }}
+          VITE_MASCOT_3D_URL: ${{ env.MASCOT_3D_URL }}
+          NODE_ENV: production
+
+      # Routes may not grow even on beta; only the lazy total may.
+      - name: Size budget
+        run: pnpm run size
+
+      - name: Point the generated config at the beta Worker
+        run: node scripts/beta-wrangler.mjs
+
+      - name: Deploy to Cloudflare (Beta)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config .output/server/wrangler.json

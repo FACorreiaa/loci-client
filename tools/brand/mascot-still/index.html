@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>rendering</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: transparent;
+      }
+      #host {
+        position: relative;
+        width: 720px;
+        height: 960px;
+      }
+      #status {
+        font: 14px system-ui;
+        color: gray;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="host"></div>
+    <p id="status">rendering</p>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

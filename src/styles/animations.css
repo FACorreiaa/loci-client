@@ -187,3 +187,22 @@
     animation: mascot-idle 4s ease-in-out infinite;
   }
 }
+
+/* The 3D mascot (BRD-001): the canvas covers its still only once it has drawn
+   a frame. Both show the same rest pose, so this reads as nothing changing. */
+.mascot-3d > canvas {
+  opacity: 0;
+  transition: opacity var(--motion-slow) var(--ease-settle);
+}
+
+.mascot-3d--live > canvas {
+  opacity: 1;
+}
+
+.mascot-3d__still {
+  transition: opacity var(--motion-slow) var(--ease-settle);
+}
+
+.mascot-3d--live > .mascot-3d__still {
+  opacity: 0;
+}

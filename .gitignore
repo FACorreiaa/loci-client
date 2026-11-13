@@ -39,3 +39,7 @@ dev-dist
 
 # Approved source art for the brand traces: large raster, kept out of the repo.
 tools/brand/source/
+
+# 3D mascot (BRD-001): built models stay out of git; rebuild with tools/brand/mascot_3d.py
+tools/brand/out/
+public/mascot3d/

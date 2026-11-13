@@ -17,6 +17,8 @@ interface ImportMetaEnv {
   readonly VITE_MAPBOX_API_KEY?: string;
   readonly VITE_STRIPE_PRICE_ID_MONTHLY?: string;
   readonly VITE_STRIPE_PRICE_ID_ANNUAL?: string;
+  /** 3D mascot model URL (BRD-001). Set by the beta deployment only; empty = off. */
+  readonly VITE_MASCOT_3D_URL?: string;
 }
 
 interface ImportMeta {
