@@ -73,7 +73,7 @@ jobs:
           VITE_STRIPE_PRICE_ID_ANNUAL: ${{ vars.VITE_STRIPE_PRICE_ID_ANNUAL }}
 
       # Every route's own JS and the lazy total, against size-budget.json.
-      # Production shape: VITE_MASCOT_3D_URL is never set here.
+      # Production shape: .env.production sets VITE_MASCOT_3D_URL.
       - name: Size budget
         run: pnpm run size
 
