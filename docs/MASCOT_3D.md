@@ -1,6 +1,6 @@
 # 3D mascot — how it is built and gated (BRD-001)
 
-Beta-only experiment. Rules: `DESIGN.md` → Visual language. Status and **Done when**: `BACKLOG.md` → BRD-001. Plan: `docs/superpowers/plans/2026-11-13-mascot-3d-experiment.md`.
+In production since 2026-11-13 (owner's call; planned as a beta-only experiment). Rules: `DESIGN.md` → Visual language. Status and **Done when**: `BACKLOG.md` → BRD-001. Plan: `docs/superpowers/plans/2026-11-13-mascot-3d-experiment.md`.
 
 ## Pieces
 
@@ -21,7 +21,8 @@ Beta-only experiment. Rules: `DESIGN.md` → Visual language. Status and **Done 
 - One build-time variable: `VITE_MASCOT_3D_URL`. Empty means off.
 - The branches that decide whether 3D code ships (`Mascot3DSlot`, the landing and auth mounts, `loadAddons` in `scene.ts`) read `import.meta.env.VITE_MASCOT_3D_URL` directly. Vite inlines a literal there and the bundler deletes the dead branch; it does **not** fold a constant imported from another module, which left the component chunk in production when the flag lived in `flag.ts`.
 - Measured on the production shape (variable unset): no glTF loader and no model URL in the client, and no `three` in the Worker at all. `main` bundled `three` into the Worker through MascotScene's dynamic import; the `import.meta.env.SSR` guard before each dynamic import fixes that. Every route is within 22 bytes gzip of `main` (the entry's map of lazy chunk names), and total JS is 54 KB smaller, because `scene.ts` uses named imports where MascotScene imported the whole `three` namespace.
-- It is set only by `.github/workflows/deploy-beta.yml`. The production workflows never set it.
+- Production sets it in the committed `.env.production`, which `vite build` reads in every production build: the Actions deploy, Workers Builds and CI alike, so the two racing deploys ship the same thing. `vite dev` does not read it. `deploy-beta.yml` also sets it, for `beta.lociai.fyi`.
+- To turn the 3D mascot off in production, empty the value in `.env.production`.
 - Local: `cp tools/brand/out/mascot-3d/mascot.glb public/mascot3d/` (git-ignored) and `VITE_MASCOT_3D_URL=/mascot3d/mascot.glb pnpm dev`.
 - The still stays when: server render, empty URL, `prefers-reduced-motion`, `navigator.connection.saveData`, no WebGL, the slot narrower than its `minWidth`, the model or chunk fails to load, or the context is lost.
 - Off-screen (IntersectionObserver) or a hidden tab pauses the loop; paused time is not replayed.

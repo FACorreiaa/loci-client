@@ -2,7 +2,7 @@
 
 Items that are decided but not done. Each carries a **Done when** so it can be closed by measurement, not by feel.
 
-## BRD-001 — 3D mascot (beta experiment)
+## BRD-001 — 3D mascot
 
 The existing Loci mascot as a real-time 3D model, on beta builds only, judged by the owner on a device before anything reaches production. Shape copied from Aaru BRD-011. Decided 2026-11-13.
 
@@ -19,4 +19,4 @@ The existing Loci mascot as a real-time 3D model, on beta builds only, judged by
 - every route's own size budget is unchanged (only the lazy total grows);
 - the owner has said go or no-go, written here with the measurements: GLB KB, draw calls, triangles, lazy chunk gzip, first-frame time on device.
 
-**Verdict:** _pending_
+**Verdict:** go, straight to production (owner, 2026-11-13), without the beta-only device stage. The 3D mascot is in the production web build (`.env.production` sets the model URL) and in every iOS build; the beta-only rows above describe the experiment as planned and are kept for the record. Measured: GLB 807 KB (826,744 B), 23 draw calls, 67,008 triangles; glTF loader chunk 12.7 KB gzip; every route's own budget unchanged. Still owed: first-frame time on a device, and the owner's look at the iOS swap (the iOS still is the web's three.js render, and RealityKit lights the model differently).
