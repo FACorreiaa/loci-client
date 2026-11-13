@@ -7,7 +7,6 @@ import {
   blinkSeconds,
   blinkWait,
   ease,
-  entrance,
   lookToward,
   sampleTrack,
   type Easing,
@@ -42,15 +41,13 @@ function run(c: Case): number | Record<string, number> {
       return { ...lookToward(a.x as number, a.y as number) };
     case "approach":
       return approach(a.current as number, a.target as number, a.dt as number, a.tau as number);
-    case "entrance":
-      return entrance(a.s as number);
     default:
       throw new Error(`unknown fixture fn ${c.fn}`);
   }
 }
 
 describe("mascot motion matches the shared fixtures", () => {
-  const cases = (fixtures as { cases: Case[] }).cases;
+  const cases = (fixtures as unknown as { cases: Case[] }).cases;
 
   it("has cases for every driver function", () => {
     expect(new Set(cases.map((c) => c.fn))).toEqual(
@@ -62,7 +59,6 @@ describe("mascot motion matches the shared fixtures", () => {
         "blinkWait",
         "lookToward",
         "approach",
-        "entrance",
       ]),
     );
   });

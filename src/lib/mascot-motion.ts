@@ -39,7 +39,6 @@ export interface Track {
 
 export interface MascotMotion {
   version: number;
-  entrance: { durationSeconds: number; riseY: number; easing: Easing };
   states: Record<string, { kind: "loop"; tracks: Track[] }>;
   blink: {
     joints: string[];
@@ -61,7 +60,7 @@ export interface MascotMotion {
   };
 }
 
-export const MASCOT_MOTION = motionData as MascotMotion;
+export const MASCOT_MOTION = motionData as unknown as MascotMotion;
 
 const clamp = (x: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, x));
 
@@ -132,14 +131,4 @@ export function lookToward(x: number, y: number, m: MascotMotion = MASCOT_MOTION
 export function approach(current: number, target: number, dt: number, tau: number): number {
   if (tau <= 0) return target;
   return current + (target - current) * (1 - Math.exp(-dt / tau));
-}
-
-/** The entrance `s` seconds after the first frame: a short rise and fade-in. */
-export function entrance(
-  s: number,
-  m: MascotMotion = MASCOT_MOTION,
-): { offsetY: number; opacity: number } {
-  const e = m.entrance;
-  const p = ease(e.easing, s / e.durationSeconds);
-  return { offsetY: -(1 - p) * e.riseY, opacity: p };
 }

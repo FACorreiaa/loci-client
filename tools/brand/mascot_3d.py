@@ -51,7 +51,7 @@ EYE_BOX_PAD = 0.01  # source units, generous enough for the decimated web mesh
 
 # Camera framing for both clients (vertical field of view, model is 1 unit tall).
 CAMERA_FOV_DEGREES = 28.0
-CAMERA_MARGIN = 1.12
+CAMERA_MARGIN = 1.3
 
 
 # --------------------------------------------------------------------------- glb io

@@ -1,5 +1,5 @@
 {
-  "about": "Shared fixtures for the 3D mascot motion drivers (BRD-001). Both clients iterate every case against design/mascot-motion.json and must match to 1e-6. Expected values were computed once from the spec, not from either client. Semantics: ease(sine) = (1 - cos(pi x)) / 2 with x clamped to [0,1]; sampleTrack wraps t into [0,1) of the period and eases between neighbouring keyframes; blinkScale(s) is the eye scaleY s seconds into a blink (open outside it); blinkWait(r) maps r in [0,1] to the interval; lookToward clamps x, y to [-1,1] (y positive = up, pitch positive = looks up); approach is exponential with time constant tau (tau <= 0 snaps); entrance(s) gives offsetY and opacity s seconds after the first frame.",
+  "about": "Shared fixtures for the 3D mascot motion drivers (BRD-001). Both clients iterate every case against design/mascot-motion.json and must match to 1e-6. Expected values were computed once from the spec, not from either client. Semantics: ease(sine) = (1 - cos(pi x)) / 2 with x clamped to [0,1]; sampleTrack wraps t into [0,1) of the period and eases between neighbouring keyframes; blinkScale(s) is the eye scaleY s seconds into a blink (open outside it); blinkWait(r) maps r in [0,1] to the interval; lookToward clamps x, y to [-1,1] (y positive = up, pitch positive = looks up); approach is exponential with time constant tau (tau <= 0 snaps).",
   "cases": [
     {
       "fn": "ease",
@@ -344,46 +344,6 @@
         "tau": 0
       },
       "expect": 1
-    },
-    {
-      "fn": "entrance",
-      "args": {
-        "s": 0
-      },
-      "expect": {
-        "offsetY": -0.02,
-        "opacity": 0.0
-      }
-    },
-    {
-      "fn": "entrance",
-      "args": {
-        "s": 0.16
-      },
-      "expect": {
-        "offsetY": -0.01,
-        "opacity": 0.5
-      }
-    },
-    {
-      "fn": "entrance",
-      "args": {
-        "s": 0.32
-      },
-      "expect": {
-        "offsetY": -0.0,
-        "opacity": 1.0
-      }
-    },
-    {
-      "fn": "entrance",
-      "args": {
-        "s": 1
-      },
-      "expect": {
-        "offsetY": -0.0,
-        "opacity": 1.0
-      }
     }
   ]
 }
