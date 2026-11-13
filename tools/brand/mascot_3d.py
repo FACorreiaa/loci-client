@@ -146,6 +146,10 @@ def web_batches(doc: dict, blob: bytes) -> list[dict]:
     return out
 
 
+def srgb_to_linear(c: float) -> float:
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
 def inside(p, box, pad) -> bool:
     lo, hi = box
     return all(lo[k] - pad <= p[k] <= hi[k] + pad for k in range(3))
@@ -218,6 +222,12 @@ def build(hero: Path, web: Path) -> tuple[list[dict], dict, list[dict]]:
     mats = []
     for name in used:
         mat = json.loads(json.dumps(materials[name]))
+        # The sculpts carry sRGB swatch values in baseColorFactor (trimesh writes
+        # them as given), but glTF defines that factor as linear. Left alone,
+        # coral renders as pale peach. Convert once, here.
+        pbr = mat["pbrMetallicRoughness"]
+        rgba = pbr["baseColorFactor"]
+        pbr["baseColorFactor"] = [round(srgb_to_linear(v), 6) for v in rgba[:3]] + [rgba[3]]
         if name in GLOW:
             # Amber is carried by hue, not strength: a hot emissive clips to
             # pale yellow in both renderers (Aaru BRD-011). Emissive = base colour.
@@ -304,7 +314,7 @@ def write_glb(path: Path, meshes: list[dict], rig: dict, mats: list[dict]) -> No
         a_idx = len(accessors) - 1
         name = f"{m['joint']}_{m['material']}"
         gl_meshes.append({"name": name, "primitives": [{"attributes": {"POSITION": a_pos, "NORMAL": a_nrm}, "indices": a_idx, "material": mat_index[m["material"]]}]})
-        nodes.append({"name": name, "mesh": len(gl_meshes) - 1, "translation": [round(c, 7) for c in centre], "scale": [round(half / 32767, 10)] * 3})
+        nodes.append({"name": name, "mesh": len(gl_meshes) - 1, "translation": [round(c, 7) for c in centre], "scale": [round(half, 9)] * 3})
         nodes[joint_nodes[m["joint"]]]["children"].append(len(nodes) - 1)
 
     for node in nodes:
