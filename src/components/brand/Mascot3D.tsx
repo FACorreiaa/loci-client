@@ -3,7 +3,7 @@ import { prefersReducedMotion, useInView } from "~/lib/hooks/useInView";
 import { MASCOT_3D_URL } from "~/lib/mascot3d/flag";
 
 /**
- * The 3D Loci mascot (BRD-001, beta only). See docs/MASCOT_3D.md.
+ * The 3D Loci mascot (BRD-001). See docs/MASCOT_3D.md.
  *
  * The first paint is a still rendered from the same model, camera and lights
  * at the rest pose (tools/brand/mascot-still.mjs), so when the canvas takes

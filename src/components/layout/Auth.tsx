@@ -22,7 +22,7 @@ const AuthLayout: Component<{ children: any; showBackButton?: boolean; onBack?: 
               task); this column is supporting copy, so it is an h2. */}
           <aside class="hidden lg:block" aria-labelledby="auth-story-heading">
             <div class="loci-card space-y-6 p-8">
-              {/* Beta only (BRD-001): the 3D mascot above a smaller lockup.
+              {/* BRD-001: the 3D mascot above a smaller lockup.
                   This aside is lg+, so the mascot starts only at 1024px and a
                   phone never gets a hidden WebGL context. A constant, not <Show>, so
                   production builds drop the 3D branch entirely. */}

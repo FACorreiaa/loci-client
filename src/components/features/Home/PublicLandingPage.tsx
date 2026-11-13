@@ -269,7 +269,7 @@ export default function PublicLandingPage() {
             <section aria-labelledby="landing-mascot-heading" class="route-stop">
               <span class="route-stop-mark" aria-hidden="true" />
               <div class="mx-auto flex w-full max-w-4xl flex-col-reverse items-center gap-8 sm:flex-row sm:gap-12">
-                {/* Beta only (BRD-001): the 3D model when the build carries
+                {/* BRD-001: the 3D model when the build carries
                     a model URL, the 2.5D scene otherwise. Never both — one
                     WebGL context per page. A constant, not <Show>, so production
                     builds drop the 3D branch entirely. */}
