@@ -29,8 +29,6 @@ import {
   TextureLoader,
   WebGLRenderer,
 } from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import {
   MASCOT_MOTION,
   approach,
@@ -42,6 +40,25 @@ import {
   type Track,
 } from "~/lib/mascot-motion";
 import rig from "./mascot-rig.json";
+
+/**
+ * Whether this build carries the 3D mascot. Vite inlines the variable, so in
+ * production this is the constant `false`, the branch in loadAddons() is
+ * dead, and the loader chunks are never emitted: the 2.5D plane, which shares
+ * this module, does not pay for them.
+ */
+const MODEL_BUILD = Boolean(import.meta.env.VITE_MASCOT_3D_URL);
+
+async function loadAddons() {
+  if (MODEL_BUILD) {
+    const [{ GLTFLoader }, { RoomEnvironment }] = await Promise.all([
+      import("three/addons/loaders/GLTFLoader.js"),
+      import("three/addons/environments/RoomEnvironment.js"),
+    ]);
+    return { GLTFLoader, RoomEnvironment };
+  }
+  throw new Error("this build does not carry the 3D mascot (VITE_MASCOT_3D_URL is empty)");
+}
 
 const DEG = Math.PI / 180;
 /** A frame longer than this is a stall (tab switch, debugger), not motion. */
@@ -111,6 +128,7 @@ function disposeTree(root: Object3D): void {
 
 export async function mountModel(opts: MountModelOptions): Promise<MascotHandle> {
   const { host } = opts;
+  const { GLTFLoader, RoomEnvironment } = await loadAddons();
   const renderer = newRenderer();
   const scene = new Scene();
   const pmrem = new PMREMGenerator(renderer);
@@ -344,9 +362,10 @@ export async function mountPlane(
   const ctx = shadowCanvas.getContext("2d");
   if (ctx) {
     const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-    g.addColorStop(0, "rgba(50, 59, 66, 0.42)"); // brand ink
-    g.addColorStop(0.55, "rgba(50, 59, 66, 0.14)");
-    g.addColorStop(1, "rgba(50, 59, 66, 0)");
+    // Brand ink, moved unchanged from MascotScene. brand-guard: allow (3 lines)
+    g.addColorStop(0, "rgba(50, 59, 66, 0.42)"); // brand-guard: allow
+    g.addColorStop(0.55, "rgba(50, 59, 66, 0.14)"); // brand-guard: allow
+    g.addColorStop(1, "rgba(50, 59, 66, 0)"); // brand-guard: allow
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 128, 128);
   }

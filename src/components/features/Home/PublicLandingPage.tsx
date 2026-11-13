@@ -13,7 +13,7 @@ import AgentSection from "./landing/AgentSection";
 import FinalCta from "./landing/FinalCta";
 import AppButtons from "./landing/AppButtons";
 import MascotScene from "~/components/brand/MascotScene";
-import Mascot3D, { MASCOT_3D_URL } from "~/components/brand/Mascot3D";
+import Mascot3D from "~/components/brand/Mascot3DSlot";
 import "~/styles/landing.css";
 
 const examplePrompts = [
@@ -271,16 +271,16 @@ export default function PublicLandingPage() {
               <div class="mx-auto flex w-full max-w-4xl flex-col-reverse items-center gap-8 sm:flex-row sm:gap-12">
                 {/* Beta only (BRD-001): the 3D model when the build carries
                     a model URL, the 2.5D scene otherwise. Never both — one
-                    WebGL context per page. */}
-                <Show
-                  when={MASCOT_3D_URL}
-                  fallback={<MascotScene class="h-56 w-44 flex-none sm:h-72 sm:w-56" />}
-                >
+                    WebGL context per page. A constant, not <Show>, so production
+                    builds drop the 3D branch entirely. */}
+                {import.meta.env.VITE_MASCOT_3D_URL ? (
                   <Mascot3D
                     class="h-56 flex-none sm:h-72"
                     sizes="(min-width: 640px) 216px, 168px"
                   />
-                </Show>
+                ) : (
+                  <MascotScene class="h-56 w-44 flex-none sm:h-72 sm:w-56" />
+                )}
                 <div class="max-w-sm">
                   <p class="font-coord text-[0.66rem] uppercase tracking-[0.12em] text-muted-foreground">
                     Your guide

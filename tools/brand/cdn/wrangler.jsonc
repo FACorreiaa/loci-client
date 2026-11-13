@@ -1,0 +1,13 @@
+// cdn.lociai.fyi: Loci's own address for brand media too heavy for git
+// (BRD-001: the 3D mascot's web model). A Worker with static assets and no
+// code. stage.sh lays the files out in tools/brand/out/cdn (git-ignored);
+// deployed by hand, see README.md beside this file.
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "loci-cdn",
+  "compatibility_date": "2026-09-27",
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": { "directory": "../out/cdn" },
+  "routes": [{ "pattern": "cdn.lociai.fyi", "custom_domain": true }]
+}

@@ -36,6 +36,11 @@ jobs:
       - name: Run Oxlint
         run: pnpm run lint --deny-warnings
 
+      # Required check, no path filter: motion JSON drift, the single three
+      # importer, and colour literals in the 3D mascot (BRD-001).
+      - name: Brand guard
+        run: pnpm run brand:guard
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -66,6 +71,11 @@ jobs:
           VITE_POSTHOG_HOST: ${{ vars.VITE_POSTHOG_HOST || secrets.VITE_POSTHOG_HOST }}
           VITE_STRIPE_PRICE_ID_MONTHLY: ${{ vars.VITE_STRIPE_PRICE_ID_MONTHLY }}
           VITE_STRIPE_PRICE_ID_ANNUAL: ${{ vars.VITE_STRIPE_PRICE_ID_ANNUAL }}
+
+      # Every route's own JS and the lazy total, against size-budget.json.
+      # Production shape: VITE_MASCOT_3D_URL is never set here.
+      - name: Size budget
+        run: pnpm run size
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

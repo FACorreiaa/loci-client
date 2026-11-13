@@ -1,5 +1,6 @@
-import { createEffect, createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import { createEffect, createSignal, onCleanup, type JSX } from "solid-js";
 import { prefersReducedMotion, useInView } from "~/lib/hooks/useInView";
+import { MASCOT_3D_URL } from "~/lib/mascot3d/flag";
 
 /**
  * The 3D Loci mascot (BRD-001, beta only). See docs/MASCOT_3D.md.
@@ -14,13 +15,6 @@ import { prefersReducedMotion, useInView } from "~/lib/hooks/useInView";
  * load, or the context is lost. That is not a degraded state; it is the same
  * picture, holding still.
  */
-
-/**
- * The model URL. Empty means off: set only by the beta deployment
- * (.github/workflows/deploy-beta.yml). Vite inlines it, so in production the
- * import below is dead code and no 3D chunk is emitted for it.
- */
-export const MASCOT_3D_URL: string = import.meta.env.VITE_MASCOT_3D_URL ?? "";
 
 const STILL_SRC = "/images/brand/mascot-3d-still.webp";
 const STILL_SRCSET =
@@ -75,12 +69,11 @@ export default function Mascot3D(props: {
       window.matchMedia(`(min-width: ${props.minWidth}px)`).matches) &&
     webglAvailable();
 
-  onMount(() => {
-    createEffect(() => {
-      if (started || !inView() || !host || !allowed()) return;
-      started = true;
-      void run(host);
-    });
+  // Effects never run on the server, so allowed() only ever reads the browser.
+  createEffect(() => {
+    if (started || !inView() || !host || !allowed()) return;
+    started = true;
+    void run(host);
   });
 
   onCleanup(() => {

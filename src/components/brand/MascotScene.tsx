@@ -79,7 +79,10 @@ export default function MascotScene(props: { class?: string; alt?: string }): JS
   });
 
   async function run(el: HTMLDivElement) {
-    // `three` lives behind ~/lib/mascot3d/scene, its only importer.
+    // Statically false on the server, so the Worker build drops the import
+    // below and never bundles three. `three` lives behind
+    // ~/lib/mascot3d/scene, its only importer.
+    if (import.meta.env.SSR) return;
     const { mountPlane } = await import("~/lib/mascot3d/scene");
     if (disposed) return;
     const handle = await mountPlane(el, {
