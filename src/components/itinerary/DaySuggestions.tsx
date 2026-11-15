@@ -16,6 +16,8 @@ export interface DaySuggestionsProps {
   centroid?: Coord;
   /** Names of everything on the trip. */
   onTrip: string[];
+  /** Where those stops are, so a stop under another name is not offered. */
+  onTripAt?: { latitude?: number; longitude?: number }[];
   /** Places the generation found that are not on the trip. */
   extras: SuggestionCandidate[];
   busy?: boolean;
@@ -36,6 +38,7 @@ export default function DaySuggestions(props: DaySuggestionsProps) {
     pickDaySuggestions({
       centroid: props.centroid,
       onTrip: props.onTrip,
+      onTripAt: props.onTripAt,
       extras: props.extras,
       nearby: nearby(),
     }),

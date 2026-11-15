@@ -9,8 +9,32 @@
 
 import { normalizeName } from "./trip-view";
 
-/** The categories that count as somewhere to eat or drink. */
-export const EAT_CATEGORIES = ["restaurant", "cafe", "bar", "bakery", "food", "pub", "bistro"];
+/**
+ * The words that mark a kind of place as somewhere to eat or drink. Kinds are
+ * free text ("Tapas Bar", "Historic Café"), so the server matches these as
+ * whole words inside the kind, not as the whole kind.
+ */
+export const EAT_CATEGORIES = [
+  "restaurant",
+  "cafe",
+  "café",
+  "coffee",
+  "bar",
+  "bakery",
+  "food",
+  "pub",
+  "bistro",
+  "tapas",
+  "tavern",
+  "taverna",
+  "bodega",
+  "brasserie",
+  "trattoria",
+  "pizzeria",
+  "eatery",
+  "diner",
+  "brewery",
+];
 
 /** How far "nearby" reaches: about a ten-minute walk. */
 export const EAT_RADIUS_KM = 0.8;

@@ -65,9 +65,16 @@ export function dayCentroid(stops: { latitude?: number; longitude?: number }[]):
 }
 
 const isFood = (category?: string) => {
-  const c = (category ?? "").toLowerCase();
-  return c !== "" && EAT_CATEGORIES.some((food) => c.includes(food));
+  const words = (category ?? "").toLowerCase().split(/[^\p{L}]+/u);
+  return EAT_CATEGORIES.some((food) => words.includes(food) || words.includes(`${food}s`));
 };
+
+/**
+ * Closer than this, two pins are one place. The same sight is stored under
+ * more than one name ("Real Alcázar de Sevilla", "Real Alcázar of Seville"),
+ * and a name check alone offered a stop the day already had.
+ */
+export const SAME_PLACE_KM = 0.075;
 
 /**
  * Up to `n` places for one day.
@@ -76,22 +83,27 @@ const isFood = (category?: string) => {
  * this city. An extra with a known position has to be near the day; one with
  * none is kept only when the day has no position either, since then there is
  * nothing to judge it by. The nearby listing fills what is left, best rated
- * then closest. Nothing already on the trip, no food, no place twice.
+ * then closest. Nothing already on the trip, by name or by position, no food,
+ * no place twice.
  */
 export function pickDaySuggestions(input: {
   centroid?: Coord;
   onTrip: string[];
+  /** Where the trip's stops are, to catch a stop offered under another name. */
+  onTripAt?: { latitude?: number; longitude?: number }[];
   extras: SuggestionCandidate[];
   nearby: SuggestionCandidate[];
   n?: number;
 }): DaySuggestion[] {
   const n = input.n ?? DAY_SUGGESTIONS;
   const taken = new Set(input.onTrip.map(normalizeName));
+  const takenAt: Coord[] = (input.onTripAt ?? []).filter(placed);
   const out: DaySuggestion[] = [];
 
   const consider = (c: SuggestionCandidate, source: DaySuggestion["source"], maxKm: number) => {
     const name = normalizeName(c.name);
     if (!name || taken.has(name) || isFood(c.category)) return;
+    if (placed(c) && takenAt.some((at) => distanceKm(at, c) < SAME_PLACE_KM)) return;
     let km: number | undefined;
     if (input.centroid && placed(c)) {
       km = distanceKm(input.centroid, c);

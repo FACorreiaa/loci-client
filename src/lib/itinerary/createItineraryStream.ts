@@ -331,7 +331,11 @@ export function stopsFromCityResponse(data: AiCityResponse | null): {
   enrichedCount: number;
 } {
   const itin = data?.itinerary_response;
-  const pois: POIDetailedInfo[] = itin?.points_of_interest ?? data?.points_of_interest ?? [];
+  // An itinerary part that failed leaves an empty list, not a missing one. The
+  // city's places are still there, and so is the trip saved from them, so they
+  // stand in instead of the page reporting that nothing was saved.
+  const planned = itin?.points_of_interest;
+  const pois: POIDetailedInfo[] = planned?.length ? planned : (data?.points_of_interest ?? []);
 
   // Day first, then priority within the day. Sorting on priority alone
   // interleaves the day groups, so day two's best place lands above day one's

@@ -84,4 +84,33 @@ describe("pickDaySuggestions", () => {
     });
     expect(got).toHaveLength(4);
   });
+
+  it("does not offer a stop the trip already has under another name", () => {
+    const picks = pickDaySuggestions({
+      centroid: { latitude: 37.3833, longitude: -5.9902 },
+      onTrip: ["Real Alcázar de Sevilla"],
+      onTripAt: [{ latitude: 37.3831, longitude: -5.9902 }],
+      extras: [
+        { name: "Real Alcázar of Seville", latitude: 37.38312, longitude: -5.99025 },
+        { name: "Jardines de Murillo", latitude: 37.3838, longitude: -5.9879 },
+      ],
+      nearby: [],
+    });
+    expect(picks.map((p) => p.name)).toEqual(["Jardines de Murillo"]);
+  });
+
+  it("reads food as a word in the kind, not as a run of letters", () => {
+    const at = { latitude: 1, longitude: 1 };
+    const picks = pickDaySuggestions({
+      centroid: at,
+      onTrip: [],
+      extras: [
+        { name: "A", category: "Tapas Bar", latitude: 1.001, longitude: 1 },
+        { name: "B", category: "Barrio", latitude: 1.002, longitude: 1 },
+        { name: "C", category: "Historic Cafés", latitude: 1.003, longitude: 1 },
+      ],
+      nearby: [],
+    });
+    expect(picks.map((p) => p.name)).toEqual(["B"]);
+  });
 });
