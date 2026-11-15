@@ -1045,6 +1045,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
               .map((s) => coordsOf(s) ?? {}),
           )}
           onTrip={listStops().map((s) => s.name)}
+          onTripAt={listStops().map((s) => coordsOf(s) ?? {})}
           extras={suggestionExtras()}
           busy={tripView.busy()}
           onAdd={(place) => {
