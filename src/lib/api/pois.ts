@@ -69,6 +69,8 @@ export interface NearbyParams {
   latitude?: number;
   longitude?: number;
   radiusKm?: number;
+  /** Only places whose category is one of these, whatever its case. */
+  categories?: string[];
 }
 
 /**
@@ -84,7 +86,20 @@ export const nearbySearchRequest = (params?: NearbyParams) => {
     longitude: params.longitude,
     radiusKm: params.radiusKm || 10,
     searchType: "hybrid",
+    ...(params.categories?.length ? { searchTags: params.categories } : {}),
   };
+};
+
+/**
+ * The places Loci has stored around a point, nearest first. A plain call
+ * rather than a hook: it is asked for on a tap, for one stop at a time.
+ * Nothing is generated for it, so the list is as long as what is stored.
+ */
+export const fetchNearbyPlaces = async (params: NearbyParams): Promise<POI[]> => {
+  const request = nearbySearchRequest(params);
+  if (!request) return [];
+  const response = await poiClient.searchPOI(request);
+  return response.pois.map(mapProtoPOI);
 };
 
 export const useNearbyPOIs = (params?: NearbyParams) => {

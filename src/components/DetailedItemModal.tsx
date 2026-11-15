@@ -1,5 +1,7 @@
 import { useLocale } from "~/contexts/LocaleContext";
-import { buildAppleMapsUrl, buildGoogleMapsUrl } from "~/lib/trip-kit";
+import { buildAppleMapsUrl, buildGoogleMapsUrl, buildGooglePlaceUrl } from "~/lib/trip-kit";
+import FavoriteButton from "~/components/shared/FavoriteButton";
+import type { FavoriteItem } from "~/lib/api/favorites";
 import type { POIImageCredit } from "~/lib/api/types";
 import ProgressiveImage from "./itinerary/ProgressiveImage";
 import { GroundedBadge } from "./ui/GroundedBadge";
@@ -16,7 +18,6 @@ import {
   DollarSign,
   Phone,
   Globe,
-  Heart,
   Share2,
   Navigation,
   Wifi,
@@ -36,6 +37,8 @@ type DetailedItem = {
    */
   id?: string;
   name: string;
+  /** The city the place is in, so a search for it by name finds the right one. */
+  city?: string;
   latitude?: number;
   longitude?: number;
   category?: string;
@@ -76,7 +79,6 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
   // has patched it in, so this stays idle until both are true.
   const facts = useGetPlaceFacts(() => props.item?.id, { enabled: () => isAuthenticated() });
   const [activeTab, setActiveTab] = createSignal<"details" | "map">("details");
-  const [isFavorited, setIsFavorited] = createSignal(false);
 
   // Reset to details tab when modal opens
   createEffect(() => {
@@ -143,6 +145,33 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
     longitude: props.item?.longitude,
     name: props.item?.name,
   });
+
+  // Google is asked for the place by name, which opens its own page there:
+  // reviews, photos, hours. That is what someone checking a stop wants, and
+  // it needs no coordinates. The bare pin is the fallback for a place with
+  // coordinates and no name worth searching.
+  const googleUrl = () =>
+    buildGooglePlaceUrl({ name: props.item?.name, city: props.item?.city }) ??
+    buildGoogleMapsUrl(place());
+
+  // The heart saves to the traveller's favourites, which needs an account and
+  // a place Loci has stored. Without both there is nothing to save to, and no
+  // heart: the old one only changed colour and kept nothing.
+  const favoriteItem = (): FavoriteItem | undefined => {
+    const item = props.item;
+    if (!item?.id || !isAuthenticated()) return undefined;
+    return {
+      id: item.id,
+      name: item.name,
+      contentType: item.type === "hotel" || item.type === "restaurant" ? item.type : "poi",
+      description: item.description_poi,
+      cityName: item.city,
+      latitude: item.latitude,
+      longitude: item.longitude,
+      rating: item.rating,
+      category: item.category,
+    };
+  };
 
   const openMaps = (url: string | null) => {
     if (!url) return;
@@ -421,17 +450,9 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
           <div class="border-t border-border p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
               <div class="flex gap-2">
-                <button
-                  onClick={() => setIsFavorited(!isFavorited())}
-                  class={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isFavorited()
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  <Heart class={`w-4 h-4 ${isFavorited() ? "fill-current" : ""}`} />
-                  {isFavorited() ? "Saved" : "Save"}
-                </button>
+                <Show when={favoriteItem()}>
+                  {(item) => <FavoriteButton item={item()} size="md" />}
+                </Show>
                 <button
                   onClick={handleShare}
                   class="flex items-center gap-2 px-4 py-2 bg-muted text-muted-foreground hover:bg-muted/80 rounded-lg text-sm font-medium transition-colors"
@@ -440,22 +461,24 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                   Share
                 </button>
               </div>
-              <Show when={buildGoogleMapsUrl(place())}>
+              <Show when={googleUrl()}>
                 <div class="flex gap-2">
                   <button
-                    onClick={() => openMaps(buildGoogleMapsUrl(place()))}
+                    onClick={() => openMaps(googleUrl())}
                     class="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-sm font-medium transition-colors"
                   >
                     <Navigation class="w-4 h-4" />
                     Google Maps
                   </button>
-                  <button
-                    onClick={() => openMaps(buildAppleMapsUrl(place()))}
-                    class="flex items-center gap-2 px-4 py-2 bg-muted text-muted-foreground hover:bg-muted/80 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <MapPin class="w-4 h-4" />
-                    Apple Maps
-                  </button>
+                  <Show when={buildAppleMapsUrl(place())}>
+                    <button
+                      onClick={() => openMaps(buildAppleMapsUrl(place()))}
+                      class="flex items-center gap-2 px-4 py-2 bg-muted text-muted-foreground hover:bg-muted/80 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <MapPin class="w-4 h-4" />
+                      Apple Maps
+                    </button>
+                  </Show>
                 </div>
               </Show>
             </div>

@@ -4,6 +4,7 @@ import {
   buildAppleMapsMultiStopUrl,
   buildGoogleMapsMultiStopUrl,
   buildGoogleMapsUrl,
+  buildGooglePlaceUrl,
   allDays,
   buildItineraryIcs,
   dateInputValue,
@@ -407,5 +408,30 @@ describe("pinnedTripStart", () => {
 
   it("has nothing for a relative plan", () => {
     expect(pinnedTripStart([{ dayNumber: 1 }, { dayNumber: 2 }], parse)).toBeUndefined();
+  });
+});
+
+describe("buildGooglePlaceUrl", () => {
+  it("asks Google for the place by name in its city", () => {
+    expect(buildGooglePlaceUrl({ name: "Time Out Market", city: "Lisbon" })).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Time%20Out%20Market%2C%20Lisbon",
+    );
+  });
+
+  it("does not repeat a city the name already carries", () => {
+    expect(buildGooglePlaceUrl({ name: "Time Out Market Lisbon", city: "lisbon" })).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Time%20Out%20Market%20Lisbon",
+    );
+  });
+
+  it("works without a city and needs no coordinates", () => {
+    expect(buildGooglePlaceUrl({ name: " Castelo " })).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Castelo",
+    );
+  });
+
+  it("has nothing to link without a name", () => {
+    expect(buildGooglePlaceUrl({ name: "  ", city: "Lisbon" })).toBeNull();
+    expect(buildGooglePlaceUrl({})).toBeNull();
   });
 });

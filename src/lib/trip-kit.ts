@@ -191,6 +191,24 @@ export function buildGoogleMapsUrl(place: MapPlace): string | null {
 }
 
 /**
+ * Google Maps search for a place by name, or null without a name.
+ *
+ * Unlike buildGoogleMapsUrl this needs no coordinates and makes no claim that
+ * the place is where we think it is: it asks Google for the place by name in
+ * its city, which opens the place's own page (reviews, photos, hours) when
+ * Google knows it, and a list of near matches when it does not. That is the
+ * point of the link: it is how a traveller checks a stop against Google.
+ */
+export function buildGooglePlaceUrl(place: { name?: string; city?: string }): string | null {
+  const name = place.name?.trim();
+  if (!name) return null;
+  const city = place.city?.trim();
+  const query =
+    city && !name.toLowerCase().includes(city.toLowerCase()) ? `${name}, ${city}` : name;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+/**
  * Apple Maps link for one place, or null when we do not know where it is.
  *
  * `maps.apple.com` opens the native app on Apple devices and falls back to the

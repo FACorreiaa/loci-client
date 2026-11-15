@@ -25,17 +25,20 @@ import {
 const placeClient = createClient(PlaceIntelligenceService, transport);
 const listClient = createClient(ListService, transport);
 
+/** The places a link mentions, as a plain call. */
+export const importPlacesFromLink = async (input: { url: string; cityHint?: string }) => {
+  const res = await placeClient.importPlaces(
+    create(ImportPlacesRequestSchema, {
+      url: input.url.trim(),
+      cityHint: input.cityHint?.trim() || undefined,
+    }),
+  );
+  return toImportView(res);
+};
+
 export const useImportPlaces = () =>
   useMutation(() => ({
-    mutationFn: async (input: { url: string; cityHint?: string }) => {
-      const res = await placeClient.importPlaces(
-        create(ImportPlacesRequestSchema, {
-          url: input.url.trim(),
-          cityHint: input.cityHint?.trim() || undefined,
-        }),
-      );
-      return toImportView(res);
-    },
+    mutationFn: importPlacesFromLink,
     onSuccess: (view) =>
       capture("link_imported", {
         source: view.source,

@@ -79,8 +79,21 @@ const welcomeMessage = (profile: string): ChatMessage => ({
 /**
  * All /chat state + actions. The route only wires this into the view components.
  */
-export function useChat(opts: { tripId?: () => string | undefined } = {}) {
+export function useChat(
+  opts: {
+    tripId?: () => string | undefined;
+    /**
+     * The chat sits inside another page (the itinerary's Ask Loci). That page
+     * owns the stored streaming session and the recent-conversations list, so
+     * this chat reads and writes neither.
+     */
+    embedded?: boolean;
+  } = {},
+) {
   const queryClient = useQueryClient();
+  const keepStreaming = (key: string, value: unknown) => {
+    if (!opts.embedded) sessionStorage.setItem(key, JSON.stringify(value));
+  };
 
   const [messages, setMessages] = createSignal<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = createSignal("");
@@ -166,11 +179,13 @@ export function useChat(opts: { tripId?: () => string | undefined } = {}) {
   // Clear only the *streaming* keys on mount — never the session list (wiping
   // localChatSessions here made recent conversations vanish on every load).
   onMount(() => {
-    sessionStorage.removeItem("currentStreamingSession");
-    sessionStorage.removeItem("completedStreamingSession");
+    if (!opts.embedded) {
+      sessionStorage.removeItem("currentStreamingSession");
+      sessionStorage.removeItem("completedStreamingSession");
+    }
     setSessionId(null);
     setStreamingSession(null);
-    setMessages([welcomeMessage(activeProfileName())]);
+    setMessages(opts.embedded ? [] : [welcomeMessage(activeProfileName())]);
   });
 
   const appendMessage = (msg: ChatMessage) => setMessages((prev) => [...prev, msg]);
@@ -353,7 +368,7 @@ export function useChat(opts: { tripId?: () => string | undefined } = {}) {
     const session = createStreamingSession(domain);
     session.query = messageContent;
     setStreamingSession(session);
-    sessionStorage.setItem("currentStreamingSession", JSON.stringify(session));
+    keepStreaming("currentStreamingSession", session);
 
     const profile = activeProfileId();
     if (!profile) throw new Error("No search profile found");
@@ -376,7 +391,7 @@ export function useChat(opts: { tripId?: () => string | undefined } = {}) {
           setStreamProgress(progressLabel(updated));
           // Live: surface partial results in the streaming message as they arrive.
           patchMessage(streamId, { streamingData: updated.data });
-          sessionStorage.setItem("currentStreamingSession", JSON.stringify(updated));
+          keepStreaming("currentStreamingSession", updated);
         },
         onComplete: (completed) => finalizeStream(completed, streamId),
         onError: (error) => {
@@ -436,7 +451,7 @@ export function useChat(opts: { tripId?: () => string | undefined } = {}) {
               : "Processing your follow-up request...",
           );
           patchMessage(streamId, { streamingData: updated.data });
-          sessionStorage.setItem("currentStreamingSession", JSON.stringify(updated));
+          keepStreaming("currentStreamingSession", updated);
         },
         onComplete: (completed) => finalizeStream(completed, streamId),
         onError: (error) => {
@@ -479,7 +494,7 @@ export function useChat(opts: { tripId?: () => string | undefined } = {}) {
     }
     if (completed.sessionId) {
       setSessionId(completed.sessionId);
-      persistLocalSession(completed);
+      if (!opts.embedded) persistLocalSession(completed);
     }
     patchMessage(streamId, {
       content: getCompletionMessage(completed.domain, completed.city),
@@ -488,7 +503,7 @@ export function useChat(opts: { tripId?: () => string | undefined } = {}) {
       showResults: true,
       streaming: false,
     });
-    sessionStorage.setItem("completedStreamingSession", JSON.stringify(completed));
+    keepStreaming("completedStreamingSession", completed);
     const pid = activeProfileId();
     if (pid) queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
   };

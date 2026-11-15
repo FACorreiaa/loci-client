@@ -1,13 +1,16 @@
-import { For, Show, Component } from "solid-js";
+import { For, Show, type Component, type JSX } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { Bot, Loader2, MessageCircle, Mic, Send, User, X } from "lucide-solid";
 import type { ChatMessage } from "~/lib/hooks/useChatSession";
 import { useDictation } from "~/lib/hooks/useDictation";
 
+/** A line of the thread; `card` replaces the bubble with whatever it draws. */
+export type ChatInterfaceMessage = ChatMessage & { card?: () => JSX.Element };
+
 export interface ChatInterfaceProps {
   showChat: boolean;
   chatMessage: string;
-  chatHistory: ChatMessage[];
+  chatHistory: ChatInterfaceMessage[];
   isLoading: boolean;
   setShowChat: (show: boolean) => void;
   setChatMessage: (message: string) => void;
@@ -116,43 +119,45 @@ export default function ChatInterface(props: ChatInterfaceProps) {
 
             <For each={props.chatHistory}>
               {(message) => (
-                <div
-                  class={`flex gap-2 ${message.type === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <Show when={message.type !== "user"}>
-                    <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                      <Bot class="h-3.5 w-3.5" />
-                    </div>
-                  </Show>
+                <Show when={!message.card} fallback={message.card?.()}>
                   <div
-                    class={`max-w-[85%] rounded-2xl px-3 py-2 text-sm motion-enter ${
-                      message.type === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : message.type === "error"
-                          ? "border border-destructive/30 bg-destructive/10 text-destructive"
-                          : "loci-card"
-                    }`}
+                    class={`flex gap-2 ${message.type === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    <p class="whitespace-pre-wrap">{message.content}</p>
-                    <p
-                      class={`mt-1 font-coord text-[10px] uppercase tracking-wide opacity-70 ${
+                    <Show when={message.type !== "user"}>
+                      <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Bot class="h-3.5 w-3.5" />
+                      </div>
+                    </Show>
+                    <div
+                      class={`max-w-[85%] rounded-2xl px-3 py-2 text-sm motion-enter ${
                         message.type === "user"
-                          ? "text-primary-foreground/70"
-                          : "text-muted-foreground"
+                          ? "bg-primary text-primary-foreground"
+                          : message.type === "error"
+                            ? "border border-destructive/30 bg-destructive/10 text-destructive"
+                            : "loci-card"
                       }`}
                     >
-                      {message.timestamp.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                  <Show when={message.type === "user"}>
-                    <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted">
-                      <User class="h-3.5 w-3.5 text-muted-foreground" />
+                      <p class="whitespace-pre-wrap">{message.content}</p>
+                      <p
+                        class={`mt-1 font-coord text-[10px] uppercase tracking-wide opacity-70 ${
+                          message.type === "user"
+                            ? "text-primary-foreground/70"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {message.timestamp.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
                     </div>
-                  </Show>
-                </div>
+                    <Show when={message.type === "user"}>
+                      <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted">
+                        <User class="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                    </Show>
+                  </div>
+                </Show>
               )}
             </For>
 
