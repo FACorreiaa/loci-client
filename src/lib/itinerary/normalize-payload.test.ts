@@ -79,3 +79,23 @@ describe("hasItineraryContent", () => {
     expect(hasItineraryContent({})).toBe(false);
   });
 });
+
+// What a session looks like when the itinerary part of a generation failed:
+// an itinerary_response with no places, and the city and its places at the
+// top. The page sat on its skeleton because this counted as empty.
+describe("a generation whose itinerary part failed", () => {
+  const halfFinished = {
+    session_id: "s1",
+    general_city_data: { city: "Porto" },
+    points_of_interest: [{ name: "Ribeira" }],
+    itinerary_response: { itinerary_name: "", points_of_interest: [] },
+  };
+
+  it("has content", () => {
+    expect(hasItineraryContent(halfFinished)).toBe(true);
+  });
+
+  it("is kept as it is", () => {
+    expect(normalizeItineraryPayload(halfFinished)).toEqual(halfFinished);
+  });
+});
