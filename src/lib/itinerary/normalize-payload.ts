@@ -6,9 +6,14 @@
 export function hasItineraryContent(data: any): boolean {
   if (!data || typeof data !== "object") return false;
   const inner = data.itinerary_response ?? data;
+  // Both levels count. A generation whose itinerary part failed still has an
+  // itinerary_response (empty), with the city and its places beside it at the
+  // top; looking only inside the empty part called the whole answer empty.
   return Boolean(
     inner?.general_city_data ||
+    data.general_city_data ||
     (Array.isArray(inner?.points_of_interest) && inner.points_of_interest.length > 0) ||
+    (Array.isArray(data.points_of_interest) && data.points_of_interest.length > 0) ||
     inner?.itinerary_response ||
     (Array.isArray(data?.hotels) && data.hotels.length > 0) ||
     (Array.isArray(data?.restaurants) && data.restaurants.length > 0) ||

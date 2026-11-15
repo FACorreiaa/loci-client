@@ -256,6 +256,9 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       }
 
       const normalizedData = normalizeItineraryPayload(itinerary);
+      // Stops but nothing to show them from would leave the page on its
+      // skeleton for good; let the caller fall through instead.
+      if (!normalizedData) return false;
       setStore("data", normalizedData);
       persistCompletedSession(sessionIdFromUrl, normalizedData);
       return true;
