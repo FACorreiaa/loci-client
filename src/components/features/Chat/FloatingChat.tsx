@@ -1,8 +1,7 @@
-import { Show, Suspense, createMemo, createSignal, type Component } from "solid-js";
-import ChatInterface, { type ChatInterfaceMessage } from "~/components/ui/ChatInterface";
-import TripActionCard from "~/components/chat/TripActionCard";
+import { Show, Suspense, type Component } from "solid-js";
+import ChatInterface from "~/components/ui/ChatInterface";
 import { useChatSession } from "~/lib/hooks/useChatSession";
-import { useChat } from "~/lib/hooks/useChat";
+import { lazyChunk } from "~/lib/lazyChunk";
 import type { Trip } from "~/lib/api/trips";
 
 /** The trip an itinerary page is a view of, as far as its chat needs it. */
@@ -13,7 +12,7 @@ export interface FloatingChatTrip {
   suggestOnly?: boolean;
 }
 
-interface FloatingChatProps {
+export interface FloatingChatProps {
   // Optional initial message or context could be passed here
   initialMessage?: string;
   getStreamingData?: () => any;
@@ -30,7 +29,11 @@ interface FloatingChatProps {
   onTripStale?: () => void;
 }
 
-const sendOnEnter = (send: () => void) => (e: KeyboardEvent) => {
+// Only a page that shows a trip pays for the trip chat (the chat hook and the
+// change card); everything else keeps the light session chat.
+const TripChat = lazyChunk(() => import("./TripChat"));
+
+export const sendOnEnter = (send: () => void) => (e: KeyboardEvent) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     send();
@@ -69,61 +72,11 @@ const SessionChat: Component<FloatingChatProps> = (props) => {
   );
 };
 
-/** Follow-ups that propose changes to the trip, each one confirmed on a card. */
-const TripChat: Component<FloatingChatProps & { trip: FloatingChatTrip }> = (props) => {
-  const chat = useChat({ tripId: () => props.trip.id, embedded: true });
-  const [showChat, setShowChat] = createSignal(false);
-
-  const history = createMemo<ChatInterfaceMessage[]>(() =>
-    chat.messages().map((message) => {
-      const proposal = message.type === "trip-action" ? message.tripAction : undefined;
-      return {
-        type: message.type === "user" || message.type === "error" ? message.type : "assistant",
-        content: message.content,
-        timestamp: message.timestamp,
-        card: proposal
-          ? () => (
-              <TripActionCard
-                proposal={proposal}
-                baseVersion={props.trip.version}
-                suggestion={props.trip.suggestOnly}
-                onConflict={() => props.onTripStale?.()}
-                onApplied={(trip, confirmation) => {
-                  chat.applyTripAction(message.id, trip, confirmation);
-                  props.onTripChanged?.(trip, proposal.action?.kind.case ?? "unknown");
-                }}
-                onDismissed={() => chat.dismissTripAction(message.id)}
-              />
-            )
-          : undefined,
-      };
-    }),
-  );
-
-  return (
-    <ChatInterface
-      showChat={showChat()}
-      setShowChat={setShowChat}
-      chatMessage={chat.currentMessage()}
-      setChatMessage={chat.setCurrentMessage}
-      chatHistory={history()}
-      isLoading={chat.isLoading()}
-      sendChatMessage={() => void chat.sendMessage()}
-      handleKeyPress={sendOnEnter(() => void chat.sendMessage())}
-      title="Ask Loci"
-      placeholder="Add a coffee stop on day 2, swap two stops…"
-      emptyStateTitle="Change this trip in words"
-      emptyStateSubtitle="Say what to add, move or drop. Nothing changes until you confirm."
-      loadingMessage={chat.streamProgress() || "Thinking…"}
-    />
-  );
-};
-
 export const FloatingChat: Component<FloatingChatProps> = (props) => (
   <Show when={props.trip} fallback={<SessionChat {...props} />}>
     {(trip) => (
-      // The trip chat reads the traveller's profiles; its own boundary keeps
-      // that wait from blanking the page around it.
+      // The trip chat is a lazy chunk and reads the traveller's profiles; its
+      // own boundary keeps either wait from blanking the page around it.
       <Suspense>
         <TripChat {...props} trip={trip()} />
       </Suspense>

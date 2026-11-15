@@ -1,4 +1,13 @@
-import { createSignal, createMemo, createEffect, Show, For, onCleanup, onMount } from "solid-js";
+import {
+  createSignal,
+  createMemo,
+  createEffect,
+  Show,
+  For,
+  Suspense,
+  onCleanup,
+  onMount,
+} from "solid-js";
 import { lazyChunk } from "@/lib/lazyChunk";
 import { A, useSearchParams, useNavigate } from "@solidjs/router";
 import { createSessionKey } from "~/lib/runs/session-key";
@@ -11,9 +20,6 @@ import ItineraryStreamView, {
 } from "@/components/itinerary/ItineraryStreamView";
 import StopCard from "@/components/itinerary/StopCard";
 import StopActions from "@/components/itinerary/StopActions";
-import EatNearbyPanel from "@/components/itinerary/EatNearbyPanel";
-import AddPlacePanel from "@/components/itinerary/AddPlacePanel";
-import DaySuggestions from "@/components/itinerary/DaySuggestions";
 import { dayCentroid } from "@/lib/itinerary/day-suggestions";
 import { createTripView } from "@/lib/itinerary/createTripView";
 import {
@@ -36,6 +42,13 @@ import {
   type ItineraryStop,
   type StreamPhase,
 } from "@/lib/itinerary/createItineraryStream";
+// Editing panels open on demand, so they stay out of the route's first load.
+// Each sits in its own <Suspense>: a lazy chunk must not suspend to the
+// app-wide boundary and blank the page.
+const EatNearbyPanel = lazyChunk(() => import("@/components/itinerary/EatNearbyPanel"));
+const AddPlacePanel = lazyChunk(() => import("@/components/itinerary/AddPlacePanel"));
+const DaySuggestions = lazyChunk(() => import("@/components/itinerary/DaySuggestions"));
+
 const MapComponent = lazyChunk(() => import("@/components/features/Map/Map"));
 const DetailedItemModal = lazyChunk(() => import("@/components/DetailedItemModal"));
 import type { POI } from "@/components/features/Map/Map";
@@ -955,42 +968,44 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
           }}
         />
         <Show when={eatFor() === eatKey}>
-          <EatNearbyPanel
-            stopName={stop.name}
-            cityName={cityOf(stop)}
-            latitude={coordsOf(stop)?.latitude}
-            longitude={coordsOf(stop)?.longitude}
-            onTrip={listStops().map((s) => ({ poiId: s.placeId, name: s.name }))}
-            busy={tripView.busy()}
-            addHint={isAuthenticated() ? undefined : "Sign in to add places to this itinerary."}
-            onAdd={
-              editableStop(stop)
-                ? (place) => {
-                    void tripView
-                      .add(
-                        stop.tripDayId!,
-                        {
-                          name: place.name,
-                          poiId: place.id || undefined,
-                          latitude: place.latitude,
-                          longitude: place.longitude,
-                          address: place.address,
-                        },
-                        stop.tripStopId,
-                      )
-                      .then((ok) => {
-                        if (!ok) return;
-                        capture("itinerary_stop_added", {
-                          method: "eat_nearby",
-                          known_place: true,
+          <Suspense>
+            <EatNearbyPanel
+              stopName={stop.name}
+              cityName={cityOf(stop)}
+              latitude={coordsOf(stop)?.latitude}
+              longitude={coordsOf(stop)?.longitude}
+              onTrip={listStops().map((s) => ({ poiId: s.placeId, name: s.name }))}
+              busy={tripView.busy()}
+              addHint={isAuthenticated() ? undefined : "Sign in to add places to this itinerary."}
+              onAdd={
+                editableStop(stop)
+                  ? (place) => {
+                      void tripView
+                        .add(
+                          stop.tripDayId!,
+                          {
+                            name: place.name,
+                            poiId: place.id || undefined,
+                            latitude: place.latitude,
+                            longitude: place.longitude,
+                            address: place.address,
+                          },
+                          stop.tripStopId,
+                        )
+                        .then((ok) => {
+                          if (!ok) return;
+                          capture("itinerary_stop_added", {
+                            method: "eat_nearby",
+                            known_place: true,
+                          });
+                          setEatFor(undefined);
                         });
-                        setEatFor(undefined);
-                      });
-                  }
-                : undefined
-            }
-            onClose={() => setEatFor(undefined)}
-          />
+                    }
+                  : undefined
+              }
+              onClose={() => setEatFor(undefined)}
+            />
+          </Suspense>
         </Show>
       </>
     );
@@ -1021,36 +1036,38 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
 
   const dayFooter = (day: ItineraryDayMeta) => (
     <Show when={tripView.canEdit()}>
-      <DaySuggestions
-        dayLabel={day.label}
-        centroid={dayCentroid(
-          listStops()
-            .filter((s) => s.day === day.day)
-            .map((s) => coordsOf(s) ?? {}),
-        )}
-        onTrip={listStops().map((s) => s.name)}
-        extras={suggestionExtras()}
-        busy={tripView.busy()}
-        onAdd={(place) => {
-          void tripView
-            .add(day.dayId, {
-              name: place.name,
-              poiId: place.id || undefined,
-              latitude: place.latitude,
-              longitude: place.longitude,
-              address: place.address,
-            })
-            .then((ok) => {
-              if (ok) {
-                capture("itinerary_stop_added", {
-                  method: "suggestion",
-                  known_place: Boolean(place.id),
-                  source: place.source,
-                });
-              }
-            });
-        }}
-      />
+      <Suspense>
+        <DaySuggestions
+          dayLabel={day.label}
+          centroid={dayCentroid(
+            listStops()
+              .filter((s) => s.day === day.day)
+              .map((s) => coordsOf(s) ?? {}),
+          )}
+          onTrip={listStops().map((s) => s.name)}
+          extras={suggestionExtras()}
+          busy={tripView.busy()}
+          onAdd={(place) => {
+            void tripView
+              .add(day.dayId, {
+                name: place.name,
+                poiId: place.id || undefined,
+                latitude: place.latitude,
+                longitude: place.longitude,
+                address: place.address,
+              })
+              .then((ok) => {
+                if (ok) {
+                  capture("itinerary_stop_added", {
+                    method: "suggestion",
+                    known_place: Boolean(place.id),
+                    source: place.source,
+                  });
+                }
+              });
+          }}
+        />
+      </Suspense>
       <Show
         when={addFor() === day.dayId}
         fallback={
@@ -1064,17 +1081,19 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
           </button>
         }
       >
-        <AddPlacePanel
-          dayLabel={day.label}
-          cityName={day.cityName || cityData()?.city || cityName() || undefined}
-          busy={tripView.busy()}
-          onAdd={async (stop, method, knownPlace) => {
-            const ok = await tripView.add(day.dayId, stop);
-            if (ok) capture("itinerary_stop_added", { method, known_place: knownPlace });
-            return ok;
-          }}
-          onClose={() => setAddFor(undefined)}
-        />
+        <Suspense>
+          <AddPlacePanel
+            dayLabel={day.label}
+            cityName={day.cityName || cityData()?.city || cityName() || undefined}
+            busy={tripView.busy()}
+            onAdd={async (stop, method, knownPlace) => {
+              const ok = await tripView.add(day.dayId, stop);
+              if (ok) capture("itinerary_stop_added", { method, known_place: knownPlace });
+              return ok;
+            }}
+            onClose={() => setAddFor(undefined)}
+          />
+        </Suspense>
       </Show>
     </Show>
   );
