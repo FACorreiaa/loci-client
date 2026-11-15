@@ -1,13 +1,35 @@
-import { createSignal, createMemo, createEffect, Show, For, onCleanup, onMount } from "solid-js";
+import {
+  createSignal,
+  createMemo,
+  createEffect,
+  Show,
+  For,
+  Suspense,
+  onCleanup,
+  onMount,
+} from "solid-js";
 import { lazyChunk } from "@/lib/lazyChunk";
-import { useSearchParams, useNavigate } from "@solidjs/router";
+import { A, useSearchParams, useNavigate } from "@solidjs/router";
 import { createSessionKey } from "~/lib/runs/session-key";
 import { useStreamedRpc } from "@/lib/hooks/useStreamedRpc";
 import { useTypedText } from "@/lib/hooks/useTypedText";
 import { readActiveSession, useLiveSession } from "@/lib/streaming/live-stream-store";
 import { resumeLiveSession } from "@/lib/streaming/resume-live";
-import ItineraryStreamView from "@/components/itinerary/ItineraryStreamView";
+import ItineraryStreamView, {
+  type StopPlacement,
+} from "@/components/itinerary/ItineraryStreamView";
 import StopCard from "@/components/itinerary/StopCard";
+import StopActions from "@/components/itinerary/StopActions";
+import { dayCentroid } from "@/lib/itinerary/day-suggestions";
+import { createTripView } from "@/lib/itinerary/createTripView";
+import {
+  mergeTripIntoStops,
+  normalizeName,
+  type ItineraryDayMeta,
+} from "@/lib/itinerary/trip-view";
+import { buildGooglePlaceUrl } from "@/lib/trip-kit";
+import { capture } from "@/lib/analytics";
+import { Plus } from "lucide-solid";
 import TripKit from "@/components/itinerary/TripKit";
 import EditTripCTA from "@/components/trip/EditTripCTA";
 import SectionHeader from "@/components/ui/SectionHeader";
@@ -20,6 +42,13 @@ import {
   type ItineraryStop,
   type StreamPhase,
 } from "@/lib/itinerary/createItineraryStream";
+// Editing panels open on demand, so they stay out of the route's first load.
+// Each sits in its own <Suspense>: a lazy chunk must not suspend to the
+// app-wide boundary and blank the page.
+const EatNearbyPanel = lazyChunk(() => import("@/components/itinerary/EatNearbyPanel"));
+const AddPlacePanel = lazyChunk(() => import("@/components/itinerary/AddPlacePanel"));
+const DaySuggestions = lazyChunk(() => import("@/components/itinerary/DaySuggestions"));
+
 const MapComponent = lazyChunk(() => import("@/components/features/Map/Map"));
 const DetailedItemModal = lazyChunk(() => import("@/components/DetailedItemModal"));
 import type { POI } from "@/components/features/Map/Map";
@@ -53,7 +82,7 @@ import {
   tripIdToAdopt,
   tripWideResponse,
 } from "@/components/features/MultiCity/multi-city-view";
-import { fetchTrip } from "@/lib/api/trips";
+import { fetchTrip, type Trip } from "@/lib/api/trips";
 import { CityInfoHeader } from "@/components/ui/CityInfoHeader";
 import LocalWeather from "@/components/LocalWeather";
 import TripMoney from "@/components/TripMoney";
@@ -483,6 +512,52 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     return m.enrichedCount >= m.stops.length ? "done" : "enriching";
   });
 
+  // --- The trip behind this itinerary --------------------------------
+  // Every generation saves a trip. Once it is found, the trip is the truth
+  // about which stops there are and in what order, and the list below is a
+  // view of it: the generated cards, in the trip's order, plus whatever the
+  // traveller has added since. Edits go to the trip, so /trips/:id, the
+  // phone and a co-planner all see the same plan.
+  //
+  // Single-city only for now: the multi-city page draws one list per city and
+  // stays as generated; its trip is edited from /trips/:id.
+  const tripView = createTripView({
+    tripId: () => store.tripId || (searchParams.tripId as string | undefined) || undefined,
+    sessionId: () =>
+      (searchParams.sessionId as string | undefined) || store.data?.session_id || undefined,
+    enabled: () =>
+      isAuthenticated() && !isMulti() && !store.isLoading && itineraryModel().stops.length > 0,
+    // Kept beside the device copy of the itinerary (when there is one), so a
+    // saved itinerary opens offline in the order the traveller left it.
+    onTrip: (trip) => {
+      const id = (searchParams.sessionId as string | undefined) || store.data?.session_id;
+      if (id) {
+        void updateItineraryMeta(id, { tripId: trip.id, tripSnapshot: trip }).catch(() => {});
+      }
+    },
+    deviceCopy: async () => {
+      const id = (searchParams.sessionId as string | undefined) || store.data?.session_id;
+      const saved = id ? await getOfflineItinerary(id) : undefined;
+      return saved?.tripSnapshot as Trip | undefined;
+    },
+  });
+  const tripMerged = createMemo(() => {
+    const trip = tripView.trip();
+    const shown = tripView.status() === "ready" || tripView.status() === "stale";
+    if (!trip || !shown || isMulti()) return null;
+    return mergeTripIntoStops(trip, itineraryModel().stops);
+  });
+  // What the list, the map and Trip Kit draw: the trip's stops when there is
+  // a trip, the generated ones until then (and for anyone signed out).
+  const listStops = createMemo(() => tripMerged()?.stops ?? itineraryModel().stops);
+  const listEnrichedCount = () =>
+    tripMerged() ? listStops().filter((s) => s.enriched).length : itineraryModel().enrichedCount;
+
+  // Which stop has "Eat nearby" open, and which day has "Add a place" open.
+  // One of each at a time: they are panels in the list, not dialogs.
+  const [eatFor, setEatFor] = createSignal<string | undefined>();
+  const [addFor, setAddFor] = createSignal<string | undefined>();
+
   const handleRetryHydrate = () => {
     const sessionIdFromUrl = searchParams.sessionId as string;
     if (sessionIdFromUrl) {
@@ -497,11 +572,25 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // General POIs that aren't part of the itinerary, as static cards.
   const extraStops = createMemo<ItineraryStop[]>(() => {
     if (!viewData()) return [];
-    const itinNames = new Set(itineraryModel().stops.map((s) => s.name));
-    return stopsFromCityResponse({
+    const general = stopsFromCityResponse({
       ...(viewData() as any),
       itinerary_response: undefined,
-    } as any).stops.filter((s) => !itinNames.has(s.name));
+    } as any).stops;
+    if (!tripMerged()) {
+      const itinNames = new Set(itineraryModel().stops.map((s) => s.name));
+      return general.filter((s) => !itinNames.has(s.name));
+    }
+    // With a trip, "not on the itinerary" means not on the trip: a stop the
+    // traveller removed drops down here rather than vanishing, and one they
+    // added from here leaves.
+    const onTrip = new Set(listStops().map((s) => normalizeName(s.name)));
+    const seen = new Set<string>();
+    return [...itineraryModel().stops, ...general].filter((s) => {
+      const name = normalizeName(s.name);
+      if (!name || onTrip.has(name) || seen.has(name)) return false;
+      seen.add(name);
+      return true;
+    });
   });
 
   // Aggregate all POIs for the map
@@ -558,19 +647,24 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     const out: POI[] = [];
     const seen = new Set<string>();
 
-    itineraryModel().stops.forEach((s, i) => {
+    listStops().forEach((s, i) => {
       const geo = byName.get(s.name);
-      if (!geo) return;
+      // A trip stop knows where it is; a generated one is placed by the POI
+      // of the same name. A stop with neither has no pin.
+      const latitude = s.latitude ?? geo?.latitude;
+      const longitude = s.longitude ?? geo?.longitude;
+      if (typeof latitude !== "number" || typeof longitude !== "number") return;
+      if (latitude === 0 && longitude === 0) return;
       seen.add(s.name);
       out.push({
         id: s.name,
         name: s.name,
-        category: s.category || geo.category || "",
-        latitude: geo.latitude,
-        longitude: geo.longitude,
+        category: s.category || geo?.category || "",
+        latitude,
+        longitude,
         day: dayOf(s, i),
         seq: i + 1,
-        rating: s.rating ?? geo.rating,
+        rating: s.rating ?? geo?.rating,
         timeToSpend: s.timeToSpend,
         budget: s.budget,
         priority: s.priority,
@@ -615,20 +709,21 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // If a saved stop order exists (from a previous session), reorder to match.
   const tripKitStops = createMemo<TripStop[]>(() => {
     const byName = allByName();
-    const built = itineraryModel().stops.map((s, i) => {
+    const built = listStops().map((s, i) => {
       const geo = byName.get(s.name);
       return {
         name: s.name,
-        latitude: geo ? toNum(geo.latitude) : undefined,
-        longitude: geo ? toNum(geo.longitude) : undefined,
-        address: geo?.address,
+        latitude: s.latitude ?? (geo ? toNum(geo.latitude) : undefined),
+        longitude: s.longitude ?? (geo ? toNum(geo.longitude) : undefined),
+        address: s.address ?? geo?.address,
         category: s.category || geo?.category,
         blurb: s.blurb,
         timeToSpend: s.timeToSpend,
         day: dayOf(s, i),
       };
     });
-    const order = stopOrder();
+    // A trip has its own order; the order kept on this device is from before.
+    const order = tripMerged() ? [] : stopOrder();
     if (order.length === 0) return built;
     // Reorder to match saved order; stops not in the order list go to the end.
     const byStopName = new Map(built.map((s) => [s.name, s]));
@@ -650,6 +745,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       type: "poi",
       id: full.id || full.placeId || full.place_id,
       name: full.name,
+      city: cityData()?.city || cityName() || undefined,
       latitude: toNum(full.latitude),
       longitude: toNum(full.longitude),
       category: full.category,
@@ -697,8 +793,8 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     // The Loci home, not this page: this URL names a private session nobody
     // else can open. See src/lib/share.ts.
     url: SHARE_HOME_URL,
-    stopCount: itineraryModel().stops.length,
-    stops: itineraryModel().stops.map((s, i) => ({ name: s.name, day: dayOf(s, i) })),
+    stopCount: listStops().length,
+    stops: listStops().map((s, i) => ({ name: s.name, day: dayOf(s, i) })),
     // A multi-city trip writes its own text: its days grouped by city.
     ...(isMulti() && route() ? { text: multiShareText(route()!, cityStops()) } : {}),
   }));
@@ -787,6 +883,8 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
         tripStartDate: tripStartDate(),
         stopNotes: stopNotes(),
         stopOrder: tripKitStops().map((s) => s.name),
+        tripId: tripView.trip()?.id,
+        tripSnapshot: tripView.trip(),
       });
       setSavedOffline(true);
     } catch (error) {
@@ -817,6 +915,188 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       setSaving(false);
     }
   };
+
+  // --- Per-stop and per-day controls ----------------------------------
+  const cityOf = (stop: ItineraryStop) => stop.cityName || cityData()?.city || cityName() || "";
+
+  // Where a stop is: its own position on a trip, else the generated POI of
+  // the same name. Undefined when neither knows.
+  const coordsOf = (stop: ItineraryStop) => {
+    const geo = allByName().get(stop.name);
+    const latitude = stop.latitude ?? (geo ? toNum(geo.latitude) : undefined);
+    const longitude = stop.longitude ?? (geo ? toNum(geo.longitude) : undefined);
+    const placed =
+      typeof latitude === "number" &&
+      typeof longitude === "number" &&
+      (latitude !== 0 || longitude !== 0);
+    return placed ? { latitude, longitude } : undefined;
+  };
+
+  const editableStop = (stop: ItineraryStop) => tripView.canEdit() && Boolean(stop.tripStopId);
+
+  const stopFooter = (stop: ItineraryStop, placement: StopPlacement) => {
+    const eatKey = stop.tripStopId || stop.key;
+    return (
+      <>
+        <StopActions
+          stopName={stop.name}
+          mapsHref={buildGooglePlaceUrl({ name: stop.name, city: cityOf(stop) })}
+          onMapsOpen={() =>
+            capture("itinerary_google_link_opened", { has_trip: Boolean(tripMerged()) })
+          }
+          onEatNearby={() => setEatFor((open) => (open === eatKey ? undefined : eatKey))}
+          eatNearbyOpen={eatFor() === eatKey}
+          editable={editableStop(stop)}
+          busy={tripView.busy()}
+          isFirst={placement.isFirst}
+          isLast={placement.isLast}
+          otherDays={tripMerged()?.days.filter((d) => d.dayId !== stop.tripDayId)}
+          onNudge={(direction) => {
+            void tripView.nudge(stop.tripStopId!, direction).then((ok) => {
+              if (ok) capture("itinerary_stop_edited", { action: "move" });
+            });
+          }}
+          onMoveToDay={(dayId) => {
+            void tripView.moveToDay(stop.tripStopId!, dayId).then((ok) => {
+              if (ok) capture("itinerary_stop_edited", { action: "move_day" });
+            });
+          }}
+          onRemove={() => {
+            void tripView.remove(stop.tripStopId!).then((ok) => {
+              if (ok) capture("itinerary_stop_edited", { action: "remove" });
+            });
+          }}
+        />
+        <Show when={eatFor() === eatKey}>
+          <Suspense>
+            <EatNearbyPanel
+              stopName={stop.name}
+              cityName={cityOf(stop)}
+              latitude={coordsOf(stop)?.latitude}
+              longitude={coordsOf(stop)?.longitude}
+              onTrip={listStops().map((s) => ({ poiId: s.placeId, name: s.name }))}
+              busy={tripView.busy()}
+              addHint={isAuthenticated() ? undefined : "Sign in to add places to this itinerary."}
+              onAdd={
+                editableStop(stop)
+                  ? (place) => {
+                      void tripView
+                        .add(
+                          stop.tripDayId!,
+                          {
+                            name: place.name,
+                            poiId: place.id || undefined,
+                            latitude: place.latitude,
+                            longitude: place.longitude,
+                            address: place.address,
+                          },
+                          stop.tripStopId,
+                        )
+                        .then((ok) => {
+                          if (!ok) return;
+                          capture("itinerary_stop_added", {
+                            method: "eat_nearby",
+                            known_place: true,
+                          });
+                          setEatFor(undefined);
+                        });
+                    }
+                  : undefined
+              }
+              onClose={() => setEatFor(undefined)}
+            />
+          </Suspense>
+        </Show>
+      </>
+    );
+  };
+
+  // What the page's chat needs of the trip. Only once it may be edited here:
+  // until then a message keeps regenerating the itinerary, as before.
+  const chatTrip = createMemo(() => {
+    const trip = tripView.trip();
+    return trip && tripView.canEdit() ? { id: trip.id, version: trip.version } : undefined;
+  });
+
+  // Generated places that are not on the trip, with where they are, for the
+  // per-day suggestions.
+  const suggestionExtras = createMemo(() =>
+    extraStops().map((s) => {
+      const at = coordsOf(s);
+      return {
+        id: s.placeId,
+        name: s.name,
+        category: s.category,
+        rating: s.rating,
+        latitude: at?.latitude,
+        longitude: at?.longitude,
+      };
+    }),
+  );
+
+  const dayFooter = (day: ItineraryDayMeta) => (
+    <Show when={tripView.canEdit()}>
+      <Suspense>
+        <DaySuggestions
+          dayLabel={day.label}
+          centroid={dayCentroid(
+            listStops()
+              .filter((s) => s.day === day.day)
+              .map((s) => coordsOf(s) ?? {}),
+          )}
+          onTrip={listStops().map((s) => s.name)}
+          extras={suggestionExtras()}
+          busy={tripView.busy()}
+          onAdd={(place) => {
+            void tripView
+              .add(day.dayId, {
+                name: place.name,
+                poiId: place.id || undefined,
+                latitude: place.latitude,
+                longitude: place.longitude,
+                address: place.address,
+              })
+              .then((ok) => {
+                if (ok) {
+                  capture("itinerary_stop_added", {
+                    method: "suggestion",
+                    known_place: Boolean(place.id),
+                    source: place.source,
+                  });
+                }
+              });
+          }}
+        />
+      </Suspense>
+      <Show
+        when={addFor() === day.dayId}
+        fallback={
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => setAddFor(day.dayId)}
+          >
+            <Plus class="h-4 w-4" />
+            Add a place to {day.label}
+          </button>
+        }
+      >
+        <Suspense>
+          <AddPlacePanel
+            dayLabel={day.label}
+            cityName={day.cityName || cityData()?.city || cityName() || undefined}
+            busy={tripView.busy()}
+            onAdd={async (stop, method, knownPlace) => {
+              const ok = await tripView.add(day.dayId, stop);
+              if (ok) capture("itinerary_stop_added", { method, known_place: knownPlace });
+              return ok;
+            }}
+            onClose={() => setAddFor(undefined)}
+          />
+        </Suspense>
+      </Show>
+    </Show>
+  );
 
   // Map Content
   const MapContent = (
@@ -977,8 +1257,11 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
                     phase={streamPhase()}
                     title={itineraryModel().title}
                     summary={typedSummary() || itineraryModel().summary}
-                    stops={itineraryModel().stops}
-                    enrichedCount={itineraryModel().enrichedCount}
+                    stops={listStops()}
+                    enrichedCount={listEnrichedCount()}
+                    days={tripMerged()?.days}
+                    stopFooter={stopFooter}
+                    dayFooter={dayFooter}
                     error={store.error?.message}
                     onRetry={searchParams.sessionId ? handleRetryHydrate : undefined}
                     onBack={searchParams.sessionId ? handleBackToDiscover : undefined}
@@ -1072,6 +1355,21 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
             }}
           />
 
+          <Show when={!isAuthenticated() && !isMulti() && streamPhase() === "done"}>
+            <p class="mt-4 text-sm text-muted-foreground">
+              <A href="/auth/signin" class="font-medium text-primary hover:underline">
+                Sign in
+              </A>{" "}
+              to add, move or remove stops.
+            </p>
+          </Show>
+
+          <Show when={tripView.status() === "stale"}>
+            <p class="mt-4 text-sm text-muted-foreground" role="status">
+              Showing the copy saved on this device. Reconnect to change it.
+            </p>
+          </Show>
+
           <Show when={store.tripId || (searchParams.tripId as string | undefined)}>
             <div class="mt-4">
               <EditTripCTA
@@ -1125,6 +1423,14 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
         getStreamingData={() => store.data}
         setStreamingData={(fn) => setStore("data", fn)}
         initialSessionId={searchParams.sessionId as string}
+        trip={chatTrip()}
+        onTripChanged={(trip, kind) => {
+          // The card hands back the trip as applied; without one, reread it.
+          if (trip) tripView.adopt(trip);
+          else void tripView.refetch();
+          capture("itinerary_change_applied", { kind });
+        }}
+        onTripStale={() => void tripView.refetch()}
       />
     </>
   );

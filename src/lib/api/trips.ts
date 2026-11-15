@@ -1,6 +1,6 @@
 // Trip (editable day-by-day itinerary) queries + mutations over TripService.
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/solid-query";
-import { createClient } from "@connectrpc/connect";
+import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import { create } from "@bufbuild/protobuf";
 import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
@@ -22,6 +22,8 @@ import {
   AddStopRequestSchema,
   RemoveStopRequestSchema,
   ReplaceStopRequestSchema,
+  MoveStopRequestSchema,
+  GetTripForSessionRequestSchema,
   RenameStopRequestSchema,
   EditStopDurationRequestSchema,
   SetConstraintRequestSchema,
@@ -72,6 +74,32 @@ export interface TripStop {
   recommendationTrace?: RecommendationTrace;
   /** Read side only: how the traveller marked it (GamificationService.MarkStop). */
   mark?: "open" | "done" | "skipped";
+  /**
+   * Where the stop is. The server fills these from the place behind `poiId`;
+   * a stop with no place (pasted from a map link) carries its own, and those
+   * are sent back on save so the pin is kept.
+   */
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  /** Read side only: what the server knows about the place behind `poiId`. */
+  place?: TripStopPlace;
+  /** Read side only: the place's picture, with the credit it must be shown with. */
+  image?: TripStopImage;
+}
+
+export interface TripStopPlace {
+  category?: string;
+  description?: string;
+  rating?: number;
+}
+
+export interface TripStopImage {
+  url: string;
+  source?: string;
+  licence: string;
+  attribution: string;
+  sourcePageUrl?: string;
 }
 
 export interface TripDay {
@@ -379,9 +407,47 @@ export const mapTrip = (p: ProtoTripDraft): Trip => ({
       bookingUrl: s.bookingUrl,
       recommendationTrace: fromProtoRecommendationTrace(s.recommendationTrace),
       mark: stopMarkOf(s.status),
+      ...stopPin(s),
+      place: s.poi
+        ? {
+            category: s.poi.category || undefined,
+            description: s.poi.descriptionPoi || s.poi.description || undefined,
+            rating: s.poi.rating > 0 ? s.poi.rating : undefined,
+          }
+        : undefined,
+      image: s.image?.url
+        ? {
+            url: s.image.url,
+            source: s.image.source || undefined,
+            licence: s.image.licence,
+            attribution: s.image.attribution,
+            sourcePageUrl: s.image.sourcePageUrl || undefined,
+          }
+        : undefined,
     })),
   })),
 });
+
+/**
+ * A stop's position and address as the server sent them. The server puts the
+ * place's position on the stop itself; a server from before that only sent it
+ * inside `poi`, so that is the fallback. 0,0 is "no position", never a pin.
+ */
+const stopPin = (s: {
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  poi?: { latitude?: number; longitude?: number; address: string };
+}): Pick<TripStop, "latitude" | "longitude" | "address"> => {
+  const lat = s.latitude ?? s.poi?.latitude;
+  const lon = s.longitude ?? s.poi?.longitude;
+  const placed = typeof lat === "number" && typeof lon === "number" && (lat !== 0 || lon !== 0);
+  return {
+    latitude: placed ? lat : undefined,
+    longitude: placed ? lon : undefined,
+    address: s.address || s.poi?.address || undefined,
+  };
+};
 
 // Build the proto TripDraft for a save. Server-owned fields (ids, timestamps,
 // user_id) are filled with placeholders to satisfy validation; the server
@@ -397,6 +463,10 @@ export const toProtoStop = (s: TripStop) =>
     notes: s.notes,
     bookingUrl: s.bookingUrl,
     recommendationTrace: toProtoRecommendationTrace(s.recommendationTrace),
+    // A pin is a pair; the server drops half of one.
+    latitude: typeof s.longitude === "number" ? s.latitude : undefined,
+    longitude: typeof s.latitude === "number" ? s.longitude : undefined,
+    address: s.address || undefined,
   });
 
 export const toProtoTrip = (t: Trip) =>
@@ -494,6 +564,77 @@ export async function fetchTrip(id: string): Promise<Trip> {
   const res = await tripClient.getTrip(create(GetTripRequestSchema, { tripId: id }));
   return mapTrip(res);
 }
+
+/**
+ * The caller's trip built from a chat session, or null when there is none:
+ * signed out, a session from before trips were saved, or a server that does
+ * not know the call yet. The itinerary page opens by session and edits by trip.
+ */
+export async function fetchTripForSession(sessionId: string): Promise<Trip | null> {
+  try {
+    const res = await tripClient.getTripForSession(
+      create(GetTripForSessionRequestSchema, { sessionId }),
+    );
+    return mapTrip(res);
+  } catch (err) {
+    if (
+      err instanceof ConnectError &&
+      [Code.NotFound, Code.Unimplemented, Code.Unauthenticated, Code.InvalidArgument].includes(
+        err.code,
+      )
+    ) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+/** True when a trip edit was refused because the trip changed underneath it. */
+export const isTripConflict = (err: unknown) =>
+  err instanceof ConnectError && err.code === Code.FailedPrecondition;
+
+/**
+ * The stop edits as plain calls, for a caller that holds the trip itself
+ * rather than a query: the itinerary page. Each returns the trip as saved.
+ * The hooks below make the same calls for `/trips/:id`.
+ */
+export const tripEdits = {
+  /** Adds a stop to a day: after `afterStopId` when given, else at the end. */
+  add: async (i: {
+    tripId: string;
+    dayId: string;
+    stop: TripStop;
+    baseVersion: bigint;
+    afterStopId?: string;
+  }) =>
+    mapTrip(
+      await tripClient.addStop(
+        create(AddStopRequestSchema, {
+          tripId: i.tripId,
+          dayId: i.dayId,
+          stop: toProtoStop(i.stop),
+          baseVersion: i.baseVersion,
+          afterStopId: i.afterStopId,
+        }),
+      ),
+    ),
+  remove: async (i: { tripId: string; stopId: string; baseVersion: bigint }) =>
+    mapTrip(await tripClient.removeStop(create(RemoveStopRequestSchema, i))),
+  reorder: async (i: {
+    tripId: string;
+    dayId: string;
+    orderedStopIds: string[];
+    baseVersion: bigint;
+  }) => mapTrip(await tripClient.reorderStops(create(ReorderStopsRequestSchema, i))),
+  /** Moves a stop to a position on any day of the trip. */
+  move: async (i: {
+    tripId: string;
+    stopId: string;
+    toDayId: string;
+    toIndex: number;
+    baseVersion: bigint;
+  }) => mapTrip(await tripClient.moveStop(create(MoveStopRequestSchema, i))),
+};
 
 export const useTrip = (id: () => string | undefined) =>
   useAppQuery(() => ({

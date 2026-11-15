@@ -41,6 +41,14 @@ export interface OfflineItinerary {
    * navigation and appear in calendar event descriptions and PDF exports.
    */
   stopNotes?: Record<string, string>;
+  /** The trip this itinerary is a view of, once the page has found it. */
+  tripId?: string;
+  /**
+   * That trip as it was last read or edited here, so the page opens with the
+   * traveller's own order and additions when there is no network. Opaque to
+   * this store; the page that wrote it reads it back.
+   */
+  tripSnapshot?: unknown;
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -153,7 +161,9 @@ export async function clearOfflineItineraries(): Promise<void> {
  */
 export async function updateItineraryMeta(
   id: string,
-  patch: Partial<Pick<OfflineItinerary, "tripStartDate" | "stopOrder" | "stopNotes">>,
+  patch: Partial<
+    Pick<OfflineItinerary, "tripStartDate" | "stopOrder" | "stopNotes" | "tripId" | "tripSnapshot">
+  >,
 ): Promise<void> {
   if (!id) return;
   const db = await openDB();

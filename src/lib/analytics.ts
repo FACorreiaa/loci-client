@@ -69,7 +69,17 @@ export type AnalyticsEvent =
   /** Places were read from a shared link. source, places, resolved. Same name as iOS. */
   | "link_imported"
   /** The Discord invite was opened. surface: footer | support. Same name as iOS. */
-  | "discord_link_clicked";
+  | "discord_link_clicked"
+  /** A stop's Google Maps link was opened from an itinerary. has_trip. Same name as iOS. */
+  | "itinerary_google_link_opened"
+  /** A stop was moved or removed on the itinerary page. action: move | move_day | remove. */
+  | "itinerary_stop_edited"
+  /** A place was added on the itinerary page. method: search | link | named | eat_nearby | suggestion; known_place. */
+  | "itinerary_stop_added"
+  /** "Eat nearby" was opened for a stop. result_count, has_coords. */
+  | "eat_nearby_opened"
+  /** A change asked for in words on the itinerary page was confirmed. kind. */
+  | "itinerary_change_applied";
 
 export type AnalyticsProperties = Record<string, unknown>;
 

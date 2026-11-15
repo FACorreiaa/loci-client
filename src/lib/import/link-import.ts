@@ -15,6 +15,9 @@ export interface ImportedPlaceView {
   poiName?: string;
   address?: string;
   category?: string;
+  /** Where the link put the place, when it said. */
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface ImportView {
@@ -48,6 +51,8 @@ export function toImportView(res: ImportPlacesResponse): ImportView {
       poiName: p.poiName || undefined,
       address: p.address || undefined,
       category: p.category || undefined,
+      latitude: p.latitude,
+      longitude: p.longitude,
     })),
   };
 }

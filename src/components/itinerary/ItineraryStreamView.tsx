@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createMemo, createSignal, on } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, on, type JSX } from "solid-js";
 import { Sparkles, Check, AlertTriangle } from "lucide-solid";
 import StopCard from "./StopCard";
 import StopCardSkeleton from "./StopCardSkeleton";
@@ -8,6 +8,15 @@ import { INITIAL_DAYS, windowDays } from "@/lib/itinerary/day-paging";
 import { colorForMapDay } from "@/lib/theme-colors";
 import { legBetween, type AccessibleRoute } from "@/lib/accessibility";
 import { RouteDaySummary, WalkingLegRow } from "@/components/poi/AccessibilityNotes";
+import type { ItineraryDayMeta } from "@/lib/itinerary/trip-view";
+
+/** Where a stop sits in its day, for a footer that offers to move it. */
+export interface StopPlacement {
+  isFirst: boolean;
+  isLast: boolean;
+  /** The trip day the stop is on; absent when the list is not a trip's. */
+  day?: ItineraryDayMeta;
+}
 
 /**
  * Orchestrates the three phases visually:
@@ -44,6 +53,17 @@ export interface ItineraryStreamViewProps {
    * Absent for everyone without needs, and the view is unchanged.
    */
   accessibleRoutes?: AccessibleRoute[];
+  /**
+   * The days of the trip this list is a view of. When set, the headings come
+   * from here rather than from the stops, so a day with no stops left still
+   * has a heading (and somewhere to add to), and `stop.day` is the position
+   * of the stop's day in this list.
+   */
+  days?: ItineraryDayMeta[];
+  /** Rendered under each stop's card: links and edit controls. */
+  stopFooter?: (stop: ItineraryStop, placement: StopPlacement) => JSX.Element;
+  /** Rendered at the end of each trip day: "add a place". Needs `days`. */
+  dayFooter?: (day: ItineraryDayMeta) => JSX.Element;
 }
 
 export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
@@ -62,12 +82,30 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
   // groupStopsByDay is the one grouping implementation in the client, shared
   // with the trip kit, so a day here and a day in an export cannot disagree.
   const dayGroups = createMemo(() => {
+    // A view of a trip: the trip says which days exist and in what order.
+    if (props.days?.length) {
+      let index = 0;
+      return props.days.map((meta) => ({
+        day: meta.day,
+        label: meta.label,
+        meta: meta as ItineraryDayMeta | undefined,
+        items: props.stops
+          .filter((stop) => stop.day === meta.day)
+          .map((stop) => ({ stop, index: index++ })),
+      }));
+    }
+
     const per = props.stopsPerDay ?? 0;
     const hasDays = props.stops.some((stop) => typeof stop.day === "number");
 
     if (per <= 0 && !hasDays) {
       return [
-        { day: 0, label: "Day 1", items: props.stops.map((stop, index) => ({ stop, index })) },
+        {
+          day: 0,
+          label: "Day 1",
+          meta: undefined as ItineraryDayMeta | undefined,
+          items: props.stops.map((stop, index) => ({ stop, index })),
+        },
       ];
     }
 
@@ -81,11 +119,13 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
       // the server numbers days from 1, so `day + 1` showed a four-day trip as
       // "Day 2" through "Day 5". One place decides what a day is called.
       label: group.label,
+      meta: undefined as ItineraryDayMeta | undefined,
       items: group.stops.map((stop) => ({ stop, index: index++ })),
     }));
   });
 
   const grouped = () =>
+    Boolean(props.days?.length) ||
     props.stops.some((stop) => typeof stop.day === "number") ||
     ((props.stopsPerDay ?? 0) > 0 && total() > props.stopsPerDay!);
 
@@ -97,10 +137,16 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
   // the stop count rather than the array: enrichment patches rows in place and
   // deliberately keeps the array reference, so watching the array itself would
   // never fire, while watching its length fires exactly when the trip changes.
+  //
+  // A view of a trip is exempt: there the count changes because the traveller
+  // added or removed a stop, and folding the trip back up under them, away
+  // from the day they were editing, would be the opposite of what they asked.
   createEffect(
     on(
-      () => props.stops.length,
-      () => setVisibleDays(INITIAL_DAYS),
+      () => (props.days?.length ? -1 : props.stops.length),
+      (count) => {
+        if (count >= 0) setVisibleDays(INITIAL_DAYS);
+      },
       { defer: true },
     ),
   );
@@ -205,12 +251,18 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
             fallback={
               <For each={props.stops}>
                 {(stop, i) => (
-                  <StopCard
-                    stop={stop}
-                    index={i()}
-                    onClick={props.onStopClick}
-                    selected={props.selectedKey === stop.name}
-                  />
+                  <>
+                    <StopCard
+                      stop={stop}
+                      index={i()}
+                      onClick={props.onStopClick}
+                      selected={props.selectedKey === stop.name}
+                    />
+                    {props.stopFooter?.(stop, {
+                      isFirst: i() === 0,
+                      isLast: i() === props.stops.length - 1,
+                    })}
+                  </>
                 )}
               </For>
             }
@@ -246,9 +298,15 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
                           onClick={props.onStopClick}
                           selected={props.selectedKey === item.stop.name}
                         />
+                        {props.stopFooter?.(item.stop, {
+                          isFirst: i() === 0,
+                          isLast: i() === group.items.length - 1,
+                          day: group.meta,
+                        })}
                       </>
                     )}
                   </For>
+                  <Show when={group.meta}>{(meta) => props.dayFooter?.(meta())}</Show>
                 </div>
               )}
             </For>

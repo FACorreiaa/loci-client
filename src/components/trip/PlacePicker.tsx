@@ -9,6 +9,11 @@ interface PlacePickerProps {
   busy?: boolean;
   onSelect: (poi: POI) => void;
   onCancel?: () => void;
+  /**
+   * When set, a finished search also offers to add what was typed as a stop
+   * with just that name: the place Loci does not know yet.
+   */
+  onAddUnknown?: (name: string) => void;
 }
 
 export default function PlacePicker(props: PlacePickerProps) {
@@ -112,6 +117,17 @@ export default function PlacePicker(props: PlacePickerProps) {
             )}
           </For>
         </ul>
+      </Show>
+      <Show when={props.onAddUnknown && searched() && !searching() && query().trim()}>
+        <button
+          type="button"
+          class="mt-2 w-full rounded-lg border border-dashed border-border px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          disabled={props.busy}
+          onClick={() => props.onAddUnknown?.(query().trim())}
+        >
+          Not listed? Add <span class="font-medium text-foreground">“{query().trim()}”</span> as a
+          stop by name
+        </button>
       </Show>
     </div>
   );

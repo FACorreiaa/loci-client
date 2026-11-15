@@ -54,6 +54,17 @@ export interface ItineraryStop {
   accessibilityNotes?: AccessibilityNote[];
   /** How the server's walking legs name this stop (see routeRef). */
   routeRef?: string;
+  /* --- set only when the list is a view of a saved trip (see trip-view) --- */
+  /** The trip stop this row is: what an edit names. */
+  tripStopId?: string;
+  /** The trip day this row is on. */
+  tripDayId?: string;
+  /** Where the stop is, when the trip knows. */
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  /** The city this stop's day is spent in. */
+  cityName?: string;
 }
 
 export interface ItineraryState {
