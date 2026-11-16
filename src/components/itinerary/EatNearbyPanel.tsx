@@ -4,6 +4,7 @@ import { fetchNearbyPlaces } from "@/lib/api/pois";
 import { capture } from "@/lib/analytics";
 import {
   EAT_CATEGORIES,
+  placeDistanceKm,
   EAT_RADIUS_KM,
   eatNearbyGoogleUrl,
   eatNearbySummary,
@@ -65,7 +66,14 @@ export default function EatNearbyPanel(props: EatNearbyPanelProps) {
           rating: p.rating && p.rating > 0 ? p.rating : undefined,
           latitude: Number(p.latitude) || undefined,
           longitude: Number(p.longitude) || undefined,
-          distanceKm: typeof p.distance === "number" ? p.distance : undefined,
+          distanceKm: placeDistanceKm(
+            typeof p.distance === "number" ? p.distance : undefined,
+            { latitude: props.latitude, longitude: props.longitude },
+            {
+              latitude: Number(p.latitude) || undefined,
+              longitude: Number(p.longitude) || undefined,
+            },
+          ),
           description: p.description_poi || p.description || undefined,
         })),
         props.onTrip,

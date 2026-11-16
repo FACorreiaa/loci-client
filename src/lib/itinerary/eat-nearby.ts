@@ -7,6 +7,7 @@
    it, because Loci's places are not checked against the world.
    ============================================================ */
 
+import { distanceKm } from "./geo";
 import { normalizeName } from "./trip-view";
 
 /**
@@ -60,6 +61,29 @@ export interface NearbyPlace {
 export interface EatOption extends NearbyPlace {
   /** Walking time from the stop, in whole minutes, at least one. */
   walkMinutes?: number;
+}
+
+/**
+ * How far a place is from the stop, in km: the server's figure when it sent
+ * one, otherwise measured from both positions. Undefined when neither is
+ * known. A zero from the server is the proto default, not "right here": an
+ * older API never filled it in and every place read "1 min walk".
+ */
+export function placeDistanceKm(
+  serverKm: number | undefined,
+  from: { latitude?: number; longitude?: number },
+  to: { latitude?: number; longitude?: number },
+): number | undefined {
+  if (typeof serverKm === "number" && serverKm > 0) return serverKm;
+  const known = (p: { latitude?: number; longitude?: number }) =>
+    typeof p.latitude === "number" &&
+    typeof p.longitude === "number" &&
+    (p.latitude !== 0 || p.longitude !== 0);
+  if (!known(from) || !known(to)) return undefined;
+  return distanceKm(
+    { latitude: from.latitude!, longitude: from.longitude! },
+    { latitude: to.latitude!, longitude: to.longitude! },
+  );
 }
 
 export const walkMinutes = (km: number | undefined) =>

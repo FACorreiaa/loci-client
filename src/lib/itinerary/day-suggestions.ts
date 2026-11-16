@@ -9,7 +9,10 @@
    ============================================================ */
 
 import { EAT_CATEGORIES } from "./eat-nearby";
+import { distanceKm, type Coord } from "./geo";
 import { normalizeName } from "./trip-view";
+
+export { distanceKm, type Coord };
 
 export interface SuggestionCandidate {
   id?: string;
@@ -28,11 +31,6 @@ export interface DaySuggestion extends SuggestionCandidate {
   distanceKm?: number;
 }
 
-export interface Coord {
-  latitude: number;
-  longitude: number;
-}
-
 /** How far from the middle of a day a generated extra may be. */
 export const EXTRAS_RADIUS_KM = 2;
 /** How far the nearby listing is asked to reach. */
@@ -43,16 +41,6 @@ const placed = (c: { latitude?: number; longitude?: number }): c is Coord =>
   typeof c.latitude === "number" &&
   typeof c.longitude === "number" &&
   (c.latitude !== 0 || c.longitude !== 0);
-
-export function distanceKm(a: Coord, b: Coord): number {
-  const rad = (d: number) => (d * Math.PI) / 180;
-  const dLat = rad(b.latitude - a.latitude);
-  const dLon = rad(b.longitude - a.longitude);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;
-  return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
-}
 
 /** The middle of a day's placed stops, or undefined when none is placed. */
 export function dayCentroid(stops: { latitude?: number; longitude?: number }[]): Coord | undefined {
