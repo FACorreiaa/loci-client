@@ -3,6 +3,7 @@ import {
   eatNearbyGoogleUrl,
   eatNearbySummary,
   filterEatNearby,
+  placeDistanceKm,
   walkMinutes,
   type NearbyPlace,
 } from "./eat-nearby";
@@ -68,5 +69,28 @@ describe("what the panel says", () => {
       "https://www.google.com/maps/search/?api=1&query=restaurants%20near%20Castelo%20de%20S%C3%A3o%20Jorge%2C%20Lisbon",
     );
     expect(eatNearbyGoogleUrl("Castelo")).toContain("restaurants%20near%20Castelo");
+  });
+});
+
+describe("placeDistanceKm", () => {
+  const stop = { latitude: 37.3831, longitude: -5.9902 };
+  const bar = { latitude: 37.3856, longitude: -5.9902 }; // ~280 m north
+
+  it("uses the server's figure when it sent one", () => {
+    expect(placeDistanceKm(0.5, stop, bar)).toBe(0.5);
+  });
+
+  // An older API never filled distance in, and protobuf hands back 0, which
+  // put "1 min walk" on every place.
+  it("measures from the positions when the server sent 0", () => {
+    const km = placeDistanceKm(0, stop, bar)!;
+    expect(km).toBeGreaterThan(0.25);
+    expect(km).toBeLessThan(0.31);
+    expect(walkMinutes(km)).toBe(3);
+  });
+
+  it("is unknown without both positions", () => {
+    expect(placeDistanceKm(undefined, stop, {})).toBeUndefined();
+    expect(placeDistanceKm(0, { latitude: 0, longitude: 0 }, bar)).toBeUndefined();
   });
 });
