@@ -59,19 +59,19 @@ export default function EatNearbyPanel(props: EatNearbyPanelProps) {
       });
       const filtered = filterEatNearby(
         found.map((p) => ({
-          id: String(p.id ?? ""),
+          id: p.id ?? "",
           name: p.name,
           category: p.category,
           address: p.address || undefined,
           rating: p.rating && p.rating > 0 ? p.rating : undefined,
-          latitude: Number(p.latitude) || undefined,
-          longitude: Number(p.longitude) || undefined,
+          latitude: p.latitude || undefined,
+          longitude: p.longitude || undefined,
           distanceKm: placeDistanceKm(
             typeof p.distance === "number" ? p.distance : undefined,
             { latitude: props.latitude, longitude: props.longitude },
             {
-              latitude: Number(p.latitude) || undefined,
-              longitude: Number(p.longitude) || undefined,
+              latitude: p.latitude || undefined,
+              longitude: p.longitude || undefined,
             },
           ),
           description: p.description_poi || p.description || undefined,

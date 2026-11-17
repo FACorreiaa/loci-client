@@ -112,7 +112,7 @@ export default function AddPlacePanel(props: AddPlacePanelProps) {
           label={`Add to ${props.dayLabel}`}
           busy={props.busy}
           onSelect={(poi) =>
-            void add({ name: poi.name, poiId: poi.id ? String(poi.id) : undefined }, "search", true)
+            void add({ name: poi.name, poiId: poi.id || undefined }, "search", true)
           }
           onAddUnknown={(name) => void add({ name }, "named", false)}
         />

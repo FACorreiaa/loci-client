@@ -72,7 +72,7 @@ export default function DiscoverPage() {
   const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const { userLocation, requestLocation } = useUserLocation();
-  const subscriptionQuery = useUserSubscription(() => !!isAuthenticated());
+  const subscriptionQuery = useUserSubscription(() => isAuthenticated());
   const isPro = () => canUsePro(subscriptionQuery.data?.plan);
   const localResultCache = new Map<string, POI[]>();
   const localGastronomyCache = new Map<string, CityGastronomy[]>();
@@ -119,7 +119,7 @@ export default function DiscoverPage() {
   let abortController: AbortController | null = null;
 
   // Fetch discover page data (RPC)
-  const discoverData = useDiscoverPageData(() => !!isAuthenticated());
+  const discoverData = useDiscoverPageData(() => isAuthenticated());
 
   // Category data matching go-templui
   const categories = [

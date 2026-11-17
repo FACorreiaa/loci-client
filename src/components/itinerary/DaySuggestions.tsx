@@ -51,12 +51,12 @@ export default function DaySuggestions(props: DaySuggestionsProps) {
       const found = await fetchNearbyPlaces({ ...at, radiusKm: NEARBY_RADIUS_KM });
       setNearby(
         found.map((p) => ({
-          id: p.id ? String(p.id) : undefined,
+          id: p.id || undefined,
           name: p.name,
           category: p.category,
           rating: p.rating && p.rating > 0 ? p.rating : undefined,
-          latitude: Number(p.latitude) || undefined,
-          longitude: Number(p.longitude) || undefined,
+          latitude: p.latitude || undefined,
+          longitude: p.longitude || undefined,
           address: p.address || undefined,
         })),
       );

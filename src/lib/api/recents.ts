@@ -129,18 +129,18 @@ export async function fetchRecentInteractions(
       hotels: [],
       restaurants: [],
     })),
-    poi_count: Number(summary.interactionCount || 0),
+    poi_count: summary.interactionCount || 0,
     last_activity: summary.latestInteraction
       ? new Date(Number(summary.latestInteraction.seconds) * 1000).toISOString()
       : new Date().toISOString(),
-    total_interactions: Number(summary.interactionCount || 0),
+    total_interactions: summary.interactionCount || 0,
     total_favorites: 0,
     total_itineraries: 0,
   }));
 
   return {
     cities,
-    total: Number(response.totalCount || 0),
+    total: response.totalCount || 0,
     offset: 0,
     limit,
   };
@@ -208,7 +208,7 @@ async function fetchActivityHistory(limit: number, offset: number): Promise<Acti
   // total_count is a floor, not a total: the server reports one more than it
   // has served when another page exists rather than counting a three-way union
   // on every request. See the handler for why.
-  const hasMore = offset + entries.length < Number(response.totalCount || 0);
+  const hasMore = offset + entries.length < (response.totalCount || 0);
 
   return { entries, hasMore };
 }

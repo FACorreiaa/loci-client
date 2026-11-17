@@ -137,7 +137,7 @@ export const useUserProfileQuery = () => {
         first_name: profile.firstname ?? undefined,
         last_name: profile.lastname ?? undefined,
         phone: profile.phoneNumber ?? undefined,
-        age: profile.age ? Number(profile.age) : undefined,
+        age: profile.age || undefined,
         city: profile.city ?? undefined,
         country: profile.country ?? undefined,
         about_you: profile.aboutYou ?? undefined,

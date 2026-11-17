@@ -207,7 +207,7 @@ export default function ContributePage() {
                 total={myClaimsTotal()}
                 loading={myClaims.isLoading}
                 error={myClaims.isError ? myClaims.error : undefined}
-                hasMore={Boolean(myClaims.hasNextPage)}
+                hasMore={myClaims.hasNextPage}
                 loadingMore={myClaims.isFetchingNextPage}
                 onLoadMore={() => void myClaims.fetchNextPage()}
                 onRetry={() => void myClaims.refetch()}

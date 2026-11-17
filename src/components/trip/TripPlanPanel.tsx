@@ -207,7 +207,7 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
                     size="sm"
                     variant="outline"
                     data-testid={`plan-find-${city}`}
-                    disabled={!!searching()[city]}
+                    disabled={searching()[city]}
                     onClick={() => findHotels(city)}
                   >
                     {searching()[city] ? "Searching…" : "Find hotels"}

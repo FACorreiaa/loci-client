@@ -202,7 +202,7 @@ const MapComponent = (_props: MapComponentProps) => {
     applyVisibility(map);
     // Follow the pins only while the user is not steering (refit.ts): a city
     // still streaming must not cancel the pan they just started.
-    const ids = valid.map((p) => String(p.id ?? p.name));
+    const ids = valid.map((p) => p.id ?? p.name);
     const refit = fit && shouldRefit(follow, ids);
     if (refit) fitToData(map, valid, mapContainer);
     follow = { ids: new Set(ids), userMoved: refit ? false : (follow?.userMoved ?? false) };
