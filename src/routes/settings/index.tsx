@@ -325,7 +325,7 @@ function SettingsPageContent() {
       const reader = new FileReader();
       reader.addEventListener("load", (e) => setPhotoPreview(e.target?.result as string));
       reader.readAsDataURL(file);
-      uploadPhoto(file);
+      void uploadPhoto(file);
     } else {
       setNotification({
         message: "Please select a valid image file",
@@ -760,6 +760,15 @@ function SettingsPageContent() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // The delete and toggle handlers below are called from click handlers that
+  // cannot await them, so a failure has to be reported here: it used to be
+  // an unhandled rejection and nothing on screen. (The mutation default
+  // already logs the error.)
+  const notifyFailed = (message: string) => {
+    setNotification({ message, type: "error" });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
   const handleUpdateTag = async (data: any) => {
     await updateTagMutation.mutateAsync(data);
     setNotification({ message: "Tag updated successfully!", type: "success" });
@@ -777,7 +786,12 @@ function SettingsPageContent() {
     }
 
     if (confirm(`Are you sure you want to delete the tag "${tag.name}"?`)) {
-      await deleteTagMutation.mutateAsync(tag.id);
+      try {
+        await deleteTagMutation.mutateAsync(tag.id);
+      } catch {
+        notifyFailed("Couldn't delete the tag. Please try again.");
+        return;
+      }
       setNotification({
         message: "Tag deleted successfully!",
         type: "success",
@@ -788,10 +802,15 @@ function SettingsPageContent() {
 
   const handleToggleTag = async (tag: any) => {
     const currentActive = tag.active ?? false;
-    await toggleTagActiveMutation.mutateAsync({
-      id: tag.id,
-      active: !currentActive,
-    });
+    try {
+      await toggleTagActiveMutation.mutateAsync({
+        id: tag.id,
+        active: !currentActive,
+      });
+    } catch {
+      notifyFailed("Couldn't update the tag. Please try again.");
+      return;
+    }
     setNotification({
       message: `Tag ${!currentActive ? "activated" : "deactivated"} successfully!`,
       type: "success",
@@ -847,7 +866,12 @@ function SettingsPageContent() {
     }
 
     if (confirm(`Are you sure you want to delete the interest "${interest.name}"?`)) {
-      await deleteInterestMutation.mutateAsync(interest.id);
+      try {
+        await deleteInterestMutation.mutateAsync(interest.id);
+      } catch {
+        notifyFailed("Couldn't delete the interest. Please try again.");
+        return;
+      }
       setNotification({
         message: "Interest deleted successfully!",
         type: "success",
@@ -858,10 +882,15 @@ function SettingsPageContent() {
 
   const handleToggleInterest = async (interest: any) => {
     const currentActive = interest.active ?? false;
-    await toggleInterestActiveMutation.mutateAsync({
-      id: interest.id,
-      active: !currentActive,
-    });
+    try {
+      await toggleInterestActiveMutation.mutateAsync({
+        id: interest.id,
+        active: !currentActive,
+      });
+    } catch {
+      notifyFailed("Couldn't update the interest. Please try again.");
+      return;
+    }
     setNotification({
       message: `Interest ${!currentActive ? "activated" : "deactivated"} successfully!`,
       type: "success",

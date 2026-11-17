@@ -110,7 +110,9 @@ export function LocationProvider(props: LocationProviderProps) {
     }
 
     if ("permissions" in navigator) {
-      navigator.permissions.query({ name: "geolocation" }).then((permission) => {
+      // No catch: a browser that cannot answer leaves the status unknown, as
+      // it starts, and the rejection stays visible to error reporting.
+      void navigator.permissions.query({ name: "geolocation" }).then((permission) => {
         setPermissionStatus(permission.state);
         // Only auto-fetch if permission was already granted previously
         // This avoids triggering the browser prompt on page load

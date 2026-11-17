@@ -378,7 +378,7 @@ export default function TagsComponent(props: TagsUIProps) {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    props.onDeleteTag(tag);
+                                    void props.onDeleteTag(tag);
                                   }}
                                   class="px-3 py-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-semibold border border-destructive/20"
                                 >
@@ -406,7 +406,7 @@ export default function TagsComponent(props: TagsUIProps) {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  props.onDeleteTag(tag);
+                                  void props.onDeleteTag(tag);
                                   setActiveTagForActions(null);
                                 }}
                                 class="flex-1 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold"

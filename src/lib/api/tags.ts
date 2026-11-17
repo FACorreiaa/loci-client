@@ -75,7 +75,7 @@ export const useCreateTagMutation = () => {
       return response.tag;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tags });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tags });
     },
   }));
 };
@@ -109,7 +109,7 @@ export const useUpdateTagMutation = () => {
       return { success: response.success };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tags });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tags });
     },
   }));
 };
@@ -131,7 +131,7 @@ export const useToggleTagActiveMutation = () => {
       return { success: response.success };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tags });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tags });
     },
   }));
 };
@@ -146,7 +146,7 @@ export const useDeleteTagMutation = () => {
       return { success: response.success };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tags });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tags });
     },
   }));
 };

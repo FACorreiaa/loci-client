@@ -670,7 +670,7 @@ export const useSaveTrip = () => {
         day_count: t.days.length,
         stop_count: t.days.reduce((count, day) => count + day.stops.length, 0),
       });
-      qc.invalidateQueries({ queryKey: tripKeys.list() });
+      void qc.invalidateQueries({ queryKey: tripKeys.list() });
       qc.setQueryData(tripKeys.detail(t.id), t);
     },
   }));

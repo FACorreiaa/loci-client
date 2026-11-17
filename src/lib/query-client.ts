@@ -98,7 +98,7 @@ export const queryUtils = {
 
   // Invalidate all queries (force refetch)
   invalidateAll: () => {
-    queryClient.invalidateQueries();
+    void queryClient.invalidateQueries();
   },
 
   // Prefetch common user data on login
@@ -176,12 +176,12 @@ export const queryUtils = {
 
   // Force refetch a specific query
   refetch: (queryKey: readonly unknown[]) => {
-    queryClient.invalidateQueries({ queryKey });
+    void queryClient.invalidateQueries({ queryKey });
   },
 
   // Cancel all outgoing queries (useful when navigating away)
   cancelQueries: () => {
-    queryClient.cancelQueries();
+    void queryClient.cancelQueries();
   },
 };
 
@@ -261,8 +261,8 @@ export const offlineUtils = {
   // Setup offline/online event listeners
   setupOfflineSupport: () => {
     const handleOnline = () => {
-      queryClient.resumePausedMutations();
-      queryClient.invalidateQueries();
+      void queryClient.resumePausedMutations();
+      void queryClient.invalidateQueries();
     };
 
     const handleOffline = () => {

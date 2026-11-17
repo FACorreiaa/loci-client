@@ -192,7 +192,7 @@ export default function TripEditor() {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.toLowerCase().includes("version") || msg.toLowerCase().includes("precondition")) {
       setConflict(true);
-      tripQuery.refetch();
+      void tripQuery.refetch();
     }
   };
 
@@ -515,7 +515,7 @@ export default function TripEditor() {
                     } catch (err) {
                       if (err instanceof ConnectError && err.code === Code.FailedPrecondition) {
                         setConflict(true);
-                        tripQuery.refetch();
+                        void tripQuery.refetch();
                       }
                       return false;
                     }
@@ -529,7 +529,7 @@ export default function TripEditor() {
                 onUpdated={(updated) => rememberTrip(queryClient, updated)}
                 onConflict={() => {
                   setConflict(true);
-                  tripQuery.refetch();
+                  void tripQuery.refetch();
                 }}
               />
             </Show>

@@ -36,7 +36,7 @@ const ServerDownPage: Component = () => {
   onMount(() => {
     const interval = setInterval(() => {
       if (!isRetrying()) {
-        handleRetry();
+        void handleRetry();
       }
     }, 30000);
 

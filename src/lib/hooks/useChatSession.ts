@@ -1187,7 +1187,7 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendChatMessage();
+      void sendChatMessage();
     }
   };
 

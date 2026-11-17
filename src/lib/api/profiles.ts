@@ -395,8 +395,8 @@ export const useCreateSearchProfileMutation = () => {
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
-      queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
     },
   }));
 };
@@ -447,9 +447,9 @@ export const useUpdateSearchProfileMutation = () => {
       return response;
     },
     onSuccess: (_, { profileId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.profile(profileId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
-      queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profile(profileId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
     },
   }));
 };
@@ -465,8 +465,8 @@ export const useDeleteSearchProfileMutation = () => {
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
-      queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
     },
   }));
 };
@@ -482,8 +482,8 @@ export const useSetDefaultProfileMutation = () => {
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
-      queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
     },
   }));
 };

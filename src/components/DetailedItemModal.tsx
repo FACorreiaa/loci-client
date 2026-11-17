@@ -127,14 +127,17 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
 
   const handleShare = () => {
     if (navigator.share && props.item) {
-      navigator.share({
-        title: props.item.name,
-        text: props.item.description_poi || `Check out ${props.item.name}`,
-        url: window.location.href,
-      });
+      // share() rejects when the sheet is dismissed, which is not an error.
+      navigator
+        .share({
+          title: props.item.name,
+          text: props.item.description_poi || `Check out ${props.item.name}`,
+          url: window.location.href,
+        })
+        .catch(() => {});
     } else {
-      // Fallback to clipboard
-      navigator.clipboard.writeText(window.location.href);
+      // Fallback to clipboard; a refused write has nowhere to be reported.
+      navigator.clipboard.writeText(window.location.href).catch(() => {});
     }
   };
 

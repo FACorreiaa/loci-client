@@ -143,7 +143,7 @@ function NearmeView(props: { adopt: (sessionId: string) => void }) {
   const searchNearby = (lat: number, lon: number, distanceKm: number) => {
     const message = `Find places near me within ${distanceKm} kilometers. My location is at latitude ${lat.toFixed(6)} and longitude ${lon.toFixed(6)}. Show me restaurants, attractions, hotels, and activities nearby.`;
 
-    startStream(message, "nearme", { latitude: lat, longitude: lon });
+    void startStream(message, "nearme", { latitude: lat, longitude: lon });
   };
 
   // Retry the last search. If we never got a fix, ask for location again -

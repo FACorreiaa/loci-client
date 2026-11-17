@@ -88,12 +88,12 @@ export const useInvalidateUserQueries = () => {
   const queryClient = useQueryClient();
 
   return () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
-    queryClient.invalidateQueries({ queryKey: queryKeys.interests });
-    queryClient.invalidateQueries({ queryKey: queryKeys.tags });
-    queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
-    queryClient.invalidateQueries({ queryKey: queryKeys.lists });
-    queryClient.invalidateQueries({ queryKey: queryKeys.settings });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.interests });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.tags });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.lists });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.settings });
   };
 };
 

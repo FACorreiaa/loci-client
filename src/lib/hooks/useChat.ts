@@ -344,7 +344,7 @@ export function useChat(
       localSessions.unshift(summary);
       if (localSessions.length > MAX_LOCAL_SESSIONS) localSessions.splice(MAX_LOCAL_SESSIONS);
       localStorage.setItem("localChatSessions", JSON.stringify(localSessions));
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["chatSessions", activeProfileId()],
       });
       setLocalSessionsVersion((v) => v + 1);
@@ -489,7 +489,7 @@ export function useChat(
         streaming: false,
       });
       const pid = activeProfileId();
-      if (pid) queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
+      if (pid) void queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
       return;
     }
     if (completed.sessionId) {
@@ -505,7 +505,7 @@ export function useChat(
     });
     keepStreaming("completedStreamingSession", completed);
     const pid = activeProfileId();
-    if (pid) queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
+    if (pid) void queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
   };
 
   /**

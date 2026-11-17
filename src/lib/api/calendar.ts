@@ -128,7 +128,7 @@ export const useConnectCalendar = () => {
       );
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["calendar"] });
+      void qc.invalidateQueries({ queryKey: ["calendar"] });
     },
   }));
 };
@@ -140,7 +140,7 @@ export const useDisconnectCalendar = () => {
       await client.disconnectCalendar(create(DisconnectCalendarRequestSchema, { connectionId }));
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["calendar"] });
+      void qc.invalidateQueries({ queryKey: ["calendar"] });
     },
   }));
 };

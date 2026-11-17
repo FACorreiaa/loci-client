@@ -264,7 +264,9 @@ export function useStreamingChat(options: StreamingChatOptions = {}) {
       abortController.abort();
     }
     if (reader) {
-      reader.cancel();
+      // The abort above has already errored the stream, and cancel() on an
+      // errored stream rejects with that same AbortError.
+      reader.cancel().catch(() => {});
     }
     setState((prev) => ({
       ...prev,

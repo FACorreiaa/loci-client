@@ -68,7 +68,7 @@ export default function CitiesView() {
   // Handle export
   const handleExport = () => {
     const items = selection.getSelectedItems();
-    exportPOIsToPDF(items, "Recent Cities");
+    void exportPOIsToPDF(items, "Recent Cities");
   };
 
   // Select all filtered cities

@@ -83,7 +83,7 @@ export default function ChatPage() {
       clearHandoff();
       chat.newChat();
       chat.setCurrentMessage(query);
-      chat.sendMessage();
+      void chat.sendMessage();
     });
   });
   const [selectedItem, setSelectedItem] = createSignal<any>(null);
@@ -118,13 +118,13 @@ export default function ChatPage() {
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      chat.sendMessage();
+      void chat.sendMessage();
     }
   };
 
   const useQuickPrompt = (prompt: QuickPrompt) => {
     chat.setCurrentMessage(prompt.text);
-    chat.sendMessage();
+    void chat.sendMessage();
   };
 
   return (

@@ -237,7 +237,7 @@ export function useAddToFavorites() {
     mutationFn: addToFavorites,
     onSuccess: () => {
       capture("poi_saved", { surface: "favorites" });
-      queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
       void queryClient.invalidateQueries({ queryKey: ["gamification"] });
     },
   }));
@@ -251,7 +251,7 @@ export function useRemoveFromFavorites() {
     mutationFn: ({ itemId, contentType }: { itemId: string; contentType: string }) =>
       removeFromFavorites(itemId, contentType),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
     },
   }));
 }

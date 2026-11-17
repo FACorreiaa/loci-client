@@ -126,7 +126,7 @@ export function useForgetTrait() {
       return resp.signalsRemoved;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: memoryQueryKey });
+      void queryClient.invalidateQueries({ queryKey: memoryQueryKey });
     },
   }));
 }
@@ -141,7 +141,7 @@ export function useForgetEvidence() {
       await memoryClient.forgetEvidence(create(ForgetEvidenceRequestSchema, { feedbackId }));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: memoryQueryKey });
+      void queryClient.invalidateQueries({ queryKey: memoryQueryKey });
     },
   }));
 }

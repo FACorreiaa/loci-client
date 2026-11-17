@@ -325,7 +325,7 @@ export default function InterestsComponent(props: InterestsUIProps) {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                props.onDeleteInterest(interest);
+                                void props.onDeleteInterest(interest);
                               }}
                               class="px-3 py-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-semibold border border-destructive/20"
                             >
@@ -340,7 +340,7 @@ export default function InterestsComponent(props: InterestsUIProps) {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    props.onToggleActive(interest);
+                                    void props.onToggleActive(interest);
                                     setActiveInterestForActions(null);
                                   }}
                                   disabled={props.isToggling}
@@ -365,7 +365,7 @@ export default function InterestsComponent(props: InterestsUIProps) {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    props.onDeleteInterest(interest);
+                                    void props.onDeleteInterest(interest);
                                     setActiveInterestForActions(null);
                                   }}
                                   class="flex-1 px-3 py-2 bg-destructive/10 text-destructive rounded text-sm font-medium hover:bg-destructive/20"

@@ -163,7 +163,7 @@ export const useGoogleLoginMutation = () => {
       };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.session });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.session });
     },
   }));
 };
@@ -213,7 +213,7 @@ export const useAppleLoginMutation = () => {
       };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.session });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.session });
     },
   }));
 };
@@ -270,7 +270,7 @@ export const useVerifyPhoneMutation = () => {
       };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.session });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.session });
     },
   }));
 };

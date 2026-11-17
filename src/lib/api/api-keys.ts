@@ -188,7 +188,7 @@ export function useCreateApiKey() {
       };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: apiKeysQueryKey });
+      void queryClient.invalidateQueries({ queryKey: apiKeysQueryKey });
     },
   }));
 }
@@ -200,7 +200,7 @@ export function useRevokeApiKey() {
       await apiKeyClient.revokeApiKey(create(RevokeApiKeyRequestSchema, { id }));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: apiKeysQueryKey });
+      void queryClient.invalidateQueries({ queryKey: apiKeysQueryKey });
     },
   }));
 }

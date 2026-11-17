@@ -368,7 +368,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     // Repeating an identical prompt is close to free: the generation cache
     // serves it from Postgres without a provider call.
     if (message().trim() && cityName().trim()) {
-      connect();
+      void connect();
       return;
     }
 
@@ -444,7 +444,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       return;
     }
 
-    connect();
+    void connect();
   });
 
   // --- Multi-city ------------------------------------------------------
