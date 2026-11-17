@@ -1,4 +1,4 @@
-import { createUniqueId, For, type JSX } from "solid-js";
+import { createUniqueId, type JSX } from "solid-js";
 
 /**
  * The Loci mark and logo as inline SVG.
@@ -32,14 +32,6 @@ export const WORDMARK_LETTERS =
   "M0 17A11 11 0 0 1 11 6H71A11 11 0 0 1 82 17V286A80 85 0 0 0 162 371H343A11 11 0 0 1 354 382V434A11 11 0 0 1 343 445H145A145 145 0 0 1 0 300ZM552 136H653A148 148 0 0 1 801 284V297A148 148 0 0 1 653 445H552A148 148 0 0 1 404 297V284A148 148 0 0 1 552 136ZM552 207A69 77 0 0 0 483 284V297A69 77 0 0 0 552 374H653A69 77 0 0 0 722 297V284A69 77 0 0 0 653 207ZM1195 136A11 11 0 0 1 1206 147V196A11 11 0 0 1 1195 207H1011A69 77 0 0 0 942 284V297A69 77 0 0 0 1011 374H1195A11 11 0 0 1 1206 385V434A11 11 0 0 1 1195 445H1011A148 148 0 0 1 863 297V284A148 148 0 0 1 1011 136ZM1290 173A39.5 34 0 0 1 1369 173V434A11 11 0 0 1 1358 445H1301A11 11 0 0 1 1290 434Z";
 export const WORDMARK_DOT = { cx: 1329.5, cy: 47, r: 47 };
 
-const PIN_STOPS: [string, string][] = [
-  ["0", "#F9A47C"],
-  [".3", "#F68667"],
-  [".5", "#E8735D"],
-  [".7", "#D2645A"],
-  ["1", "#C25A52"],
-];
-
 /** The gradient pin with its dunes, as a <g> in the mark's 714×940 units. */
 export function MarkArt(): JSX.Element {
   // Per-instance ids: a page can carry several marks, and a gradient whose
@@ -49,9 +41,11 @@ export function MarkArt(): JSX.Element {
     <g>
       <defs>
         <linearGradient id={`pin-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <For each={PIN_STOPS}>
-            {([offset, color]) => <stop offset={offset} stop-color={color} />}
-          </For>
+          <stop offset="0" stop-color="#F9A47C" />
+          <stop offset=".3" stop-color="#F68667" />
+          <stop offset=".5" stop-color="#E8735D" />
+          <stop offset=".7" stop-color="#D2645A" />
+          <stop offset="1" stop-color="#C25A52" />
         </linearGradient>
         <linearGradient id={`dune-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stop-color="#F6D8BC" />

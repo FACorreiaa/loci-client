@@ -1,4 +1,4 @@
-import { For, Show, createSignal, type Component, untrack } from "solid-js";
+import { For, Show, createSignal, type Component } from "solid-js";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { TripDraft as ProtoTripDraft } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import { Button } from "~/ui/button";
@@ -60,8 +60,10 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
   };
 
   // Dates
-  const [start, setStart] = createSignal(untrack(() => props.trip.startDate ?? ""));
-  const [end, setEnd] = createSignal(untrack(() => props.trip.endDate ?? ""));
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
+  const [start, setStart] = createSignal(props.trip.startDate ?? "");
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
+  const [end, setEnd] = createSignal(props.trip.endDate ?? "");
   const datesReady = () => start() !== "" && end() !== "" && end() >= start();
   const saveDates = () =>
     // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs

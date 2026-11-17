@@ -141,6 +141,7 @@ export async function pollRunToSettle(
  */
 function navigationFromRun(sessionId: string, info: RunInfo): NavigationInfo {
   // getRunStatuses stringifies the proto enum ("2"); a name passes through.
+  // oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- the digits are the enum's number; one this build does not know maps to "general"
   const domain = /^\d+$/.test(info.domain) ? domainName(Number(info.domain)) : info.domain;
   const routeType = new URL(info.url, "https://x").pathname.split("/").find(Boolean) ?? "";
   return {
@@ -155,6 +156,7 @@ function navigationFromRun(sessionId: string, info: RunInfo): NavigationInfo {
 }
 
 /** What a settled poll means to a stream reader: its terminal event. */
+// oxlint-disable-next-line typescript/consistent-return -- the switch is exhaustive, and the compiler rejects a missing case
 export function settleEvent(sessionId: string, outcome: SettleOutcome): LociStreamEvent | null {
   switch (outcome.status) {
     case "done":
@@ -181,9 +183,6 @@ export function settleEvent(sessionId: string, outcome: SettleOutcome): LociStre
       };
     case "aborted":
       return null;
-    default:
-      // Unreachable while the switch is exhaustive, which `satisfies` checks.
-      throw new Error(`Unhandled settle outcome: ${JSON.stringify(outcome satisfies never)}`);
   }
 }
 

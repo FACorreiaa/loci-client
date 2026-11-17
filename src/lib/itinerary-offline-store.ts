@@ -51,6 +51,24 @@ export interface OfflineItinerary {
   tripSnapshot?: unknown;
 }
 
+// A request can fail without an error object; reject with an Error either way.
+const failure = (source: { error: DOMException | null }): Error =>
+  source.error ?? new Error("IndexedDB request failed");
+
+/** Resolves with `value()` on the target's `done` event, rejects on its error. */
+const settled = <T>(
+  target: IDBRequest | IDBTransaction,
+  done: "success" | "complete",
+  value: () => T,
+): Promise<T> =>
+  new Promise((resolve, reject) => {
+    target.addEventListener(done, () => resolve(value()));
+    target.addEventListener("error", () => reject(failure(target)));
+  });
+
+/** Resolves when the transaction commits. */
+const committed = (tx: IDBTransaction): Promise<void> => settled(tx, "complete", () => {});
+
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === "undefined") {
@@ -65,8 +83,7 @@ function openDB(): Promise<IDBDatabase> {
         store.createIndex("savedAt", "savedAt", { unique: false });
       }
     };
-    req.addEventListener("success", () => resolve(req.result));
-    req.addEventListener("error", () => reject(req.error ?? new Error("IndexedDB request failed")));
+    settled(req, "success", () => req.result).then(resolve, reject);
   });
 }
 
@@ -94,10 +111,7 @@ export async function saveItineraryOffline(entry: OfflineItinerary): Promise<voi
     }
   };
 
-  return new Promise((resolve, reject) => {
-    tx.addEventListener("complete", () => resolve());
-    tx.addEventListener("error", () => reject(tx.error ?? new Error("IndexedDB request failed")));
-  });
+  return committed(tx);
 }
 
 /** List all offline-saved itineraries (newest first). */
@@ -106,27 +120,20 @@ export async function listOfflineItineraries(): Promise<OfflineItinerary[]> {
   const tx = db.transaction(STORE_NAME, "readonly");
   const store = tx.objectStore(STORE_NAME);
 
-  return new Promise((resolve, reject) => {
-    const req = store.getAll();
-    req.onsuccess = () => {
-      const items = (req.result as OfflineItinerary[]).sort(
-        (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime(),
-      );
-      resolve(items);
-    };
-    req.addEventListener("error", () => reject(req.error ?? new Error("IndexedDB request failed")));
-  });
+  const req = store.getAll();
+  return settled(req, "success", () =>
+    (req.result as OfflineItinerary[]).sort(
+      (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime(),
+    ),
+  );
 }
 
 /** Get a single offline itinerary by ID. */
 export async function getOfflineItinerary(id: string): Promise<OfflineItinerary | undefined> {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, "readonly");
-  return new Promise((resolve, reject) => {
-    const req = tx.objectStore(STORE_NAME).get(id);
-    req.addEventListener("success", () => resolve(req.result as OfflineItinerary | undefined));
-    req.addEventListener("error", () => reject(req.error ?? new Error("IndexedDB request failed")));
-  });
+  const req = tx.objectStore(STORE_NAME).get(id);
+  return settled(req, "success", () => req.result as OfflineItinerary | undefined);
 }
 
 /** Delete a single offline itinerary. */
@@ -134,10 +141,7 @@ export async function deleteOfflineItinerary(id: string): Promise<void> {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, "readwrite");
   tx.objectStore(STORE_NAME).delete(id);
-  return new Promise((resolve, reject) => {
-    tx.addEventListener("complete", () => resolve());
-    tx.addEventListener("error", () => reject(tx.error ?? new Error("IndexedDB request failed")));
-  });
+  return committed(tx);
 }
 
 /** Clear all offline itineraries. */
@@ -145,10 +149,7 @@ export async function clearOfflineItineraries(): Promise<void> {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, "readwrite");
   tx.objectStore(STORE_NAME).clear();
-  return new Promise((resolve, reject) => {
-    tx.addEventListener("complete", () => resolve());
-    tx.addEventListener("error", () => reject(tx.error ?? new Error("IndexedDB request failed")));
-  });
+  return committed(tx);
 }
 
 /**
@@ -180,10 +181,8 @@ export async function updateItineraryMeta(
       }
       store.put({ ...existing, ...patch });
     };
-    getReq.addEventListener("error", () =>
-      reject(getReq.error ?? new Error("IndexedDB request failed")),
-    );
+    getReq.addEventListener("error", () => reject(failure(getReq)));
     tx.addEventListener("complete", () => resolve());
-    tx.addEventListener("error", () => reject(tx.error ?? new Error("IndexedDB request failed")));
+    tx.addEventListener("error", () => reject(failure(tx)));
   });
 }

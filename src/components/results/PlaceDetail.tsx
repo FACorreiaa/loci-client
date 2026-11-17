@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createSignal, type JSX, untrack } from "solid-js";
+import { For, Show, createMemo, createSignal, type JSX } from "solid-js";
 import { A } from "@solidjs/router";
 import {
   ArrowLeft,
@@ -90,7 +90,8 @@ const isNotFound = (err: unknown): boolean =>
  */
 export default function PlaceDetail(props: PlaceDetailProps) {
   const meta = () => DOMAINS[props.domain];
-  const [tab, setTab] = createSignal(untrack(() => props.tabs[0]?.id ?? "overview"));
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
+  const [tab, setTab] = createSignal(props.tabs[0]?.id ?? "overview");
   // "I've been here" asks how it was, right where the traveller said it.
   const [asking, setAsking] = createSignal(false);
   // Every stored place gets a Reviews tab here rather than in each route: the

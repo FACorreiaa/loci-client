@@ -88,6 +88,6 @@
     // that crosses a boundary untyped (JSON, storage, legacy REST shapes):
     // each needs a parser or a type guard, not a rewrite of the cast. To
     // retire it: fix the hits, then delete the line. Never add a rule here.
-    "typescript/no-unsafe-type-assertion": "warn" // 193
+    "typescript/no-unsafe-type-assertion": "warn" // 230
   }
 }

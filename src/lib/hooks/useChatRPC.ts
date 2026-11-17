@@ -46,6 +46,7 @@ const pageWithSession = (sessionId: string): string => {
 };
 
 // Shape a domain list event into the streamedData object the UI reads.
+// oxlint-disable-next-line typescript/consistent-return -- the switch is exhaustive, and the compiler rejects a missing case
 const toStreamData = (
   event: Extract<
     LociStreamEvent,
@@ -62,9 +63,6 @@ const toStreamData = (
       return { ...base, restaurants: event.pois };
     case "activities":
       return { ...base, activities: event.pois };
-    default:
-      // Unreachable while the switch is exhaustive, which `satisfies` checks.
-      throw new Error(`Unhandled list event: ${JSON.stringify(event satisfies never)}`);
   }
 };
 

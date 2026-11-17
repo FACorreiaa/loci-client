@@ -31,6 +31,7 @@ type LegacyStreamEvent = {
   SessionId?: string;
 };
 
+// oxlint-disable-next-line typescript/consistent-return -- the switch is exhaustive, and the compiler rejects a missing case
 function toLegacyEvent(ev: LociStreamEvent): LegacyStreamEvent {
   switch (ev.kind) {
     case "start":
@@ -76,9 +77,6 @@ function toLegacyEvent(ev: LociStreamEvent): LegacyStreamEvent {
       // One city of a multi-city trip failing is not the conversation's end.
       if (ev.stopIndex !== undefined) return { Type: "progress", Data: ev.userMessage };
       return { Type: "error", Error: ev.userMessage };
-    default:
-      // Unreachable while the switch is exhaustive, which `satisfies` checks.
-      throw new Error(`Unhandled stream event: ${JSON.stringify(ev satisfies never)}`);
   }
 }
 

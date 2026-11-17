@@ -1,4 +1,4 @@
-import { For, Show, createSignal, onCleanup, onMount, type JSX, untrack } from "solid-js";
+import { For, Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
 import { RecapKind, type Recap, type RecapCard } from "~/lib/api/recap";
 import { evidenceLine, formatKm, initials, routeBasisCaption, trendLabel } from "~/lib/recap/recap";
 import {
@@ -16,7 +16,8 @@ import {
  * first paint show the final value, so the card reads correctly at rest.
  */
 function CountUp(props: { value: number }) {
-  const [shown, setShown] = createSignal(untrack(() => props.value));
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
+  const [shown, setShown] = createSignal(props.value);
   onMount(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const target = props.value;

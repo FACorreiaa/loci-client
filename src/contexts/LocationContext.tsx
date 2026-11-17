@@ -121,12 +121,13 @@ export function LocationProvider(props: LocationProviderProps) {
         }
 
         // Listen for permission changes
-        permission.addEventListener("change", () => {
+        // oxlint-disable-next-line unicorn/prefer-add-event-listener -- a fresh PermissionStatus with one handler
+        permission.onchange = () => {
           setPermissionStatus(permission.state);
           if (permission.state === "granted") {
             void requestLocation().catch(() => {});
           }
-        });
+        };
       });
     }
   });

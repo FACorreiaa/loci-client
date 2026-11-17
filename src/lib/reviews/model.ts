@@ -53,6 +53,7 @@ export function formIssues(values: ReviewFormValues): FormIssue[] {
   return issues;
 }
 
+// oxlint-disable-next-line typescript/consistent-return -- the switch is exhaustive, and the compiler rejects a missing case
 export function formIssueMessage(issue: FormIssue): string {
   switch (issue) {
     case "noRating":
@@ -65,9 +66,6 @@ export function formIssueMessage(issue: FormIssue): string {
       return `Review must be at most ${CONTENT_MAX} characters`;
     case "titleTooLong":
       return `Title must be at most ${TITLE_MAX} characters`;
-    default:
-      // Unreachable while the switch is exhaustive, which `satisfies` checks.
-      throw new Error(`Unhandled form issue: ${String(issue satisfies never)}`);
   }
 }
 

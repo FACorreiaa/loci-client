@@ -218,6 +218,7 @@ export const removeFromStorage = (key: string): void => {
 };
 
 // URL and navigation utilities
+
 export const buildQueryString = (
   params: Record<string, string | number | boolean | null | undefined>,
 ): string => {

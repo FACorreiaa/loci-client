@@ -9,7 +9,6 @@ import {
   Show,
   Switch,
   type Component,
-  untrack,
 } from "solid-js";
 import { ArrowUp, Loader2, Mic, Square, Volume2, VolumeX, X } from "lucide-solid";
 import { assistantApi, type AssistantApi } from "~/lib/api/assistant";
@@ -56,8 +55,10 @@ async function micAlreadyAllowed(): Promise<boolean> {
  */
 const AssistantOverlay: Component<AssistantOverlayProps> = (props) => {
   // Injected once, for tests: neither is swapped while the overlay is open.
-  const api = untrack(() => props.api) ?? assistantApi;
-  const speech = untrack(() => props.speech) ?? useSpeech();
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
+  const api = props.api ?? assistantApi;
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
+  const speech = props.speech ?? useSpeech();
   const session = createAssistantSession(api, speech);
   const [draft, setDraft] = createSignal("");
 

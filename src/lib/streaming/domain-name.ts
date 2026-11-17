@@ -3,16 +3,21 @@
 // stream reader (and its transport) for it.
 import { DomainType } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
 
-const NAMES = new Map<number, string>([
-  [DomainType.ACCOMMODATION, "accommodation"],
-  [DomainType.DINING, "dining"],
-  [DomainType.ACTIVITIES, "activities"],
-  [DomainType.ITINERARY, "itinerary"],
-  [DomainType.TRANSPORT, "transport"],
-  [DomainType.GASTRONOMY, "gastronomy"],
-]);
-
-// Takes a plain number as well as a DomainType: getRunStatuses hands the enum
-// back as a digit string. Anything else, or a value this build does not know,
-// is "general".
-export const domainName = (d: number): string => NAMES.get(d) ?? "general";
+export const domainName = (d: DomainType): string => {
+  switch (d) {
+    case DomainType.ACCOMMODATION:
+      return "accommodation";
+    case DomainType.DINING:
+      return "dining";
+    case DomainType.ACTIVITIES:
+      return "activities";
+    case DomainType.ITINERARY:
+      return "itinerary";
+    case DomainType.TRANSPORT:
+      return "transport";
+    case DomainType.GASTRONOMY:
+      return "gastronomy";
+    default:
+      return "general";
+  }
+};

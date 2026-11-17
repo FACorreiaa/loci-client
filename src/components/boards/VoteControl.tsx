@@ -1,4 +1,4 @@
-import { createEffect, createSignal, untrack } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import { ArrowBigDown, ArrowBigUp } from "lucide-solid";
 import { applyVote, boardsErrorMessage, votePost, type Vote } from "~/lib/api/boards";
 import { showToast } from "~/lib/toast-store";
@@ -17,7 +17,8 @@ export default function VoteControl(props: {
   class?: string;
 }) {
   const [state, setState] = createSignal(
-    untrack(() => ({ score: props.score, myVote: props.myVote })),
+    // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
+    { score: props.score, myVote: props.myVote },
   );
   // A refetch brings the server's numbers back in.
   createEffect(() => setState({ score: props.score, myVote: props.myVote }));
