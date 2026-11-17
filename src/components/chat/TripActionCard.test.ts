@@ -130,6 +130,39 @@ describe("TripActionCard", () => {
     expect(onApplied.mock.calls[0][0].version).toBe(4n);
   });
 
+  it("a choose_stay card is a pick-one too: the compared hotels, no Confirm", async () => {
+    const a = api();
+    const compared = create(ActionProposalSchema, {
+      id: "p7",
+      tripId: "t1",
+      summary: "Pick where to stay in Barcelona.",
+      action: { kind: { case: "chooseStay", value: { cityName: "Barcelona", reportId: "r1" } } },
+      options: [
+        {
+          label: "Verdi 254",
+          choice: { case: "stay", value: { cityName: "Barcelona", name: "Verdi 254" } },
+        },
+        {
+          label: "Barcelona City North",
+          choice: { case: "stay", value: { cityName: "Barcelona", name: "Barcelona City North" } },
+        },
+      ],
+    });
+    const host = mount({
+      proposal: compared,
+      baseVersion: 3n,
+      onApplied: vi.fn(),
+      onDismissed: vi.fn(),
+      api: a,
+    });
+    expect(byId(host, "trip-action-confirm")).toBeNull();
+    const options = host.querySelectorAll('[data-testid="trip-action-option"]');
+    expect(options).toHaveLength(2);
+    (options[0] as HTMLElement).click();
+    await flush();
+    expect(a.apply).toHaveBeenCalledWith("p7", 0, 3n);
+  });
+
   it("a write card confirms with no option", async () => {
     const a = api();
     const host = mount({

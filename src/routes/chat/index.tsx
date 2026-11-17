@@ -13,6 +13,7 @@ import {
 } from "~/components/chat";
 import ChatMessage from "~/components/chat/ChatMessage";
 import TripActionCard from "~/components/chat/TripActionCard";
+import HotelComparisonCard from "~/components/chat/HotelComparisonCard";
 import { useChat } from "~/lib/hooks/useChat";
 import { clearHandoff, pendingHandoff } from "~/lib/assistant/open-state";
 import { tripKeys, useTrip } from "~/lib/api/trips";
@@ -200,46 +201,73 @@ export default function ChatPage() {
             <For each={chat.messages()}>
               {(message) => (
                 <Show
-                  when={message.type === "trip-action" && message.tripAction}
+                  when={message.type === "hotel-report" && message.hotelReport}
                   fallback={
                     <Show
-                      when={message.type === "watch-proposal" && message.watchProposal}
+                      when={message.type === "trip-action" && message.tripAction}
                       fallback={
-                        <ChatMessage
-                          message={message}
-                          expanded={chat.expandedResults().has(message.id)}
-                          onToggle={chat.toggleResultExpansion}
-                          onItemClick={handleItemClick}
-                          onSave={chat.saveMessage}
-                          onShare={chat.shareMessage}
-                        />
+                        <Show
+                          when={message.type === "watch-proposal" && message.watchProposal}
+                          fallback={
+                            <ChatMessage
+                              message={message}
+                              expanded={chat.expandedResults().has(message.id)}
+                              onToggle={chat.toggleResultExpansion}
+                              onItemClick={handleItemClick}
+                              onSave={chat.saveMessage}
+                              onShare={chat.shareMessage}
+                            />
+                          }
+                        >
+                          {(proposal) => (
+                            <WatchProposalCard
+                              proposal={proposal()}
+                              sessionId={chat.watchSessionId()}
+                              onCreated={(confirmation) =>
+                                chat.confirmStandingTask(message.id, confirmation)
+                              }
+                              onDismiss={() => chat.dismissStandingTask(message.id)}
+                            />
+                          )}
+                        </Show>
                       }
                     >
                       {(proposal) => (
-                        <WatchProposalCard
+                        <TripActionCard
                           proposal={proposal()}
-                          sessionId={chat.watchSessionId()}
-                          onCreated={(confirmation) =>
-                            chat.confirmStandingTask(message.id, confirmation)
+                          baseVersion={tripQuery.data?.version}
+                          suggestion={!!tripQuery.data?.owner}
+                          onConflict={(id) =>
+                            queryClient.invalidateQueries({ queryKey: tripKeys.detail(id) })
                           }
-                          onDismiss={() => chat.dismissStandingTask(message.id)}
+                          onApplied={(trip, confirmation) =>
+                            chat.applyTripAction(message.id, trip, confirmation)
+                          }
+                          onDismissed={() => chat.dismissTripAction(message.id)}
                         />
                       )}
                     </Show>
                   }
                 >
-                  {(proposal) => (
-                    <TripActionCard
-                      proposal={proposal()}
-                      baseVersion={tripQuery.data?.version}
-                      suggestion={!!tripQuery.data?.owner}
+                  {(report) => (
+                    <HotelComparisonCard
+                      report={report()}
+                      source="chat"
+                      proposal={message.stayProposal}
+                      // Only the trip this chat is about is held here; for any
+                      // other the card reads the trip itself before applying.
+                      tripVersion={
+                        tripQuery.data && tripQuery.data.id === message.stayProposal?.tripId
+                          ? tripQuery.data.version
+                          : undefined
+                      }
+                      added={message.stayAdded}
+                      onAdded={(added, trip) => chat.settleHotelReport(message.id, added, trip)}
                       onConflict={(id) =>
                         queryClient.invalidateQueries({ queryKey: tripKeys.detail(id) })
                       }
-                      onApplied={(trip, confirmation) =>
-                        chat.applyTripAction(message.id, trip, confirmation)
-                      }
-                      onDismissed={() => chat.dismissTripAction(message.id)}
+                      // Into the composer, not sent: the report stays on screen.
+                      onPlanTrip={(query) => chat.setCurrentMessage(query)}
                     />
                   )}
                 </Show>

@@ -40,7 +40,9 @@ const TripActionCard: Component<TripActionCardProps> = (props) => {
   const [error, setError] = createSignal<string | null>(null);
   const api = () => props.api ?? tripActionApi;
   const kind = () => props.proposal.action?.kind.case;
-  const pickOne = () => kind() === "searchHotels";
+  // Hotels found by a search, or the ones a comparison report looked at:
+  // either way the options are stays and the traveller picks one.
+  const pickOne = () => kind() === "searchHotels" || kind() === "chooseStay";
   // Links come from the server, but only https ones ever become an href.
   const flightLinks = () => {
     const choice = props.proposal.options[0]?.choice;

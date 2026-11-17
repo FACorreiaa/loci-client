@@ -28,16 +28,23 @@ import {
   type WatchProposal,
 } from "~/lib/api/watches";
 import type { ConversationMessage } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
-import type { ActionProposal, LociStreamEvent } from "~/lib/streaming/chatStream";
-import { rememberTrip, type Trip } from "~/lib/api/trips";
+import type {
+  ActionProposal,
+  HotelComparisonReport,
+  LociStreamEvent,
+} from "~/lib/streaming/chatStream";
+import { rememberTrip, tripKeys, type Trip } from "~/lib/api/trips";
+import { foldHotelEvent, isFoldedProposal } from "~/lib/chat/hotel-report-messages";
+import type { StayAdded } from "~/lib/hotels/stay-from-report";
 
 export interface ChatMessage {
   id: string;
   /**
    * "watch-proposal" renders a standing-task card instead of a bubble;
-   * "trip-action" a change the planner proposes to the chat's trip.
+   * "trip-action" a change the planner proposes to the chat's trip;
+   * "hotel-report" a comparison of hotel links the traveller pasted.
    */
-  type: "user" | "assistant" | "error" | "watch-proposal" | "trip-action";
+  type: "user" | "assistant" | "error" | "watch-proposal" | "trip-action" | "hotel-report";
   content: string;
   timestamp: Date;
   hasItinerary?: boolean;
@@ -53,6 +60,12 @@ export interface ChatMessage {
   watchProposal?: WatchProposal;
   /** Set on "trip-action" messages: the change the planner proposes. */
   tripAction?: ActionProposal;
+  /** Set on "hotel-report" messages: the comparison itself. */
+  hotelReport?: HotelComparisonReport;
+  /** The choose_stay proposal for the report's hotels, when a trip was found. */
+  stayProposal?: ActionProposal;
+  /** Set once one of the report's hotels is a trip's stay. */
+  stayAdded?: StayAdded;
 }
 
 const MAX_LOCAL_SESSIONS = 10;
@@ -204,20 +217,29 @@ export function useChat(
 
   // Proposals arrive as their own events; each becomes a card in the thread.
   // A resumed stream can replay one, so a card already shown is not added twice.
+  //
+  // A hotel comparison is its turn's whole answer: the report is one message,
+  // and the choose_stay proposal that follows rides on it instead of becoming
+  // a second card (lib/chat/hotel-report-messages.ts).
   let proposedThisTurn = 0;
+  let reportedThisTurn = false;
   const onStreamEvent = (event: LociStreamEvent) => {
     dispatchMuse(event);
-    if (event.kind !== "action_proposal") return;
-    proposedThisTurn++;
-    const id = `trip-action-${event.proposal.id}`;
-    if (messages().some((m) => m.id === id)) return;
-    appendMessage({
-      id,
-      type: "trip-action",
-      content: event.proposal.summary,
-      timestamp: new Date(),
-      tripAction: event.proposal,
-    });
+    if (event.kind !== "action_proposal" && event.kind !== "hotel_comparison") return;
+    const next = foldHotelEvent(messages(), event);
+    if (event.kind === "hotel_comparison") reportedThisTurn = true;
+    else if (!isFoldedProposal(next, event.proposal.id)) proposedThisTurn++;
+    if (next !== messages()) setMessages(next);
+  };
+
+  /** One of a report's hotels is now a trip's stay: the card's buttons are done. */
+  const settleHotelReport = (messageId: string, added: StayAdded, trip: Trip | undefined) => {
+    if (trip) rememberTrip(queryClient, trip);
+    else {
+      void queryClient.invalidateQueries({ queryKey: tripKeys.detail(added.tripId) });
+      void queryClient.invalidateQueries({ queryKey: tripKeys.list() });
+    }
+    patchMessage(messageId, { stayAdded: added });
   };
 
   /** ApplyTripAction succeeded: the card gives way to the confirmation. */
@@ -240,6 +262,7 @@ export function useChat(
   const sendMessage = async () => {
     if (!currentMessage().trim() || isLoading()) return;
     proposedThisTurn = 0;
+    reportedThisTurn = false;
 
     const messageContent = currentMessage().trim();
     appendMessage({
@@ -477,6 +500,17 @@ export function useChat(
     setIsLoading(false);
     setStreamProgress("");
     setStreamingMessageId(null);
+    // A hotel comparison is already in the thread as its own card. The turn
+    // has no results to list, so it gets no "here's your itinerary" line and
+    // no empty results block; its placeholder simply goes. The session is
+    // kept, so a follow-up continues the same conversation.
+    if (reportedThisTurn && proposedThisTurn === 0) {
+      if (completed.sessionId) setSessionId(completed.sessionId);
+      setMessages((prev) => prev.filter((m) => m.id !== streamId));
+      const pid = activeProfileId();
+      if (pid) queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
+      return;
+    }
     // A turn that proposed changes has cards, not results: no local
     // "itinerary" session entry (it has no city), but the server's session
     // list still refreshes.
@@ -560,7 +594,17 @@ export function useChat(
 
       let conversationMessages: ChatMessage[];
       if (history.length > 0) {
-        conversationMessages = history.map((msg: any, index: number) => ({
+        // A turn answered by a card (a hotel comparison with no verdict) is
+        // stored with no text and no data. The card is not kept by the
+        // session, so there is nothing to draw for it: leave it out rather
+        // than show an empty bubble.
+        const drawable = history.filter(
+          (msg: any) =>
+            msg.role === "user" ||
+            String(msg.content || msg.message || "").trim() !== "" ||
+            !!(msg.data || msg.streaming_data),
+        );
+        conversationMessages = drawable.map((msg: any, index: number) => ({
           id: `session-${session.id}-msg-${index}`,
           type: msg.role === "user" ? "user" : "assistant",
           // The server stores the user turn wrapped in the prompt it built
@@ -719,5 +763,6 @@ export function useChat(
     dismissStandingTask,
     applyTripAction,
     dismissTripAction,
+    settleHotelReport,
   };
 }

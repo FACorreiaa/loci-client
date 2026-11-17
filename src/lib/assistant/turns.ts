@@ -4,9 +4,23 @@ import {
   type PlaceAction,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/assistant/assistant_pb.js";
 import type { ActionProposal } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
+import type { HotelComparisonReport } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/hotel_report_pb.js";
+import { isStayProposalFor } from "../chat/hotel-report-messages";
+import type { StayAdded } from "../hotels/stay-from-report";
 
 export type Card =
   | { kind: "trip"; id: string; proposal: ActionProposal; awaitsOwner: boolean }
+  /**
+   * A comparison of hotel links. `proposal` is the pick-one for its hotels,
+   * when one of the caller's trips has the city; `added` once one is a stay.
+   */
+  | {
+      kind: "hotel-report";
+      id: string;
+      report: HotelComparisonReport;
+      proposal?: ActionProposal;
+      added?: StayAdded;
+    }
   | { kind: "place"; id: string; place: PlaceAction }
   | { kind: "handoff"; id: string; query: string; city?: string }
   /** What a card became once the person answered it. */
@@ -50,6 +64,19 @@ export function applyEvent(turn: Turn, event: AssistantEvent): Turn {
     case "proposal": {
       const kind = e.value.kind;
       if (kind.case === "trip") {
+        const proposal = kind.value;
+        // The report's own pick-one: it rides on the report card rather than
+        // listing the same hotels a second time. One that waits for the
+        // trip's owner stays a card of its own, where it can be taken back.
+        const report = turn.cards.find(
+          (c) => c.kind === "hotel-report" && isStayProposalFor(c.report, proposal),
+        );
+        if (report && !e.value.awaitsOwner) {
+          return {
+            ...turn,
+            cards: turn.cards.map((c) => (c === report ? { ...c, proposal } : c)),
+          };
+        }
         const card: Card = {
           kind: "trip",
           id: kind.value.id,
@@ -63,6 +90,12 @@ export function applyEvent(turn: Turn, event: AssistantEvent): Turn {
         return { ...turn, cards: [...turn.cards, card] };
       }
       return turn;
+    }
+    case "hotelReport": {
+      const id = `hotel-report-${e.value.id}`;
+      if (turn.cards.some((c) => c.id === id)) return turn;
+      const card: Card = { kind: "hotel-report", id, report: e.value };
+      return { ...turn, cards: [...turn.cards, card], status: null };
     }
     case "handoff": {
       const card: Card = {

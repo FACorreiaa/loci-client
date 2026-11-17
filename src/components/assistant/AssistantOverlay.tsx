@@ -19,7 +19,12 @@ import { closingNote } from "~/lib/assistant/turns";
 import { dictationUnavailable } from "~/components/ui/DictationButton";
 import { useDictation } from "~/lib/hooks/useDictation";
 import { useSpeech, type Speech } from "~/lib/hooks/useSpeech";
-import { AssistantHandoffCard, AssistantPlaceCard, AssistantTripCard } from "./AssistantCards";
+import {
+  AssistantHandoffCard,
+  AssistantHotelReportCard,
+  AssistantPlaceCard,
+  AssistantTripCard,
+} from "./AssistantCards";
 
 export interface AssistantOverlayProps {
   openedBy: OpenedBy;
@@ -259,6 +264,21 @@ const AssistantOverlay: Component<AssistantOverlayProps> = (props) => {
                             card={place()}
                             api={api}
                             onSettled={(n) => session.settleCard(turn.id, card.id, n)}
+                          />
+                        )}
+                      </Match>
+                      <Match when={card.kind === "hotel-report" && card}>
+                        {(report) => (
+                          <AssistantHotelReportCard
+                            card={report()}
+                            api={api}
+                            onAdded={(added) =>
+                              session.patchCard(turn.id, card.id, (c) =>
+                                c.kind === "hotel-report" ? { ...c, added } : c,
+                              )
+                            }
+                            onPlanTrip={(query, city) => props.onHandoff(query, city)}
+                            onNavigate={props.onClose}
                           />
                         )}
                       </Match>
