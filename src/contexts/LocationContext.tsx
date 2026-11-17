@@ -121,12 +121,12 @@ export function LocationProvider(props: LocationProviderProps) {
         }
 
         // Listen for permission changes
-        permission.onchange = () => {
+        permission.addEventListener("change", () => {
           setPermissionStatus(permission.state);
           if (permission.state === "granted") {
             void requestLocation().catch(() => {});
           }
-        };
+        });
       });
     }
   });

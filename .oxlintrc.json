@@ -48,6 +48,8 @@
     ],
     // Off: toSorted()/toReversed() are ES2023 and the app ships no polyfills.
     // Every .sort()/.reverse() here already runs on a fresh copy.
+    // A then() whose result nobody reads has nothing to return.
+    "promise/always-return": ["error", { "ignoreLastCallback": true }],
     "unicorn/no-array-sort": "off",
     "unicorn/no-array-reverse": "off",
 
@@ -66,8 +68,6 @@
     "typescript/unbound-method": "warn", // 28
     "oxc/no-map-spread": "warn", // 20
     "no-await-in-loop": "warn", // 18
-    "promise/always-return": "warn", // 16
-    "unicorn/prefer-add-event-listener": "warn", // 16
     "typescript/prefer-promise-reject-errors": "error",
     "typescript/only-throw-error": "error"
   }

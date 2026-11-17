@@ -143,6 +143,9 @@ export async function startRecording(options: RecordingOptions = {}): Promise<Re
           }
         })();
       };
+      // Handler properties on purpose, here and in cancel(): a second stop()
+      // must replace the handlers, not stack them, and cancel() detaches both.
+      // oxlint-disable-next-line unicorn/prefer-add-event-listener
       recorder.onerror = () => {
         clearTimeout(selfStop);
         stopListening();
@@ -161,6 +164,7 @@ export async function startRecording(options: RecordingOptions = {}): Promise<Re
       clearTimeout(selfStop);
       stopListening();
       recorder.onstop = null;
+      // oxlint-disable-next-line unicorn/prefer-add-event-listener -- see finish()
       recorder.onerror = null;
       if (recorder.state === "recording") recorder.stop();
       releaseAll(stream);

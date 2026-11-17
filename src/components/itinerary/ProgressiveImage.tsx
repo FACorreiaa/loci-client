@@ -79,8 +79,8 @@ export default function ProgressiveImage(props: ProgressiveImageProps) {
         .then(() => finish(true))
         .catch(() => {
           // decode() can reject on some hosts even when usable — fall back to events
-          img.onload = () => finish(true);
-          img.onerror = () => finish(false);
+          img.addEventListener("load", () => finish(true));
+          img.addEventListener("error", () => finish(false));
         });
     }),
   );

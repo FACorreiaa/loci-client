@@ -323,7 +323,7 @@ function SettingsPageContent() {
 
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
-      reader.onload = (e) => setPhotoPreview(e.target?.result as string);
+      reader.addEventListener("load", (e) => setPhotoPreview(e.target?.result as string));
       reader.readAsDataURL(file);
       uploadPhoto(file);
     } else {

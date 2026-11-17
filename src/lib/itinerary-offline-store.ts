@@ -65,8 +65,8 @@ function openDB(): Promise<IDBDatabase> {
         store.createIndex("savedAt", "savedAt", { unique: false });
       }
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error("IndexedDB request failed"));
+    req.addEventListener("success", () => resolve(req.result));
+    req.addEventListener("error", () => reject(req.error ?? new Error("IndexedDB request failed")));
   });
 }
 
@@ -95,8 +95,8 @@ export async function saveItineraryOffline(entry: OfflineItinerary): Promise<voi
   };
 
   return new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB request failed"));
+    tx.addEventListener("complete", () => resolve());
+    tx.addEventListener("error", () => reject(tx.error ?? new Error("IndexedDB request failed")));
   });
 }
 
@@ -114,7 +114,7 @@ export async function listOfflineItineraries(): Promise<OfflineItinerary[]> {
       );
       resolve(items);
     };
-    req.onerror = () => reject(req.error ?? new Error("IndexedDB request failed"));
+    req.addEventListener("error", () => reject(req.error ?? new Error("IndexedDB request failed")));
   });
 }
 
@@ -124,8 +124,8 @@ export async function getOfflineItinerary(id: string): Promise<OfflineItinerary 
   const tx = db.transaction(STORE_NAME, "readonly");
   return new Promise((resolve, reject) => {
     const req = tx.objectStore(STORE_NAME).get(id);
-    req.onsuccess = () => resolve(req.result as OfflineItinerary | undefined);
-    req.onerror = () => reject(req.error ?? new Error("IndexedDB request failed"));
+    req.addEventListener("success", () => resolve(req.result as OfflineItinerary | undefined));
+    req.addEventListener("error", () => reject(req.error ?? new Error("IndexedDB request failed")));
   });
 }
 
@@ -135,8 +135,8 @@ export async function deleteOfflineItinerary(id: string): Promise<void> {
   const tx = db.transaction(STORE_NAME, "readwrite");
   tx.objectStore(STORE_NAME).delete(id);
   return new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB request failed"));
+    tx.addEventListener("complete", () => resolve());
+    tx.addEventListener("error", () => reject(tx.error ?? new Error("IndexedDB request failed")));
   });
 }
 
@@ -146,8 +146,8 @@ export async function clearOfflineItineraries(): Promise<void> {
   const tx = db.transaction(STORE_NAME, "readwrite");
   tx.objectStore(STORE_NAME).clear();
   return new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB request failed"));
+    tx.addEventListener("complete", () => resolve());
+    tx.addEventListener("error", () => reject(tx.error ?? new Error("IndexedDB request failed")));
   });
 }
 
@@ -180,8 +180,10 @@ export async function updateItineraryMeta(
       }
       store.put({ ...existing, ...patch });
     };
-    getReq.onerror = () => reject(getReq.error ?? new Error("IndexedDB request failed"));
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB request failed"));
+    getReq.addEventListener("error", () =>
+      reject(getReq.error ?? new Error("IndexedDB request failed")),
+    );
+    tx.addEventListener("complete", () => resolve());
+    tx.addEventListener("error", () => reject(tx.error ?? new Error("IndexedDB request failed")));
   });
 }

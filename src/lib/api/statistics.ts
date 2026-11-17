@@ -251,7 +251,7 @@ export class StatisticsSSE {
         }
       });
 
-      this.eventSource.onerror = (event) => {
+      this.eventSource.addEventListener("error", (event) => {
         console.error("SSE Error:", event);
         this.onError?.(event);
 
@@ -269,12 +269,12 @@ export class StatisticsSSE {
             this.reconnectDelay * Math.pow(2, this.reconnectAttempts),
           );
         }
-      };
+      });
 
-      this.eventSource.onopen = () => {
+      this.eventSource.addEventListener("open", () => {
         console.log("SSE connection established for statistics");
         this.reconnectAttempts = 0;
-      };
+      });
     } catch (error) {
       console.error("Error creating SSE connection:", error);
       this.onError?.(error as Event);
