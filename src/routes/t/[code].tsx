@@ -75,9 +75,9 @@ export default function SharedTripPage() {
       </Show>
 
       <Show when={trip()}>
-        {(trip) => (
+        {(shared) => (
           <SharedTripView
-            trip={trip()}
+            trip={shared()}
             actions={
               <>
                 <Button class="gap-1.5" disabled={copy.isPending} onClick={copyTrip}>

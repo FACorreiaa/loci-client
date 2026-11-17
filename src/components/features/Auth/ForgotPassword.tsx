@@ -23,13 +23,13 @@ const ForgotPassword: Component = () => {
 
   const forgotPasswordMutation = useForgotPasswordMutation();
 
-  const validateEmail = (email: string): boolean => {
-    if (!email.trim()) {
+  const validateEmail = (value: string): boolean => {
+    if (!value.trim()) {
       setEmailError("Enter your email address.");
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(value)) {
       setEmailError("That doesn't look like an email address.");
       return false;
     }

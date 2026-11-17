@@ -263,9 +263,9 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       persistCompletedSession(sessionIdFromUrl, normalizedData);
       return true;
     } catch (err) {
-      const message =
+      const errorMessage =
         err instanceof Error ? err.message : "Could not load your itinerary. Please try again.";
-      setStore("error", new Error(message));
+      setStore("error", new Error(errorMessage));
       return true;
     } finally {
       setStore("isLoading", false);

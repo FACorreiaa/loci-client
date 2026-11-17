@@ -235,18 +235,18 @@ function SettingsPageContent() {
     const apiData: UserProfileResponse | undefined = profileQuery.isSuccess
       ? profileQuery.data
       : undefined;
-    const userData = user();
+    const authUser = user();
 
-    if (!apiData && !userData) return null;
+    if (!apiData && !authUser) return null;
 
     return {
-      id: apiData?.id || userData?.id,
-      username: apiData?.username || userData?.username,
-      email: userData?.email || apiData?.email,
-      bio: apiData?.about_you || (userData as any)?.about_you,
-      location: apiData?.location || (userData as any)?.location,
-      joinedDate: apiData?.created_at || userData?.created_at,
-      avatar: apiData?.profile_image_url || userData?.profile_image_url,
+      id: apiData?.id || authUser?.id,
+      username: apiData?.username || authUser?.username,
+      email: authUser?.email || apiData?.email,
+      bio: apiData?.about_you || (authUser as any)?.about_you,
+      location: apiData?.location || (authUser as any)?.location,
+      joinedDate: apiData?.created_at || authUser?.created_at,
+      avatar: apiData?.profile_image_url || authUser?.profile_image_url,
       // Nothing invented. These used to fall back to a fixed list of interests
       // and a block of made-up counts — 47 places visited, 156 followers — for
       // an account that had none of it. A new user was shown somebody else's

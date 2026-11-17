@@ -113,16 +113,16 @@ export default function DeskHero() {
           },
           onProgress: (updatedSession) => {
             setStreamingSession(updatedSession);
-            const domain = updatedSession.domain;
+            const progressDomain = updatedSession.domain;
             const cityData = (updatedSession.data as Partial<AiCityResponse>)?.general_city_data;
 
             if (cityData) {
               setStreamProgress(`Found ${cityData.city}...`);
-            } else if (domain === "accommodation") {
+            } else if (progressDomain === "accommodation") {
               setStreamProgress("Finding hotels...");
-            } else if (domain === "dining") {
+            } else if (progressDomain === "dining") {
               setStreamProgress("Searching restaurants...");
-            } else if (domain === "activities") {
+            } else if (progressDomain === "activities") {
               setStreamProgress("Discovering activities...");
             } else {
               setStreamProgress("Sketching the route...");

@@ -72,7 +72,6 @@
     "typescript/consistent-return": "warn", // 11
     "typescript/no-redundant-type-constituents": "warn", // 10
     "typescript/prefer-promise-reject-errors": "error",
-    "no-shadow": "warn", // 9
     "typescript/no-unsafe-enum-assignment": "warn", // 8
     "typescript/only-throw-error": "error"
   }

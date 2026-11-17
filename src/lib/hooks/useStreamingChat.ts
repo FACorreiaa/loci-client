@@ -99,12 +99,12 @@ export function useStreamingChat(options: StreamingChatOptions = {}) {
   };
 
   const processStream = async (
-    reader: ReadableStreamDefaultReader<Uint8Array>,
+    streamReader: ReadableStreamDefaultReader<Uint8Array>,
     decoder: TextDecoder,
   ) => {
     try {
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await streamReader.read();
 
         if (done) {
           setState((prev) => ({

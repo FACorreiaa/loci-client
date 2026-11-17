@@ -129,10 +129,10 @@ export function useStreamedRpc(
           setStore("isLoading", false);
           opts.onComplete?.(s.tripId ? { tripId: s.tripId } : undefined);
         },
-        onError: (message) => {
+        onError: (errorMessage) => {
           if (!mine()) return;
           current = null;
-          const err = new Error(message);
+          const err = new Error(errorMessage);
           setStore("error", err);
           setStore("isLoading", false);
           opts.onError?.(err);
