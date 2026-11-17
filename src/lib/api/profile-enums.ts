@@ -35,18 +35,32 @@ const TRANSPORT: Record<number, string> = {
   [TransportPreference.CAR]: "car",
 };
 
-const invert = (table: Record<number, string>, fallback: number): Record<string, number> => {
-  const out: Record<string, number> = {};
-  for (const [value, label] of Object.entries(table)) {
-    if (out[label] === undefined) out[label] = Number(value);
+// The numeric members of a proto enum, ascending. The runtime object also
+// maps each number back to its name; those string values are skipped.
+const members = <E extends number>(enumObject: Record<string, E | string>): E[] =>
+  Object.values(enumObject)
+    .filter((v): v is E => typeof v === "number")
+    .sort((a, b) => a - b);
+
+// Label -> enum member. Where two members share a label ("any") the lowest
+// number wins, as it did when this walked Object.entries(table).
+const invert = <E extends number>(
+  table: Record<number, string>,
+  values: readonly E[],
+  fallback: E,
+): Record<string, E> => {
+  const out: Record<string, E> = {};
+  for (const value of values) {
+    const label = table[value];
+    if (label !== undefined && out[label] === undefined) out[label] = value;
   }
   out[""] = fallback;
   return out;
 };
 
-const DAY_PREFERENCE_BY_LABEL = invert(DAY_PREFERENCE, DayPreference.ANY);
-const SEARCH_PACE_BY_LABEL = invert(SEARCH_PACE, SearchPace.ANY);
-const TRANSPORT_BY_LABEL = invert(TRANSPORT, TransportPreference.ANY);
+const DAY_PREFERENCE_BY_LABEL = invert(DAY_PREFERENCE, members(DayPreference), DayPreference.ANY);
+const SEARCH_PACE_BY_LABEL = invert(SEARCH_PACE, members(SearchPace), SearchPace.ANY);
+const TRANSPORT_BY_LABEL = invert(TRANSPORT, members(TransportPreference), TransportPreference.ANY);
 
 export const dayPreferenceToLabel = (value: number | undefined): string =>
   DAY_PREFERENCE[value ?? DayPreference.ANY] ?? "any";
@@ -58,13 +72,13 @@ export const transportToLabel = (value: number | undefined): string =>
   TRANSPORT[value ?? TransportPreference.ANY] ?? "any";
 
 export const labelToDayPreference = (label: string | undefined): DayPreference =>
-  (DAY_PREFERENCE_BY_LABEL[label ?? ""] ?? DayPreference.ANY) as DayPreference;
+  DAY_PREFERENCE_BY_LABEL[label ?? ""] ?? DayPreference.ANY;
 
 export const labelToSearchPace = (label: string | undefined): SearchPace =>
-  (SEARCH_PACE_BY_LABEL[label ?? ""] ?? SearchPace.ANY) as SearchPace;
+  SEARCH_PACE_BY_LABEL[label ?? ""] ?? SearchPace.ANY;
 
 export const labelToTransport = (label: string | undefined): TransportPreference =>
-  (TRANSPORT_BY_LABEL[label ?? ""] ?? TransportPreference.ANY) as TransportPreference;
+  TRANSPORT_BY_LABEL[label ?? ""] ?? TransportPreference.ANY;
 
 // protobuf-es v2 Timestamps are plain { seconds, nanos } messages -- there is no
 // .toDate(). Every profile timestamp came back as "" because of that.

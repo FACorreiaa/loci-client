@@ -15,6 +15,10 @@ vi.mock("~/lib/analytics", () => ({ capture: vi.fn() }));
 
 import { create } from "@bufbuild/protobuf";
 import { StreamEventSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
+import {
+  AccessibilityNoteSeverity,
+  AccessibilityNoteSource,
+} from "@buf/loci_loci-proto.bufbuild_es/loci/poi/poi_pb.js";
 import { capture } from "~/lib/analytics";
 import { mapProtoEvent, streamChatEvents, terminalError } from "./chatStream";
 
@@ -389,7 +393,13 @@ describe("accessible route events", () => {
                 ascentM: 30,
                 routed: false,
                 suggestMode: "taxi",
-                notes: [{ text: "Steep climb", severity: 2, source: 3 }],
+                notes: [
+                  {
+                    text: "Steep climb",
+                    severity: AccessibilityNoteSeverity.CAUTION,
+                    source: AccessibilityNoteSource.ROUTED,
+                  },
+                ],
               },
             ],
           },

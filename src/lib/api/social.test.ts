@@ -118,6 +118,7 @@ describe("feed mappers", () => {
 
   it("drops a kind it does not know, or one without its detail", () => {
     expect(
+      // oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- a kind this build has no member for is the case under test
       mapFeedItem(create(FeedItemSchema, { kind: 99 as FeedItemKind, actor })),
     ).toBeUndefined();
     expect(
