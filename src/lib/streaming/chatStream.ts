@@ -16,14 +16,16 @@ import { create } from "@bufbuild/protobuf";
 import { ConnectError, Code } from "@connectrpc/connect";
 import {
   ChatRequestSchema,
+  ClientCapability,
   StreamEventType,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
 import type {
   ActionProposal,
   StreamEvent as ProtoStreamEvent,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
+import type { HotelComparisonReport } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/hotel_report_pb.js";
 
-export type { ActionProposal };
+export type { ActionProposal, HotelComparisonReport };
 import { chatService } from "@/lib/api";
 import { refreshSession } from "@/lib/connect-transport";
 import { parseStreamError } from "@/lib/errors";
@@ -100,6 +102,11 @@ export type LociStreamEvent = { eventId?: string; stopIndex?: number } & (
   | { kind: "gastronomy"; gastronomy: CityGastronomy; sessionId: string }
   /** A change to the turn's trip the traveller can confirm (ApplyTripAction). */
   | { kind: "action_proposal"; proposal: ActionProposal }
+  /**
+   * A comparison of hotel links the traveller pasted. The whole answer of its
+   * turn: no `start`, no session and no itinerary come with it.
+   */
+  | { kind: "hotel_comparison"; report: HotelComparisonReport }
   | { kind: "progress"; stage: string; percent?: number }
   | { kind: "route"; route: RouteInfo }
   /** One day's walks between stops, routed for the traveller's access needs. */
@@ -277,6 +284,8 @@ function mapPayload(ev: ProtoStreamEvent): LociStreamEvent | null {
       return { kind: "accessible_route", route: accessibleRouteFromProto(p.value) };
     case "actionProposal":
       return p.value.proposal ? { kind: "action_proposal", proposal: p.value.proposal } : null;
+    case "hotelComparison":
+      return p.value.report ? { kind: "hotel_comparison", report: p.value.report } : null;
     case "progress":
       return { kind: "progress", stage: p.value.stage, percent: p.value.percent };
     case "error":
@@ -318,6 +327,13 @@ function mapPayload(ev: ProtoStreamEvent): LociStreamEvent | null {
 /** What this client can render, sent on every stream (server: featuresHeader). */
 export const CLIENT_FEATURES = { "Loci-Features": "multi-city" } as const;
 
+/**
+ * The newer stream events this client renders, sent on every request: the
+ * server only sends `hotel_comparison` (and the choose_stay action) to a
+ * client that lists it.
+ */
+export const CLIENT_CAPABILITIES = [ClientCapability.HOTEL_COMPARISON] as const;
+
 export const buildRequest = (params: ChatStreamParams) =>
   // These are `optional` fields with a min_len:1 validator. Sending "" POPULATES
   // them (proto3 optional tracks presence), so the server rejects the request on
@@ -335,6 +351,7 @@ export const buildRequest = (params: ChatStreamParams) =>
     userLocation: params.userLocation
       ? { latitude: params.userLocation.userLat, longitude: params.userLocation.userLon }
       : undefined,
+    capabilities: [...CLIENT_CAPABILITIES],
   });
 
 /**

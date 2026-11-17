@@ -67,6 +67,9 @@ function toLegacyEvent(ev: LociStreamEvent): LegacyStreamEvent {
       // This legacy session never binds a trip, so it gets none; if one
       // arrives, its one-line summary is all this view can show.
       return { Type: "progress", Data: ev.proposal.summary };
+    case "hotel_comparison":
+      // This legacy view has no report card; the verdict is all it can say.
+      return { Type: "progress", Data: ev.report.verdict };
     case "route":
       // A multi-city trip: the outline is the progress line.
       return { Type: "progress", Data: ev.route.outline };

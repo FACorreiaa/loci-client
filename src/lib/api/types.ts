@@ -850,6 +850,8 @@ export interface StreamingSession {
   route?: import("~/lib/streaming/chatStream").RouteInfo;
   /** A multi-city run's cities, each with its own result. */
   stops?: import("~/lib/streaming/multi-city").StopState[];
+  /** The run answered with a hotel comparison report instead of results. */
+  hasHotelReport?: boolean;
 }
 
 // Recent searches and activity types
