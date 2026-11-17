@@ -16,7 +16,13 @@
   "ignorePatterns": ["worker-configuration.d.ts"],
   "overrides": [
     // `export {}` is what makes an ambient declaration file a module.
-    { "files": ["**/*.d.ts"], "rules": { "unicorn/require-module-specifiers": "off" } }
+    { "files": ["**/*.d.ts"], "rules": { "unicorn/require-module-specifiers": "off" } },
+    // expect(api.method).toHaveBeenCalled() names a mock and never calls it,
+    // so there is no `this` to lose. Still an error outside tests.
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": { "typescript/unbound-method": "off" }
+    }
   ],
   "rules": {
     // Type-aware bug rules that oxlint files under pedantic.
@@ -71,7 +77,6 @@
     "typescript/no-floating-promises": "warn", // 101
     "typescript/no-unnecessary-type-assertion": "warn", // 91
     "typescript/no-unnecessary-type-conversion": "warn", // 34
-    "typescript/unbound-method": "warn", // 28
     "typescript/prefer-promise-reject-errors": "error",
     "typescript/only-throw-error": "error"
   }
