@@ -75,7 +75,6 @@
     "vitest/require-mock-type-parameters": "warn", // 201
     "unicorn/consistent-function-scoping": "warn", // 137
     "typescript/no-floating-promises": "warn", // 101
-    "typescript/no-unnecessary-type-assertion": "warn", // 91
     "typescript/prefer-promise-reject-errors": "error",
     "typescript/only-throw-error": "error"
   }

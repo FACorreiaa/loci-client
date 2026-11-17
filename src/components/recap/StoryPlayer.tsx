@@ -179,7 +179,7 @@ export default function StoryPlayer(props: StoryPlayerProps) {
             onPointerDown={(e) => e.stopPropagation()}
             onPointerUp={(e) => e.stopPropagation()}
           >
-            {props.actions!(current()!, index())}
+            {props.actions!(current(), index())}
           </div>
         </Show>
       </div>

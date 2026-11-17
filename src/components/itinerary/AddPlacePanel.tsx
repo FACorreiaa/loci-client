@@ -158,7 +158,7 @@ export default function AddPlacePanel(props: AddPlacePanelProps) {
           </Show>
           <Show when={(found()?.length ?? 0) > 0}>
             <ul class="mt-3 divide-y divide-border/60 overflow-hidden rounded-lg border border-border/60">
-              <For each={found()!}>
+              <For each={found()}>
                 {(place) => (
                   <li>
                     <button

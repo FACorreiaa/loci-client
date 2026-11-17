@@ -95,7 +95,7 @@ const withTripDays = (
 ): POIDetailedInfo[] =>
   (pois ?? []).map((p) => {
     const local = (p as { day?: number }).day ?? 1;
-    return { ...p, day: tripDay(local, dayNumbers) } as POIDetailedInfo;
+    return { ...p, day: tripDay(local, dayNumbers) };
   });
 
 const tripDay = (local: number, dayNumbers: number[]) =>

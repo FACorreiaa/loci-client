@@ -82,7 +82,7 @@ describe("ItineraryStreamView walking legs", () => {
 
   it("draws the leg before the stop it arrives at", () => {
     mount([stop("Castle", 0), stop("Cathedral", 0)], [route]);
-    const text = host.textContent!;
+    const text = host.textContent;
     const leg = text.indexOf("14 min walk · 900 m · 40 m climb");
     expect(leg).toBeGreaterThan(text.indexOf("Castle"));
     expect(leg).toBeLessThan(text.lastIndexOf("Cathedral"));
@@ -116,7 +116,7 @@ describe("ItineraryStreamView walking legs", () => {
         ],
       }),
     ]);
-    const text = host.textContent!;
+    const text = host.textContent;
     expect(text.indexOf("Cobbled ramp")).toBeLessThan(text.indexOf("Lift sometimes closed"));
     expect(text).not.toContain("Toilet on site");
     expect(text).toContain("+1 more note");

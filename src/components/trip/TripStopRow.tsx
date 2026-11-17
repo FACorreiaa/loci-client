@@ -127,7 +127,7 @@ export default function TripStopRow(props: TripStopRowProps) {
           <DropdownMenuItem
             onSelect={() => {
               props.onOutcome("RECOMMENDATION_EVENT_TYPE_BOOKING_OPENED");
-              window.open(props.stop.bookingUrl!, "_blank", "noopener,noreferrer");
+              window.open(props.stop.bookingUrl, "_blank", "noopener,noreferrer");
             }}
           >
             <ExternalLink class="mr-2 h-4 w-4" aria-hidden="true" />

@@ -108,7 +108,7 @@ describe("shared recap preview", () => {
     const ok = vi.fn(async () =>
       Response.json({ recap: { title: "Porto", subtitle: "2 days · Sep 2026" } }),
     );
-    const meta = await fetchSharedRecapMeta(api, "xyz", ok as unknown as typeof fetch);
+    const meta = await fetchSharedRecapMeta(api, "xyz", ok);
     expect(meta?.title).toBe("Porto recap");
     expect(ok).toHaveBeenCalledWith(
       `${api}/loci.recap.RecapService/GetSharedRecap`,

@@ -188,17 +188,17 @@ const MapComponent = (_props: MapComponentProps) => {
     // moment the style lands, so nothing is lost by skipping here.
     if (!map.getSource(SOURCE_POIS) && !map.isStyleLoaded()) return;
     ensureLayers(map);
-    const source = map.getSource(SOURCE_POIS) as mapboxgl.GeoJSONSource | undefined;
+    const source = map.getSource<mapboxgl.GeoJSONSource>(SOURCE_POIS);
     if (!source) return;
     const { points, routes, valid } = buildPoiData(pois, index);
     source.setData(points);
-    (map.getSource(SOURCE_ROUTES) as mapboxgl.GeoJSONSource | undefined)?.setData(routes);
+    map.getSource<mapboxgl.GeoJSONSource>(SOURCE_ROUTES)?.setData(routes);
     if (routes.features.length > 0) {
       routeAnimFrame = animateRoutes(map, routeAnimFrame);
     }
-    (map.getSource(SOURCE_SIGNALS) as mapboxgl.GeoJSONSource | undefined)?.setData(
-      buildSignalData(props.alerts ?? []),
-    );
+    map
+      .getSource<mapboxgl.GeoJSONSource>(SOURCE_SIGNALS)
+      ?.setData(buildSignalData(props.alerts ?? []));
     applyVisibility(map);
     // Follow the pins only while the user is not steering (refit.ts): a city
     // still streaming must not cancel the pan they just started.
@@ -323,7 +323,7 @@ const MapComponent = (_props: MapComponentProps) => {
     const alerts = props.alerts;
     const map = lifecycle.map();
     if (!map) return;
-    const source = map.getSource(SOURCE_SIGNALS) as mapboxgl.GeoJSONSource | undefined;
+    const source = map.getSource<mapboxgl.GeoJSONSource>(SOURCE_SIGNALS);
     source?.setData(buildSignalData(alerts ?? []));
   });
 

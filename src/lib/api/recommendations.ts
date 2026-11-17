@@ -152,8 +152,8 @@ export function normalizeRecommendationTrace(
   trace?: ProtoRecommendationTrace | RecommendationTrace,
 ): RecommendationTrace | undefined {
   if (!trace) return undefined;
-  if (typeof trace.surface === "string") return trace as RecommendationTrace;
-  return fromProtoRecommendationTrace(trace as ProtoRecommendationTrace);
+  if (typeof trace.surface === "string") return trace;
+  return fromProtoRecommendationTrace(trace);
 }
 
 export const toProtoRecommendationTrace = (trace?: RecommendationTrace) =>

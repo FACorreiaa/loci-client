@@ -80,7 +80,7 @@ const itineraryEvent = (): Extract<LociStreamEvent, { kind: "itinerary" }> => ({
       itinerary_name: "Funchal in a day",
       overall_description: "",
       points_of_interest: [{ name: "Monte Palace" } as any],
-    } as any,
+    },
     session_id: "s1",
   },
 });
@@ -178,7 +178,7 @@ describe("streamingService → live store", () => {
     feed.push({ kind: "start", sessionId: "s1", domain: "itinerary" });
     feed.push(itineraryEvent());
     const full = { ...itineraryEvent().cityResponse };
-    full.general_city_data = { ...full.general_city_data, city: "Lisbon" } as any;
+    full.general_city_data = { ...full.general_city_data, city: "Lisbon" };
     feed.push({ kind: "complete", sessionId: "s1", result: full });
     await tick();
 

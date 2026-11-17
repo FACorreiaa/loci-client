@@ -37,9 +37,7 @@ const GEO_TIMEOUT = 3;
 
 function geolocationFailure(err: unknown): { message: string; denied: boolean } {
   const code =
-    typeof err === "object" && err !== null && "code" in err
-      ? Number((err as { code: unknown }).code)
-      : Number.NaN;
+    typeof err === "object" && err !== null && "code" in err ? Number(err.code) : Number.NaN;
 
   if (code === GEO_PERMISSION_DENIED) {
     return { message: "Location access was denied by the user.", denied: true };

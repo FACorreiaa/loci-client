@@ -14,15 +14,15 @@ const signedIn = async () => "user-1";
 describe("fetchRecentInteractions", () => {
   it("surfaces an RPC failure instead of reporting no cities", async () => {
     const client = { getRecentInteractions: vi.fn().mockRejectedValue(new Error("unavailable")) };
-    await expect(
-      fetchRecentInteractions(10, { client: client as never, userId: signedIn }),
-    ).rejects.toThrow("unavailable");
+    await expect(fetchRecentInteractions(10, { client: client, userId: signedIn })).rejects.toThrow(
+      "unavailable",
+    );
   });
 
   it("is empty, without a call, when nobody is signed in", async () => {
     const client = { getRecentInteractions: vi.fn() };
     const res = await fetchRecentInteractions(10, {
-      client: client as never,
+      client: client,
       userId: async () => null,
     });
     expect(res.cities).toEqual([]);
@@ -44,7 +44,7 @@ describe("fetchRecentInteractions", () => {
         totalCount: 1,
       }),
     };
-    const res = await fetchRecentInteractions(10, { client: client as never, userId: signedIn });
+    const res = await fetchRecentInteractions(10, { client: client, userId: signedIn });
     expect(res.total).toBe(1);
     expect(res.cities[0].city_name).toBe("Lisbon");
     expect(res.cities[0].total_interactions).toBe(2);

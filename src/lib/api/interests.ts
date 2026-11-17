@@ -34,7 +34,7 @@ export const useInterests = () => {
           name: interest.name,
           description: interest.description ?? null,
           active: interest.active ?? true,
-          source: (interest.source === "global" ? "global" : "custom") as "global" | "custom",
+          source: interest.source === "global" ? "global" : "custom",
           created_at: interest.createdAt
             ? new Date(Number(interest.createdAt.seconds) * 1000).toISOString()
             : "",

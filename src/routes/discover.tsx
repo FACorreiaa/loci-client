@@ -357,7 +357,7 @@ export default function DiscoverPage() {
               updated_at: new Date().toISOString(),
               city_name: cityName,
               conversation_history: [],
-            } as any;
+            };
             setRecentSessions((prev) => {
               const map = new Map(prev.map((s) => [s.id, s]));
               map.set(newSession.id, newSession);

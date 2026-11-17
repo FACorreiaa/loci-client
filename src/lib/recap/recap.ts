@@ -185,7 +185,7 @@ export const fetchSharedRecapMeta = async (
       signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) return undefined;
-    const body = (await res.json()) as { recap?: WireRecap };
+    const body: { recap?: WireRecap } = await res.json();
     return sharedRecapMeta(apiBase, code, body.recap);
   } catch {
     return undefined;

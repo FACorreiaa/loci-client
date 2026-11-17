@@ -47,7 +47,7 @@ export async function fetchEntitlements(): Promise<Entitlements | null> {
   if (!res.ok) {
     throw new Error(`GetEntitlements failed: ${res.status}`);
   }
-  const data = (await res.json()) as Record<string, unknown>;
+  const data: Record<string, unknown> = await res.json();
   return mapEntitlements(data);
 }
 

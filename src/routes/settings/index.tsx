@@ -338,9 +338,7 @@ function SettingsPageContent() {
   const uploadPhoto = async (file: File) => {
     setIsUploading(true);
     try {
-      const result = (await uploadAvatarMutation.mutateAsync(file)) as {
-        avatar_url: string;
-      };
+      const result = await uploadAvatarMutation.mutateAsync(file);
       //updateProfile('avatar', result.avatar_url);
       setUserProfile((prev) => ({ ...prev, avatar: result.avatar_url }));
       await profileQuery.refetch();

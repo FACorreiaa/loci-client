@@ -108,7 +108,7 @@ export default function TripEditor() {
     }
   });
 
-  const trip = () => tripQuery.data as Trip | undefined;
+  const trip = () => tripQuery.data;
   /**
    * The owner edits the trip. A co-planner's adds, swaps, moves and removals
    * become suggestions the owner applies; a viewer only reads.

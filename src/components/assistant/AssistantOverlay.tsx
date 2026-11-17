@@ -40,7 +40,7 @@ const iconButton =
 /** Whether the mic can open without a browser prompt appearing out of nowhere. */
 async function micAlreadyAllowed(): Promise<boolean> {
   try {
-    const status = await navigator.permissions.query({ name: "microphone" as PermissionName });
+    const status = await navigator.permissions.query({ name: "microphone" });
     return status.state === "granted";
   } catch {
     return false;

@@ -63,7 +63,8 @@ export const fetchSharedTripMeta = async (
     });
     if (!res.ok) return undefined;
     // GetSharedTrip answers with the TripDraft itself, not a wrapper.
-    return sharedTripMeta((await res.json()) as WireTrip);
+    const trip: WireTrip = await res.json();
+    return sharedTripMeta(trip);
   } catch {
     return undefined;
   }

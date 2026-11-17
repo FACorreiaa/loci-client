@@ -318,15 +318,15 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
               }
 
               const mergedHotels = mergeUniqueById(
-                (options.getStreamingData?.() as any)?.hotels,
+                options.getStreamingData?.()?.hotels,
                 itineraryData2.hotels || derivedLists2.hotels,
               );
               const mergedRestaurants = mergeUniqueById(
-                (options.getStreamingData?.() as any)?.restaurants,
+                options.getStreamingData?.()?.restaurants,
                 itineraryData2.restaurants || derivedLists2.restaurants,
               );
               const mergedActivities = mergeUniqueById(
-                (options.getStreamingData?.() as any)?.activities,
+                options.getStreamingData?.()?.activities,
                 itineraryData2.activities || derivedLists2.activities,
               );
 

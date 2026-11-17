@@ -32,10 +32,7 @@ export default function PreviewRestaurantsPage() {
     <div class="h-full w-full bg-muted relative">
       <Show when={allPois().length > 0}>
         <MapComponent
-          center={[
-            (allPois()[0]?.longitude as number) || 0,
-            (allPois()[0]?.latitude as number) || 0,
-          ]}
+          center={[allPois()[0]?.longitude || 0, allPois()[0]?.latitude || 0]}
           pointsOfInterest={allPois()}
           zoom={12}
         />
@@ -64,7 +61,7 @@ export default function PreviewRestaurantsPage() {
             <h3 class="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
               <span class="text-2xl">🍽️</span> Restaurants ({restaurants().length})
             </h3>
-            <ResultsList pois={restaurants() as any} domain="restaurants" showFavorite={false} />
+            <ResultsList pois={restaurants()} domain="restaurants" showFavorite={false} />
           </div>
         </Show>
       </div>

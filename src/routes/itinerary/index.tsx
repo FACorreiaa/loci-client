@@ -329,7 +329,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       setStore("route", { ...r, tripId });
       setStore("stops", loaded);
       const first = loaded.find((st) => st.data)?.data;
-      if (first) setStore("data", first as any);
+      if (first) setStore("data", first);
       setStore("tripId", tripId);
       return true;
     } catch (e) {
@@ -576,9 +576,9 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   const extraStops = createMemo<ItineraryStop[]>(() => {
     if (!viewData()) return [];
     const general = stopsFromCityResponse({
-      ...(viewData() as any),
+      ...viewData(),
       itinerary_response: undefined,
-    } as any).stops;
+    }).stops;
     if (!tripMerged()) {
       const itinNames = new Set(itineraryModel().stops.map((s) => s.name));
       return general.filter((s) => !itinNames.has(s.name));

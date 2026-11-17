@@ -36,10 +36,7 @@ export default function PreviewItineraryPage() {
     <div class="h-full w-full bg-muted relative">
       <Show when={allPois().length > 0}>
         <MapComponent
-          center={[
-            (allPois()[0]?.longitude as number) || 0,
-            (allPois()[0]?.latitude as number) || 0,
-          ]}
+          center={[allPois()[0]?.longitude || 0, allPois()[0]?.latitude || 0]}
           pointsOfInterest={allPois()}
           zoom={12}
         />

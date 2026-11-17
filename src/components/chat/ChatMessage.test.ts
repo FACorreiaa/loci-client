@@ -12,10 +12,13 @@ import { formatMessageContent } from "./format-message-content";
 // run. Every icon becomes a bare <svg>, which is all these tests look for.
 vi.mock("lucide-solid", () => {
   const Icon = () => document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  return new Proxy({} as Record<string, unknown>, {
-    get: (_t, key) => (key === "then" || key === "__esModule" ? undefined : Icon),
-    has: () => true,
-  });
+  return new Proxy(
+    {},
+    {
+      get: (_t, key) => (key === "then" || key === "__esModule" ? undefined : Icon),
+      has: () => true,
+    },
+  );
 });
 
 // Persisted assistant turns come back from the server as the raw stream
@@ -188,7 +191,7 @@ describe("ChatMessage (Muse restyle)", () => {
             content: "Funchal is lovely in **October**.",
             timestamp: new Date("2026-09-23T10:00:00Z"),
             ...message,
-          } as ChatMessageType,
+          },
           expanded: false,
           onToggle: () => {},
           onItemClick: () => {},
@@ -256,7 +259,7 @@ describe("ChatMessage proactive caption (stage C)", () => {
             content: "Got it — I'll watch rain in Lisbon and ping you when it's forecast.",
             timestamp: new Date("2026-09-23T10:00:00Z"),
             ...message,
-          } as ChatMessageType,
+          },
           expanded: false,
           onToggle: () => {},
           onItemClick: () => {},

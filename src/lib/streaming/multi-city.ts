@@ -41,17 +41,17 @@ export function applyCityEvent(
   switch (ev.kind) {
     case "city_data": {
       if (!isCity || !ev.city) return data;
-      return { ...data, general_city_data: ev.city, session_id: sessionId } as Data;
+      return { ...data, general_city_data: ev.city, session_id: sessionId };
     }
     case "general_pois": {
       if (!isCity) return data;
       const next = { ...data, points_of_interest: ev.pois } as Partial<AiCityResponse>;
       if (ev.city) next.general_city_data = ev.city;
-      return next as Data;
+      return next;
     }
     case "itinerary":
       // The itinerary event carries the full aggregate city response.
-      return ev.cityResponse as Data;
+      return ev.cityResponse;
     case "hotels":
       return {
         general_city_data: ev.city,
@@ -59,30 +59,29 @@ export function applyCityEvent(
         hotels: ev.pois as unknown as HotelDetailedInfo[],
         domain: "accommodation",
         session_id: ev.sessionId || sessionId,
-      } as AccommodationResponse as Data;
+      };
     case "restaurants":
       return {
         general_city_data: ev.city,
         restaurants: ev.pois as unknown as RestaurantDetailedInfo[],
         domain: "dining",
         session_id: ev.sessionId || sessionId,
-      } as DiningResponse as Data;
+      };
     case "activities":
       return {
         general_city_data: ev.city,
         activities: ev.pois,
         domain: "activities",
         session_id: ev.sessionId || sessionId,
-      } as ActivitiesResponse as Data;
+      };
     case "gastronomy":
       // Merged, not replacing: on an itinerary it sits beside the city and
       // places that arrived before it.
       return {
         ...data,
         gastronomy: ev.gastronomy,
-        session_id:
-          (data as Partial<AiCityResponse> | null)?.session_id || ev.sessionId || sessionId,
-      } as Data;
+        session_id: data?.session_id || ev.sessionId || sessionId,
+      };
     case "accessible_route": {
       // Arrives after the itinerary it routes; merged beside it, by day.
       if (!isCity || !data) return data;
@@ -90,7 +89,7 @@ export function applyCityEvent(
       return {
         ...city,
         accessible_routes: withAccessibleRoute(city.accessible_routes, ev.route),
-      } as Data;
+      };
     }
     default:
       return data;

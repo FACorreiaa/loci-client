@@ -94,10 +94,7 @@ describe("naming the provider that failed", () => {
     ["google", "Google"],
     ["apple", "Apple"],
   ] as const)("says %s by name", (action, label) => {
-    const { message } = describeAuthError(
-      new ConnectError("x", Code.FailedPrecondition),
-      action as AuthAction,
-    );
+    const { message } = describeAuthError(new ConnectError("x", Code.FailedPrecondition), action);
     expect(message).toContain(label);
   });
 });

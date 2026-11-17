@@ -23,8 +23,14 @@ const stubMap = () =>
     getBearing: vi.fn(() => 0),
   }) as any;
 
-const poi = (name: string, seq: number): POI =>
-  ({ id: name, name, latitude: 41.89, longitude: 12.49, seq, category: "" }) as POI;
+const poi = (name: string, seq: number): POI => ({
+  id: name,
+  name,
+  latitude: 41.89,
+  longitude: 12.49,
+  seq,
+  category: "",
+});
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {

@@ -44,7 +44,7 @@ const pick = (id: string, value: string, event = "change") => {
   el.dispatchEvent(new Event(event, { bubbles: true }));
 };
 const routeDays = () =>
-  [...host.querySelectorAll("ul li")].map((li) => li.querySelector("span")!.textContent!);
+  [...host.querySelectorAll("ul li")].map((li) => li.querySelector("span")!.textContent);
 const addToCalendar = () =>
   [...host.querySelectorAll("button")].find((b) => b.textContent?.includes("Add to calendar"))!;
 

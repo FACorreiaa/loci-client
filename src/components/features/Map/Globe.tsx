@@ -117,8 +117,8 @@ const GlobeComponent = (_props: GlobeComponentProps) => {
   };
 
   const pushData = (map: mapboxgl.Map, fit: boolean) => {
-    const arcSource = map.getSource(SOURCE_GLOBE_ARCS) as mapboxgl.GeoJSONSource | undefined;
-    const nodeSource = map.getSource(SOURCE_GLOBE_NODES) as mapboxgl.GeoJSONSource | undefined;
+    const arcSource = map.getSource<mapboxgl.GeoJSONSource>(SOURCE_GLOBE_ARCS);
+    const nodeSource = map.getSource<mapboxgl.GeoJSONSource>(SOURCE_GLOBE_NODES);
     if (!arcSource || !nodeSource) return;
 
     arcSource.setData(

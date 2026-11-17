@@ -392,7 +392,7 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                 </div>
 
                 {/* Amenities/Tags */}
-                <Show when={props.item!.amenities && props.item!.amenities!.length > 0}>
+                <Show when={props.item!.amenities && props.item!.amenities.length > 0}>
                   <div>
                     <h3 class="font-semibold text-foreground mb-3">Amenities</h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -410,7 +410,7 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                   </div>
                 </Show>
 
-                <Show when={props.item!.tags && props.item!.tags!.length > 0}>
+                <Show when={props.item!.tags && props.item!.tags.length > 0}>
                   <div>
                     <h3 class="font-semibold text-foreground mb-3">Tags</h3>
                     <div class="flex flex-wrap gap-2">

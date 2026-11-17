@@ -115,7 +115,7 @@ function FriendsPage() {
   const gate = useAuthGate();
   const tab = (): Tab => {
     const t = LEGACY_TABS[params.tab ?? ""] ?? params.tab ?? "";
-    return (TABS as readonly string[]).includes(t) ? (t as Tab) : "feed";
+    return (TABS as readonly string[]).includes(t) ? t : "feed";
   };
 
   const followersQuery = useFollows(

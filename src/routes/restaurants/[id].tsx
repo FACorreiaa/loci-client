@@ -113,7 +113,7 @@ export default function RestaurantDetailPage() {
                 </ul>
               </section>
             </Show>
-            <Show when={Array.isArray(r?.features) && r!.features!.length > 0}>
+            <Show when={Array.isArray(r?.features) && r.features.length > 0}>
               <section class="bg-card rounded-2xl p-6 border border-border">
                 <h2 class="text-lg font-semibold text-foreground mb-3">Features</h2>
                 <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
