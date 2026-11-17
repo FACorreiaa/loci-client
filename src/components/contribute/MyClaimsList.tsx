@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js";
+import { For, Match, Show, Switch } from "solid-js";
 import { A } from "@solidjs/router";
 import { AlertCircle, Clock, ShieldCheck } from "lucide-solid";
 import { ErrorView } from "~/components/ErrorView";
@@ -125,7 +125,16 @@ function ClaimRow(props: { claim: MyClaim }) {
 
 function StatusIcon(props: { claim: MyClaim }) {
   const cls = "mt-0.5 h-5 w-5 shrink-0";
-  if (props.claim.status === "ACCEPTED") return <ShieldCheck class={`${cls} text-primary`} />;
-  if (props.claim.status === "CONTRADICTED") return <AlertCircle class={`${cls} text-accent`} />;
-  return <Clock class={`${cls} text-muted-foreground`} />;
+  // Switch, not early returns: a component body runs once, so an early return
+  // froze the icon on the status the claim had when the row first rendered.
+  return (
+    <Switch fallback={<Clock class={`${cls} text-muted-foreground`} />}>
+      <Match when={props.claim.status === "ACCEPTED"}>
+        <ShieldCheck class={`${cls} text-primary`} />
+      </Match>
+      <Match when={props.claim.status === "CONTRADICTED"}>
+        <AlertCircle class={`${cls} text-accent`} />
+      </Match>
+    </Switch>
+  );
 }

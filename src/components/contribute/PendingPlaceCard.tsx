@@ -24,6 +24,7 @@ export function PendingPlaceCard(props: {
   const onConfirm = () =>
     confirm
       .mutateAsync(props.place.submissionId)
+      // eslint-disable-next-line solid/reactivity -- runs when the promise settles and reads the current value then
       .then((result) => props.onConfirmed({ promoted: result.promoted }))
       .catch(() => undefined);
 

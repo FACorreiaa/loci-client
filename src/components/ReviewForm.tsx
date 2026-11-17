@@ -80,6 +80,7 @@ export default function ReviewForm(props: ReviewFormProps) {
   };
 
   const stars = () =>
+    // eslint-disable-next-line solid/reactivity -- runs inside an accessor that JSX reads, so it is already tracked
     Array.from({ length: 5 }, (_, i) => {
       const value = i + 1;
       const filled = value <= (hoverRating() || rating());

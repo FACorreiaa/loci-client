@@ -1,4 +1,4 @@
-import { createSignal, createEffect, onCleanup, Show, on } from "solid-js";
+import { createSignal, createEffect, onCleanup, Show, on, untrack } from "solid-js";
 import { ImageOff } from "lucide-solid";
 import { cn } from "@/cn";
 
@@ -32,7 +32,7 @@ const hueFromSeed = (seed = "") => {
 };
 
 export default function ProgressiveImage(props: ProgressiveImageProps) {
-  const [inView, setInView] = createSignal(Boolean(props.eager));
+  const [inView, setInView] = createSignal(untrack(() => Boolean(props.eager)));
   const [status, setStatus] = createSignal<"idle" | "loading" | "loaded" | "error">("idle");
   const [resolvedSrc, setResolvedSrc] = createSignal<string>();
   let frame: HTMLDivElement | undefined;

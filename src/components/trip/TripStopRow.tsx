@@ -1,4 +1,4 @@
-import { Show, type JSX } from "solid-js";
+import { For, Show, type JSX } from "solid-js";
 import {
   ChevronDown,
   ChevronUp,
@@ -28,6 +28,8 @@ import WhyThisStop from "~/components/poi/WhyThisStop";
 import { formatDuration, hhmmToMinutes, minutesToHHMM } from "~/lib/trip-format";
 import type { TripStop } from "~/lib/api/trips";
 import type { RecommendationEventName } from "~/lib/api/recommendations";
+
+const RATINGS = [1, 2, 3, 4, 5];
 
 export interface TripStopRowProps {
   stop: TripStop;
@@ -155,13 +157,15 @@ export default function TripStopRow(props: TripStopRowProps) {
               Rate this stop
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              {[1, 2, 3, 4, 5].map((rating) => (
-                <DropdownMenuItem
-                  onSelect={() => props.onOutcome("RECOMMENDATION_EVENT_TYPE_RATED", rating)}
-                >
-                  {rating} / 5
-                </DropdownMenuItem>
-              ))}
+              <For each={RATINGS}>
+                {(rating) => (
+                  <DropdownMenuItem
+                    onSelect={() => props.onOutcome("RECOMMENDATION_EVENT_TYPE_RATED", rating)}
+                  >
+                    {rating} / 5
+                  </DropdownMenuItem>
+                )}
+              </For>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         </Show>

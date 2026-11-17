@@ -167,10 +167,12 @@ const GlobeComponent = (_props: GlobeComponentProps) => {
       // The globe is an image of data, not a control surface, so it gets a
       // descriptive role. The page supplies the keyboard-navigable list.
       map.getContainer().setAttribute("aria-label", "Globe showing cities you have visited");
+      // eslint-disable-next-line solid/reactivity -- a map event handler: it reads the current props when the event fires
       map.on("move", () => {
         const c = map.getCenter();
         props.onMove?.({ lng: c.lng, lat: c.lat }, map.getZoom());
       });
+      // eslint-disable-next-line solid/reactivity -- a map event handler: it reads the current props when the event fires
       map.on("click", LAYER_GLOBE_NODES, (e) => {
         const cityId = e.features?.[0]?.properties?.cityId;
         const node = props.nodes.find((n) => n.id === cityId);

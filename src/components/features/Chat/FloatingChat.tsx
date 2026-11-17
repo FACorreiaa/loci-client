@@ -1,4 +1,4 @@
-import { Show, Suspense, type Component } from "solid-js";
+import { Show, Suspense, type Component, untrack } from "solid-js";
 import ChatInterface from "~/components/ui/ChatInterface";
 import { useChatSession } from "~/lib/hooks/useChatSession";
 import { lazyChunk } from "~/lib/lazyChunk";
@@ -51,8 +51,10 @@ const SessionChat: Component<FloatingChatProps> = (props) => {
     isLoading,
     sendChatMessage,
   } = useChatSession({
-    getStreamingData: props.getStreamingData,
-    setStreamingData: props.setStreamingData,
+    // Read once: the hook tests whether each was given, so they are handed
+    // over as they are rather than wrapped.
+    getStreamingData: untrack(() => props.getStreamingData),
+    setStreamingData: untrack(() => props.setStreamingData),
     initialSessionId: props.initialSessionId,
   });
 

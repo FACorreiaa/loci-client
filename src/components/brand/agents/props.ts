@@ -9,8 +9,8 @@ export interface BrandIconProps {
 }
 
 /** The ARIA attributes for a brand mark: named image when labelled, hidden otherwise. */
-export function a11y(props: BrandIconProps) {
-  return props.label
-    ? ({ role: "img", "aria-label": props.label } as const)
+export function a11y(icon: BrandIconProps) {
+  return icon.label
+    ? ({ role: "img", "aria-label": icon.label } as const)
     : ({ "aria-hidden": "true" } as const);
 }

@@ -53,7 +53,7 @@ const ChatHeader: Component<ChatHeaderProps> = (props) => {
       <div class="relative flex h-14 items-center justify-between px-4">
         <button
           type="button"
-          onClick={props.onToggleSidebar}
+          onClick={() => props.onToggleSidebar?.()}
           class="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-[var(--muse-pill)] text-[var(--muse-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:invisible"
           title="Chat history"
           aria-label="Open chat history"
@@ -63,7 +63,7 @@ const ChatHeader: Component<ChatHeaderProps> = (props) => {
 
         <button
           type="button"
-          onClick={props.onNewChat}
+          onClick={() => props.onNewChat()}
           class="pointer-events-auto flex h-10 items-center gap-1.5 rounded-full bg-[var(--muse-pill)] px-4 text-sm font-semibold text-[var(--muse-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           title="Start a new conversation"
         >

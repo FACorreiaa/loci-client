@@ -1,4 +1,4 @@
-import { createMemo, createSignal, createEffect, Show, For } from "solid-js";
+import { createMemo, createSignal, createEffect, Show, For, untrack } from "solid-js";
 import { A } from "@solidjs/router";
 import {
   CalendarPlus,
@@ -89,7 +89,9 @@ export default function TripKit(props: TripKitProps) {
   const [toast, setToast] = createSignal<string | null>(null);
   const [notesOpen, setNotesOpen] = createSignal(false);
   // Local notes state — starts from props and updates live.
-  const [localNotes, setLocalNotes] = createSignal<Record<string, string>>(props.stopNotes ?? {});
+  const [localNotes, setLocalNotes] = createSignal<Record<string, string>>(
+    untrack(() => props.stopNotes ?? {}),
+  );
 
   // Sync from parent when the prop changes (e.g. after async offline restore).
   createEffect(() => {
@@ -112,7 +114,9 @@ export default function TripKit(props: TripKitProps) {
   // when the trip actually was. Defaulting to tomorrow keeps that behaviour for
   // anybody who ignores the field.
   const DAY_START_HOUR = 9;
-  const [startValue, setStartValue] = createSignal(props.startDate ?? tomorrowValue());
+  const [startValue, setStartValue] = createSignal(
+    untrack(() => props.startDate ?? tomorrowValue()),
+  );
   // Sync when the parent restores a persisted date asynchronously.
   createEffect(() => {
     if (props.startDate) setStartValue(props.startDate);

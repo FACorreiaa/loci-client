@@ -128,6 +128,7 @@ const MapComponent = (_props: MapComponentProps) => {
     });
 
     // Click a point -> select + popup.
+    // eslint-disable-next-line solid/reactivity -- a map event handler: it reads the current props when the event fires
     map.on("click", LAYER_POINTS, (e) => {
       const feature = e.features?.[0];
       const fid = feature?.id as number | undefined;

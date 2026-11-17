@@ -1,4 +1,4 @@
-import { createUniqueId, type JSX } from "solid-js";
+import { createUniqueId, For, type JSX } from "solid-js";
 
 /**
  * The Loci mark and logo as inline SVG.
@@ -49,9 +49,9 @@ export function MarkArt(): JSX.Element {
     <g>
       <defs>
         <linearGradient id={`pin-${id}`} x1="0" y1="0" x2="0" y2="1">
-          {PIN_STOPS.map(([offset, color]) => (
-            <stop offset={offset} stop-color={color} />
-          ))}
+          <For each={PIN_STOPS}>
+            {([offset, color]) => <stop offset={offset} stop-color={color} />}
+          </For>
         </linearGradient>
         <linearGradient id={`dune-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stop-color="#F6D8BC" />

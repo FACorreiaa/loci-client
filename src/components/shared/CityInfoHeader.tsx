@@ -49,7 +49,7 @@ export const CityInfoHeader: Component<CityInfoHeaderProps> = (props) => {
           <Show when={props.onPlanTrip}>
             <div class="mt-6">
               <button
-                onClick={props.onPlanTrip}
+                onClick={() => props.onPlanTrip?.()}
                 class="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-blue-600/20 transition-all hover:bg-primary/90 hover:scale-105 active:scale-95"
               >
                 Plan New Trip

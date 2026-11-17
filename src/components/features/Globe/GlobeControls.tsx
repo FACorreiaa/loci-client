@@ -62,7 +62,7 @@ export default function GlobeControls(props: GlobeControlsProps) {
         class={`${btn} text-foreground hover:bg-muted`}
         aria-label="Zoom in"
         disabled={!props.canZoomIn}
-        onClick={props.onZoomIn}
+        onClick={() => props.onZoomIn()}
       >
         <Plus class="h-4 w-4" aria-hidden="true" />
       </button>
@@ -71,7 +71,7 @@ export default function GlobeControls(props: GlobeControlsProps) {
         class={`${btn} text-foreground hover:bg-muted`}
         aria-label="Zoom out"
         disabled={!props.canZoomOut}
-        onClick={props.onZoomOut}
+        onClick={() => props.onZoomOut()}
       >
         <Minus class="h-4 w-4" aria-hidden="true" />
       </button>

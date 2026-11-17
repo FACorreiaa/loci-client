@@ -905,6 +905,7 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
 
                   // Update the streaming data with new itinerary information
                   if (options.setStreamingData) {
+                    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
                     options.setStreamingData((prev: any) => {
                       if (!prev) return itineraryData;
 

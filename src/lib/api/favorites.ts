@@ -222,11 +222,12 @@ export function useFavoritesList(options: { enabled?: boolean | (() => boolean) 
 export function useIsFavorited(itemId: () => string) {
   const favoritesQuery = useFavoritesList();
 
-  return createMemo(() => {
+  const isFavorited = createMemo(() => {
     const favorites = favoritesQuery.data;
     if (!favorites) return false;
     return favorites.items.includes(itemId());
   });
+  return isFavorited;
 }
 
 // Hook: Add to favorites mutation

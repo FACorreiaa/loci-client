@@ -128,6 +128,7 @@ function NearmeView(props: { adopt: (sessionId: string) => void }) {
     setLocationError(null);
 
     navigator.geolocation.getCurrentPosition(
+      // eslint-disable-next-line solid/reactivity -- the geolocation success callback: it runs when the position arrives
       (position) => {
         setUserLocation({
           latitude: position.coords.latitude,

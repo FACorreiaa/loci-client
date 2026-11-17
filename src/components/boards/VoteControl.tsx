@@ -1,4 +1,4 @@
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal, untrack } from "solid-js";
 import { ArrowBigDown, ArrowBigUp } from "lucide-solid";
 import { applyVote, boardsErrorMessage, votePost, type Vote } from "~/lib/api/boards";
 import { showToast } from "~/lib/toast-store";
@@ -16,7 +16,9 @@ export default function VoteControl(props: {
   signedIn: boolean;
   class?: string;
 }) {
-  const [state, setState] = createSignal({ score: props.score, myVote: props.myVote });
+  const [state, setState] = createSignal(
+    untrack(() => ({ score: props.score, myVote: props.myVote })),
+  );
   // A refetch brings the server's numbers back in.
   createEffect(() => setState({ score: props.score, myVote: props.myVote }));
   const [busy, setBusy] = createSignal(false);

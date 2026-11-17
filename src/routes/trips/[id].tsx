@@ -505,6 +505,7 @@ export default function TripEditor() {
                   lon={t.days[0]?.cityLon}
                   startDate={t.startDate}
                   endDate={t.endDate}
+                  // eslint-disable-next-line solid/reactivity -- an event callback prop: it runs on the event, not as a tracked scope
                   onSave={async (search) => {
                     try {
                       rememberTrip(

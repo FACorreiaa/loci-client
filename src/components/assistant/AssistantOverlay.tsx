@@ -9,6 +9,7 @@ import {
   Show,
   Switch,
   type Component,
+  untrack,
 } from "solid-js";
 import { ArrowUp, Loader2, Mic, Square, Volume2, VolumeX, X } from "lucide-solid";
 import { assistantApi, type AssistantApi } from "~/lib/api/assistant";
@@ -54,8 +55,9 @@ async function micAlreadyAllowed(): Promise<boolean> {
  * planner carries on underneath it. Closing it stops the answer and the voice.
  */
 const AssistantOverlay: Component<AssistantOverlayProps> = (props) => {
-  const api = props.api ?? assistantApi;
-  const speech = props.speech ?? useSpeech();
+  // Injected once, for tests: neither is swapped while the overlay is open.
+  const api = untrack(() => props.api) ?? assistantApi;
+  const speech = untrack(() => props.speech) ?? useSpeech();
   const session = createAssistantSession(api, speech);
   const [draft, setDraft] = createSignal("");
 
@@ -127,6 +129,7 @@ const AssistantOverlay: Component<AssistantOverlayProps> = (props) => {
     }
     // No keyboard jumping up over the answer for someone who came here to talk.
     dialog?.focus();
+    // eslint-disable-next-line solid/reactivity -- runs when the promise settles and reads the current value then
     void micAlreadyAllowed().then((allowed) => {
       if (allowed && canTalk() && dictation.state() === "idle") dictation.toggle();
     });
@@ -188,7 +191,12 @@ const AssistantOverlay: Component<AssistantOverlayProps> = (props) => {
                 <Volume2 class="h-5 w-5" />
               </Show>
             </button>
-            <button type="button" class={iconButton} aria-label="Close" onClick={props.onClose}>
+            <button
+              type="button"
+              class={iconButton}
+              aria-label="Close"
+              onClick={() => props.onClose()}
+            >
               <X class="h-5 w-5" />
             </button>
           </div>

@@ -1,4 +1,12 @@
-import { createContext, useContext, createSignal, createEffect, onMount, JSX } from "solid-js";
+import {
+  createContext,
+  useContext,
+  createSignal,
+  createEffect,
+  onCleanup,
+  onMount,
+  JSX,
+} from "solid-js";
 import {
   type ColorTheme,
   type DesignTheme,
@@ -112,7 +120,8 @@ export const ThemeProvider = (props: ThemeProviderProps) => {
 
     mediaQuery.addEventListener("change", handleSystemThemeChange);
 
-    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    // onCleanup, not a returned function: Solid ignores onMount's return.
+    onCleanup(() => mediaQuery.removeEventListener("change", handleSystemThemeChange));
   });
 
   createEffect(() => {

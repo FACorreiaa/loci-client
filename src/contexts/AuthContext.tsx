@@ -259,7 +259,8 @@ export const AuthProvider = (props: AuthProviderProps) => {
   // Listen for token changes to handle cross-tab authentication
   createEffect(() => {
     window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    // onCleanup, not a returned function: Solid ignores an effect's return.
+    onCleanup(() => window.removeEventListener("storage", handleStorageChange));
   });
 
   // The other half of the session lifecycle. A token can appear without this
@@ -274,6 +275,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
   // microtask later precisely so that guard is true only when nobody else has
   // claimed the session.
   createEffect(() => {
+    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
     const off = onAuthEstablished(() => {
       if (user() || !getAuthToken()) return;
       void (async () => {

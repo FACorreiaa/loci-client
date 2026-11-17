@@ -1,5 +1,5 @@
 // Query Provider Component for @tanstack/solid-query
-import { JSX, onMount, onCleanup } from "solid-js";
+import { JSX, onMount, onCleanup, untrack } from "solid-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query";
 import { SolidQueryDevtools } from "@tanstack/solid-query-devtools";
 import { queryClient, performanceUtils, offlineUtils } from "@/lib/query-client";
@@ -10,7 +10,8 @@ interface QueryProviderProps {
 }
 
 export const QueryProvider = (props: QueryProviderProps) => {
-  const client = props.client || queryClient;
+  // One client for the life of the provider.
+  const client = untrack(() => props.client) || queryClient;
 
   onMount(() => {
     // Setup performance monitoring in development

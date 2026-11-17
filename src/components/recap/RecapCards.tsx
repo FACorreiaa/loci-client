@@ -1,4 +1,4 @@
-import { For, Show, createSignal, onCleanup, onMount, type JSX } from "solid-js";
+import { For, Show, createSignal, onCleanup, onMount, type JSX, untrack } from "solid-js";
 import { RecapKind, type Recap, type RecapCard } from "~/lib/api/recap";
 import { evidenceLine, formatKm, initials, routeBasisCaption, trendLabel } from "~/lib/recap/recap";
 import {
@@ -16,7 +16,7 @@ import {
  * first paint show the final value, so the card reads correctly at rest.
  */
 function CountUp(props: { value: number }) {
-  const [shown, setShown] = createSignal(props.value);
+  const [shown, setShown] = createSignal(untrack(() => props.value));
   onMount(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const target = props.value;
@@ -97,17 +97,17 @@ function Places(props: { card: Extract<RecapCard["card"], { case: "places" }>["v
       </div>
       <For each={props.card.groups.slice(0, STAMPS.length)}>
         {(g, i) => {
-          const s = STAMPS[i()];
+          const s = () => STAMPS[i()];
           return (
             <div
               class="rc-stamp"
-              data-shape={s.shape}
+              data-shape={s().shape}
               style={{
                 "--i": i(),
-                "--r": `${s.r}deg`,
-                left: `${s.left}%`,
-                top: `${s.top}%`,
-                ...(s.c ? { "--c": s.c } : {}),
+                "--r": `${s().r}deg`,
+                left: `${s().left}%`,
+                top: `${s().top}%`,
+                ...(s().c ? { "--c": s().c } : {}),
               }}
             >
               <div>
@@ -223,7 +223,8 @@ function Days(props: { card: Extract<RecapCard["card"], { case: "days" }>["value
   const stubs = () =>
     props.card.days.length > 0
       ? props.card.days
-      : Array.from({ length: props.card.daysTotal }, (_, i) => ({
+      : // eslint-disable-next-line solid/reactivity -- runs inside an accessor that JSX reads, so it is already tracked
+        Array.from({ length: props.card.daysTotal }, (_, i) => ({
           dayNumber: i + 1,
           completed: i < props.card.daysCompleted,
           stopsDone: 0,

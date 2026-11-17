@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, Show } from "solid-js";
+import { createEffect, createSignal, For, Show, untrack } from "solid-js";
 import { Check, Copy, Globe2, Link as LinkIcon, Lock, Users } from "lucide-solid";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "~/ui/dialog";
 import { Button } from "~/ui/button";
@@ -28,8 +28,10 @@ export default function TripSharePanel(props: {
   shareCode?: string;
 }) {
   const setVisibility = useSetTripVisibility();
-  const [level, setLevel] = createSignal<TripVisibility>(props.visibility ?? "private");
-  const [code, setCode] = createSignal(props.shareCode ?? "");
+  const [level, setLevel] = createSignal<TripVisibility>(
+    untrack(() => props.visibility ?? "private"),
+  );
+  const [code, setCode] = createSignal(untrack(() => props.shareCode ?? ""));
   const [copied, setCopied] = createSignal(false);
 
   createEffect(() => {

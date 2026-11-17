@@ -700,6 +700,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     const tripId = store.tripId || (searchParams.tripId as string | undefined);
     if (!tripId) return;
     void fetchTrip(tripId)
+      // eslint-disable-next-line solid/reactivity -- runs when the promise settles and reads the current value then
       .then((trip) => {
         if (tripStartDate()) return;
         const pinned = pinnedTripStart(trip.days, parseTripDate);
@@ -1090,6 +1091,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
             dayLabel={day.label}
             cityName={day.cityName || cityData()?.city || cityName() || undefined}
             busy={tripView.busy()}
+            // eslint-disable-next-line solid/reactivity -- an event callback prop: it runs on the event, not as a tracked scope
             onAdd={async (stop, method, knownPlace) => {
               const ok = await tripView.add(day.dayId, stop);
               if (ok) capture("itinerary_stop_added", { method, known_place: knownPlace });

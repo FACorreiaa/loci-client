@@ -39,12 +39,13 @@ export default [
     rules: {
       ...solid.rules,
       // Catches the most common Solid bug: destructuring props or signals and
-      // losing reactivity. Left as a warning while the long stateful files are
-      // split (docs/UI_AUDIT_2026-09.md phase 2); raise to "error" after.
-      "solid/reactivity": "warn", // 71 hits on 2026-11-17
-      // BACKLOG: an error in the plugin's preset, three `.map()` over a
-      // constant array today. Fix them, then delete this line.
-      "solid/prefer-for": "warn", // 3
+      // losing reactivity. A warning in the plugin's preset; an error here.
+      // A callback that runs later (a promise, a map event) reads the current
+      // value when it runs and is correct: those carry an inline disable.
+      "solid/reactivity": "error",
+      // Also a warning in the preset. An early return in a component freezes
+      // it on its first render.
+      "solid/components-return-once": "error",
     },
   },
   // Last: turns off any rule oxlint already runs, so the two never overlap.

@@ -142,9 +142,6 @@ export default function ResultsPage(props: ResultsPageProps) {
   // blank panel during the fetch.
   const [hydrating, setHydrating] = createSignal(false);
   const [savedOffline, setSavedOffline] = createSignal(false);
-  // Trip Kit persistent meta — restored from the offline record when one exists.
-  const [, setTripStartDate] = createSignal<string | undefined>(undefined);
-  const [, setStopNotes] = createSignal<Record<string, string>>({});
 
   const saveItineraryMutation = useSaveItineraryMutation();
   const subscriptionQuery = useUserSubscription(() => isAuthenticated());
@@ -186,8 +183,7 @@ export default function ResultsPage(props: ResultsPageProps) {
       const saved = await getOfflineItinerary(sessionId);
       if (!saved || !accept(saved.payload)) return false;
       setSavedOffline(true);
-      if (saved.tripStartDate) setTripStartDate(saved.tripStartDate);
-      if (saved.stopNotes) setStopNotes(saved.stopNotes);
+
       return true;
     } catch (e) {
       console.warn("Could not read the offline copy:", e);

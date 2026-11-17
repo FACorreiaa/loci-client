@@ -43,6 +43,7 @@ export const ToggleGroup = <T extends ValidComponent = "div">(
       class={cn("flex items-center justify-center gap-1", local.class)}
       {...rest}
     >
+      {/* eslint-disable-next-line solid/reactivity -- an accessor for the context: consumers read it inside their own tracked scopes */}
       <ToggleGroupContext.Provider value={() => ({ size: local.size, variant: local.variant })}>
         {local.children}
       </ToggleGroupContext.Provider>

@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, Show, untrack } from "solid-js";
 import { Loader2, MapPin } from "lucide-solid";
 import { MIN_CITY_QUERY_LENGTH, useCitySearch, type City } from "~/lib/api/cities";
 import { shouldCommitTyped } from "~/lib/compare-input";
@@ -32,7 +32,8 @@ interface CityAutocompleteProps {
 }
 
 export function CityAutocomplete(props: CityAutocompleteProps) {
-  const [query, setQuery] = createSignal(props.value?.name ?? "");
+  // Seeded once: after that the field holds what the user types.
+  const [query, setQuery] = createSignal(untrack(() => props.value?.name ?? ""));
   const [open, setOpen] = createSignal(false);
   const [active, setActive] = createSignal(0);
 

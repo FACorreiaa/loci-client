@@ -1,4 +1,4 @@
-import { For, Show, createSignal, type Component } from "solid-js";
+import { For, Show, createSignal, type Component, untrack } from "solid-js";
 import { Code, ConnectError } from "@connectrpc/connect";
 import type { TripDraft as ProtoTripDraft } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import { Button } from "~/ui/button";
@@ -60,10 +60,11 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
   };
 
   // Dates
-  const [start, setStart] = createSignal(props.trip.startDate ?? "");
-  const [end, setEnd] = createSignal(props.trip.endDate ?? "");
+  const [start, setStart] = createSignal(untrack(() => props.trip.startDate ?? ""));
+  const [end, setEnd] = createSignal(untrack(() => props.trip.endDate ?? ""));
   const datesReady = () => start() !== "" && end() !== "" && end() >= start();
   const saveDates = () =>
+    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
     run(() => api().setDates(props.trip.id, start(), end(), props.trip.version));
 
   // Stays
@@ -98,6 +99,7 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
       : `No hotels found within 5 km of ${city}.`;
   };
   const pickHotel = async (city: string, h: HotelDetailedInfo) => {
+    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
     const ok = await run(() =>
       api().setStay(
         props.trip.id,
@@ -117,6 +119,7 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
   // Flights: the shared search form; saving remounts it empty.
   const [flightForm, setFlightForm] = createSignal(0);
   const saveFlight = async (search: FlightSearch) => {
+    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
     const ok = await run(() => api().addFlight(props.trip.id, search, props.trip.version));
     if (ok) setFlightForm((n) => n + 1);
   };
@@ -283,6 +286,7 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
                   class="text-xs text-muted-foreground hover:text-destructive disabled:opacity-60"
                   disabled={busy()}
                   onClick={() =>
+                    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
                     run(() => api().removeFlight(props.trip.id, f.id, props.trip.version))
                   }
                 >

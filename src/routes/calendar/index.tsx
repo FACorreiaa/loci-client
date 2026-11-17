@@ -37,7 +37,10 @@ export default function CalendarPage() {
 
   const monthStart = createMemo(() => new Date(cursor().year, cursor().month, 1));
   const monthEnd = createMemo(() => new Date(cursor().year, cursor().month + 1, 1));
-  const overlay = useCalendarEvents(monthStart, monthEnd);
+  const overlay = useCalendarEvents(
+    () => monthStart(),
+    () => monthEnd(),
+  );
   const cells = createMemo(() => monthCells(cursor().year, cursor().month));
   const blocks = createMemo(() => tripBlocksOnCalendar(trips.data ?? []));
   const googleConnectionId = createMemo(

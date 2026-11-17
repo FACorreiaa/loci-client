@@ -37,7 +37,7 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
       <Show when={props.onDownload}>
         <button
           type="button"
-          onClick={props.onDownload}
+          onClick={() => props.onDownload?.()}
           class={idleButton}
           title="Download data"
           aria-label="Download data"
@@ -49,7 +49,7 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
       <Show when={props.onSave}>
         <button
           type="button"
-          onClick={props.onSave}
+          onClick={() => props.onSave?.()}
           disabled={props.saving}
           class={props.isSaved ? activeButton : idleButton}
           title={props.isSaved ? "Saved on this device" : "Save"}
@@ -68,7 +68,7 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
       <Show when={props.onSaveOffline}>
         <button
           type="button"
-          onClick={props.onSaveOffline}
+          onClick={() => props.onSaveOffline?.()}
           class={props.isSavedOffline ? activeButton : idleButton}
           title={props.isSavedOffline ? "Saved offline" : "Save for offline"}
           aria-label={props.isSavedOffline ? "Saved offline" : "Save for offline"}
@@ -84,7 +84,7 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
       <Show when={props.onBookmark}>
         <button
           type="button"
-          onClick={props.onBookmark}
+          onClick={() => props.onBookmark?.()}
           class={props.isBookmarked ? activeButton : idleButton}
           title={props.isBookmarked ? "Saved to lists" : "Save to lists"}
           aria-label={props.isBookmarked ? "Saved to lists" : "Save to lists"}
