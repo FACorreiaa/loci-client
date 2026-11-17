@@ -456,7 +456,7 @@ export default function ResultsPage(props: ResultsPageProps) {
   // Shared selection between list and map (keyed by place name — the map
   // indexes its features by name).
   const [selectedId, setSelectedId] = createSignal<string | undefined>(undefined);
-  const [detailItem, setDetailItem] = createSignal<any | null>(null);
+  const [detailItem, setDetailItem] = createSignal<any>(null);
   const [detailOpen, setDetailOpen] = createSignal(false);
 
   const detailType = () =>

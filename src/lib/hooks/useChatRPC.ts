@@ -20,7 +20,7 @@ export interface ChatRPCState {
     content: string;
     timestamp: Date;
   }>;
-  streamedData: any | null;
+  streamedData: any;
 }
 
 export interface UseChatRPCOptions {

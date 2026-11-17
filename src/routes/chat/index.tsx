@@ -86,7 +86,7 @@ export default function ChatPage() {
       chat.sendMessage();
     });
   });
-  const [selectedItem, setSelectedItem] = createSignal<any | null>(null);
+  const [selectedItem, setSelectedItem] = createSignal<any>(null);
   const [showDetailModal, setShowDetailModal] = createSignal(false);
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
 

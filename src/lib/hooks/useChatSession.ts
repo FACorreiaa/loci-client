@@ -144,7 +144,7 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
   };
 
   // Helper function to parse buffered chunk data
-  const tryParseBufferedData = (part: string): any | null => {
+  const tryParseBufferedData = (part: string): any => {
     let buffer = chunkBuffer[part as keyof typeof chunkBuffer];
 
     // Remove markdown code blocks

@@ -96,7 +96,7 @@ const toClientDomainType = (contextType?: ChatContextType): ClientDomainType => 
   }
 };
 
-export const domainToContextType = (domain: ClientDomainType | string): ChatContextType => {
+export const domainToContextType = (domain: string): ChatContextType => {
   switch (domain) {
     case "accommodation":
       return "hotels";

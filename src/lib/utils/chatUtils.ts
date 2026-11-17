@@ -213,7 +213,7 @@ export const persistCompletedSession = (sessionIdValue: string | null, data: any
 /**
  * Get a stored session by ID.
  */
-export const getStoredSession = (sessionId: string): any | null => {
+export const getStoredSession = (sessionId: string): any => {
   try {
     const stored = sessionStorage.getItem(`session_${sessionId}`);
     return stored ? JSON.parse(stored) : null;

@@ -75,7 +75,7 @@ export const CLIENT_KINDS: { value: ClientKind; label: string; blurb: string }[]
   },
 ];
 
-export function clientKindLabel(kind: ClientKind | string): string {
+export function clientKindLabel(kind: string): string {
   return CLIENT_KINDS.find((k) => k.value === kind)?.label ?? "Other MCP client";
 }
 

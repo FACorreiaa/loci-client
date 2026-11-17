@@ -739,7 +739,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   const [selectedId, setSelectedId] = createSignal<string | undefined>(undefined);
 
   // Detail modal state.
-  const [detailItem, setDetailItem] = createSignal<any | null>(null);
+  const [detailItem, setDetailItem] = createSignal<any>(null);
   const [detailOpen, setDetailOpen] = createSignal(false);
 
   const openDetail = (poi: POI) => {

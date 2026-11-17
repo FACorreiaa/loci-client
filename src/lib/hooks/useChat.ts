@@ -101,7 +101,7 @@ export function useChat(
   const [sessionId, setSessionId] = createSignal<string | null>(null);
   const [selectedProfileId, setSelectedProfileId] = createSignal<string | undefined>(undefined);
   const [showProfileSelector, setShowProfileSelector] = createSignal(false);
-  const [selectedSession, setSelectedSession] = createSignal<any | null>(null);
+  const [selectedSession, setSelectedSession] = createSignal<any>(null);
   const [streamingSession, setStreamingSession] = createSignal<any>(null);
   // This hook's own run, so Stop can name it before the server mints a session id.
   let activeRequestId = "";

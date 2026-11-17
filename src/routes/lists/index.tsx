@@ -34,7 +34,7 @@ import { EmptyState } from "~/components/shared/EmptyState";
 export default function ListsPage() {
   // State
   const [showModal, setShowModal] = createSignal(false);
-  const [editingList, setEditingList] = createSignal<any | null>(null);
+  const [editingList, setEditingList] = createSignal<any>(null);
   const [formName, setFormName] = createSignal("");
   const [formDescription, setFormDescription] = createSignal("");
   const [formIsPublic, setFormIsPublic] = createSignal(false);
