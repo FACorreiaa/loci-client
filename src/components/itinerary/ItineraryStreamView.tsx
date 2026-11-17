@@ -62,6 +62,8 @@ export interface ItineraryStreamViewProps {
   days?: ItineraryDayMeta[];
   /** Rendered under each stop's card: links and edit controls. */
   stopFooter?: (stop: ItineraryStop, placement: StopPlacement) => JSX.Element;
+  /** Rendered under each trip day's heading: how the day starts. Needs `days`. */
+  dayHeader?: (day: ItineraryDayMeta) => JSX.Element;
   /** Rendered at the end of each trip day: "add a place". Needs `days`. */
   dayFooter?: (day: ItineraryDayMeta) => JSX.Element;
 }
@@ -280,6 +282,7 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
                   <Show when={routeFor(group.day)}>
                     {(route) => <RouteDaySummary route={route()} />}
                   </Show>
+                  <Show when={group.meta}>{(meta) => props.dayHeader?.(meta())}</Show>
                   <For each={group.items}>
                     {(item, i) => (
                       <>

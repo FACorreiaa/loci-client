@@ -2,6 +2,8 @@ import { Show, type JSX } from "solid-js";
 import { Badge } from "~/ui/badge";
 import { summariseDay } from "~/lib/trip-format";
 import type { TripDay } from "~/lib/api/trips";
+import type { DayStart } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
+import DayStartLine from "./DayStartLine";
 
 export interface TripDaySectionProps {
   day: TripDay;
@@ -12,6 +14,8 @@ export interface TripDaySectionProps {
   children: JSX.Element;
   /** The add-a-stop control, hidden outside edit mode. */
   addSlot?: JSX.Element;
+  /** How the day begins from the stay in its city, when there is one. */
+  dayStart?: DayStart;
 }
 
 /**
@@ -73,6 +77,13 @@ export default function TripDaySection(props: TripDaySectionProps) {
       </header>
 
       <div class="px-4 pb-4 pt-4">
+        <Show when={props.dayStart}>
+          {(start) => (
+            <div class="mb-3">
+              <DayStartLine start={start()} source="trip" />
+            </div>
+          )}
+        </Show>
         <ol>{props.children}</ol>
         <Show when={props.addSlot}>
           <div class="no-print mt-3 pl-[2.75rem] sm:pl-[3.75rem]">{props.addSlot}</div>

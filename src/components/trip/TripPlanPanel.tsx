@@ -186,6 +186,20 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
                   )}
                 </Show>
               </div>
+              <Show when={stayFor(city)?.address}>
+                {(address) => (
+                  <p class="mt-1 text-xs text-muted-foreground" data-testid="plan-stay-address">
+                    {address()}
+                  </p>
+                )}
+              </Show>
+              <Show when={stayFor(city)?.priceNote}>
+                {(note) => (
+                  <p class="mt-1 text-xs text-muted-foreground" data-testid="plan-stay-price-note">
+                    You said: {note()}
+                  </p>
+                )}
+              </Show>
               <Show
                 when={cityCoords(props.trip, city)}
                 fallback={
