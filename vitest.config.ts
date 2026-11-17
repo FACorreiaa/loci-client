@@ -1,5 +1,5 @@
 import path from "node:path";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import solid from "vite-plugin-solid";
 
 /**
@@ -36,6 +36,19 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./src/test/happy-dom-setup.ts"],
     exclude: ["**/node_modules/**", "**/.claude/**", "**/.output/**"],
+    // CI runs `vitest run --changed <base>` on pull requests: only the tests
+    // whose import graph a change touches. A file listed here reruns the whole
+    // suite instead, because it can change any test without being imported by
+    // one. The default covers package.json; its vite/vitest config glob does
+    // not match a plain `vitest.config.ts`, so both configs are named here.
+    forceRerunTriggers: [
+      ...configDefaults.forceRerunTriggers,
+      "**/vitest.config.ts",
+      "**/vite.config.ts",
+      "**/pnpm-lock.yaml",
+      "**/pnpm-workspace.yaml",
+      "**/tsconfig.json",
+    ],
     server: {
       deps: {
         inline: [/solid-js/],

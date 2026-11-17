@@ -6,14 +6,12 @@ export interface ThemePreference {
   color: ColorTheme;
 }
 
-const DESIGN_THEMES: DesignTheme[] = ["classic", "modern", "loci"];
-const COLOR_THEMES: ColorTheme[] = ["light", "dark", "system"];
+const DESIGN_THEMES = new Set<string>(["classic", "modern", "loci"] satisfies DesignTheme[]);
+const COLOR_THEMES = new Set<string>(["light", "dark", "system"] satisfies ColorTheme[]);
 
-const isDesignTheme = (value: string): value is DesignTheme =>
-  DESIGN_THEMES.includes(value as DesignTheme);
+const isDesignTheme = (value: string): value is DesignTheme => DESIGN_THEMES.has(value);
 
-const isColorTheme = (value: string): value is ColorTheme =>
-  COLOR_THEMES.includes(value as ColorTheme);
+const isColorTheme = (value: string): value is ColorTheme => COLOR_THEMES.has(value);
 
 export const systemPrefersDark = (): boolean => {
   if (typeof window === "undefined") return false;

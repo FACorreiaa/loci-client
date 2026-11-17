@@ -16,8 +16,9 @@ pnpm install
 pnpm dev          # dev server
 pnpm test         # unit tests
 pnpm typecheck    # tsgo --noEmit
-pnpm run lint     # oxlint
-pnpm build        # production build
+pnpm run lint     # oxlint --type-aware (bug-finding profile, .oxlintrc.json)
+pnpm lint:solid   # ESLint, eslint-plugin-solid rules only
+pnpm build        # production build (vite build; typecheck is its own step)
 ```
 
 Copy `.env.example` to `.env` and point `VITE_CONNECT_BASE_URL` at a running

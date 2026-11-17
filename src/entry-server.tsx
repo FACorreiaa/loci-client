@@ -71,8 +71,8 @@ export default createHandler(() => (
               property, and a route overriding one actually overrides it. */}
 
           {/* Theme Initialization Script (Blocking) */}
-          {/* eslint-disable-next-line solid/no-innerhtml */}
           <script
+            // eslint-disable-next-line solid/no-innerhtml
             innerHTML={`
               (function() {
                 try {

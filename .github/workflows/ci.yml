@@ -6,12 +6,56 @@ on:
   pull_request:
     branches: [main, staging]
 
+# A newer push to the same pull request supersedes the run in flight. Pushes
+# to a branch are never cancelled: each commit on main keeps its own result.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   NODE_VERSION: "24"
 
+# Four independent jobs, no `needs:` between them: the wall time is the
+# slowest job, not the sum.
 jobs:
-  lint-and-typecheck:
-    name: Lint & Type Check
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Errors fail the job. Warnings are the BACKLOG block in .oxlintrc.json
+      # and do not, so there is no --deny-warnings here. --quiet keeps the
+      # backlog out of the log so an error is not buried; `pnpm run lint`
+      # locally prints it in full.
+      - name: Run Oxlint
+        run: pnpm run lint --quiet
+
+      # oxlint has no Solid plugin: solid/reactivity and friends run in ESLint.
+      - name: Run ESLint (Solid rules)
+        run: pnpm run lint:solid
+
+      # Required check, no path filter: motion JSON drift, the single three
+      # importer, and colour literals in the 3D mascot (BRD-001).
+      - name: Brand guard
+        run: pnpm run brand:guard
+
+  typecheck:
+    name: Type Check
     runs-on: ubuntu-latest
 
     steps:
@@ -31,20 +75,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run TypeScript check
-        run: pnpm exec tsc --noEmit
-
-      - name: Run Oxlint
-        run: pnpm run lint --deny-warnings
-
-      # Required check, no path filter: motion JSON drift, the single three
-      # importer, and colour literals in the 3D mascot (BRD-001).
-      - name: Brand guard
-        run: pnpm run brand:guard
+        run: pnpm run typecheck
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: lint-and-typecheck
 
     steps:
       - name: Checkout
@@ -87,11 +122,13 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    needs: lint-and-typecheck
 
     steps:
+      # Full history: `vitest --changed` diffs against the base branch.
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -105,5 +142,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Pull requests run only the tests whose import graph the change touches
+      # (the whole suite when a forceRerunTriggers file changes, see
+      # vitest.config.ts). The push that lands on the branch runs everything.
+      - name: Run affected unit tests
+        if: github.event_name == 'pull_request'
+        run: pnpm exec vitest run --changed origin/${{ github.base_ref }} --passWithNoTests
+
       - name: Run unit tests
+        if: github.event_name != 'pull_request'
         run: pnpm test

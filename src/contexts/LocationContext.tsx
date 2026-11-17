@@ -98,7 +98,7 @@ export function LocationProvider(props: LocationProviderProps) {
         setPermissionStatus("denied");
       }
       setError(message);
-      throw new Error(message);
+      throw new Error(message, { cause: err });
     } finally {
       setisLoadingLocation(false);
     }

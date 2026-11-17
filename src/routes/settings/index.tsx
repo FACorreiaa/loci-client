@@ -81,7 +81,7 @@ const TABS = [
   { id: "billing", label: "Plan & Billing", icon: CreditCard },
 ];
 
-const TAB_IDS = TABS.map((t) => t.id);
+const TAB_IDS = new Set(TABS.map((t) => t.id));
 
 // Tabs that used to exist and now live inside another. Links to them are out
 // there — support answers, the /mcp guide — and should land somewhere useful.
@@ -102,7 +102,7 @@ function SettingsPageContent() {
     const requested = searchParams.tab as string | undefined;
     if (!requested) return "settings";
     const resolved = LEGACY_TABS[requested] ?? requested;
-    return TAB_IDS.includes(resolved) ? resolved : "settings";
+    return TAB_IDS.has(resolved) ? resolved : "settings";
   };
   // replace: true so tabbing around does not fill the back button with
   // settings panes.

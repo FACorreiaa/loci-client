@@ -29,7 +29,7 @@ beforeEach(() => {
 
 const body = async (): Promise<string> => {
   expect(captured).not.toBeNull();
-  return await captured!.text();
+  return captured!.text();
 };
 
 describe("downloadCalendarForTrip", () => {
@@ -97,8 +97,8 @@ describe("downloadCalendarForTrip", () => {
     tomorrow.setHours(9, 0, 0, 0);
     const stamp =
       `${tomorrow.getUTCFullYear()}` +
-      `${String(tomorrow.getUTCMonth() + 1).padStart(2, "0")}` +
-      `${String(tomorrow.getUTCDate()).padStart(2, "0")}`;
+      String(tomorrow.getUTCMonth() + 1).padStart(2, "0") +
+      String(tomorrow.getUTCDate()).padStart(2, "0");
     expect(await body()).toContain(`DTSTART:${stamp}T`);
   });
 
