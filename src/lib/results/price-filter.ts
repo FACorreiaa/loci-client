@@ -131,7 +131,7 @@ export function tierLabel(tier: number, currency = "EUR"): string {
     })
       .formatToParts(0)
       .find((p) => p.type === "currency")?.value;
-    if (part && [...part].length === 1) symbol = part;
+    if (part && Array.from(part).length === 1) symbol = part;
   } catch {
     // keep "$"
   }

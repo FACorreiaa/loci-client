@@ -146,12 +146,13 @@ export const queryUtils = {
   },
 
   // Get cached data without triggering a fetch
+  // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- the caller names the cached type, as with queryClient.getQueryData<T>
   getCachedData: <T>(queryKey: readonly unknown[]): T | undefined => {
     return queryClient.getQueryData<T>(queryKey);
   },
 
   // Set cached data manually
-  setCachedData: <T>(queryKey: readonly unknown[], data: T) => {
+  setCachedData: (queryKey: readonly unknown[], data: unknown) => {
     queryClient.setQueryData(queryKey, data);
   },
 

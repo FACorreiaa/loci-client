@@ -39,6 +39,13 @@
       }
     ],
     "no-unassigned-vars": "off",
+    // Stylesheets and the fake-indexeddb polyfill are imported for their effect.
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css", "fake-indexeddb/auto"] }],
+    // __dirname is Node's name; the other two are deliberate test-only handles.
+    "no-underscore-dangle": [
+      "error",
+      { "allow": ["__dirname", "__lociPush", "__resetAnalyticsForTest"] }
+    ],
 
     // BACKLOG. Rules of this profile that the existing code still breaks
     // (hit count as of 2026-11-17, with --type-aware; 1271 in total). They
@@ -51,9 +58,10 @@
     "unicorn/consistent-function-scoping": "warn", // 137
     "typescript/no-floating-promises": "warn", // 101
     "typescript/no-unnecessary-type-assertion": "warn", // 91
-    "unicorn/no-array-sort": "warn", // 53
     "typescript/no-unnecessary-type-conversion": "warn", // 34
+    "unicorn/no-array-sort": "warn", // 53
     "typescript/unbound-method": "warn", // 28
+    "unicorn/no-array-reverse": "warn", // 3
     "oxc/no-map-spread": "warn", // 20
     "no-await-in-loop": "warn", // 18
     "promise/always-return": "warn", // 16
@@ -61,23 +69,9 @@
     "import/no-named-as-default": "warn", // 11
     "typescript/consistent-return": "warn", // 11
     "typescript/no-redundant-type-constituents": "warn", // 10
-    "typescript/prefer-promise-reject-errors": "warn", // 10
+    "typescript/prefer-promise-reject-errors": "error",
     "no-shadow": "warn", // 9
     "typescript/no-unsafe-enum-assignment": "warn", // 8
-    "no-underscore-dangle": "warn", // 6
-    "vitest/no-conditional-expect": "warn", // 6
-    "vitest/require-to-throw-message": "warn", // 6
-    "import/no-unassigned-import": "warn", // 5
-    "typescript/no-base-to-string": "warn", // 5
-    "typescript/no-unnecessary-type-parameters": "warn", // 5
-    "typescript/no-misused-spread": "warn", // 4
-    "typescript/restrict-template-expressions": "warn", // 4
-    "no-unmodified-loop-condition": "warn", // 3
-    "unicorn/no-array-reverse": "warn", // 3
-    "typescript/only-throw-error": "warn", // 2
-    "no-new": "warn", // 1
-    "promise/no-promise-in-callback": "warn", // 1
-    "unicorn/require-post-message-target-origin": "warn", // 1
-    "vitest/no-commented-out-tests": "warn" // 1
+    "typescript/only-throw-error": "error"
   }
 }

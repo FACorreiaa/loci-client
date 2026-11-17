@@ -24,6 +24,7 @@ const mount = (initial: AccessibilityFormState) => {
   dispose = render(() => <AccessibilityNeedsSection state={s()} onChange={setS} />, host);
 };
 
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- typed selector helper, same shape as querySelector<T>
 const q = <T extends Element>(sel: string) => host.querySelector<T>(sel);
 const fields = () => q<HTMLFieldSetElement>('[data-testid="accessibility-fields"]')!;
 const consent = () => q<HTMLInputElement>('[data-testid="accessibility-consent"]');

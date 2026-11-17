@@ -79,7 +79,7 @@ export interface PlaceDetailProps {
 }
 
 const isNotFound = (err: unknown): boolean =>
-  /not found/i.test(err instanceof Error ? err.message : String(err ?? ""));
+  /not found/i.test(err instanceof Error ? err.message : typeof err === "string" ? err : "");
 
 /**
  * The frame of /hotels/[id], /restaurants/[id] and /places/[id]: Back to where it came

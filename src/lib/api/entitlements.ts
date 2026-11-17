@@ -18,7 +18,7 @@ export interface Entitlements {
 
 function mapEntitlements(raw: Record<string, unknown>): Entitlements {
   return {
-    plan: String(raw.plan ?? "free"),
+    plan: typeof raw.plan === "string" ? raw.plan : "free",
     listsUsed: Number(raw.listsUsed ?? 0),
     listsLimit: Number(raw.listsLimit ?? 5),
     placesSaved: Number(raw.placesSaved ?? 0),

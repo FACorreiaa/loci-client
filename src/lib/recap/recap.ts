@@ -116,7 +116,7 @@ export const initials = (name: string): string => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const letters = parts
     .slice(0, 2)
-    .map((p) => [...p][0] ?? "")
+    .map((p) => Array.from(p)[0] ?? "")
     .join("");
   return letters.toUpperCase() || "?";
 };

@@ -46,14 +46,14 @@ function ProfilePageContent() {
   const computedStats = createMemo(() => {
     const cities = recentsQuery.data?.cities || [];
     const lists = listsQuery.data || [];
-    const favorites = favoritesQuery.data?.favorites || [];
+    // Not counted in the result, but read here as before: the stats keep
+    // tracking (and suspending on) the favourites query.
+    void favoritesQuery.data;
 
     // Count unique cities visited (places_visited)
     const placesVisited = cities.length;
     // Lists created
     const listsCreated = lists.length;
-    // Favorites count
-    const _favoritesCount = favorites.length; // Underscored as it's not directly used in the returned object
 
     // Only what can actually be counted. reviews_written, followers and
     // following were rendered as 0 beside real numbers, which reads as "you

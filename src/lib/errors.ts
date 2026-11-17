@@ -237,5 +237,6 @@ export const withRetry = async <T>(
     }
   }
 
-  throw lastError;
+  // Only reachable with maxRetries <= 0, where fn never ran.
+  throw lastError ?? new Error("withRetry: no attempt was made");
 };

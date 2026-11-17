@@ -64,8 +64,8 @@ const mount = (api: PlanApi) => {
   );
 };
 
-const q = <T extends Element = HTMLElement>(sel: string) =>
-  document.body.querySelector(sel) as T | null;
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- typed selector helper, same shape as querySelector<T>
+const q = <T extends Element = HTMLElement>(sel: string) => document.body.querySelector<T>(sel);
 const type = (el: HTMLInputElement, value: string) => {
   el.value = value;
   el.dispatchEvent(new Event("input", { bubbles: true }));

@@ -80,7 +80,7 @@ describe("uploadPhoto", () => {
     const { d, calls } = deps({
       put: vi.fn(async () => ({ ok: false, status: 403 })),
     });
-    await expect(uploadPhoto(d, { tripId: "t1" }, blob)).rejects.toThrow();
+    await expect(uploadPhoto(d, { tripId: "t1" }, blob)).rejects.toThrow("Upload failed (403).");
     expect(calls).toEqual(["create", "remove"]);
   });
 
@@ -98,7 +98,7 @@ describe("uploadPhoto", () => {
     const { d, calls } = deps();
     await expect(
       uploadPhoto(d, { tripId: "t1" }, new Blob(["x"], { type: "image/gif" })),
-    ).rejects.toThrow();
+    ).rejects.toThrow("Photos must be JPEG, PNG or HEIC.");
     expect(calls).toEqual([]);
   });
 

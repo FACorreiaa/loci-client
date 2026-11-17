@@ -304,7 +304,7 @@ export default function TravelProfiles(props: TravelProfilesProps) {
         props.onNotification("Profile updated successfully!", "success");
       } else {
         // Create new profile with all domain preferences
-        const _newProfile = await createProfileMutation.mutateAsync(data);
+        await createProfileMutation.mutateAsync(data);
         props.onNotification("Profile created successfully!", "success");
       }
 

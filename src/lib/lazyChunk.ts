@@ -54,7 +54,7 @@ function markReloaded(): void {
  * matches on the parts that do not: what was being done, not what went wrong.
  */
 export function isChunkLoadFailure(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error ?? "");
+  const message = error instanceof Error ? error.message : typeof error === "string" ? error : "";
   return (
     /dynamically imported module/i.test(message) || // Chrome, Safari
     /error loading dynamically imported module/i.test(message) || // Firefox

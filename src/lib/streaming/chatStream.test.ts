@@ -21,9 +21,9 @@ import { mapProtoEvent, streamChatEvents, terminalError } from "./chatStream";
 const CAP = "You have 3 searches running — wait for one to finish";
 
 // An async iterable whose first next() rejects, the way a refused stream does.
-const failWith = (err: unknown) =>
+const failWith = (reason: Error) =>
   streamChat.mockReturnValue({
-    [Symbol.asyncIterator]: () => ({ next: () => Promise.reject(err) }),
+    [Symbol.asyncIterator]: () => ({ next: () => Promise.reject(reason) }),
   });
 
 describe("chatStream terminal errors", () => {
@@ -66,7 +66,7 @@ describe("chatStream transport classification", () => {
     create(StreamEventSchema, init);
 
   // Yields `frames`, then fails with `err` (or ends cleanly when undefined).
-  const script = (frames: ReturnType<typeof frame>[], err?: unknown) =>
+  const script = (frames: ReturnType<typeof frame>[], err?: Error) =>
     streamChat.mockImplementation(() =>
       (async function* () {
         for (const f of frames) yield f;
@@ -330,10 +330,8 @@ describe("gastronomy events", () => {
         },
       }),
     );
-    expect(ev?.kind).toBe("itinerary");
-    if (ev?.kind === "itinerary") {
-      expect(ev.cityResponse.gastronomy?.dishes[0].name).toBe("Bolo do caco");
-    }
+    if (ev?.kind !== "itinerary") throw new Error(`expected an itinerary event, got ${ev?.kind}`);
+    expect(ev.cityResponse.gastronomy?.dishes[0].name).toBe("Bolo do caco");
   });
 });
 

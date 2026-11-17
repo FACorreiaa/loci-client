@@ -8,7 +8,8 @@ export function useUserCurrentLocation(options = {}) {
       } else {
         navigator.geolocation.getCurrentPosition(
           (position) => resolve(position.coords),
-          (error) => reject(error),
+          // GeolocationPositionError is not an Error; keep it as the cause.
+          (error) => reject(new Error(error.message, { cause: error })),
           options,
         );
       }

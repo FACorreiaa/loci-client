@@ -66,7 +66,7 @@ function openDB(): Promise<IDBDatabase> {
       }
     };
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(req.error ?? new Error("IndexedDB request failed"));
   });
 }
 
@@ -96,7 +96,7 @@ export async function saveItineraryOffline(entry: OfflineItinerary): Promise<voi
 
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB request failed"));
   });
 }
 
@@ -114,7 +114,7 @@ export async function listOfflineItineraries(): Promise<OfflineItinerary[]> {
       );
       resolve(items);
     };
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(req.error ?? new Error("IndexedDB request failed"));
   });
 }
 
@@ -125,7 +125,7 @@ export async function getOfflineItinerary(id: string): Promise<OfflineItinerary 
   return new Promise((resolve, reject) => {
     const req = tx.objectStore(STORE_NAME).get(id);
     req.onsuccess = () => resolve(req.result as OfflineItinerary | undefined);
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(req.error ?? new Error("IndexedDB request failed"));
   });
 }
 
@@ -136,7 +136,7 @@ export async function deleteOfflineItinerary(id: string): Promise<void> {
   tx.objectStore(STORE_NAME).delete(id);
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB request failed"));
   });
 }
 
@@ -147,7 +147,7 @@ export async function clearOfflineItineraries(): Promise<void> {
   tx.objectStore(STORE_NAME).clear();
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB request failed"));
   });
 }
 
@@ -180,8 +180,8 @@ export async function updateItineraryMeta(
       }
       store.put({ ...existing, ...patch });
     };
-    getReq.onerror = () => reject(getReq.error);
+    getReq.onerror = () => reject(getReq.error ?? new Error("IndexedDB request failed"));
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => reject(tx.error ?? new Error("IndexedDB request failed"));
   });
 }

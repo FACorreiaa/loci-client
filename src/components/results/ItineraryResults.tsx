@@ -36,11 +36,6 @@ interface ItineraryResultsProps {
 export default function ItineraryResults(props: ItineraryResultsProps) {
   const [showAll, setShowAll] = createSignal(false);
 
-  // Check if POI is in favorites
-  const _isFavorite = (poiName: string) => {
-    return props.favorites?.includes(poiName) || false;
-  };
-
   const displayPOIs = () => {
     const pois = props.pois || props.itinerary?.points_of_interest || [];
     // Sort by priority if available

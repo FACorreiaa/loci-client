@@ -87,6 +87,7 @@ function mount(
   return { api, calls, speech, onClose, onHandoff };
 }
 
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- typed selector helper, same shape as querySelector<T>
 const byTest = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.querySelector<T>(`[data-testid="${id}"]`);
 

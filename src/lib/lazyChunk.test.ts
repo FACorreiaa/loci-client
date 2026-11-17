@@ -45,7 +45,7 @@ describe("lazyChunk", () => {
     reload = vi.fn();
     Object.defineProperty(window, "location", {
       configurable: true,
-      value: { ...window.location, reload },
+      value: Object.assign({}, window.location, { reload }),
     });
   });
 

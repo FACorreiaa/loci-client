@@ -112,7 +112,7 @@ try {
       "-o",
       dst,
     ]);
-    if (r.status !== 0) throw new Error(`cwebp failed: ${r.stderr}`);
+    if (r.status !== 0) throw new Error(`cwebp failed: ${String(r.stderr)}`);
   };
   webp(path.join(brand, "mascot-3d-still.webp"), W, H);
   webp(path.join(brand, "mascot-3d-still-sm.webp"), W / 2, H / 2);

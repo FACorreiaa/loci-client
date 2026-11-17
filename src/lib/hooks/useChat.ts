@@ -563,9 +563,9 @@ export function useChat(
         conversationMessages = history.map((msg: any, index: number) => ({
           id: `session-${session.id}-msg-${index}`,
           type: msg.role === "user" ? "user" : "assistant",
-          // The server stores the user turn as the prompt it built around
-          // it ("Unified Chat Stream - Domain: …, Message: …"); show the
-          // message the user actually typed.
+          // The server stores the user turn wrapped in the prompt it built
+          // ("Unified Chat Stream - Domain: …, Message: …"); show the message
+          // the user actually typed.
           content:
             (msg.role === "user"
               ? stripPromptWrapper(msg.content || msg.message || "")

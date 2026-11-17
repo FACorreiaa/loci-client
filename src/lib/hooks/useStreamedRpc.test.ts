@@ -28,7 +28,8 @@ vi.mock("../streaming/chatStream", () => ({
       },
     };
     return (async function* () {
-      while (!signal?.aborted) {
+      for (;;) {
+        if (signal?.aborted) return;
         if (queue.length) {
           const e = queue.shift()!;
           yield e;

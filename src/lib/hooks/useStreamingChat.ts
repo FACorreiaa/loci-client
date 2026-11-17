@@ -138,11 +138,11 @@ export function useStreamingChat(options: StreamingChatOptions = {}) {
       console.error("Stream processing error:", error);
       setState((prev) => ({
         ...prev,
-        error: `Stream error: ${error}`,
+        error: `Stream error: ${String(error)}`,
         isStreaming: false,
         isConnected: false,
       }));
-      options.onError?.(`Stream error: ${error}`);
+      options.onError?.(`Stream error: ${String(error)}`);
     }
   };
 
