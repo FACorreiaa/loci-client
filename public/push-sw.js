@@ -96,7 +96,7 @@
           var relayed = { lociPush: Object.assign({}, payload, { url: targetUrl(payload) }) };
           // oxlint-disable-next-line unicorn/require-post-message-target-origin -- Client.postMessage, not Window.postMessage: it takes no targetOrigin
           d.client.postMessage(relayed);
-          return;
+          return undefined;
         }
         return root.registration.showNotification(payload.title || "Loci", {
           body: payload.body || "",

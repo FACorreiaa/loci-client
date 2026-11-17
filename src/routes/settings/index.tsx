@@ -143,7 +143,7 @@ function SettingsPageContent() {
     // isSuccess first: reading `.data` on a pending query suspends the
     // root boundary and blanks the whole route (see ConnectionsPage).
     const apiData = profileQuery.isSuccess ? profileQuery.data : undefined;
-    if (!apiData && !userData) return null;
+    if (!apiData && !userData) return;
 
     if (apiData) {
       setUserProfile({

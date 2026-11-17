@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show } from "solid-js";
+import { createSignal, onCleanup, onMount, Show } from "solid-js";
 import { Button } from "@/ui/button";
 import { Download, X } from "lucide-solid";
 
@@ -52,11 +52,12 @@ export default function PWAInstall() {
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
 
-    // Cleanup
-    return () => {
+    // onCleanup, not a returned function: Solid's onMount ignores its return
+    // value, so the listeners used to outlive the component.
+    onCleanup(() => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
-    };
+    });
   });
 
   const handleInstallClick = async () => {

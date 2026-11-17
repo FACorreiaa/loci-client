@@ -90,6 +90,9 @@ const toProtoAction = (c: SuggestedChange) => {
           value: { stopId: c.stopId, toDayId: c.toDayId, toIndex: c.toIndex },
         },
       });
+    default:
+      // Unreachable while the switch is exhaustive, which `satisfies` checks.
+      throw new Error(`Unhandled suggested change: ${JSON.stringify(c satisfies never)}`);
   }
 };
 

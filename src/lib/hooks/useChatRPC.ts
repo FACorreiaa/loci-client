@@ -265,6 +265,9 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
         return { ...base, restaurants: event.pois };
       case "activities":
         return { ...base, activities: event.pois };
+      default:
+        // Unreachable while the switch is exhaustive, which `satisfies` checks.
+        throw new Error(`Unhandled list event: ${JSON.stringify(event satisfies never)}`);
     }
   };
 

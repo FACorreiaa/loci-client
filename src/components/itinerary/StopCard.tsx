@@ -51,8 +51,9 @@ export default function StopCard(props: StopCardProps) {
       (enriched, prev) => {
         if (enriched && prev === false) {
           setBloom(true);
-          const t = setTimeout(() => setBloom(false), 900);
-          return () => clearTimeout(t);
+          // No cleanup: Solid ignores a function returned from an effect, and
+          // clearing on a re-run would leave the bloom on for good.
+          setTimeout(() => setBloom(false), 900);
         }
       },
       { defer: true },

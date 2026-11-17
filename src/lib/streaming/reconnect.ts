@@ -181,6 +181,9 @@ export function settleEvent(sessionId: string, outcome: SettleOutcome): LociStre
       };
     case "aborted":
       return null;
+    default:
+      // Unreachable while the switch is exhaustive, which `satisfies` checks.
+      throw new Error(`Unhandled settle outcome: ${JSON.stringify(outcome satisfies never)}`);
   }
 }
 
