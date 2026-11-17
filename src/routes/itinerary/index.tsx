@@ -90,7 +90,7 @@ import LayerLegend, { type LayerVisibility } from "@/components/features/Map/Lay
 import { isLocatedAlert, useLocalContext } from "@/lib/api/localContext";
 import { ActionToolbar } from "@/components/ui/ActionToolbar";
 import { StreamErrorCard } from "@/components/ui/StreamErrorCard";
-import FloatingChat from "@/components/features/Chat/FloatingChat";
+import { FloatingChat } from "@/components/features/Chat/FloatingChat";
 import { useSaveItineraryMutation } from "@/lib/api/itineraries";
 import { useUserSubscription } from "@/lib/api/billing";
 import { canUsePro } from "@/lib/subscription";
@@ -138,9 +138,9 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // itinerary to somebody who had asked about Funchal. Streaming the wrong city
   // is worse than showing nothing, so an absent query renders the empty state
   // instead.
-  const [message] = createSignal((searchParams.message as string) || "");
-  const [cityName] = createSignal((searchParams.cityName as string) || "");
-  const [profileId] = createSignal((searchParams.profileId as string) || "");
+  const [message] = createSignal((searchParams.message as string | undefined) || "");
+  const [cityName] = createSignal((searchParams.cityName as string | undefined) || "");
+  const [profileId] = createSignal((searchParams.profileId as string | undefined) || "");
   const { isAuthenticated } = useAuth();
 
   // The stream that a search on `/` started is still running on the service
@@ -263,9 +263,9 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       persistCompletedSession(sessionIdFromUrl, normalizedData);
       return true;
     } catch (err) {
-      const message =
+      const errorMessage =
         err instanceof Error ? err.message : "Could not load your itinerary. Please try again.";
-      setStore("error", new Error(message));
+      setStore("error", new Error(errorMessage));
       return true;
     } finally {
       setStore("isLoading", false);
@@ -329,7 +329,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       setStore("route", { ...r, tripId });
       setStore("stops", loaded);
       const first = loaded.find((st) => st.data)?.data;
-      if (first) setStore("data", first as any);
+      if (first) setStore("data", first);
       setStore("tripId", tripId);
       return true;
     } catch (e) {
@@ -368,7 +368,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     // Repeating an identical prompt is close to free: the generation cache
     // serves it from Postgres without a provider call.
     if (message().trim() && cityName().trim()) {
-      connect();
+      void connect();
       return;
     }
 
@@ -444,7 +444,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       return;
     }
 
-    connect();
+    void connect();
   });
 
   // --- Multi-city ------------------------------------------------------
@@ -576,9 +576,9 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   const extraStops = createMemo<ItineraryStop[]>(() => {
     if (!viewData()) return [];
     const general = stopsFromCityResponse({
-      ...(viewData() as any),
+      ...viewData(),
       itinerary_response: undefined,
-    } as any).stops;
+    }).stops;
     if (!tripMerged()) {
       const itinNames = new Set(itineraryModel().stops.map((s) => s.name));
       return general.filter((s) => !itinNames.has(s.name));
@@ -700,6 +700,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     const tripId = store.tripId || (searchParams.tripId as string | undefined);
     if (!tripId) return;
     void fetchTrip(tripId)
+      // eslint-disable-next-line solid/reactivity -- runs when the promise settles and reads the current value then
       .then((trip) => {
         if (tripStartDate()) return;
         const pinned = pinnedTripStart(trip.days, parseTripDate);
@@ -739,7 +740,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   const [selectedId, setSelectedId] = createSignal<string | undefined>(undefined);
 
   // Detail modal state.
-  const [detailItem, setDetailItem] = createSignal<any | null>(null);
+  const [detailItem, setDetailItem] = createSignal<any>(null);
   const [detailOpen, setDetailOpen] = createSignal(false);
 
   const openDetail = (poi: POI) => {
@@ -864,7 +865,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // is reported, not treated as losing the save.
   const handleSave = async () => {
     if (isMulti()) return saveMultiCity();
-    const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
+    const sessionId = (searchParams.sessionId as string | undefined) || store.data?.session_id;
     const city = cityData();
     if (!sessionId || !store.data || !hasItineraryContent(store.data)) {
       showStatus("Nothing to save yet");
@@ -1090,6 +1091,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
             dayLabel={day.label}
             cityName={day.cityName || cityData()?.city || cityName() || undefined}
             busy={tripView.busy()}
+            // eslint-disable-next-line solid/reactivity -- an event callback prop: it runs on the event, not as a tracked scope
             onAdd={async (stop, method, knownPlace) => {
               const ok = await tripView.add(day.dayId, stop);
               if (ok) capture("itinerary_stop_added", { method, known_place: knownPlace });
@@ -1348,13 +1350,15 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
             startDate={tripStartDate()}
             onStartDateChange={(d) => {
               setTripStartDate(d);
-              const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
+              const sessionId =
+                (searchParams.sessionId as string | undefined) || store.data?.session_id;
               if (sessionId) void updateItineraryMeta(sessionId, { tripStartDate: d });
             }}
             stopNotes={stopNotes()}
             onStopNotesChange={(notes) => {
               setStopNotes(notes);
-              const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
+              const sessionId =
+                (searchParams.sessionId as string | undefined) || store.data?.session_id;
               if (sessionId) void updateItineraryMeta(sessionId, { stopNotes: notes });
             }}
           />
@@ -1377,7 +1381,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
           <Show when={store.tripId || (searchParams.tripId as string | undefined)}>
             <div class="mt-4">
               <EditTripCTA
-                tripId={(store.tripId || (searchParams.tripId as string)) ?? null}
+                tripId={(store.tripId || (searchParams.tripId as string | undefined)) ?? null}
                 cityName={cityName()}
               />
             </div>
@@ -1426,7 +1430,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       <FloatingChat
         getStreamingData={() => store.data}
         setStreamingData={(fn) => setStore("data", fn)}
-        initialSessionId={searchParams.sessionId as string}
+        initialSessionId={searchParams.sessionId as string | undefined}
         trip={chatTrip()}
         onTripChanged={(trip, kind) => {
           // The card hands back the trip as applied; without one, reread it.

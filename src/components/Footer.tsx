@@ -1,3 +1,4 @@
+import { For } from "solid-js";
 import { A } from "@solidjs/router";
 import { Compass } from "lucide-solid";
 import { LociLogo } from "~/components/brand/Logo";
@@ -46,14 +47,16 @@ export default function Footer() {
           {/* 44px rows on touch (the links measured 20px tall at 390px); the
               gap collapses on wider screens where the pointer is fine. */}
           <div class="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:gap-y-3">
-            {links.map((link) => (
-              <A
-                href={link.href}
-                class="flex min-h-11 items-center text-hero-foreground transition-colors hover:underline hover:underline-offset-4 sm:min-h-0"
-              >
-                {link.label}
-              </A>
-            ))}
+            <For each={links}>
+              {(link) => (
+                <A
+                  href={link.href}
+                  class="flex min-h-11 items-center text-hero-foreground transition-colors hover:underline hover:underline-offset-4 sm:min-h-0"
+                >
+                  {link.label}
+                </A>
+              )}
+            </For>
             <a
               href={DISCORD_URL}
               target="_blank"

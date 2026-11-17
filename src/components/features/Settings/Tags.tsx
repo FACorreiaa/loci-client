@@ -23,6 +23,17 @@ interface TagsUIProps {
   isToggling: boolean;
 }
 
+// Rendered through Show rather than an early return: a component body runs
+// once in Solid, so returning early on props.isLoading would freeze this
+// panel on its spinner the moment the request settled.
+const loadingView = () => (
+  <div class="space-y-8">
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+    </div>
+  </div>
+);
+
 export default function TagsComponent(props: TagsUIProps) {
   // Form state
   const [newTagName, setNewTagName] = createSignal("");
@@ -137,17 +148,6 @@ export default function TagsComponent(props: TagsUIProps) {
     setEditTagDescription("");
     setEditTagType("");
   };
-
-  // Rendered through Show rather than an early return: a component body runs
-  // once in Solid, so returning early on props.isLoading would freeze this
-  // panel on its spinner the moment the request settled.
-  const loadingView = () => (
-    <div class="space-y-8">
-      <div class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    </div>
-  );
 
   const errorView = () => (
     <div class="space-y-8">
@@ -378,7 +378,7 @@ export default function TagsComponent(props: TagsUIProps) {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    props.onDeleteTag(tag);
+                                    void props.onDeleteTag(tag);
                                   }}
                                   class="px-3 py-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-semibold border border-destructive/20"
                                 >
@@ -406,7 +406,7 @@ export default function TagsComponent(props: TagsUIProps) {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  props.onDeleteTag(tag);
+                                  void props.onDeleteTag(tag);
                                   setActiveTagForActions(null);
                                 }}
                                 class="flex-1 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold"

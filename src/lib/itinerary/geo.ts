@@ -4,9 +4,10 @@ export interface Coord {
   longitude: number;
 }
 
+const rad = (d: number) => (d * Math.PI) / 180;
+
 /** Great-circle distance between two points, in kilometres. */
 export function distanceKm(a: Coord, b: Coord): number {
-  const rad = (d: number) => (d * Math.PI) / 180;
   const dLat = rad(b.latitude - a.latitude);
   const dLon = rad(b.longitude - a.longitude);
   const h =

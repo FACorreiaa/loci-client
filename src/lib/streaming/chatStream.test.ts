@@ -15,15 +15,19 @@ vi.mock("~/lib/analytics", () => ({ capture: vi.fn() }));
 
 import { create } from "@bufbuild/protobuf";
 import { StreamEventSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
+import {
+  AccessibilityNoteSeverity,
+  AccessibilityNoteSource,
+} from "@buf/loci_loci-proto.bufbuild_es/loci/poi/poi_pb.js";
 import { capture } from "~/lib/analytics";
 import { mapProtoEvent, streamChatEvents, terminalError } from "./chatStream";
 
 const CAP = "You have 3 searches running — wait for one to finish";
 
 // An async iterable whose first next() rejects, the way a refused stream does.
-const failWith = (err: unknown) =>
+const failWith = (reason: Error) =>
   streamChat.mockReturnValue({
-    [Symbol.asyncIterator]: () => ({ next: () => Promise.reject(err) }),
+    [Symbol.asyncIterator]: () => ({ next: () => Promise.reject(reason) }),
   });
 
 describe("chatStream terminal errors", () => {
@@ -58,27 +62,27 @@ describe("chatStream terminal errors", () => {
   });
 });
 
+const frame = (init: Parameters<typeof create<typeof StreamEventSchema>>[1]) =>
+  create(StreamEventSchema, init);
+
+const collect = async (signal?: AbortSignal) => {
+  const out = [];
+  for await (const e of streamChatEvents({ message: "Porto" }, signal)) out.push(e);
+  return out;
+};
+
 // A dropped connection is not a failed search: the server keeps generating
 // after the client goes away. streamChatEvents marks errors that came from
 // the transport so callers can resume instead of declaring the run failed.
 describe("chatStream transport classification", () => {
-  const frame = (init: Parameters<typeof create<typeof StreamEventSchema>>[1]) =>
-    create(StreamEventSchema, init);
-
   // Yields `frames`, then fails with `err` (or ends cleanly when undefined).
-  const script = (frames: ReturnType<typeof frame>[], err?: unknown) =>
+  const script = (frames: ReturnType<typeof frame>[], err?: Error) =>
     streamChat.mockImplementation(() =>
       (async function* () {
         for (const f of frames) yield f;
         if (err !== undefined) throw err;
       })(),
     );
-
-  const collect = async (signal?: AbortSignal) => {
-    const out = [];
-    for await (const e of streamChatEvents({ message: "Porto" }, signal)) out.push(e);
-    return out;
-  };
 
   const start = frame({
     eventId: "e1",
@@ -330,10 +334,8 @@ describe("gastronomy events", () => {
         },
       }),
     );
-    expect(ev?.kind).toBe("itinerary");
-    if (ev?.kind === "itinerary") {
-      expect(ev.cityResponse.gastronomy?.dishes[0].name).toBe("Bolo do caco");
-    }
+    if (ev?.kind !== "itinerary") throw new Error(`expected an itinerary event, got ${ev?.kind}`);
+    expect(ev.cityResponse.gastronomy?.dishes[0].name).toBe("Bolo do caco");
   });
 });
 
@@ -391,7 +393,13 @@ describe("accessible route events", () => {
                 ascentM: 30,
                 routed: false,
                 suggestMode: "taxi",
-                notes: [{ text: "Steep climb", severity: 2, source: 3 }],
+                notes: [
+                  {
+                    text: "Steep climb",
+                    severity: AccessibilityNoteSeverity.CAUTION,
+                    source: AccessibilityNoteSource.ROUTED,
+                  },
+                ],
               },
             ],
           },

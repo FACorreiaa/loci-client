@@ -73,10 +73,10 @@ describe("AppButtons", () => {
   });
 });
 
-describe("StoreBadge", () => {
-  const renderBadge = (state: StoreState) =>
-    mount(() => createComponent(StoreBadge, { store: "apple", state }));
+const renderBadge = (state: StoreState) =>
+  mount(() => createComponent(StoreBadge, { store: "apple", state }));
 
+describe("StoreBadge", () => {
   it("drops the caption once a real listing exists", () => {
     const el = renderBadge({ kind: "live", href: "https://apps.apple.com/app/id1" });
     expect(el.querySelector("a")!.getAttribute("href")).toBe("https://apps.apple.com/app/id1");

@@ -108,7 +108,7 @@ export default function TripEditor() {
     }
   });
 
-  const trip = () => tripQuery.data as Trip | undefined;
+  const trip = () => tripQuery.data;
   /**
    * The owner edits the trip. A co-planner's adds, swaps, moves and removals
    * become suggestions the owner applies; a viewer only reads.
@@ -192,7 +192,7 @@ export default function TripEditor() {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.toLowerCase().includes("version") || msg.toLowerCase().includes("precondition")) {
       setConflict(true);
-      tripQuery.refetch();
+      void tripQuery.refetch();
     }
   };
 
@@ -505,6 +505,7 @@ export default function TripEditor() {
                   lon={t.days[0]?.cityLon}
                   startDate={t.startDate}
                   endDate={t.endDate}
+                  // eslint-disable-next-line solid/reactivity -- an event callback prop: it runs on the event, not as a tracked scope
                   onSave={async (search) => {
                     try {
                       rememberTrip(
@@ -515,7 +516,7 @@ export default function TripEditor() {
                     } catch (err) {
                       if (err instanceof ConnectError && err.code === Code.FailedPrecondition) {
                         setConflict(true);
-                        tripQuery.refetch();
+                        void tripQuery.refetch();
                       }
                       return false;
                     }
@@ -529,7 +530,7 @@ export default function TripEditor() {
                 onUpdated={(updated) => rememberTrip(queryClient, updated)}
                 onConflict={() => {
                   setConflict(true);
-                  tripQuery.refetch();
+                  void tripQuery.refetch();
                 }}
               />
             </Show>

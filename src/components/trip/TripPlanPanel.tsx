@@ -60,10 +60,13 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
   };
 
   // Dates
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
   const [start, setStart] = createSignal(props.trip.startDate ?? "");
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
   const [end, setEnd] = createSignal(props.trip.endDate ?? "");
   const datesReady = () => start() !== "" && end() !== "" && end() >= start();
   const saveDates = () =>
+    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
     run(() => api().setDates(props.trip.id, start(), end(), props.trip.version));
 
   // Stays
@@ -98,6 +101,7 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
       : `No hotels found within 5 km of ${city}.`;
   };
   const pickHotel = async (city: string, h: HotelDetailedInfo) => {
+    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
     const ok = await run(() =>
       api().setStay(
         props.trip.id,
@@ -117,6 +121,7 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
   // Flights: the shared search form; saving remounts it empty.
   const [flightForm, setFlightForm] = createSignal(0);
   const saveFlight = async (search: FlightSearch) => {
+    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
     const ok = await run(() => api().addFlight(props.trip.id, search, props.trip.version));
     if (ok) setFlightForm((n) => n + 1);
   };
@@ -207,7 +212,7 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
                     size="sm"
                     variant="outline"
                     data-testid={`plan-find-${city}`}
-                    disabled={!!searching()[city]}
+                    disabled={searching()[city]}
                     onClick={() => findHotels(city)}
                   >
                     {searching()[city] ? "Searching…" : "Find hotels"}
@@ -283,6 +288,7 @@ const TripPlanPanel: Component<TripPlanPanelProps> = (props) => {
                   class="text-xs text-muted-foreground hover:text-destructive disabled:opacity-60"
                   disabled={busy()}
                   onClick={() =>
+                    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
                     run(() => api().removeFlight(props.trip.id, f.id, props.trip.version))
                   }
                 >

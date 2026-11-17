@@ -105,16 +105,18 @@ export function createTripView(opts: TripViewOptions) {
 
   createEffect(on([opts.enabled, opts.tripId, opts.sessionId], () => void load()));
 
+  const onVisible = () => {
+    if (document.visibilityState === "visible" && trip() && !busy()) void load();
+  };
+
+  // Back on the network: swap the device copy for the real trip.
+  const onOnline = () => {
+    if (status() === "stale" || status() === "error") void load();
+  };
+
   // Someone else may have changed the trip while this tab was in the
   // background: a co-planner, the trip editor in another tab, Telegram.
   onMount(() => {
-    const onVisible = () => {
-      if (document.visibilityState === "visible" && trip() && !busy()) void load();
-    };
-    // Back on the network: swap the device copy for the real trip.
-    const onOnline = () => {
-      if (status() === "stale" || status() === "error") void load();
-    };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("online", onOnline);
     onCleanup(() => {

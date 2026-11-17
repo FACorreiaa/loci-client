@@ -5,7 +5,7 @@ import { createComponent } from "solid-js";
 import { render } from "solid-js/web";
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { TripDraftSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
+import { TripDraftSchema, TripPace } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import TripPlanPanel, { type TripPlanPanelProps } from "./TripPlanPanel";
 import type { PlanApi } from "~/lib/api/trip-plan";
 import type { Trip } from "~/lib/api/trips";
@@ -23,7 +23,7 @@ const trip = (over: Partial<Trip> = {}): Trip => ({
   cityName: "Lisbon",
   title: "Lisbon",
   version: 3n,
-  constraints: { pace: 0 as any, interests: [] },
+  constraints: { pace: TripPace.UNSPECIFIED, interests: [] },
   createdAt: "",
   updatedAt: "",
   days: [{ id: "d1", dayNumber: 1, stops: [], cityLat: 38.72, cityLon: -9.14 }],

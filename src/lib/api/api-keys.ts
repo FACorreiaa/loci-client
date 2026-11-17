@@ -75,7 +75,7 @@ export const CLIENT_KINDS: { value: ClientKind; label: string; blurb: string }[]
   },
 ];
 
-export function clientKindLabel(kind: ClientKind | string): string {
+export function clientKindLabel(kind: string): string {
   return CLIENT_KINDS.find((k) => k.value === kind)?.label ?? "Other MCP client";
 }
 
@@ -188,7 +188,7 @@ export function useCreateApiKey() {
       };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: apiKeysQueryKey });
+      void queryClient.invalidateQueries({ queryKey: apiKeysQueryKey });
     },
   }));
 }
@@ -200,7 +200,7 @@ export function useRevokeApiKey() {
       await apiKeyClient.revokeApiKey(create(RevokeApiKeyRequestSchema, { id }));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: apiKeysQueryKey });
+      void queryClient.invalidateQueries({ queryKey: apiKeysQueryKey });
     },
   }));
 }

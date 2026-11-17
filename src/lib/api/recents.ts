@@ -56,6 +56,32 @@ const getCurrentUserId = async (): Promise<string | null> => {
 
 type RecentsClient = Pick<typeof recentsClient, "getRecentInteractions">;
 
+// Helper to extract clean message from "Unified Chat Stream - Domain: X, Message: Y" format
+const extractMessage = (description: string, cityName: string): string => {
+  if (!description) return cityName;
+
+  // Unwrap the prompt the server built around the user's message
+  const message = stripPromptWrapper(description);
+  if (message !== description) {
+    // If message ends with just the city name, include it
+    if (message && message !== cityName) {
+      return message.endsWith(cityName) ? message : `${message} ${cityName}`;
+    }
+    return message || cityName;
+  }
+
+  // If no match, check if it's a POI lookup prompt (starts with "Return ONLY")
+  if (description.startsWith("Return ONLY")) {
+    const poiMatch = description.match(/for "([^"]+)" in ([^.]+)/);
+    if (poiMatch) {
+      return `Looking up ${poiMatch[1]} in ${poiMatch[2]}`;
+    }
+  }
+
+  // Fallback to first 50 chars or city name
+  return description.length > 50 ? description.slice(0, 50) + "..." : description || cityName;
+};
+
 /**
  * Recent interactions grouped by city.
  *
@@ -83,32 +109,6 @@ export async function fetchRecentInteractions(
     }),
   );
 
-  // Helper to extract clean message from "Unified Chat Stream - Domain: X, Message: Y" format
-  const extractMessage = (description: string, cityName: string): string => {
-    if (!description) return cityName;
-
-    // Unwrap the prompt the server built around the user's message
-    const message = stripPromptWrapper(description);
-    if (message !== description) {
-      // If message ends with just the city name, include it
-      if (message && message !== cityName) {
-        return message.endsWith(cityName) ? message : `${message} ${cityName}`;
-      }
-      return message || cityName;
-    }
-
-    // If no match, check if it's a POI lookup prompt (starts with "Return ONLY")
-    if (description.startsWith("Return ONLY")) {
-      const poiMatch = description.match(/for "([^"]+)" in ([^.]+)/);
-      if (poiMatch) {
-        return `Looking up ${poiMatch[1]} in ${poiMatch[2]}`;
-      }
-    }
-
-    // Fallback to first 50 chars or city name
-    return description.length > 50 ? description.slice(0, 50) + "..." : description || cityName;
-  };
-
   // Map proto response to frontend types
   const cities: CityInteractions[] = (response.citySummaries || []).map((summary) => ({
     city_name: summary.cityName || "",
@@ -129,18 +129,18 @@ export async function fetchRecentInteractions(
       hotels: [],
       restaurants: [],
     })),
-    poi_count: Number(summary.interactionCount || 0),
+    poi_count: summary.interactionCount || 0,
     last_activity: summary.latestInteraction
       ? new Date(Number(summary.latestInteraction.seconds) * 1000).toISOString()
       : new Date().toISOString(),
-    total_interactions: Number(summary.interactionCount || 0),
+    total_interactions: summary.interactionCount || 0,
     total_favorites: 0,
     total_itineraries: 0,
   }));
 
   return {
     cities,
-    total: Number(response.totalCount || 0),
+    total: response.totalCount || 0,
     offset: 0,
     limit,
   };
@@ -208,7 +208,7 @@ async function fetchActivityHistory(limit: number, offset: number): Promise<Acti
   // total_count is a floor, not a total: the server reports one more than it
   // has served when another page exists rather than counting a three-way union
   // on every request. See the handler for why.
-  const hasMore = offset + entries.length < Number(response.totalCount || 0);
+  const hasMore = offset + entries.length < (response.totalCount || 0);
 
   return { entries, hasMore };
 }

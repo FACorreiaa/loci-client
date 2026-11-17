@@ -222,11 +222,12 @@ export function useFavoritesList(options: { enabled?: boolean | (() => boolean) 
 export function useIsFavorited(itemId: () => string) {
   const favoritesQuery = useFavoritesList();
 
-  return createMemo(() => {
+  const isFavorited = createMemo(() => {
     const favorites = favoritesQuery.data;
     if (!favorites) return false;
     return favorites.items.includes(itemId());
   });
+  return isFavorited;
 }
 
 // Hook: Add to favorites mutation
@@ -237,7 +238,7 @@ export function useAddToFavorites() {
     mutationFn: addToFavorites,
     onSuccess: () => {
       capture("poi_saved", { surface: "favorites" });
-      queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
       void queryClient.invalidateQueries({ queryKey: ["gamification"] });
     },
   }));
@@ -251,7 +252,7 @@ export function useRemoveFromFavorites() {
     mutationFn: ({ itemId, contentType }: { itemId: string; contentType: string }) =>
       removeFromFavorites(itemId, contentType),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.favoritesRoot });
     },
   }));
 }

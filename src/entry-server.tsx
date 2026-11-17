@@ -23,7 +23,7 @@ export default createHandler(() => (
             rel="stylesheet"
             media="print"
             onLoad={(e) => {
-              (e.currentTarget as HTMLLinkElement).media = "all";
+              e.currentTarget.media = "all";
             }}
           />
           <noscript>

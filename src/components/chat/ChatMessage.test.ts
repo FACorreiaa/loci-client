@@ -11,11 +11,15 @@ import { formatMessageContent } from "./format-message-content";
 // lucide-solid's barrel is ~1,600 icon modules; transforming them costs ~25s per
 // run. Every icon becomes a bare <svg>, which is all these tests look for.
 vi.mock("lucide-solid", () => {
+  // oxlint-disable-next-line unicorn/consistent-function-scoping -- vitest hoists this factory above the module scope, so it cannot reach a module-level function
   const Icon = () => document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  return new Proxy({} as Record<string, unknown>, {
-    get: (_t, key) => (key === "then" || key === "__esModule" ? undefined : Icon),
-    has: () => true,
-  });
+  return new Proxy(
+    {},
+    {
+      get: (_t, key) => (key === "then" || key === "__esModule" ? undefined : Icon),
+      has: () => true,
+    },
+  );
 });
 
 // Persisted assistant turns come back from the server as the raw stream
@@ -166,6 +170,9 @@ describe("formatMessageContent", () => {
   });
 });
 
+const bubble = (host: HTMLElement) =>
+  host.querySelector<HTMLElement>('[data-testid="chat-bubble"]')!;
+
 // Muse chat contract (apps/_reviews/muse-chat-contract.md): the header carries
 // who is speaking, so a bubble has no inline avatar and no per-message name.
 describe("ChatMessage (Muse restyle)", () => {
@@ -188,7 +195,7 @@ describe("ChatMessage (Muse restyle)", () => {
             content: "Funchal is lovely in **October**.",
             timestamp: new Date("2026-09-23T10:00:00Z"),
             ...message,
-          } as ChatMessageType,
+          },
           expanded: false,
           onToggle: () => {},
           onItemClick: () => {},
@@ -197,9 +204,6 @@ describe("ChatMessage (Muse restyle)", () => {
     );
     return host;
   };
-
-  const bubble = (host: HTMLElement) =>
-    host.querySelector<HTMLElement>('[data-testid="chat-bubble"]')!;
 
   it("renders an agent bubble with no avatar and no name label", () => {
     const host = mount({ type: "assistant" });
@@ -236,6 +240,9 @@ describe("ChatMessage (Muse restyle)", () => {
   });
 });
 
+const caption = (host: HTMLElement) =>
+  host.querySelector<HTMLElement>('[data-testid="proactive-caption"]');
+
 describe("ChatMessage proactive caption (stage C)", () => {
   let dispose: (() => void) | undefined;
   afterEach(() => {
@@ -256,7 +263,7 @@ describe("ChatMessage proactive caption (stage C)", () => {
             content: "Got it — I'll watch rain in Lisbon and ping you when it's forecast.",
             timestamp: new Date("2026-09-23T10:00:00Z"),
             ...message,
-          } as ChatMessageType,
+          },
           expanded: false,
           onToggle: () => {},
           onItemClick: () => {},
@@ -265,8 +272,6 @@ describe("ChatMessage proactive caption (stage C)", () => {
     );
     return host;
   };
-  const caption = (host: HTMLElement) =>
-    host.querySelector<HTMLElement>('[data-testid="proactive-caption"]');
 
   it("puts the source label above a proactive agent bubble", () => {
     const host = mount({ origin: "proactive", sourceLabel: "Standing task" });

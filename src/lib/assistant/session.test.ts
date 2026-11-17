@@ -41,6 +41,11 @@ async function* play(...events: AssistantEvent[]) {
   yield* events;
 }
 
+const handoff = (query: string) =>
+  create(AssistantEventSchema, {
+    event: { case: "handoff", value: { query, city: "" } as never },
+  });
+
 describe("createAssistantSession", () => {
   it("shows the answer and speaks it by sentence when asked by voice", async () => {
     const { session, speaker } = setup(() => play(text("Yes. It is"), text(" in May."), done()));
@@ -88,10 +93,6 @@ describe("createAssistantSession", () => {
   });
 
   it("turns an answered card into its note, or removes it", async () => {
-    const handoff = (query: string) =>
-      create(AssistantEventSchema, {
-        event: { case: "handoff", value: { query, city: "" } as never },
-      });
     const { session } = setup(() => play(handoff("a"), handoff("b"), done()));
     await session.ask("plan", false, input);
     const [first, second] = session.turns()[0].cards;

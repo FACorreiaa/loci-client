@@ -34,7 +34,7 @@ export const useInterests = () => {
           name: interest.name,
           description: interest.description ?? null,
           active: interest.active ?? true,
-          source: (interest.source === "global" ? "global" : "custom") as "global" | "custom",
+          source: interest.source === "global" ? "global" : "custom",
           created_at: interest.createdAt
             ? new Date(Number(interest.createdAt.seconds) * 1000).toISOString()
             : "",
@@ -71,7 +71,7 @@ export const useCreateInterestMutation = () => {
       return { success: response.success, message: response.message };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.interests });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.interests });
     },
   }));
 };
@@ -109,7 +109,7 @@ export const useUpdateInterestMutation = () => {
       return { success: response.success, message: response.message };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.interests });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.interests });
     },
   }));
 };
@@ -129,7 +129,7 @@ export const useToggleInterestActiveMutation = () => {
       return { success: response.success, message: response.message };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.interests });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.interests });
     },
   }));
 };
@@ -150,7 +150,7 @@ export const useDeleteInterestMutation = () => {
       return { success: response.success, message: response.message };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.interests });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.interests });
     },
   }));
 };

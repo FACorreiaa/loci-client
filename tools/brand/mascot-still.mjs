@@ -51,13 +51,19 @@ const server = await createServer({
       name: "mascot-still-upload",
       configureServer(s) {
         s.middlewares.use("/__mascot-still", (req, res) => {
-          if (req.method !== "POST") return res.writeHead(405).end();
+          if (req.method !== "POST") {
+            res.writeHead(405).end();
+            return;
+          }
           const chunks = [];
           req.on("data", (c) => chunks.push(c));
           req.on("end", () => {
             const body = Buffer.concat(chunks).toString();
             const prefix = "data:image/png;base64,";
-            if (!body.startsWith(prefix)) return res.writeHead(400).end();
+            if (!body.startsWith(prefix)) {
+              res.writeHead(400).end();
+              return;
+            }
             writeFileSync(png, Buffer.from(body.slice(prefix.length), "base64"));
             res.writeHead(204).end();
             resolveFrame();
@@ -112,7 +118,7 @@ try {
       "-o",
       dst,
     ]);
-    if (r.status !== 0) throw new Error(`cwebp failed: ${r.stderr}`);
+    if (r.status !== 0) throw new Error(`cwebp failed: ${String(r.stderr)}`);
   };
   webp(path.join(brand, "mascot-3d-still.webp"), W, H);
   webp(path.join(brand, "mascot-3d-still-sm.webp"), W / 2, H / 2);

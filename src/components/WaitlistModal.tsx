@@ -16,13 +16,13 @@ export default function WaitlistModal(props: WaitlistModalProps) {
   const [isSubmitted, setIsSubmitted] = createSignal(false);
   const [emailError, setEmailError] = createSignal("");
 
-  const validateEmail = (email: string): boolean => {
-    if (!email.trim()) {
+  const validateEmail = (value: string): boolean => {
+    if (!value.trim()) {
       setEmailError("Email is required");
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(value)) {
       setEmailError("Please enter a valid email address");
       return false;
     }

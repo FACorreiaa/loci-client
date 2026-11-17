@@ -18,7 +18,7 @@ export interface Entitlements {
 
 function mapEntitlements(raw: Record<string, unknown>): Entitlements {
   return {
-    plan: String(raw.plan ?? "free"),
+    plan: typeof raw.plan === "string" ? raw.plan : "free",
     listsUsed: Number(raw.listsUsed ?? 0),
     listsLimit: Number(raw.listsLimit ?? 5),
     placesSaved: Number(raw.placesSaved ?? 0),
@@ -47,7 +47,7 @@ export async function fetchEntitlements(): Promise<Entitlements | null> {
   if (!res.ok) {
     throw new Error(`GetEntitlements failed: ${res.status}`);
   }
-  const data = (await res.json()) as Record<string, unknown>;
+  const data: Record<string, unknown> = await res.json();
   return mapEntitlements(data);
 }
 

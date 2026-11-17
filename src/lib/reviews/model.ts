@@ -53,6 +53,7 @@ export function formIssues(values: ReviewFormValues): FormIssue[] {
   return issues;
 }
 
+// oxlint-disable-next-line typescript/consistent-return -- the switch is exhaustive, and the compiler rejects a missing case
 export function formIssueMessage(issue: FormIssue): string {
   switch (issue) {
     case "noRating":

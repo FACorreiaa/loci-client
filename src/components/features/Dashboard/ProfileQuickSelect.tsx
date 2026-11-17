@@ -7,6 +7,20 @@ import {
 } from "~/lib/api/profiles";
 import { useNavigate } from "@solidjs/router";
 
+const getBudgetLabel = (level: number) => {
+  if (level === 1) return "€";
+  if (level === 2) return "€€";
+  if (level === 3) return "€€€";
+  if (level === 4) return "€€€€";
+  return "Any";
+};
+
+const metaLine = (budget: number, radiusKm: number) => {
+  const bits = [getBudgetLabel(budget)];
+  if (radiusKm > 0) bits.push(`${radiusKm}km`);
+  return bits.join(" · ");
+};
+
 export default function ProfileQuickSelect() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = createSignal(false);
@@ -31,20 +45,6 @@ export default function ProfileQuickSelect() {
     } catch (error) {
       console.error("Failed to set default profile:", error);
     }
-  };
-
-  const getBudgetLabel = (level: number) => {
-    if (level === 1) return "€";
-    if (level === 2) return "€€";
-    if (level === 3) return "€€€";
-    if (level === 4) return "€€€€";
-    return "Any";
-  };
-
-  const metaLine = (budget: number, radiusKm: number) => {
-    const bits = [getBudgetLabel(budget)];
-    if (radiusKm > 0) bits.push(`${radiusKm}km`);
-    return bits.join(" · ");
   };
 
   return (

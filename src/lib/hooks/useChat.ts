@@ -76,6 +76,16 @@ const welcomeMessage = (profile: string): ChatMessage => ({
   hasItinerary: false,
 });
 
+const progressLabel = (updated: any) => {
+  if ("general_city_data" in updated.data && updated.data.general_city_data) {
+    return `Found information about ${updated.data.general_city_data.city}...`;
+  }
+  if (updated.domain === "accommodation") return "Finding hotels...";
+  if (updated.domain === "dining") return "Searching restaurants...";
+  if (updated.domain === "activities") return "Discovering activities...";
+  return "Creating your itinerary...";
+};
+
 /**
  * All /chat state + actions. The route only wires this into the view components.
  */
@@ -101,7 +111,7 @@ export function useChat(
   const [sessionId, setSessionId] = createSignal<string | null>(null);
   const [selectedProfileId, setSelectedProfileId] = createSignal<string | undefined>(undefined);
   const [showProfileSelector, setShowProfileSelector] = createSignal(false);
-  const [selectedSession, setSelectedSession] = createSignal<any | null>(null);
+  const [selectedSession, setSelectedSession] = createSignal<any>(null);
   const [streamingSession, setStreamingSession] = createSignal<any>(null);
   // This hook's own run, so Stop can name it before the server mints a session id.
   let activeRequestId = "";
@@ -344,23 +354,13 @@ export function useChat(
       localSessions.unshift(summary);
       if (localSessions.length > MAX_LOCAL_SESSIONS) localSessions.splice(MAX_LOCAL_SESSIONS);
       localStorage.setItem("localChatSessions", JSON.stringify(localSessions));
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: ["chatSessions", activeProfileId()],
       });
       setLocalSessionsVersion((v) => v + 1);
     } catch (error) {
       logger.error("Failed to save session locally:", error);
     }
-  };
-
-  const progressLabel = (updated: any) => {
-    if ("general_city_data" in updated.data && updated.data.general_city_data) {
-      return `Found information about ${updated.data.general_city_data.city}...`;
-    }
-    if (updated.domain === "accommodation") return "Finding hotels...";
-    if (updated.domain === "dining") return "Searching restaurants...";
-    if (updated.domain === "activities") return "Discovering activities...";
-    return "Creating your itinerary...";
   };
 
   const startNewSession = async (messageContent: string, streamId: string) => {
@@ -489,7 +489,7 @@ export function useChat(
         streaming: false,
       });
       const pid = activeProfileId();
-      if (pid) queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
+      if (pid) void queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
       return;
     }
     if (completed.sessionId) {
@@ -505,7 +505,7 @@ export function useChat(
     });
     keepStreaming("completedStreamingSession", completed);
     const pid = activeProfileId();
-    if (pid) queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
+    if (pid) void queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
   };
 
   /**
@@ -563,9 +563,9 @@ export function useChat(
         conversationMessages = history.map((msg: any, index: number) => ({
           id: `session-${session.id}-msg-${index}`,
           type: msg.role === "user" ? "user" : "assistant",
-          // The server stores the user turn as the prompt it built around
-          // it ("Unified Chat Stream - Domain: …, Message: …"); show the
-          // message the user actually typed.
+          // The server stores the user turn wrapped in the prompt it built
+          // ("Unified Chat Stream - Domain: …, Message: …"); show the message
+          // the user actually typed.
           content:
             (msg.role === "user"
               ? stripPromptWrapper(msg.content || msg.message || "")

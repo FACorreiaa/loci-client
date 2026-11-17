@@ -113,11 +113,11 @@ export const getDetailedPOIStatistics = async (): Promise<DetailedPOIStatistics>
 
     const stats = response.statistics;
     return {
-      general_pois: Number(stats?.favoritePoisCount || 0),
+      general_pois: stats?.favoritePoisCount || 0,
       suggested_pois: 0,
       hotels: 0,
       restaurants: 0,
-      total_pois: Number(stats?.totalPoiSearches || 0),
+      total_pois: stats?.totalPoiSearches || 0,
     };
   } catch (error) {
     console.error("Failed to fetch detailed POI statistics via RPC:", error);
@@ -167,10 +167,10 @@ export const getLandingPageStatistics = async (): Promise<LandingPageUserStats> 
     console.log("📊 getLandingPageStatistics: Response received", response);
     const stats = response.statistics;
     return {
-      saved_places: Number(stats?.newFavoritesThisWeek || 0),
-      itineraries: Number(stats?.itinerariesCreatedThisMonth || 0),
-      cities_explored: Number(stats?.citiesExplored || 0),
-      discoveries: Number(stats?.searchesThisWeek || 0),
+      saved_places: stats?.newFavoritesThisWeek || 0,
+      itineraries: stats?.itinerariesCreatedThisMonth || 0,
+      cities_explored: stats?.citiesExplored || 0,
+      discoveries: stats?.searchesThisWeek || 0,
     };
   } catch (error) {
     console.error("📊 Failed to fetch landing page statistics via RPC:", error);
@@ -251,7 +251,7 @@ export class StatisticsSSE {
         }
       });
 
-      this.eventSource.onerror = (event) => {
+      this.eventSource.addEventListener("error", (event) => {
         console.error("SSE Error:", event);
         this.onError?.(event);
 
@@ -269,12 +269,12 @@ export class StatisticsSSE {
             this.reconnectDelay * Math.pow(2, this.reconnectAttempts),
           );
         }
-      };
+      });
 
-      this.eventSource.onopen = () => {
+      this.eventSource.addEventListener("open", () => {
         console.log("SSE connection established for statistics");
         this.reconnectAttempts = 0;
-      };
+      });
     } catch (error) {
       console.error("Error creating SSE connection:", error);
       this.onError?.(error as Event);

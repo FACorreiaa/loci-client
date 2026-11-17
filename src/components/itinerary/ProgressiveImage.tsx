@@ -32,6 +32,7 @@ const hueFromSeed = (seed = "") => {
 };
 
 export default function ProgressiveImage(props: ProgressiveImageProps) {
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
   const [inView, setInView] = createSignal(Boolean(props.eager));
   const [status, setStatus] = createSignal<"idle" | "loading" | "loaded" | "error">("idle");
   const [resolvedSrc, setResolvedSrc] = createSignal<string>();
@@ -79,7 +80,10 @@ export default function ProgressiveImage(props: ProgressiveImageProps) {
         .then(() => finish(true))
         .catch(() => {
           // decode() can reject on some hosts even when usable — fall back to events
+          // A fresh Image with one handler per event, so handler properties.
+          // oxlint-disable-next-line unicorn/prefer-add-event-listener
           img.onload = () => finish(true);
+          // oxlint-disable-next-line unicorn/prefer-add-event-listener
           img.onerror = () => finish(false);
         });
     }),

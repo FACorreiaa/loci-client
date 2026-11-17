@@ -51,7 +51,11 @@ const SessionChat: Component<FloatingChatProps> = (props) => {
     isLoading,
     sendChatMessage,
   } = useChatSession({
+    // Read once: the hook tests whether each was given, so they are handed
+    // over as they are rather than wrapped.
+    // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
     getStreamingData: props.getStreamingData,
+    // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
     setStreamingData: props.setStreamingData,
     initialSessionId: props.initialSessionId,
   });

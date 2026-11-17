@@ -20,6 +20,20 @@ import { fieldLine, useFieldProfile } from "~/lib/api/gamification";
 import { useAchievements } from "~/lib/api/achievements";
 import RevealDialog from "~/components/achievements/RevealDialog";
 
+// Helper function to format time ago
+const formatTimeAgo = (date: Date): string => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30)
+    return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? "s" : ""} ago`;
+  return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? "s" : ""} ago`;
+};
+
 function ProfilePageContent() {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = createSignal(false);
@@ -46,14 +60,14 @@ function ProfilePageContent() {
   const computedStats = createMemo(() => {
     const cities = recentsQuery.data?.cities || [];
     const lists = listsQuery.data || [];
-    const favorites = favoritesQuery.data?.favorites || [];
+    // Not counted in the result, but read here as before: the stats keep
+    // tracking (and suspending on) the favourites query.
+    void favoritesQuery.data;
 
     // Count unique cities visited (places_visited)
     const placesVisited = cities.length;
     // Lists created
     const listsCreated = lists.length;
-    // Favorites count
-    const _favoritesCount = favorites.length; // Underscored as it's not directly used in the returned object
 
     // Only what can actually be counted. reviews_written, followers and
     // following were rendered as 0 beside real numbers, which reads as "you
@@ -253,20 +267,6 @@ function ProfilePageContent() {
 
     return activities.slice(0, 5); // Limit to 5 activities
   });
-
-  // Helper function to format time ago
-  const formatTimeAgo = (date: Date): string => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30)
-      return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? "s" : ""} ago`;
-    return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? "s" : ""} ago`;
-  };
 
   // Get user lists from real API data
   const getUserLists = () => {

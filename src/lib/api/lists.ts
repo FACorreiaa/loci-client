@@ -183,7 +183,7 @@ export const useDeleteListMutation = () => {
     },
     onSettled: (_: unknown, __: unknown, listId: string) => {
       queryClient.removeQueries({ queryKey: ["list", listId] });
-      queryClient.invalidateQueries({ queryKey: ["lists"] });
+      void queryClient.invalidateQueries({ queryKey: ["lists"] });
     },
   }));
 };
@@ -226,8 +226,8 @@ export const useAddToListMutation = () => {
       }),
     onSuccess: (_, { listId, itemData }) => {
       capture("poi_saved", { surface: "list", content_type: itemData.contentType });
-      queryClient.invalidateQueries({ queryKey: ["list", listId] });
-      queryClient.invalidateQueries({ queryKey: ["lists"] });
+      void queryClient.invalidateQueries({ queryKey: ["list", listId] });
+      void queryClient.invalidateQueries({ queryKey: ["lists"] });
       if (itemData.recommendationTrace) {
         void recordRecommendationEvents([
           {
@@ -280,8 +280,8 @@ export const useRemoveFromListMutation = () => {
       if (ctx?.previous) queryClient.setQueryData(["list", listId], ctx.previous);
     },
     onSettled: (_: unknown, __: unknown, { listId }: RemoveListItemInput) => {
-      queryClient.invalidateQueries({ queryKey: ["list", listId] });
-      queryClient.invalidateQueries({ queryKey: ["lists"] });
+      void queryClient.invalidateQueries({ queryKey: ["list", listId] });
+      void queryClient.invalidateQueries({ queryKey: ["lists"] });
     },
   }));
 };

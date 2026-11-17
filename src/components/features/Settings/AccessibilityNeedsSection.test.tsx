@@ -24,6 +24,7 @@ const mount = (initial: AccessibilityFormState) => {
   dispose = render(() => <AccessibilityNeedsSection state={s()} onChange={setS} />, host);
 };
 
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- typed selector helper, same shape as querySelector<T>
 const q = <T extends Element>(sel: string) => host.querySelector<T>(sel);
 const fields = () => q<HTMLFieldSetElement>('[data-testid="accessibility-fields"]')!;
 const consent = () => q<HTMLInputElement>('[data-testid="accessibility-consent"]');
@@ -42,6 +43,8 @@ afterEach(() => {
   dispose?.();
   host.remove();
 });
+
+const slopes = () => [...host.querySelectorAll("span")].some((s) => s.textContent === "Slopes");
 
 describe("AccessibilityNeedsSection", () => {
   it("starts locked behind an unticked consent box", () => {
@@ -62,7 +65,6 @@ describe("AccessibilityNeedsSection", () => {
 
   it("shows the slope choice only when routes must be step-free", () => {
     mount({ ...accessibilityFormFor(null), consentGiven: true });
-    const slopes = () => [...host.querySelectorAll("span")].some((s) => s.textContent === "Slopes");
     expect(slopes()).toBe(false);
     toggle("Step-free routes and entrances only");
     expect(slopes()).toBe(true);

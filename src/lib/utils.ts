@@ -218,7 +218,10 @@ export const removeFromStorage = (key: string): void => {
 };
 
 // URL and navigation utilities
-export const buildQueryString = (params: Record<string, unknown>): string => {
+
+export const buildQueryString = (
+  params: Record<string, string | number | boolean | null | undefined>,
+): string => {
   const searchParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
@@ -285,8 +288,7 @@ export const isValidPassword = (password: string): boolean => {
 
 export const isValidUrl = (url: string): boolean => {
   try {
-    new URL(url);
-    return true;
+    return Boolean(new URL(url));
   } catch {
     return false;
   }

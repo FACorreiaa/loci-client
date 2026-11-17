@@ -96,7 +96,7 @@ const toClientDomainType = (contextType?: ChatContextType): ClientDomainType => 
   }
 };
 
-export const domainToContextType = (domain: ClientDomainType | string): ChatContextType => {
+export const domainToContextType = (domain: string): ChatContextType => {
   switch (domain) {
     case "accommodation":
       return "hotels";
@@ -175,7 +175,7 @@ export const mapPoi = (poi: ProtoPOIDetailedInfo): POIDetailedInfo => {
     opening_hours:
       typeof poi.openingHours === "object"
         ? JSON.stringify(poi.openingHours)
-        : (poi.openingHours as unknown as string) || "",
+        : poi.openingHours || "",
     price_level: poi.priceLevel || "",
     price_range: poi.priceRange || "",
     price_tier: poi.priceTier,
@@ -261,9 +261,7 @@ export const mapItineraryResponse = (
 export const mapAiCityResponse = (response?: ProtoAiCityResponse): AiCityResponse | undefined => {
   if (!response) return undefined;
 
-  const mappedItinerary =
-    mapItineraryResponse(response.itineraryResponse) ||
-    (EMPTY_ITINERARY as unknown as AIItineraryResponse);
+  const mappedItinerary = mapItineraryResponse(response.itineraryResponse) || EMPTY_ITINERARY;
 
   const hotelsFromAccommodation =
     // @ts-expect-error: backend may return accommodationResponse
@@ -324,7 +322,7 @@ export const mapAiCityResponse = (response?: ProtoAiCityResponse): AiCityRespons
       ? storedRestaurants
       : mappedItinerary.restaurants?.length
         ? mappedItinerary.restaurants
-        : (derived.restaurants as unknown as RestaurantDetailedInfo[]),
+        : derived.restaurants,
     // Not derived when absent: "everything that is not a hotel or restaurant"
     // is every itinerary stop, and chat would render the plan twice.
     activities: storedActivities.length ? storedActivities : undefined,

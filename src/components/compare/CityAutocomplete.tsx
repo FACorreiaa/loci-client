@@ -32,6 +32,8 @@ interface CityAutocompleteProps {
 }
 
 export function CityAutocomplete(props: CityAutocompleteProps) {
+  // Seeded once: after that the field holds what the user types.
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
   const [query, setQuery] = createSignal(props.value?.name ?? "");
   const [open, setOpen] = createSignal(false);
   const [active, setActive] = createSignal(0);

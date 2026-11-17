@@ -31,10 +31,31 @@ import { ErrorView } from "~/components/ErrorView";
 import { friendlyError } from "~/lib/connect-errors";
 import { EmptyState } from "~/components/shared/EmptyState";
 
+// Convert list to selection item format
+const listToSelectionItem = (list: any): SelectionItem => ({
+  id: list.id,
+  name: list.name,
+  category: list.isItinerary ? "Itinerary" : "List",
+  description: list.description || "",
+});
+
+const formatDate = (timestamp: any) => {
+  if (!timestamp) return "";
+  try {
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "";
+  }
+};
+
 export default function ListsPage() {
   // State
   const [showModal, setShowModal] = createSignal(false);
-  const [editingList, setEditingList] = createSignal<any | null>(null);
+  const [editingList, setEditingList] = createSignal<any>(null);
   const [formName, setFormName] = createSignal("");
   const [formDescription, setFormDescription] = createSignal("");
   const [formIsPublic, setFormIsPublic] = createSignal(false);
@@ -52,14 +73,6 @@ export default function ListsPage() {
 
   // Selection state for lists
   const selection = useSelection<SelectionItem>();
-
-  // Convert list to selection item format
-  const listToSelectionItem = (list: any): SelectionItem => ({
-    id: list.id,
-    name: list.name,
-    category: list.isItinerary ? "Itinerary" : "List",
-    description: list.description || "",
-  });
 
   // Handle list selection toggle
   const handleListSelect = (list: any, e: Event) => {
@@ -154,19 +167,6 @@ export default function ListsPage() {
       setDeleteConfirmId(null);
     } catch (error) {
       setDeleteError(`Couldn't delete that list. ${friendlyError(error).message}`);
-    }
-  };
-
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return "";
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    } catch {
-      return "";
     }
   };
 

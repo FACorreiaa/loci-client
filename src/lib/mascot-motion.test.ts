@@ -46,6 +46,10 @@ function run(c: Case): number | Record<string, number> {
   }
 }
 
+// One shape for both kinds of result: a bare number is compared as { value }.
+const asRecord = (v: number | Record<string, number>): Record<string, number> =>
+  typeof v === "number" ? { value: v } : v;
+
 describe("mascot motion matches the shared fixtures", () => {
   const cases = (fixtures as unknown as { cases: Case[] }).cases;
 
@@ -64,13 +68,11 @@ describe("mascot motion matches the shared fixtures", () => {
   });
 
   it.each(cases.map((c) => [`${c.fn} ${JSON.stringify(c.args)}`, c] as const))("%s", (_name, c) => {
-    const got = run(c);
-    if (typeof c.expect === "number") {
-      expect(Math.abs((got as number) - c.expect)).toBeLessThan(1e-6);
-    } else {
-      for (const [k, v] of Object.entries(c.expect)) {
-        expect(Math.abs((got as Record<string, number>)[k] - v), k).toBeLessThan(1e-6);
-      }
+    // A missing key or a number where a record was expected subtracts to NaN,
+    // which fails the comparison.
+    const got = asRecord(run(c));
+    for (const [k, v] of Object.entries(asRecord(c.expect))) {
+      expect(Math.abs(got[k] - v), k).toBeLessThan(1e-6);
     }
   });
 });

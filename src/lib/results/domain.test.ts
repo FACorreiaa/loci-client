@@ -150,9 +150,9 @@ describe("todayHours", () => {
   });
 });
 
-describe("isOpenNow", () => {
-  const at = (h: number, m = 0) => new Date(2026, 8, 23, h, m);
+const at = (h: number, m = 0) => new Date(2026, 8, 23, h, m);
 
+describe("isOpenNow", () => {
   it("is undefined when hours are unknown, never Closed", () => {
     expect(isOpenNow(undefined, at(12))).toBeUndefined();
     expect(isOpenNow("", at(12))).toBeUndefined();

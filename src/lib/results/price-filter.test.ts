@@ -20,6 +20,7 @@ const items: Item[] = [
   { name: "e", price: 142 },
 ];
 const priceOf = (i: Item) => i.price;
+const names = (l: Item[]) => l.map((i) => i.name);
 
 describe("currency units", () => {
   it("knows minor-unit digits", () => {
@@ -58,7 +59,6 @@ describe("applyPriceFilter", () => {
     expect(applyPriceFilter(items, priceOf, [80, 310], bounds, false)).toHaveLength(5);
   });
   it("narrows to the range and drops unpriced unless asked", () => {
-    const names = (l: Item[]) => l.map((i) => i.name);
     expect(names(applyPriceFilter(items, priceOf, [100, 200], bounds, false))).toEqual(["a", "e"]);
     expect(names(applyPriceFilter(items, priceOf, [100, 200], bounds, true))).toEqual([
       "a",
@@ -73,7 +73,6 @@ describe("applyPriceFilter", () => {
 });
 
 describe("sortByPrice", () => {
-  const names = (l: Item[]) => l.map((i) => i.name);
   it("sorts ascending and descending, stable, unpriced last", () => {
     expect(names(sortByPrice(items, priceOf, "price_asc"))).toEqual(["c", "a", "e", "d", "b"]);
     expect(names(sortByPrice(items, priceOf, "price_desc"))).toEqual(["d", "a", "e", "c", "b"]);

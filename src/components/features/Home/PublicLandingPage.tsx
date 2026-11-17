@@ -129,13 +129,13 @@ export default function PublicLandingPage() {
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      runSearch();
+      void runSearch();
     }
   };
 
   const prefill = (prompt: string) => {
     setMessage(prompt);
-    runSearch();
+    void runSearch();
   };
 
   return (

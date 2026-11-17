@@ -41,7 +41,7 @@ export default function HotelDetailPage() {
       contentType: "hotel",
       description: h.description,
       llmInteractionId: h.llm_interaction_id || undefined,
-      cityName: h.city || (searchParams.cityName as string) || undefined,
+      cityName: h.city || (searchParams.cityName as string | undefined) || undefined,
       latitude: h.latitude,
       longitude: h.longitude,
       rating: h.rating > 0 ? h.rating : undefined,

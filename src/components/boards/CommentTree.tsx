@@ -38,6 +38,7 @@ function CommentItem(props: TreeProps & { node: CommentNode }) {
   const del = useDeleteComment();
 
   const onDelete = () =>
+    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
     confirmDelete("comment", () =>
       del.mutate(c().id, {
         onError: (err) => showToast({ id: "boards-delete", title: boardsErrorMessage(err) }),

@@ -37,9 +37,7 @@ const GEO_TIMEOUT = 3;
 
 function geolocationFailure(err: unknown): { message: string; denied: boolean } {
   const code =
-    typeof err === "object" && err !== null && "code" in err
-      ? Number((err as { code: unknown }).code)
-      : Number.NaN;
+    typeof err === "object" && err !== null && "code" in err ? Number(err.code) : Number.NaN;
 
   if (code === GEO_PERMISSION_DENIED) {
     return { message: "Location access was denied by the user.", denied: true };
@@ -112,7 +110,9 @@ export function LocationProvider(props: LocationProviderProps) {
     }
 
     if ("permissions" in navigator) {
-      navigator.permissions.query({ name: "geolocation" }).then((permission) => {
+      // No catch: a browser that cannot answer leaves the status unknown, as
+      // it starts, and the rejection stays visible to error reporting.
+      void navigator.permissions.query({ name: "geolocation" }).then((permission) => {
         setPermissionStatus(permission.state);
         // Only auto-fetch if permission was already granted previously
         // This avoids triggering the browser prompt on page load
@@ -121,6 +121,7 @@ export function LocationProvider(props: LocationProviderProps) {
         }
 
         // Listen for permission changes
+        // oxlint-disable-next-line unicorn/prefer-add-event-listener -- a fresh PermissionStatus with one handler
         permission.onchange = () => {
           setPermissionStatus(permission.state);
           if (permission.state === "granted") {

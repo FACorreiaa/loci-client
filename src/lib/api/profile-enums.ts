@@ -58,13 +58,16 @@ export const transportToLabel = (value: number | undefined): string =>
   TRANSPORT[value ?? TransportPreference.ANY] ?? "any";
 
 export const labelToDayPreference = (label: string | undefined): DayPreference =>
-  (DAY_PREFERENCE_BY_LABEL[label ?? ""] ?? DayPreference.ANY) as DayPreference;
+  // oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- the table is built from this enum, so every value in it is a member
+  DAY_PREFERENCE_BY_LABEL[label ?? ""] ?? DayPreference.ANY;
 
 export const labelToSearchPace = (label: string | undefined): SearchPace =>
-  (SEARCH_PACE_BY_LABEL[label ?? ""] ?? SearchPace.ANY) as SearchPace;
+  // oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- the table is built from this enum, so every value in it is a member
+  SEARCH_PACE_BY_LABEL[label ?? ""] ?? SearchPace.ANY;
 
 export const labelToTransport = (label: string | undefined): TransportPreference =>
-  (TRANSPORT_BY_LABEL[label ?? ""] ?? TransportPreference.ANY) as TransportPreference;
+  // oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- the table is built from this enum, so every value in it is a member
+  TRANSPORT_BY_LABEL[label ?? ""] ?? TransportPreference.ANY;
 
 // protobuf-es v2 Timestamps are plain { seconds, nanos } messages -- there is no
 // .toDate(). Every profile timestamp came back as "" because of that.

@@ -68,11 +68,65 @@ import {
   recordRecommendationEvents,
 } from "~/lib/api/recommendations";
 
+const normalizePoi = (poi: any): POI => ({
+  id: poi.id || poi.llm_interaction_id || poi.name,
+  name: poi.name || "Unknown",
+  category: poi.category || "place",
+  description: poi.description || poi.description_poi || poi.descriptionPoi || "",
+  description_poi: poi.description_poi || poi.descriptionPoi,
+  latitude: poi.latitude ?? 0,
+  longitude: poi.longitude ?? 0,
+  rating: poi.rating ?? 0,
+  tags: poi.tags || [],
+  address: poi.address || "",
+  website: poi.website,
+  phone_number: poi.phone_number || poi.phoneNumber,
+  opening_hours: poi.opening_hours || poi.openingHours,
+  price_level: poi.price_level || poi.priceLevel || "",
+  price_range: poi.price_range || poi.priceRange,
+  distance: poi.distance,
+  city: poi.city || poi.city_name,
+  city_id: poi.city_id || poi.cityId,
+  recommendation_rationale: poi.recommendation_rationale || poi.recommendationRationale,
+  uncertainty_score: poi.uncertainty_score ?? poi.uncertaintyScore,
+  missing_data: poi.missing_data ?? poi.missingData,
+  taste_match: poi.taste_match ?? fromProtoTasteMatch(poi.tasteMatch),
+  llm_interaction_id: poi.llm_interaction_id,
+  created_at: poi.created_at,
+  recommendation_trace: normalizeRecommendationTrace(
+    poi.recommendation_trace || poi.recommendationTrace,
+  ),
+});
+
+const recordPoiOutcome = (
+  poi: POI,
+  eventType: "RECOMMENDATION_EVENT_TYPE_OPENED" | "RECOMMENDATION_EVENT_TYPE_DISMISSED",
+) => {
+  if (!poi.recommendation_trace) return;
+  void recordRecommendationEvents([{ eventType, trace: poi.recommendation_trace, poiId: poi.id }]);
+};
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return "Just now";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "Just now";
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInHours / 24);
+
+  if (diffInHours < 1) return "Just now";
+  if (diffInHours < 24) return `${diffInHours} hours ago`;
+  if (diffInDays === 1) return "Yesterday";
+  if (diffInDays < 7) return `${diffInDays} days ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
 export default function DiscoverPage() {
   const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
   const { userLocation, requestLocation } = useUserLocation();
-  const subscriptionQuery = useUserSubscription(() => !!isAuthenticated());
+  const subscriptionQuery = useUserSubscription(() => isAuthenticated());
   const isPro = () => canUsePro(subscriptionQuery.data?.plan);
   const localResultCache = new Map<string, POI[]>();
   const localGastronomyCache = new Map<string, CityGastronomy[]>();
@@ -119,7 +173,7 @@ export default function DiscoverPage() {
   let abortController: AbortController | null = null;
 
   // Fetch discover page data (RPC)
-  const discoverData = useDiscoverPageData(() => !!isAuthenticated());
+  const discoverData = useDiscoverPageData(() => isAuthenticated());
 
   // Category data matching go-templui
   const categories = [
@@ -138,36 +192,6 @@ export default function DiscoverPage() {
   ];
 
   const deliveredTraceKeys = new Set<string>();
-
-  const normalizePoi = (poi: any): POI => ({
-    id: poi.id || poi.llm_interaction_id || poi.name,
-    name: poi.name || "Unknown",
-    category: poi.category || "place",
-    description: poi.description || poi.description_poi || poi.descriptionPoi || "",
-    description_poi: poi.description_poi || poi.descriptionPoi,
-    latitude: poi.latitude ?? 0,
-    longitude: poi.longitude ?? 0,
-    rating: poi.rating ?? 0,
-    tags: poi.tags || [],
-    address: poi.address || "",
-    website: poi.website,
-    phone_number: poi.phone_number || poi.phoneNumber,
-    opening_hours: poi.opening_hours || poi.openingHours,
-    price_level: poi.price_level || poi.priceLevel || "",
-    price_range: poi.price_range || poi.priceRange,
-    distance: poi.distance,
-    city: poi.city || poi.city_name,
-    city_id: poi.city_id || poi.cityId,
-    recommendation_rationale: poi.recommendation_rationale || poi.recommendationRationale,
-    uncertainty_score: poi.uncertainty_score ?? poi.uncertaintyScore,
-    missing_data: poi.missing_data ?? poi.missingData,
-    taste_match: poi.taste_match ?? fromProtoTasteMatch(poi.tasteMatch),
-    llm_interaction_id: poi.llm_interaction_id,
-    created_at: poi.created_at,
-    recommendation_trace: normalizeRecommendationTrace(
-      poi.recommendation_trace || poi.recommendationTrace,
-    ),
-  });
 
   const attributeResults = (rawPOIs: any[]) => {
     const list = rawPOIs.map(normalizePoi);
@@ -194,16 +218,6 @@ export default function DiscoverPage() {
       ]),
     );
     return list;
-  };
-
-  const recordPoiOutcome = (
-    poi: POI,
-    eventType: "RECOMMENDATION_EVENT_TYPE_OPENED" | "RECOMMENDATION_EVENT_TYPE_DISMISSED",
-  ) => {
-    if (!poi.recommendation_trace) return;
-    void recordRecommendationEvents([
-      { eventType, trace: poi.recommendation_trace, poiId: poi.id },
-    ]);
   };
 
   const dismissPoi = (poi: POI) => {
@@ -357,7 +371,7 @@ export default function DiscoverPage() {
               updated_at: new Date().toISOString(),
               city_name: cityName,
               conversation_history: [],
-            } as any;
+            };
             setRecentSessions((prev) => {
               const map = new Map(prev.map((s) => [s.id, s]));
               map.set(newSession.id, newSession);
@@ -526,22 +540,6 @@ export default function DiscoverPage() {
     } finally {
       setRecentLoadingMore(false);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "Just now";
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "Just now";
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInHours / 24);
-
-    if (diffInHours < 1) return "Just now";
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
-    if (diffInDays === 1) return "Yesterday";
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
   return (

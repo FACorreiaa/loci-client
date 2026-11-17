@@ -103,7 +103,7 @@ export const useLoginMutation = () => {
     onSuccess: (result) => {
       // Nothing to invalidate until the login actually completes.
       if (result.mfa_required) return;
-      queryClient.invalidateQueries({ queryKey: queryKeys.session });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.session });
     },
   }));
 };
@@ -145,7 +145,7 @@ export const useVerifyMFAMutation = () => {
       };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.session });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.session });
     },
   }));
 };
@@ -184,7 +184,7 @@ export const useRegisterMutation = () => {
       };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.session });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.session });
     },
   }));
 };

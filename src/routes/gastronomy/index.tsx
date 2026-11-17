@@ -4,7 +4,7 @@ import { useSearchParams } from "@solidjs/router";
 import { UtensilsCrossed } from "lucide-solid";
 import GastronomySection from "~/components/gastronomy/GastronomySection";
 import { CityAutocomplete } from "~/components/compare/CityAutocomplete";
-import ErrorView from "~/components/ErrorView";
+import { ErrorView } from "~/components/ErrorView";
 import StopCardSkeleton from "~/components/itinerary/StopCardSkeleton";
 import { hasGastronomy, useCityGastronomy } from "~/lib/api/gastronomy";
 import type { CityGastronomy } from "~/lib/api/types";

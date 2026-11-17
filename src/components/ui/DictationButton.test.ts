@@ -74,6 +74,9 @@ describe("dictationHintText", () => {
   });
 });
 
+// onMount runs in a microtask after render; supported() flips then.
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 describe("DictationButton", () => {
   const disposers: Array<() => void> = [];
 
@@ -86,9 +89,6 @@ describe("DictationButton", () => {
     );
     return { host, onTranscript };
   };
-
-  // onMount runs in a microtask after render; supported() flips then.
-  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
   beforeEach(() => {
     resetDictationAvailability();

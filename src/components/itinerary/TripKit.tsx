@@ -78,12 +78,21 @@ export interface TripKitProps {
   onStopNotesChange?: (notes: Record<string, string>) => void;
 }
 
+const tomorrowValue = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 export default function TripKit(props: TripKitProps) {
   const [busy, setBusy] = createSignal<"cal" | "pdf" | null>(null);
   const [toast, setToast] = createSignal<string | null>(null);
   const [notesOpen, setNotesOpen] = createSignal(false);
   // Local notes state — starts from props and updates live.
-  const [localNotes, setLocalNotes] = createSignal<Record<string, string>>(props.stopNotes ?? {});
+  const [localNotes, setLocalNotes] = createSignal<Record<string, string>>(
+    // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
+    props.stopNotes ?? {},
+  );
 
   // Sync from parent when the prop changes (e.g. after async offline restore).
   createEffect(() => {
@@ -106,12 +115,10 @@ export default function TripKit(props: TripKitProps) {
   // when the trip actually was. Defaulting to tomorrow keeps that behaviour for
   // anybody who ignores the field.
   const DAY_START_HOUR = 9;
-  const tomorrowValue = () => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  };
-  const [startValue, setStartValue] = createSignal(props.startDate ?? tomorrowValue());
+  const [startValue, setStartValue] = createSignal(
+    // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
+    props.startDate ?? tomorrowValue(),
+  );
   // Sync when the parent restores a persisted date asynchronously.
   createEffect(() => {
     if (props.startDate) setStartValue(props.startDate);

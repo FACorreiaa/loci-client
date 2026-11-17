@@ -133,12 +133,12 @@ describe("gastronomy projection", () => {
   });
 });
 
-describe("accessible routes", () => {
-  const walk = (day: number, minutes: number) => ({
-    kind: "accessible_route" as const,
-    route: { day, legs: [], total_walk_minutes: minutes, warnings: [] },
-  });
+const walk = (day: number, minutes: number) => ({
+  kind: "accessible_route" as const,
+  route: { day, legs: [], total_walk_minutes: minutes, warnings: [] },
+});
 
+describe("accessible routes", () => {
   it("merge beside the itinerary they route, one per day", () => {
     const itinerary = { session_id: "s1", points_of_interest: [{ id: "p" }] } as any;
     let data = applyCityEvent(itinerary, walk(2, 30), true, "s1") as any;

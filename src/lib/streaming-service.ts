@@ -161,7 +161,7 @@ export class StreamingChatService {
         return;
       }
       logger.error("Stream processing error:", error);
-      run.manager.onError(`Stream error: ${error}`);
+      run.manager.onError(`Stream error: ${String(error)}`);
       this.live(run, { phase: "error", error: String(error) });
       if (run.sessionId) clearActiveSession(run.sessionId);
     } finally {

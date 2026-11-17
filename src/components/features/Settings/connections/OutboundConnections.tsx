@@ -25,6 +25,9 @@ function formatDate(ms?: number): string {
   });
 }
 
+const providerLabel = (name: string) =>
+  INTEGRATION_PROVIDERS.find((p) => p.name === name)?.label ?? name;
+
 /**
  * MCP servers Loci calls, as opposed to the API keys that let agents call Loci.
  *
@@ -49,9 +52,6 @@ export default function OutboundConnections(props: OutboundConnectionsProps) {
   const enabled = () => connectionsQuery.data?.enabled ?? true;
 
   const selectedMeta = createMemo(() => INTEGRATION_PROVIDERS.find((p) => p.name === provider()));
-
-  const providerLabel = (name: string) =>
-    INTEGRATION_PROVIDERS.find((p) => p.name === name)?.label ?? name;
 
   const handleConnect = async (e: Event) => {
     e.preventDefault();

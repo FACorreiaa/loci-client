@@ -111,6 +111,10 @@ interface AuthProviderProps {
   children: JSX.Element;
 }
 
+const updatePassword = async (oldPassword: string, newPassword: string): Promise<void> => {
+  await authAPI.updatePassword(oldPassword, newPassword);
+};
+
 export const AuthProvider = (props: AuthProviderProps) => {
   const navigate = useNavigate();
   const [user, setUser] = createSignal<User | null>(null);
@@ -152,6 +156,14 @@ export const AuthProvider = (props: AuthProviderProps) => {
     }
   };
 
+  const loadUserProfile = async () => {
+    console.log("AuthProvider: Restoring session by fetching user profile...");
+    const userProfile = await authAPI.getCurrentUser();
+    console.log("AuthProvider: User profile fetched:", userProfile);
+    setUser(userProfile);
+    identifyUser(userProfile);
+  };
+
   // Check authentication status on mount
   onMount(async () => {
     console.log("AuthProvider: Initializing authentication state...");
@@ -174,14 +186,6 @@ export const AuthProvider = (props: AuthProviderProps) => {
       console.log("AuthProvider: Initialization complete");
       return;
     }
-
-    const loadUserProfile = async () => {
-      console.log("AuthProvider: Restoring session by fetching user profile...");
-      const userProfile = await authAPI.getCurrentUser();
-      console.log("AuthProvider: User profile fetched:", userProfile);
-      setUser(userProfile);
-      identifyUser(userProfile);
-    };
 
     try {
       await loadUserProfile();
@@ -214,14 +218,14 @@ export const AuthProvider = (props: AuthProviderProps) => {
     console.log("AuthProvider: Initialization complete");
   });
 
+  const retry = () => {
+    if (authError() && !user() && getAuthToken()) void retryAuth();
+  };
+
   // Recover from a transient restore failure without making the user re-login:
   // retry when the tab regains focus or the browser comes back online.
   createEffect(() => {
     if (typeof window === "undefined") return;
-
-    const retry = () => {
-      if (authError() && !user() && getAuthToken()) void retryAuth();
-    };
 
     window.addEventListener("focus", retry);
     window.addEventListener("online", retry);
@@ -231,31 +235,32 @@ export const AuthProvider = (props: AuthProviderProps) => {
     });
   });
 
-  // Listen for token changes to handle cross-tab authentication
-  createEffect(() => {
-    const handleStorageChange = async (e: StorageEvent) => {
-      if (e.key === "access_token" || e.key === null) {
-        const token = getAuthToken();
-        if (!token && user()) {
-          // Token was cleared in another tab
-          resetIdentity();
-          setUser(null);
-          navigate("/auth/signin");
-        } else if (token && !user()) {
-          // Token was set in another tab, fetch profile
-          try {
-            const userProfile = await authAPI.getCurrentUser();
-            setUser(userProfile);
-            identifyUser(userProfile);
-          } catch (error) {
-            console.error("Cross-tab session validation failed:", error);
-          }
+  const handleStorageChange = async (e: StorageEvent) => {
+    if (e.key === "access_token" || e.key === null) {
+      const token = getAuthToken();
+      if (!token && user()) {
+        // Token was cleared in another tab
+        resetIdentity();
+        setUser(null);
+        navigate("/auth/signin");
+      } else if (token && !user()) {
+        // Token was set in another tab, fetch profile
+        try {
+          const userProfile = await authAPI.getCurrentUser();
+          setUser(userProfile);
+          identifyUser(userProfile);
+        } catch (error) {
+          console.error("Cross-tab session validation failed:", error);
         }
       }
-    };
+    }
+  };
 
+  // Listen for token changes to handle cross-tab authentication
+  createEffect(() => {
     window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    // onCleanup, not a returned function: Solid ignores an effect's return.
+    onCleanup(() => window.removeEventListener("storage", handleStorageChange));
   });
 
   // The other half of the session lifecycle. A token can appear without this
@@ -270,6 +275,7 @@ export const AuthProvider = (props: AuthProviderProps) => {
   // microtask later precisely so that guard is true only when nobody else has
   // claimed the session.
   createEffect(() => {
+    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
     const off = onAuthEstablished(() => {
       if (user() || !getAuthToken()) return;
       void (async () => {
@@ -440,10 +446,6 @@ export const AuthProvider = (props: AuthProviderProps) => {
       setAuthReady(true);
       navigate("/auth/signin");
     }
-  };
-
-  const updatePassword = async (oldPassword: string, newPassword: string): Promise<void> => {
-    await authAPI.updatePassword(oldPassword, newPassword);
   };
 
   const isAuthenticated = () => !!user();

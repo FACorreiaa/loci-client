@@ -29,14 +29,14 @@ const discoverClient = createClient(DiscoverService, transport);
 
 const toTrending = (t: ProtoTrendingDiscovery): TrendingDiscovery => ({
   city_name: t.cityName || "",
-  search_count: Number(t.searchCount ?? 0),
+  search_count: t.searchCount ?? 0,
   emoji: t.emoji || "🗺️",
 });
 
 const toFeatured = (f: ProtoFeaturedCollection): FeaturedCollection => ({
   category: f.category || "",
   title: f.title || "",
-  item_count: Number(f.itemCount ?? 0),
+  item_count: f.itemCount ?? 0,
   emoji: f.emoji || "✨",
 });
 
@@ -152,11 +152,11 @@ export async function fetchRecentDiscoveries(
   return {
     sessions: (response.sessions || []).map(toChatSession),
     pagination: response.pagination && {
-      total_records: Number(response.pagination.totalRecords ?? 0),
-      page: Number(response.pagination.page ?? 1),
-      page_size: Number(response.pagination.pageSize ?? pageSize),
-      total_pages: Number(response.pagination.totalPages ?? 0),
-      has_more: Boolean(response.pagination.hasMore),
+      total_records: response.pagination.totalRecords ?? 0,
+      page: response.pagination.page ?? 1,
+      page_size: response.pagination.pageSize ?? pageSize,
+      total_pages: response.pagination.totalPages ?? 0,
+      has_more: response.pagination.hasMore,
     },
   };
 }

@@ -37,6 +37,8 @@ describe("isChunkLoadFailure", () => {
   });
 });
 
+const component = () => null;
+
 describe("lazyChunk", () => {
   let reload: ReturnType<typeof vi.fn>;
 
@@ -45,12 +47,11 @@ describe("lazyChunk", () => {
     reload = vi.fn();
     Object.defineProperty(window, "location", {
       configurable: true,
-      value: { ...window.location, reload },
+      value: Object.assign({}, window.location, { reload }),
     });
   });
 
   it("passes a chunk that loads straight through", async () => {
-    const component = () => null;
     const wrapped = lazyChunk(async () => ({ default: component }));
     await expect(wrapped.preload()).resolves.toMatchObject({ default: component });
     expect(reload).not.toHaveBeenCalled();

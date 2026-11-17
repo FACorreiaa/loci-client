@@ -20,7 +20,7 @@ export interface ChatRPCState {
     content: string;
     timestamp: Date;
   }>;
-  streamedData: any | null;
+  streamedData: any;
 }
 
 export interface UseChatRPCOptions {
@@ -36,6 +36,35 @@ export interface UseChatRPCOptions {
   onRedirect?: (domain: DomainType, sessionId: string, city: string) => void;
   onProgress?: (data: any) => void;
 }
+
+// This page's URL with `sessionId` set: where the run is shown.
+const pageWithSession = (sessionId: string): string => {
+  if (typeof window === "undefined") return "";
+  const params = new URLSearchParams(window.location.search);
+  params.set("sessionId", sessionId);
+  return `${window.location.pathname}?${params.toString()}`;
+};
+
+// Shape a domain list event into the streamedData object the UI reads.
+// oxlint-disable-next-line typescript/consistent-return -- the switch is exhaustive, and the compiler rejects a missing case
+const toStreamData = (
+  event: Extract<
+    LociStreamEvent,
+    { kind: "general_pois" | "hotels" | "restaurants" | "activities" }
+  >,
+): any => {
+  const base = { general_city_data: event.city, session_id: event.sessionId };
+  switch (event.kind) {
+    case "general_pois":
+      return { ...base, points_of_interest: event.pois };
+    case "hotels":
+      return { ...base, hotels: event.pois };
+    case "restaurants":
+      return { ...base, restaurants: event.pois };
+    case "activities":
+      return { ...base, activities: event.pois };
+  }
+};
 
 export function useChatRPC(options: UseChatRPCOptions = {}) {
   const [state, setState] = createStore<ChatRPCState>({
@@ -237,34 +266,6 @@ export function useChatRPC(options: UseChatRPCOptions = {}) {
       // A superseded run never finishes; unlist it so nothing waits on it.
       if (ctrl.signal.aborted && sessionId) removeRun(sessionId);
       if (inflight === ctrl) inflight = null;
-    }
-  };
-
-  // This page's URL with `sessionId` set: where the run is shown.
-  const pageWithSession = (sessionId: string): string => {
-    if (typeof window === "undefined") return "";
-    const params = new URLSearchParams(window.location.search);
-    params.set("sessionId", sessionId);
-    return `${window.location.pathname}?${params.toString()}`;
-  };
-
-  // Shape a domain list event into the streamedData object the UI reads.
-  const toStreamData = (
-    event: Extract<
-      LociStreamEvent,
-      { kind: "general_pois" | "hotels" | "restaurants" | "activities" }
-    >,
-  ): any => {
-    const base = { general_city_data: event.city, session_id: event.sessionId };
-    switch (event.kind) {
-      case "general_pois":
-        return { ...base, points_of_interest: event.pois };
-      case "hotels":
-        return { ...base, hotels: event.pois };
-      case "restaurants":
-        return { ...base, restaurants: event.pois };
-      case "activities":
-        return { ...base, activities: event.pois };
     }
   };
 

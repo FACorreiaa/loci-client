@@ -158,7 +158,7 @@ export function useCreateCheckoutSession() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-subscription"] });
+      void queryClient.invalidateQueries({ queryKey: ["user-subscription"] });
     },
   }));
 }
@@ -183,7 +183,7 @@ export function useCancelSubscription() {
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-subscription"] });
+      void queryClient.invalidateQueries({ queryKey: ["user-subscription"] });
     },
   }));
 }

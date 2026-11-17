@@ -12,7 +12,7 @@ import { POIDetailedInfo } from "~/lib/api/types";
 const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 import SplitView from "@/components/layout/SplitView";
 import { ActionToolbar } from "@/components/ui/ActionToolbar";
-import FloatingChat from "~/components/features/Chat/FloatingChat";
+import { FloatingChat } from "~/components/features/Chat/FloatingChat";
 import { Skeleton } from "~/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "~/ui/card";
 import { Badge } from "~/ui/badge";
@@ -52,6 +52,29 @@ export default function NearmePage() {
     </Show>
   );
 }
+
+const handleBookmark = () => {
+  console.log("Bookmark nearby results");
+};
+
+// Skeleton component
+const NearbyLoadingSkeleton = () => (
+  <div class="space-y-4">
+    <For each={[1, 2, 3, 4]}>
+      {() => (
+        <Card class="bg-card/80 backdrop-blur-sm border-border">
+          <CardHeader>
+            <Skeleton class="h-6 w-3/4" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton class="h-4 w-full mb-2" />
+            <Skeleton class="h-4 w-2/3" />
+          </CardContent>
+        </Card>
+      )}
+    </For>
+  </div>
+);
 
 function NearmeView(props: { adopt: (sessionId: string) => void }) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -105,6 +128,7 @@ function NearmeView(props: { adopt: (sessionId: string) => void }) {
     setLocationError(null);
 
     navigator.geolocation.getCurrentPosition(
+      // eslint-disable-next-line solid/reactivity -- the geolocation success callback: it runs when the position arrives
       (position) => {
         setUserLocation({
           latitude: position.coords.latitude,
@@ -143,7 +167,7 @@ function NearmeView(props: { adopt: (sessionId: string) => void }) {
   const searchNearby = (lat: number, lon: number, distanceKm: number) => {
     const message = `Find places near me within ${distanceKm} kilometers. My location is at latitude ${lat.toFixed(6)} and longitude ${lon.toFixed(6)}. Show me restaurants, attractions, hotels, and activities nearby.`;
 
-    startStream(message, "nearme", { latitude: lat, longitude: lon });
+    void startStream(message, "nearme", { latitude: lat, longitude: lon });
   };
 
   // Retry the last search. If we never got a fix, ask for location again -
@@ -289,29 +313,6 @@ function NearmeView(props: { adopt: (sessionId: string) => void }) {
         .catch(console.error);
     }
   };
-
-  const handleBookmark = () => {
-    console.log("Bookmark nearby results");
-  };
-
-  // Skeleton component
-  const NearbyLoadingSkeleton = () => (
-    <div class="space-y-4">
-      <For each={[1, 2, 3, 4]}>
-        {() => (
-          <Card class="bg-card/80 backdrop-blur-sm border-border">
-            <CardHeader>
-              <Skeleton class="h-6 w-3/4" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton class="h-4 w-full mb-2" />
-              <Skeleton class="h-4 w-2/3" />
-            </CardContent>
-          </Card>
-        )}
-      </For>
-    </div>
-  );
 
   // Map Content
   const MapContent = (

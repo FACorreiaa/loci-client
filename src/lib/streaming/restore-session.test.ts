@@ -40,13 +40,13 @@ describe("hasListContent", () => {
   });
 });
 
+const store = (value: unknown) =>
+  sessionStorage.setItem(COMPLETED_SESSION_KEY, JSON.stringify(value));
+
 describe("readCompletedSession", () => {
   beforeEach(() => {
     sessionStorage.clear();
   });
-
-  const store = (value: unknown) =>
-    sessionStorage.setItem(COMPLETED_SESSION_KEY, JSON.stringify(value));
 
   it("returns nothing when the session id is empty", () => {
     store({ sessionId: "abc", data: { hotels: [1] } });

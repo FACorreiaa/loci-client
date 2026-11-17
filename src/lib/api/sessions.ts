@@ -73,7 +73,7 @@ export const useRevokeSession = () => {
       return { success: response.success, message: response.message };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
     },
   }));
 };
@@ -96,7 +96,7 @@ export const useRevokeOtherSessions = () => {
       return { success: response.success, message: response.message };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.sessions });
     },
   }));
 };

@@ -15,5 +15,5 @@ export function TypingAnimation(props: TypingAnimationProps): JSX.Element {
     }
   });
 
-  return <p>{text() as string}</p>;
+  return <p>{text()}</p>;
 }

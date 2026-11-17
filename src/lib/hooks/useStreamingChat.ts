@@ -99,12 +99,12 @@ export function useStreamingChat(options: StreamingChatOptions = {}) {
   };
 
   const processStream = async (
-    reader: ReadableStreamDefaultReader<Uint8Array>,
+    streamReader: ReadableStreamDefaultReader<Uint8Array>,
     decoder: TextDecoder,
   ) => {
     try {
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await streamReader.read();
 
         if (done) {
           setState((prev) => ({
@@ -138,11 +138,11 @@ export function useStreamingChat(options: StreamingChatOptions = {}) {
       console.error("Stream processing error:", error);
       setState((prev) => ({
         ...prev,
-        error: `Stream error: ${error}`,
+        error: `Stream error: ${String(error)}`,
         isStreaming: false,
         isConnected: false,
       }));
-      options.onError?.(`Stream error: ${error}`);
+      options.onError?.(`Stream error: ${String(error)}`);
     }
   };
 
@@ -264,7 +264,9 @@ export function useStreamingChat(options: StreamingChatOptions = {}) {
       abortController.abort();
     }
     if (reader) {
-      reader.cancel();
+      // The abort above has already errored the stream, and cancel() on an
+      // errored stream rejects with that same AbortError.
+      reader.cancel().catch(() => {});
     }
     setState((prev) => ({
       ...prev,

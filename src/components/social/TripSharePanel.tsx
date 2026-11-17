@@ -28,7 +28,11 @@ export default function TripSharePanel(props: {
   shareCode?: string;
 }) {
   const setVisibility = useSetTripVisibility();
-  const [level, setLevel] = createSignal<TripVisibility>(props.visibility ?? "private");
+  const [level, setLevel] = createSignal<TripVisibility>(
+    // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
+    props.visibility ?? "private",
+  );
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
   const [code, setCode] = createSignal(props.shareCode ?? "");
   const [copied, setCopied] = createSignal(false);
 

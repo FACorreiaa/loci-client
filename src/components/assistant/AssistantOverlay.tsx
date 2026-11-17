@@ -40,7 +40,7 @@ const iconButton =
 /** Whether the mic can open without a browser prompt appearing out of nowhere. */
 async function micAlreadyAllowed(): Promise<boolean> {
   try {
-    const status = await navigator.permissions.query({ name: "microphone" as PermissionName });
+    const status = await navigator.permissions.query({ name: "microphone" });
     return status.state === "granted";
   } catch {
     return false;
@@ -54,7 +54,10 @@ async function micAlreadyAllowed(): Promise<boolean> {
  * planner carries on underneath it. Closing it stops the answer and the voice.
  */
 const AssistantOverlay: Component<AssistantOverlayProps> = (props) => {
+  // Injected once, for tests: neither is swapped while the overlay is open.
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
   const api = props.api ?? assistantApi;
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
   const speech = props.speech ?? useSpeech();
   const session = createAssistantSession(api, speech);
   const [draft, setDraft] = createSignal("");
@@ -114,9 +117,10 @@ const AssistantOverlay: Component<AssistantOverlayProps> = (props) => {
     }
   };
 
+  // A hold ends with the finger lifting, which is the gesture speech needs.
+  const unlock = () => speech.unlock();
+
   onMount(() => {
-    // A hold ends with the finger lifting, which is the gesture speech needs.
-    const unlock = () => speech.unlock();
     document.addEventListener("pointerup", unlock, { once: true, capture: true });
     onCleanup(() => document.removeEventListener("pointerup", unlock, { capture: true }));
 
@@ -126,6 +130,7 @@ const AssistantOverlay: Component<AssistantOverlayProps> = (props) => {
     }
     // No keyboard jumping up over the answer for someone who came here to talk.
     dialog?.focus();
+    // eslint-disable-next-line solid/reactivity -- runs when the promise settles and reads the current value then
     void micAlreadyAllowed().then((allowed) => {
       if (allowed && canTalk() && dictation.state() === "idle") dictation.toggle();
     });
@@ -187,7 +192,12 @@ const AssistantOverlay: Component<AssistantOverlayProps> = (props) => {
                 <Volume2 class="h-5 w-5" />
               </Show>
             </button>
-            <button type="button" class={iconButton} aria-label="Close" onClick={props.onClose}>
+            <button
+              type="button"
+              class={iconButton}
+              aria-label="Close"
+              onClick={() => props.onClose()}
+            >
               <X class="h-5 w-5" />
             </button>
           </div>

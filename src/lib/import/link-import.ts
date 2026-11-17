@@ -78,7 +78,7 @@ const MAX_LIST_NAME = 60;
 /** A new list is named after the video or post, else its city. */
 export function defaultListName(view: ImportView): string {
   const title = view.title.trim();
-  if (title) return [...title].slice(0, MAX_LIST_NAME).join("").trim();
+  if (title) return Array.from(title).slice(0, MAX_LIST_NAME).join("").trim();
   if (view.city) return `Places in ${view.city}`;
   return "Imported places";
 }

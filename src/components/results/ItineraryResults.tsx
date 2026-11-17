@@ -33,13 +33,15 @@ interface ItineraryResultsProps {
   isLoadingFavorites?: boolean; // Loading state for favorites
 }
 
+const getPriorityColor = (priority: number) => {
+  if (priority === 1) return "bg-destructive";
+  if (priority === 2) return "bg-accent";
+  if (priority === 3) return "bg-primary/80";
+  return "bg-primary";
+};
+
 export default function ItineraryResults(props: ItineraryResultsProps) {
   const [showAll, setShowAll] = createSignal(false);
-
-  // Check if POI is in favorites
-  const _isFavorite = (poiName: string) => {
-    return props.favorites?.includes(poiName) || false;
-  };
 
   const displayPOIs = () => {
     const pois = props.pois || props.itinerary?.points_of_interest || [];
@@ -97,13 +99,6 @@ export default function ItineraryResults(props: ItineraryResultsProps) {
     return rawName || "Custom Itinerary";
   };
   const description = () => props.itinerary?.overall_description;
-
-  const getPriorityColor = (priority: number) => {
-    if (priority === 1) return "bg-destructive";
-    if (priority === 2) return "bg-accent";
-    if (priority === 3) return "bg-primary/80";
-    return "bg-primary";
-  };
 
   return (
     <div class="space-y-3">

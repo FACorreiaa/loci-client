@@ -98,7 +98,7 @@ export const queryUtils = {
 
   // Invalidate all queries (force refetch)
   invalidateAll: () => {
-    queryClient.invalidateQueries();
+    void queryClient.invalidateQueries();
   },
 
   // Prefetch common user data on login
@@ -146,12 +146,13 @@ export const queryUtils = {
   },
 
   // Get cached data without triggering a fetch
+  // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- the caller names the cached type, as with queryClient.getQueryData<T>
   getCachedData: <T>(queryKey: readonly unknown[]): T | undefined => {
     return queryClient.getQueryData<T>(queryKey);
   },
 
   // Set cached data manually
-  setCachedData: <T>(queryKey: readonly unknown[], data: T) => {
+  setCachedData: (queryKey: readonly unknown[], data: unknown) => {
     queryClient.setQueryData(queryKey, data);
   },
 
@@ -175,12 +176,12 @@ export const queryUtils = {
 
   // Force refetch a specific query
   refetch: (queryKey: readonly unknown[]) => {
-    queryClient.invalidateQueries({ queryKey });
+    void queryClient.invalidateQueries({ queryKey });
   },
 
   // Cancel all outgoing queries (useful when navigating away)
   cancelQueries: () => {
-    queryClient.cancelQueries();
+    void queryClient.cancelQueries();
   },
 };
 
@@ -252,6 +253,16 @@ export const performanceUtils = {
   },
 };
 
+const handleOnline = () => {
+  void queryClient.resumePausedMutations();
+  void queryClient.invalidateQueries();
+};
+
+const handleOffline = () => {
+  // Queries will automatically pause when offline
+  console.info("App is offline. Queries will resume when back online.");
+};
+
 // Offline support utilities
 export const offlineUtils = {
   // Check if browser is online
@@ -259,16 +270,6 @@ export const offlineUtils = {
 
   // Setup offline/online event listeners
   setupOfflineSupport: () => {
-    const handleOnline = () => {
-      queryClient.resumePausedMutations();
-      queryClient.invalidateQueries();
-    };
-
-    const handleOffline = () => {
-      // Queries will automatically pause when offline
-      console.info("App is offline. Queries will resume when back online.");
-    };
-
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 

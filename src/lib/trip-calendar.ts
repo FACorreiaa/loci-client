@@ -58,7 +58,14 @@ export function monthCells(year: number, month: number): MonthCell[] {
   const endOffset = (7 - ((last.getDay() + 6) % 7) - 1 + 7) % 7;
   const end = new Date(year, month + 1, endOffset);
   const cells: MonthCell[] = [];
-  for (const cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+  // Each step is rebuilt from year/month/day rather than setDate() on one
+  // Date: in a zone whose clocks jump at midnight a mutated cursor stays at
+  // 01:00 from then on and falls past `end`, dropping the last cell.
+  for (
+    let cursor = new Date(start);
+    cursor <= end;
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1)
+  ) {
     cells.push({
       dateKey: dateKey(cursor),
       inMonth: cursor.getMonth() === month,

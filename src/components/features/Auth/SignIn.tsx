@@ -100,7 +100,8 @@ const SignIn: Component = () => {
   // Social sign-in on this page can still create an account; the server says
   // so, and a brand-new one sees the trip questionnaire once on the way.
   const afterAuthNavigate = (result: { userId: string; isNewUser: boolean }) => {
-    const returnTo = (searchParams.returnTo as string) || sessionStorage.getItem("auth_return_to");
+    const returnTo =
+      (searchParams.returnTo as string | undefined) || sessionStorage.getItem("auth_return_to");
     if (returnTo) sessionStorage.removeItem("auth_return_to");
     void afterSignInTarget({ ...result, returnTo }).then((target) => navigate(target));
   };

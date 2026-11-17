@@ -47,9 +47,10 @@ describe("who can be reviewed", () => {
   });
 
   it("never sends an empty or name-keyed poi id", () => {
-    expect(() => buildPOIReviewsRequest("", 1)).toThrow();
-    expect(() => buildCreateRequest("Belém Tower", form)).toThrow();
-    expect(() => buildMyPOIReviewRequest("")).toThrow();
+    const refused = "This place can't be reviewed yet.";
+    expect(() => buildPOIReviewsRequest("", 1)).toThrow(refused);
+    expect(() => buildCreateRequest("Belém Tower", form)).toThrow(refused);
+    expect(() => buildMyPOIReviewRequest("")).toThrow(refused);
   });
 });
 
@@ -86,7 +87,9 @@ describe("request builders", () => {
     const req = buildReportRequest("r1", "fake", "  same text on 4 places ");
     expect(req.reason).toBe("fake");
     expect(req.details).toBe("same text on 4 places");
-    expect(() => buildReportRequest("r1", "rude" as never)).toThrow();
+    expect(() => buildReportRequest("r1", "rude" as never)).toThrow(
+      "Pick a reason for the report.",
+    );
   });
 
   it("paging: page is at least 1; My reviews sends no user id", () => {

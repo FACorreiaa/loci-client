@@ -112,7 +112,7 @@ export function useCreateMessagingLinkCode(platform: string = TELEGRAM) {
     onSuccess: () => {
       // The link appears once the bot reports the chat, so the card polls this
       // query while a code is outstanding.
-      queryClient.invalidateQueries({ queryKey: messagingLinkQueryKey(platform) });
+      void queryClient.invalidateQueries({ queryKey: messagingLinkQueryKey(platform) });
     },
   }));
 }
@@ -124,7 +124,7 @@ export function useUnlinkMessaging(platform: string = TELEGRAM) {
       await messagingClient.unlink(create(UnlinkRequestSchema, { platform }));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: messagingLinkQueryKey(platform) });
+      void queryClient.invalidateQueries({ queryKey: messagingLinkQueryKey(platform) });
     },
   }));
 }

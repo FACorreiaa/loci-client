@@ -94,7 +94,7 @@ export const useConfirmMFAEnrollment = () => {
       return response.recoveryCodes;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: mfaKeys.status });
+      void queryClient.invalidateQueries({ queryKey: mfaKeys.status });
     },
   }));
 };
@@ -110,7 +110,7 @@ export const useDisableMFA = () => {
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: mfaKeys.status });
+      void queryClient.invalidateQueries({ queryKey: mfaKeys.status });
     },
   }));
 };
@@ -127,7 +127,7 @@ export const useRegenerateRecoveryCodes = () => {
       return response.recoveryCodes;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: mfaKeys.status });
+      void queryClient.invalidateQueries({ queryKey: mfaKeys.status });
     },
   }));
 };

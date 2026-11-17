@@ -3,6 +3,13 @@ import { AlertTriangle } from "lucide-solid";
 import type { StopState } from "~/lib/streaming/multi-city";
 import { stopChipLabel } from "./multi-city-view";
 
+const chip = (on: boolean) =>
+  `inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+    on
+      ? "border-primary bg-primary text-primary-foreground"
+      : "border-border bg-card text-foreground hover:border-primary/50"
+  }`;
+
 /** The cities of a multi-city trip as chips: pick one, or every day. */
 export function StopSwitcher(props: {
   stops: StopState[];
@@ -10,12 +17,6 @@ export function StopSwitcher(props: {
   onSelect: (i: number | "all") => void;
   showAll?: boolean;
 }) {
-  const chip = (on: boolean) =>
-    `inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-      on
-        ? "border-primary bg-primary text-primary-foreground"
-        : "border-border bg-card text-foreground hover:border-primary/50"
-    }`;
   return (
     <nav class="flex items-center gap-2 overflow-x-auto pb-1" aria-label="Cities in this trip">
       <Show when={props.showAll}>

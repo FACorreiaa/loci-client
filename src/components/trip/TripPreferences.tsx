@@ -67,7 +67,8 @@ export default function TripPreferences(props: TripPreferencesProps) {
                 class="justify-start"
                 value={String(props.constraints.pace)}
                 onChange={(value) => {
-                  if (value != null) props.onChange({ pace: Number(value) });
+                  const pace = PACE_OPTIONS.find((option) => String(option) === value);
+                  if (pace !== undefined) props.onChange({ pace });
                 }}
               >
                 <For each={PACE_OPTIONS}>

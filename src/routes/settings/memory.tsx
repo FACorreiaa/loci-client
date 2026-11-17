@@ -123,6 +123,7 @@ function MemorySettingsContent() {
                         onToggle={() => toggle(trait.key)}
                         onAskForget={() => setConfirming(trait.key)}
                         onCancelForget={() => setConfirming(null)}
+                        // eslint-disable-next-line solid/reactivity -- an event callback prop: it runs on the event, not as a tracked scope
                         onForget={async () => {
                           await forgetTrait.mutateAsync(trait.key);
                           setConfirming(null);
@@ -207,7 +208,7 @@ function TraitRow(props: {
       <div class="flex items-center gap-3 p-4">
         <button
           type="button"
-          onClick={props.onToggle}
+          onClick={() => props.onToggle()}
           class="flex-1 flex items-center gap-3 text-left min-w-0"
           aria-expanded={props.expanded}
         >
@@ -252,7 +253,7 @@ function TraitRow(props: {
         >
           <button
             type="button"
-            onClick={props.onAskForget}
+            onClick={() => props.onAskForget()}
             aria-label={`Forget that you ${verb().toLowerCase()} ${props.trait.label}`}
             class="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
           >

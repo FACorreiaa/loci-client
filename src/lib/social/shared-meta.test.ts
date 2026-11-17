@@ -28,7 +28,7 @@ describe("sharedTripMeta", () => {
 describe("fetchSharedTripMeta", () => {
   it("posts the share code with the Connect JSON protocol", async () => {
     const fetchImpl = vi.fn(async () => Response.json({ title: "Porto", days: [{ stops: [] }] }));
-    const m = await fetchSharedTripMeta("https://api.test", "abc123", fetchImpl as typeof fetch);
+    const m = await fetchSharedTripMeta("https://api.test", "abc123", fetchImpl);
     expect(m?.title).toBe("Porto");
     const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://api.test/loci.trip.TripService/GetSharedTrip");

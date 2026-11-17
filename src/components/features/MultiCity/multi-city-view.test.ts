@@ -137,7 +137,7 @@ describe("multi-city data for the existing views", () => {
   it("renumbers a city's days to trip days", () => {
     const r = tripWideResponse(porto) as any;
     expect(r.itinerary_response.points_of_interest[0].day).toBe(3);
-    expect((porto.data as any).itinerary_response.points_of_interest[0].day).toBe(1);
+    expect(porto.data.itinerary_response.points_of_interest[0].day).toBe(1);
   });
 
   it("merges every city into one response for the map", () => {
@@ -236,7 +236,7 @@ describe("saving and reopening a multi-city trip", () => {
           mode: "train",
         },
       ],
-    } as any);
+    });
     expect(stops.map((s) => `${s.cityName}:${s.dayNumbers.join("")}:${s.sessionId}`)).toEqual([
       "Lisbon:12:s0",
       "Porto:3:s1",

@@ -118,7 +118,7 @@ export function ColumnCard(props: {
         <For each={col().transportOptions.filter((t: { url?: string }) => t.url)}>
           {(t) => (
             <a
-              href={t.url!}
+              href={t.url}
               target="_blank"
               rel="noopener noreferrer"
               class="loci-chip loci-chip--surface text-xs inline-flex items-center gap-1"

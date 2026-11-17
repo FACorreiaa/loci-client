@@ -6,7 +6,7 @@ import { queryKeys } from "~/lib/api/shared";
 import { tripKeys } from "~/lib/api/trips";
 import { tripActionErrorMessage, type TripActionApi } from "~/lib/api/trip-actions";
 import type { Card } from "~/lib/assistant/turns";
-import queryClient from "~/lib/query-client";
+import { queryClient } from "~/lib/query-client";
 
 export type TripCardData = Extract<Card, { kind: "trip" }>;
 export type PlaceCardData = Extract<Card, { kind: "place" }>;

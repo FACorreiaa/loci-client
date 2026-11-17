@@ -16,12 +16,32 @@
   "ignorePatterns": ["worker-configuration.d.ts"],
   "overrides": [
     // `export {}` is what makes an ambient declaration file a module.
-    { "files": ["**/*.d.ts"], "rules": { "unicorn/require-module-specifiers": "off" } }
+    { "files": ["**/*.d.ts"], "rules": { "unicorn/require-module-specifiers": "off" } },
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        // expect(api.method).toHaveBeenCalled() names a mock and never calls
+        // it, so there is no `this` to lose. Still an error outside tests.
+        "typescript/unbound-method": "off",
+        // A bare vi.fn() is a spy whose signature the test does not care
+        // about, and the rule also wants parameters on vi.fn(impl), which
+        // already infers them.
+        "vitest/require-mock-type-parameters": "off",
+        // Fixtures and stubs are partial objects asserted to the full type on
+        // purpose; a wrong one fails the test that uses it.
+        "typescript/no-unsafe-type-assertion": "off"
+      }
+    },
+    // The vendored Kobalte wrappers narrow their polymorphic props with
+    // `props as XProps<"div">`, the pattern the library documents.
+    { "files": ["src/ui/**"], "rules": { "typescript/no-unsafe-type-assertion": "off" } }
   ],
   "rules": {
     // Type-aware bug rules that oxlint files under pedantic.
     "typescript/return-await": "error",
     "typescript/no-mixed-enums": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-promise-reject-errors": "error",
     // Non-type-aware pedantic rules that catch defects rather than style.
     "eqeqeq": ["error", "always", { "null": "ignore" }],
     "array-callback-return": "error",
@@ -39,45 +59,35 @@
       }
     ],
     "no-unassigned-vars": "off",
+    // Stylesheets and the fake-indexeddb polyfill are imported for their effect.
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css", "fake-indexeddb/auto"] }],
+    // __dirname is Node's name; the other two are deliberate test-only handles.
+    "no-underscore-dangle": [
+      "error",
+      { "allow": ["__dirname", "__lociPush", "__resetAnalyticsForTest"] }
+    ],
+    // A then() whose result nobody reads has nothing to return.
+    "promise/always-return": ["error", { "ignoreLastCallback": true }],
 
-    // BACKLOG. Rules of this profile that the existing code still breaks
-    // (hit count as of 2026-11-17, with --type-aware; 1271 in total). They
-    // report as warnings so CI stays green while every clean rule above is
-    // already enforced. To retire one: fix its hits, then delete the line
-    // (category rules) or move it to "error" (the two pedantic rules,
-    // only-throw-error and prefer-promise-reject-errors). Never add a rule here.
-    "typescript/no-unsafe-type-assertion": "warn", // 444
-    "vitest/require-mock-type-parameters": "warn", // 201
-    "unicorn/consistent-function-scoping": "warn", // 137
-    "typescript/no-floating-promises": "warn", // 101
-    "typescript/no-unnecessary-type-assertion": "warn", // 91
-    "unicorn/no-array-sort": "warn", // 53
-    "typescript/no-unnecessary-type-conversion": "warn", // 34
-    "typescript/unbound-method": "warn", // 28
-    "oxc/no-map-spread": "warn", // 20
-    "no-await-in-loop": "warn", // 18
-    "promise/always-return": "warn", // 16
-    "unicorn/prefer-add-event-listener": "warn", // 16
-    "import/no-named-as-default": "warn", // 11
-    "typescript/consistent-return": "warn", // 11
-    "typescript/no-redundant-type-constituents": "warn", // 10
-    "typescript/prefer-promise-reject-errors": "warn", // 10
-    "no-shadow": "warn", // 9
-    "typescript/no-unsafe-enum-assignment": "warn", // 8
-    "no-underscore-dangle": "warn", // 6
-    "vitest/no-conditional-expect": "warn", // 6
-    "vitest/require-to-throw-message": "warn", // 6
-    "import/no-unassigned-import": "warn", // 5
-    "typescript/no-base-to-string": "warn", // 5
-    "typescript/no-unnecessary-type-parameters": "warn", // 5
-    "typescript/no-misused-spread": "warn", // 4
-    "typescript/restrict-template-expressions": "warn", // 4
-    "no-unmodified-loop-condition": "warn", // 3
-    "unicorn/no-array-reverse": "warn", // 3
-    "typescript/only-throw-error": "warn", // 2
-    "no-new": "warn", // 1
-    "promise/no-promise-in-callback": "warn", // 1
-    "unicorn/require-post-message-target-origin": "warn", // 1
-    "vitest/no-commented-out-tests": "warn" // 1
+    // Category rules switched off for this codebase, each with its reason.
+    // toSorted()/toReversed() are ES2023 and the app ships no polyfills.
+    // Every .sort()/.reverse() here already runs on a fresh copy.
+    "unicorn/no-array-sort": "off",
+    "unicorn/no-array-reverse": "off",
+    // Every await in a loop here is sequential on purpose (retry with
+    // backoff, polling, reading a stream, one upload at a time).
+    "no-await-in-loop": "off",
+    // Its fix is to mutate the mapped item in place. The copies are the
+    // point: the source objects are query data and store state.
+    "oxc/no-map-spread": "off",
+
+    // BACKLOG. The one rule of this profile that the existing code still
+    // breaks (hit count as of 2026-11-17, with --type-aware; down from 1271
+    // across 33 rules). It reports as a warning so CI stays green while every
+    // other rule is enforced. What is left is `as any` and `as T` on data
+    // that crosses a boundary untyped (JSON, storage, legacy REST shapes):
+    // each needs a parser or a type guard, not a rewrite of the cast. To
+    // retire it: fix the hits, then delete the line. Never add a rule here.
+    "typescript/no-unsafe-type-assertion": "warn" // 230
   }
 }

@@ -107,8 +107,8 @@ export const useUpdateItineraryMutation = () => {
       return data;
     },
     onSuccess: (_, { itineraryId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.itinerary(itineraryId) });
-      queryClient.invalidateQueries({ queryKey: ["itineraries"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.itinerary(itineraryId) });
+      void queryClient.invalidateQueries({ queryKey: ["itineraries"] });
     },
   }));
 };
@@ -137,8 +137,8 @@ export const useSaveItineraryMutation = () => {
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["itineraries"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.userItineraries });
+      void queryClient.invalidateQueries({ queryKey: ["itineraries"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userItineraries });
     },
   }));
 };
@@ -173,8 +173,8 @@ export const useRemoveItineraryMutation = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["itineraries"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.userItineraries });
+      void queryClient.invalidateQueries({ queryKey: ["itineraries"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userItineraries });
     },
   }));
 };

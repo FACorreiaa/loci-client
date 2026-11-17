@@ -7,6 +7,18 @@ import SplitView from "~/components/layout/SplitView";
 import { CityInfoHeader } from "~/components/ui/CityInfoHeader";
 import { ActionToolbar } from "~/components/ui/ActionToolbar";
 
+const handleDownload = () => {
+  alert("This is a preview. Sign in to download real itineraries!");
+};
+
+const handleShare = () => {
+  alert("This is a preview. Sign in to share!");
+};
+
+const handleBookmark = () => {
+  alert("This is a preview. Sign in to save bookmarks!");
+};
+
 export default function PreviewItineraryPage() {
   const itineraryData = createMemo(() => TOKYO_ITINERARY);
   const cityData = createMemo(() => TOKYO_CITY_DATA);
@@ -19,27 +31,12 @@ export default function PreviewItineraryPage() {
     }));
   });
 
-  const handleDownload = () => {
-    alert("This is a preview. Sign in to download real itineraries!");
-  };
-
-  const handleShare = () => {
-    alert("This is a preview. Sign in to share!");
-  };
-
-  const handleBookmark = () => {
-    alert("This is a preview. Sign in to save bookmarks!");
-  };
-
   // Map Content
   const MapContent = (
     <div class="h-full w-full bg-muted relative">
       <Show when={allPois().length > 0}>
         <MapComponent
-          center={[
-            (allPois()[0]?.longitude as number) || 0,
-            (allPois()[0]?.latitude as number) || 0,
-          ]}
+          center={[allPois()[0]?.longitude || 0, allPois()[0]?.latitude || 0]}
           pointsOfInterest={allPois()}
           zoom={12}
         />

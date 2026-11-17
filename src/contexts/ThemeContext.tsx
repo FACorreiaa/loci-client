@@ -1,4 +1,12 @@
-import { createContext, useContext, createSignal, createEffect, onMount, JSX } from "solid-js";
+import {
+  createContext,
+  useContext,
+  createSignal,
+  createEffect,
+  onCleanup,
+  onMount,
+  JSX,
+} from "solid-js";
 import {
   type ColorTheme,
   type DesignTheme,
@@ -86,6 +94,12 @@ export const ThemeProvider = (props: ThemeProviderProps) => {
     color: colorMode(),
   });
 
+  const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+    if (colorMode() === "system") {
+      setIsDark(e.matches);
+    }
+  };
+
   onMount(() => {
     const savedPreference = themePreferenceFromLocalStorage();
     if (savedPreference) {
@@ -103,15 +117,11 @@ export const ThemeProvider = (props: ThemeProviderProps) => {
     setInitialized(true);
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
-      if (colorMode() === "system") {
-        setIsDark(e.matches);
-      }
-    };
 
     mediaQuery.addEventListener("change", handleSystemThemeChange);
 
-    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    // onCleanup, not a returned function: Solid ignores onMount's return.
+    onCleanup(() => mediaQuery.removeEventListener("change", handleSystemThemeChange));
   });
 
   createEffect(() => {

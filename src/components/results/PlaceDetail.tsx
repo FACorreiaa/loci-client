@@ -79,7 +79,7 @@ export interface PlaceDetailProps {
 }
 
 const isNotFound = (err: unknown): boolean =>
-  /not found/i.test(err instanceof Error ? err.message : String(err ?? ""));
+  /not found/i.test(err instanceof Error ? err.message : typeof err === "string" ? err : "");
 
 /**
  * The frame of /hotels/[id], /restaurants/[id] and /places/[id]: Back to where it came
@@ -90,6 +90,7 @@ const isNotFound = (err: unknown): boolean =>
  */
 export default function PlaceDetail(props: PlaceDetailProps) {
   const meta = () => DOMAINS[props.domain];
+  // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
   const [tab, setTab] = createSignal(props.tabs[0]?.id ?? "overview");
   // "I've been here" asks how it was, right where the traveller said it.
   const [asking, setAsking] = createSignal(false);

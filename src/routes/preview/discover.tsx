@@ -5,6 +5,11 @@ import { TOKYO_HOTELS, TOKYO_RESTAURANTS, TOKYO_ACTIVITIES } from "~/data/previe
 import FavoriteButton from "~/components/shared/FavoriteButton";
 import { Button } from "~/ui/button";
 
+const handleSearch = (e: Event) => {
+  e.preventDefault();
+  alert("This is a preview with Tokyo data. Sign in to search the world!");
+};
+
 export default function PreviewDiscoverPage() {
   const [searchQuery, setSearchQuery] = createSignal("Best things to do in Tokyo");
   const [searchResults] = createSignal([
@@ -12,11 +17,6 @@ export default function PreviewDiscoverPage() {
     ...TOKYO_RESTAURANTS,
     ...TOKYO_HOTELS,
   ]);
-
-  const handleSearch = (e: Event) => {
-    e.preventDefault();
-    alert("This is a preview with Tokyo data. Sign in to search the world!");
-  };
 
   return (
     <>

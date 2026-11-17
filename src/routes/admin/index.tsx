@@ -12,6 +12,40 @@ import {
 } from "lucide-solid";
 import { Button } from "~/ui/button";
 
+const getActivityIcon = (type: any) => {
+  const icons: Record<string, string> = {
+    user_registration: "👤",
+    poi_flagged: "🚩",
+    review_flagged: "⚠️",
+    system_error: "❌",
+    poi_approved: "✅",
+  };
+  return icons[type] || "📝";
+};
+
+const getActivityColor = (severity: string) => {
+  const colors: Record<string, string> = {
+    info: "text-primary bg-primary/10",
+    success: "text-accent bg-accent/10",
+    warning: "text-accent bg-accent/10",
+    error: "text-destructive bg-destructive/10",
+  };
+  return colors[severity] || "text-muted-foreground bg-muted";
+};
+
+const getPriorityColor = (priority: string) => {
+  const colors: Record<string, string> = {
+    high: "text-destructive bg-destructive/10",
+    medium: "text-accent bg-accent/10",
+    low: "text-primary bg-primary/10",
+  };
+  return colors[priority] || "text-muted-foreground bg-muted";
+};
+
+const formatTimestamp = (timestamp: string) => {
+  return new Date(timestamp).toLocaleString();
+};
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = createSignal("overview");
   const [timeRange, setTimeRange] = createSignal("7d"); // '24h', '7d', '30d', '90d'
@@ -148,40 +182,6 @@ export default function AdminDashboard() {
     setRefreshing(false);
   };
 
-  const getActivityIcon = (type: any) => {
-    const icons: Record<string, string> = {
-      user_registration: "👤",
-      poi_flagged: "🚩",
-      review_flagged: "⚠️",
-      system_error: "❌",
-      poi_approved: "✅",
-    };
-    return icons[type] || "📝";
-  };
-
-  const getActivityColor = (severity: string) => {
-    const colors: Record<string, string> = {
-      info: "text-primary bg-primary/10",
-      success: "text-accent bg-accent/10",
-      warning: "text-accent bg-accent/10",
-      error: "text-destructive bg-destructive/10",
-    };
-    return colors[severity] || "text-muted-foreground bg-muted";
-  };
-
-  const getPriorityColor = (priority: string) => {
-    const colors: Record<string, string> = {
-      high: "text-destructive bg-destructive/10",
-      medium: "text-accent bg-accent/10",
-      low: "text-primary bg-primary/10",
-    };
-    return colors[priority] || "text-muted-foreground bg-muted";
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
   const renderOverview = () => (
     <div class="space-y-6">
       {/* Stats Grid */}
@@ -245,9 +245,7 @@ export default function AdminDashboard() {
                 <p class="text-2xl font-bold text-foreground">
                   {stats().chat.sessions.toLocaleString()}
                 </p>
-                <p class="text-sm text-accent mt-1">
-                  {stats().chat.satisfaction}% satisfaction
-                </p>
+                <p class="text-sm text-accent mt-1">{stats().chat.satisfaction}% satisfaction</p>
               </div>
               <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
                 <MessageCircle class="w-6 h-6 text-accent" />
@@ -295,7 +293,9 @@ export default function AdminDashboard() {
                     <span class="text-lg">{getActivityIcon(activity.type)}</span>
                     <div class="flex-1 min-w-0">
                       <p class="text-sm text-foreground">{activity.description}</p>
-                      <p class="text-xs text-muted-foreground">{formatTimestamp(activity.timestamp)}</p>
+                      <p class="text-xs text-muted-foreground">
+                        {formatTimestamp(activity.timestamp)}
+                      </p>
                     </div>
                     <span
                       class={`px-2 py-1 rounded-full text-xs font-medium ${getActivityColor(activity.severity)}`}
@@ -314,7 +314,9 @@ export default function AdminDashboard() {
       <div class="cb-card">
         <div class="p-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-foreground">Flagged Content Requiring Attention</h3>
+            <h3 class="text-lg font-semibold text-foreground">
+              Flagged Content Requiring Attention
+            </h3>
             <button
               onClick={() => setActiveTab("flags")}
               class="text-sm text-primary hover:text-primary/80 font-medium"

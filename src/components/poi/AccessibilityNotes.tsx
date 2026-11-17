@@ -1,4 +1,5 @@
 import { For, Show } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { CarTaxiFront, Footprints, Info, OctagonAlert, TriangleAlert } from "lucide-solid";
 import { cn } from "~/cn";
 import {
@@ -24,10 +25,11 @@ const TONE: Record<NoteSeverity, string> = {
 };
 
 export function AccessibilityNoteRow(props: { note: AccessibilityNote }) {
-  const Icon = ICON[props.note.severity];
   return (
     <li class="flex items-start gap-1.5 text-xs">
-      <Icon
+      {/* Dynamic, so the icon follows the severity as the colour already did. */}
+      <Dynamic
+        component={ICON[props.note.severity]}
         class={cn("mt-0.5 h-3.5 w-3.5 shrink-0", TONE[props.note.severity])}
         aria-hidden="true"
       />

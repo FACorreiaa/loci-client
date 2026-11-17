@@ -33,6 +33,19 @@ import { formatPrice } from "~/lib/locale";
 // rather than imposed: nothing is added until the user says so, and a dismissed
 // suggestion stays dismissed (on every device).
 
+const packingEntry = (text: string, position: number): ChecklistEntry => ({
+  id: newChecklistId(),
+  kind: "packing",
+  text: clipText(text),
+  done: false,
+  amountMinor: 0,
+  currency: "",
+  position,
+});
+
+const money = (minor: number, currency: string) =>
+  currency ? formatPrice(fromMinor(minor, currency), currency) : (minor / 100).toFixed(2);
+
 export default function TripChecklists(props: { tripId: string }) {
   const tripId = () => props.tripId;
   const locale = useLocale();
@@ -87,16 +100,6 @@ export default function TripChecklists(props: { tripId: string }) {
     );
   };
 
-  const packingEntry = (text: string, position: number): ChecklistEntry => ({
-    id: newChecklistId(),
-    kind: "packing",
-    text: clipText(text),
-    done: false,
-    amountMinor: 0,
-    currency: "",
-    position,
-  });
-
   const acceptSuggestion = (s: PackingSuggestion) =>
     upsertItem.mutate(packingEntry(s.text, nextPosition(items(), "packing")), write);
   const dismissSuggestion = (s: PackingSuggestion) =>
@@ -138,8 +141,6 @@ export default function TripChecklists(props: { tripId: string }) {
     setExpAmount("");
   };
 
-  const money = (minor: number, currency: string) =>
-    currency ? formatPrice(fromMinor(minor, currency), currency) : (minor / 100).toFixed(2);
   const totals = () => [...totalsByCurrency(expenses())];
   const packedCount = () => pack().filter((i) => i.done).length;
 

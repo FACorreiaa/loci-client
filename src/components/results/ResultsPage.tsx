@@ -47,7 +47,7 @@ import SectionHeader from "~/components/ui/SectionHeader";
 import LocalWeather from "~/components/LocalWeather";
 import TripMoney from "~/components/TripMoney";
 import LayerLegend, { type LayerVisibility } from "~/components/features/Map/LayerLegend";
-import FloatingChat from "~/components/features/Chat/FloatingChat";
+import { FloatingChat } from "~/components/features/Chat/FloatingChat";
 import StopCardSkeleton from "~/components/itinerary/StopCardSkeleton";
 import TripKit from "~/components/itinerary/TripKit";
 import ResultsList from "./ResultsList";
@@ -110,9 +110,9 @@ export default function ResultsPage(props: ResultsPageProps) {
   // No defaults. These used to fall back to a generic query and "London", so
   // a lost session id silently streamed London to somebody who had asked
   // about somewhere else. An absent query is an error, not a different city.
-  const [message] = createSignal((searchParams.message as string) || "");
-  const [cityName, setCityName] = createSignal((searchParams.cityName as string) || "");
-  const [profileId] = createSignal((searchParams.profileId as string) || "");
+  const [message] = createSignal((searchParams.message as string | undefined) || "");
+  const [cityName, setCityName] = createSignal((searchParams.cityName as string | undefined) || "");
+  const [profileId] = createSignal((searchParams.profileId as string | undefined) || "");
   const { isAuthenticated } = useAuth();
 
   const { state, startStream, setError } = useChatRPC({
@@ -142,9 +142,6 @@ export default function ResultsPage(props: ResultsPageProps) {
   // blank panel during the fetch.
   const [hydrating, setHydrating] = createSignal(false);
   const [savedOffline, setSavedOffline] = createSignal(false);
-  // Trip Kit persistent meta — restored from the offline record when one exists.
-  const [, setTripStartDate] = createSignal<string | undefined>(undefined);
-  const [, setStopNotes] = createSignal<Record<string, string>>({});
 
   const saveItineraryMutation = useSaveItineraryMutation();
   const subscriptionQuery = useUserSubscription(() => isAuthenticated());
@@ -186,8 +183,7 @@ export default function ResultsPage(props: ResultsPageProps) {
       const saved = await getOfflineItinerary(sessionId);
       if (!saved || !accept(saved.payload)) return false;
       setSavedOffline(true);
-      if (saved.tripStartDate) setTripStartDate(saved.tripStartDate);
-      if (saved.stopNotes) setStopNotes(saved.stopNotes);
+
       return true;
     } catch (e) {
       console.warn("Could not read the offline copy:", e);
@@ -456,7 +452,7 @@ export default function ResultsPage(props: ResultsPageProps) {
   // Shared selection between list and map (keyed by place name — the map
   // indexes its features by name).
   const [selectedId, setSelectedId] = createSignal<string | undefined>(undefined);
-  const [detailItem, setDetailItem] = createSignal<any | null>(null);
+  const [detailItem, setDetailItem] = createSignal<any>(null);
   const [detailOpen, setDetailOpen] = createSignal(false);
 
   const detailType = () =>
@@ -547,7 +543,7 @@ export default function ResultsPage(props: ResultsPageProps) {
   // One Save, as on /itinerary: the device copy first (it is what makes the
   // list open with no network), then the account bookmark when signed in.
   const handleSave = async () => {
-    const sessionId = (searchParams.sessionId as string) || results()?.sessionId;
+    const sessionId = (searchParams.sessionId as string | undefined) || results()?.sessionId;
     const data = effectiveData();
     if (!sessionId || !data || list().length === 0) {
       showStatus("Nothing to save yet");
@@ -873,7 +869,7 @@ export default function ResultsPage(props: ResultsPageProps) {
           const newData = typeof fn === "function" ? fn(currentData) : fn;
           setRestoredData(newData);
         }}
-        initialSessionId={searchParams.sessionId as string}
+        initialSessionId={searchParams.sessionId as string | undefined}
       />
     </>
   );

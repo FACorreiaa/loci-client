@@ -87,6 +87,32 @@ const TAB_IDS = new Set(TABS.map((t) => t.id));
 // there — support answers, the /mcp guide — and should land somewhere useful.
 const LEGACY_TABS: Record<string, string> = { apikeys: "connections" };
 
+const triggerFileInput = () => {
+  const fileInput = document.getElementById("photo-upload") as HTMLInputElement;
+  fileInput?.click();
+};
+
+// The memory page is a route of its own rather than a panel: it is long,
+// deep-linkable, and the thing you send someone when they ask what the app
+// knows about them.
+const renderMemoryLink = () => (
+  <div class="loci-card rounded-3xl p-6 sm:p-8">
+    <h3 class="text-lg font-semibold text-foreground mb-2">What Loci remembers about you</h3>
+    <p class="text-sm text-muted-foreground mb-5">
+      Everything Loci has learned about your travel taste, the actions that taught it, and a delete
+      button on each one.
+    </p>
+    <A
+      href="/settings/memory"
+      class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+    >
+      <Brain class="w-4 h-4" />
+      Open
+      <ChevronRight class="w-4 h-4" />
+    </A>
+  </div>
+);
+
 function SettingsPageContent() {
   const { user } = useAuth();
   const [notification, setNotification] = createSignal<{
@@ -143,7 +169,7 @@ function SettingsPageContent() {
     // isSuccess first: reading `.data` on a pending query suspends the
     // root boundary and blanks the whole route (see ConnectionsPage).
     const apiData = profileQuery.isSuccess ? profileQuery.data : undefined;
-    if (!apiData && !userData) return null;
+    if (!apiData && !userData) return;
 
     if (apiData) {
       setUserProfile({
@@ -235,18 +261,18 @@ function SettingsPageContent() {
     const apiData: UserProfileResponse | undefined = profileQuery.isSuccess
       ? profileQuery.data
       : undefined;
-    const userData = user();
+    const authUser = user();
 
-    if (!apiData && !userData) return null;
+    if (!apiData && !authUser) return null;
 
     return {
-      id: apiData?.id || userData?.id,
-      username: apiData?.username || userData?.username,
-      email: userData?.email || apiData?.email,
-      bio: apiData?.about_you || (userData as any)?.about_you,
-      location: apiData?.location || (userData as any)?.location,
-      joinedDate: apiData?.created_at || userData?.created_at,
-      avatar: apiData?.profile_image_url || userData?.profile_image_url,
+      id: apiData?.id || authUser?.id,
+      username: apiData?.username || authUser?.username,
+      email: authUser?.email || apiData?.email,
+      bio: apiData?.about_you || (authUser as any)?.about_you,
+      location: apiData?.location || (authUser as any)?.location,
+      joinedDate: apiData?.created_at || authUser?.created_at,
+      avatar: apiData?.profile_image_url || authUser?.profile_image_url,
       // Nothing invented. These used to fall back to a fixed list of interests
       // and a block of made-up counts — 47 places visited, 156 followers — for
       // an account that had none of it. A new user was shown somebody else's
@@ -323,9 +349,9 @@ function SettingsPageContent() {
 
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
-      reader.onload = (e) => setPhotoPreview(e.target?.result as string);
+      reader.addEventListener("load", (e) => setPhotoPreview(e.target?.result as string));
       reader.readAsDataURL(file);
-      uploadPhoto(file);
+      void uploadPhoto(file);
     } else {
       setNotification({
         message: "Please select a valid image file",
@@ -338,9 +364,7 @@ function SettingsPageContent() {
   const uploadPhoto = async (file: File) => {
     setIsUploading(true);
     try {
-      const result = (await uploadAvatarMutation.mutateAsync(file)) as {
-        avatar_url: string;
-      };
+      const result = await uploadAvatarMutation.mutateAsync(file);
       //updateProfile('avatar', result.avatar_url);
       setUserProfile((prev) => ({ ...prev, avatar: result.avatar_url }));
       await profileQuery.refetch();
@@ -362,11 +386,6 @@ function SettingsPageContent() {
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const triggerFileInput = () => {
-    const fileInput = document.getElementById("photo-upload") as HTMLInputElement;
-    fileInput?.click();
   };
 
   const renderSettings = () => {
@@ -762,6 +781,15 @@ function SettingsPageContent() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // The delete and toggle handlers below are called from click handlers that
+  // cannot await them, so a failure has to be reported here: it used to be
+  // an unhandled rejection and nothing on screen. (The mutation default
+  // already logs the error.)
+  const notifyFailed = (message: string) => {
+    setNotification({ message, type: "error" });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
   const handleUpdateTag = async (data: any) => {
     await updateTagMutation.mutateAsync(data);
     setNotification({ message: "Tag updated successfully!", type: "success" });
@@ -779,7 +807,12 @@ function SettingsPageContent() {
     }
 
     if (confirm(`Are you sure you want to delete the tag "${tag.name}"?`)) {
-      await deleteTagMutation.mutateAsync(tag.id);
+      try {
+        await deleteTagMutation.mutateAsync(tag.id);
+      } catch {
+        notifyFailed("Couldn't delete the tag. Please try again.");
+        return;
+      }
       setNotification({
         message: "Tag deleted successfully!",
         type: "success",
@@ -790,10 +823,15 @@ function SettingsPageContent() {
 
   const handleToggleTag = async (tag: any) => {
     const currentActive = tag.active ?? false;
-    await toggleTagActiveMutation.mutateAsync({
-      id: tag.id,
-      active: !currentActive,
-    });
+    try {
+      await toggleTagActiveMutation.mutateAsync({
+        id: tag.id,
+        active: !currentActive,
+      });
+    } catch {
+      notifyFailed("Couldn't update the tag. Please try again.");
+      return;
+    }
     setNotification({
       message: `Tag ${!currentActive ? "activated" : "deactivated"} successfully!`,
       type: "success",
@@ -849,7 +887,12 @@ function SettingsPageContent() {
     }
 
     if (confirm(`Are you sure you want to delete the interest "${interest.name}"?`)) {
-      await deleteInterestMutation.mutateAsync(interest.id);
+      try {
+        await deleteInterestMutation.mutateAsync(interest.id);
+      } catch {
+        notifyFailed("Couldn't delete the interest. Please try again.");
+        return;
+      }
       setNotification({
         message: "Interest deleted successfully!",
         type: "success",
@@ -860,10 +903,15 @@ function SettingsPageContent() {
 
   const handleToggleInterest = async (interest: any) => {
     const currentActive = interest.active ?? false;
-    await toggleInterestActiveMutation.mutateAsync({
-      id: interest.id,
-      active: !currentActive,
-    });
+    try {
+      await toggleInterestActiveMutation.mutateAsync({
+        id: interest.id,
+        active: !currentActive,
+      });
+    } catch {
+      notifyFailed("Couldn't update the interest. Please try again.");
+      return;
+    }
     setNotification({
       message: `Interest ${!currentActive ? "activated" : "deactivated"} successfully!`,
       type: "success",
@@ -972,27 +1020,6 @@ function SettingsPageContent() {
           </span>
         </A>
       </div>
-    </div>
-  );
-
-  // The memory page is a route of its own rather than a panel: it is long,
-  // deep-linkable, and the thing you send someone when they ask what the app
-  // knows about them.
-  const renderMemoryLink = () => (
-    <div class="loci-card rounded-3xl p-6 sm:p-8">
-      <h3 class="text-lg font-semibold text-foreground mb-2">What Loci remembers about you</h3>
-      <p class="text-sm text-muted-foreground mb-5">
-        Everything Loci has learned about your travel taste, the actions that taught it, and a
-        delete button on each one.
-      </p>
-      <A
-        href="/settings/memory"
-        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-      >
-        <Brain class="w-4 h-4" />
-        Open
-        <ChevronRight class="w-4 h-4" />
-      </A>
     </div>
   );
 

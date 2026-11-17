@@ -42,10 +42,7 @@ export async function hydrateFinishedSession(
       return null;
     }
   }
-  return (await hydrateSession(
-    sessionId,
-    ...sectionFor(domain),
-  )) as Partial<UnifiedChatResponse> | null;
+  return hydrateSession(sessionId, ...sectionFor(domain));
 }
 
 export async function hydrateSession(

@@ -200,14 +200,14 @@ export default function ChatInterface(props: ChatInterfaceProps) {
               <textarea
                 value={props.chatMessage}
                 onInput={(e) => props.setChatMessage(e.currentTarget.value)}
-                onKeyPress={props.handleKeyPress}
+                onKeyPress={(e) => props.handleKeyPress(e)}
                 placeholder={placeholder()}
                 disabled={props.isLoading || dictation.state() !== "idle"}
                 rows={2}
                 class="min-h-[52px] max-h-32 flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <button
-                onClick={props.sendChatMessage}
+                onClick={() => props.sendChatMessage()}
                 disabled={
                   !props.chatMessage.trim() || props.isLoading || dictation.state() !== "idle"
                 }

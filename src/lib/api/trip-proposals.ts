@@ -66,6 +66,7 @@ export const mapProposal = (p: ActionProposal): TripProposal => ({
   createdAt: p.createdAt ? timestampDate(p.createdAt).toISOString() : undefined,
 });
 
+// oxlint-disable-next-line typescript/consistent-return -- the switch is exhaustive, and the compiler rejects a missing case
 const toProtoAction = (c: SuggestedChange) => {
   switch (c.kind) {
     case "addStop":

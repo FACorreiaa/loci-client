@@ -147,7 +147,7 @@ export function useSaveAiCredential() {
       return resp.credential ? toCredentialView(resp.credential) : null;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: aiCredentialQueryKey });
+      void queryClient.invalidateQueries({ queryKey: aiCredentialQueryKey });
     },
   }));
 }
@@ -159,7 +159,7 @@ export function useDeleteAiCredential() {
       await aiCredsClient.deleteCredential(create(DeleteCredentialRequestSchema, {}));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: aiCredentialQueryKey });
+      void queryClient.invalidateQueries({ queryKey: aiCredentialQueryKey });
     },
   }));
 }
@@ -180,7 +180,7 @@ export function useVerifyAiCredential() {
     },
     onSuccess: () => {
       // A verification failure is recorded as last_error on the credential.
-      queryClient.invalidateQueries({ queryKey: aiCredentialQueryKey });
+      void queryClient.invalidateQueries({ queryKey: aiCredentialQueryKey });
     },
   }));
 }

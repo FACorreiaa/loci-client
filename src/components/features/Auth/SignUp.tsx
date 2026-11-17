@@ -22,6 +22,14 @@ interface FormData {
 const inputBase =
   "w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border bg-background text-foreground placeholder:text-muted-foreground transition-all text-sm sm:text-base backdrop-blur";
 
+// Continue where the user was headed; a brand-new account (the server says
+// so, as the provider may map to an existing one) sees the questionnaire once.
+const afterSocialSignUp = (result: { userId: string; isNewUser: boolean }) => {
+  const returnTo = sessionStorage.getItem("auth_return_to");
+  if (returnTo) sessionStorage.removeItem("auth_return_to");
+  return afterSignInTarget({ ...result, returnTo });
+};
+
 const SignUp: Component = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -63,14 +71,6 @@ const SignUp: Component = () => {
   const registerMutation = useRegisterMutation();
   const googleLoginMutation = useGoogleLoginMutation();
   const appleLoginMutation = useAppleLoginMutation();
-
-  // Continue where the user was headed; a brand-new account (the server says
-  // so, as the provider may map to an existing one) sees the questionnaire once.
-  const afterSocialSignUp = (result: { userId: string; isNewUser: boolean }) => {
-    const returnTo = sessionStorage.getItem("auth_return_to");
-    if (returnTo) sessionStorage.removeItem("auth_return_to");
-    return afterSignInTarget({ ...result, returnTo });
-  };
 
   const handleGoogleLogin = async () => {
     setSocialLoading("google");

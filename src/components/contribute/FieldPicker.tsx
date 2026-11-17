@@ -48,7 +48,7 @@ export function FieldPicker(props: {
           size="sm"
           variant="outline"
           value={props.tokens[0] ?? ""}
-          onChange={(token) => props.onTokensChange(token ? [token as string] : [])}
+          onChange={(token) => props.onTokensChange(token ? [token] : [])}
           aria-label={vocabulary().question}
           class="flex-wrap justify-start"
         >
@@ -68,7 +68,7 @@ export function FieldPicker(props: {
           size="sm"
           variant="outline"
           value={props.tokens}
-          onChange={(tokens) => onMultiChange((tokens as string[]) ?? [])}
+          onChange={(tokens) => onMultiChange(tokens ?? [])}
           aria-label={vocabulary().question}
           class="flex-wrap justify-start"
         >

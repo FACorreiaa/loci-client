@@ -7,6 +7,30 @@
 
 import type { POIDetailedInfo } from "../api/types";
 
+const isHotel = (poi: POIDetailedInfo) => {
+  const cat = (poi.category || "").toLowerCase();
+  return (
+    cat.includes("hotel") ||
+    cat.includes("hostel") ||
+    cat.includes("lodg") || // lodge/lodging
+    cat.includes("resort") ||
+    cat.includes("bnb") ||
+    cat.includes("inn") ||
+    cat.includes("accommodation") ||
+    cat.includes("guesthouse") ||
+    cat.includes("guest house") ||
+    cat.includes("stay") ||
+    cat.includes("sleep") ||
+    cat.includes("room") ||
+    cat.includes("booking") ||
+    cat.includes("bookings")
+  );
+};
+
+const isRestaurant = (poi: POIDetailedInfo) =>
+  (poi.category || "").toLowerCase().includes("restaurant") ||
+  Boolean((poi as any).cuisine_type || (poi as any).cuisineType);
+
 /**
  * Derive domain-specific lists from mixed POI payloads.
  * Used by Hotels/Restaurants/Activities pages to categorize POIs.
@@ -19,35 +43,33 @@ export const deriveDomainLists = (data: any) => {
       []),
   ].filter(Boolean);
 
-  const isHotel = (poi: POIDetailedInfo) => {
-    const cat = (poi.category || "").toLowerCase();
-    return (
-      cat.includes("hotel") ||
-      cat.includes("hostel") ||
-      cat.includes("lodg") || // lodge/lodging
-      cat.includes("resort") ||
-      cat.includes("bnb") ||
-      cat.includes("inn") ||
-      cat.includes("accommodation") ||
-      cat.includes("guesthouse") ||
-      cat.includes("guest house") ||
-      cat.includes("stay") ||
-      cat.includes("sleep") ||
-      cat.includes("room") ||
-      cat.includes("booking") ||
-      cat.includes("bookings")
-    );
-  };
-
-  const isRestaurant = (poi: POIDetailedInfo) =>
-    (poi.category || "").toLowerCase().includes("restaurant") ||
-    Boolean((poi as any).cuisine_type || (poi as any).cuisineType);
-
   const hotels = points.filter(isHotel);
   const restaurants = points.filter(isRestaurant);
   const activities = points.filter((poi) => !isHotel(poi) && !isRestaurant(poi));
 
   return { hotels, restaurants, activities };
+};
+
+const keyFor = (item: any) => {
+  const placeholderId = item?.id === "00000000-0000-0000-0000-000000000000";
+
+  // If it's not a placeholder ID and looks like a real UUID, use it
+  if (!placeholderId && item?.id) {
+    const isRealUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      item.id,
+    );
+    if (isRealUUID && item.id !== "00000000-0000-0000-0000-000000000000") {
+      return item.id;
+    }
+  }
+
+  // Use normalized name as the key for placeholder IDs and synthetic IDs
+  const name = item?.name || "";
+  const normalizedName = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+  return normalizedName || item?.llm_interaction_id || Math.random().toString(36).slice(2);
 };
 
 /**
@@ -56,28 +78,6 @@ export const deriveDomainLists = (data: any) => {
  */
 export const mergeUniqueById = (prev: any[] = [], next: any[] = []) => {
   const map = new Map<string, any>();
-
-  const keyFor = (item: any) => {
-    const placeholderId = item?.id === "00000000-0000-0000-0000-000000000000";
-
-    // If it's not a placeholder ID and looks like a real UUID, use it
-    if (!placeholderId && item?.id) {
-      const isRealUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        item.id,
-      );
-      if (isRealUUID && item.id !== "00000000-0000-0000-0000-000000000000") {
-        return item.id;
-      }
-    }
-
-    // Use normalized name as the key for placeholder IDs and synthetic IDs
-    const name = item?.name || "";
-    const normalizedName = name
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "")
-      .trim();
-    return normalizedName || item?.llm_interaction_id || Math.random().toString(36).slice(2);
-  };
 
   prev.forEach((item) => map.set(keyFor(item), item));
   // Newer data overwrites older data with the same key
@@ -213,7 +213,7 @@ export const persistCompletedSession = (sessionIdValue: string | null, data: any
 /**
  * Get a stored session by ID.
  */
-export const getStoredSession = (sessionId: string): any | null => {
+export const getStoredSession = (sessionId: string): any => {
   try {
     const stored = sessionStorage.getItem(`session_${sessionId}`);
     return stored ? JSON.parse(stored) : null;

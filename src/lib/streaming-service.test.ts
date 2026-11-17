@@ -80,7 +80,7 @@ const itineraryEvent = (): Extract<LociStreamEvent, { kind: "itinerary" }> => ({
       itinerary_name: "Funchal in a day",
       overall_description: "",
       points_of_interest: [{ name: "Monte Palace" } as any],
-    } as any,
+    },
     session_id: "s1",
   },
 });
@@ -124,6 +124,13 @@ beforeEach(async () => {
   reconnectPolicy.backoffMs = [0, 0, 0];
   reconnectPolicy.pollIntervalMs = 0;
   reconnectPolicy.pollTimeoutMs = 50;
+});
+
+const mk = () => ({
+  session: createStreamingSession("itinerary"),
+  onProgress: vi.fn(),
+  onComplete: vi.fn(),
+  onError: vi.fn(),
 });
 
 describe("streamingService → live store", () => {
@@ -178,7 +185,7 @@ describe("streamingService → live store", () => {
     feed.push({ kind: "start", sessionId: "s1", domain: "itinerary" });
     feed.push(itineraryEvent());
     const full = { ...itineraryEvent().cityResponse };
-    full.general_city_data = { ...full.general_city_data, city: "Lisbon" } as any;
+    full.general_city_data = { ...full.general_city_data, city: "Lisbon" };
     feed.push({ kind: "complete", sessionId: "s1", result: full });
     await tick();
 
@@ -276,12 +283,6 @@ describe("streamingService → live store", () => {
   });
 
   it("stops a run by its request id before the server names it", async () => {
-    const mk = () => ({
-      session: createStreamingSession("itinerary"),
-      onProgress: vi.fn(),
-      onComplete: vi.fn(),
-      onError: vi.fn(),
-    });
     streamingService.startStream({ message: "one", requestId: "req-1" }, mk());
     const one = currentFeed!;
     streamingService.startStream({ message: "two", requestId: "req-2" }, mk());
@@ -356,29 +357,29 @@ describe("streamingService → live store", () => {
   });
 });
 
+const transportError = (): LociStreamEvent => ({
+  kind: "error",
+  userMessage: "Connection lost",
+  internalCode: "Unknown",
+  retryable: true,
+  transport: true,
+});
+
+// Record every phase the run passes through, so "no error in between" is
+// checked on the way, not just at the end.
+const phasesOf = (id: string) => {
+  const seen: string[] = [];
+  const timer = setInterval(() => {
+    const p = liveRuns[id]?.phase;
+    if (p && seen.at(-1) !== p) seen.push(p);
+  }, 0);
+  return { seen, stop: () => clearInterval(timer) };
+};
+
 // Production: the browser dropped three StreamChat requests at once, the server
 // finished all three, and the client said "didn't finish". A transport error
 // after `start` now resumes the same run instead of failing it.
 describe("streamingService → reconnect", () => {
-  const transportError = (): LociStreamEvent => ({
-    kind: "error",
-    userMessage: "Connection lost",
-    internalCode: "Unknown",
-    retryable: true,
-    transport: true,
-  });
-
-  // Record every phase the run passes through, so "no error in between" is
-  // checked on the way, not just at the end.
-  const phasesOf = (id: string) => {
-    const seen: string[] = [];
-    const timer = setInterval(() => {
-      const p = liveRuns[id]?.phase;
-      if (p && seen.at(-1) !== p) seen.push(p);
-    }, 0);
-    return { seen, stop: () => clearInterval(timer) };
-  };
-
   it("resumes with the last event id after a dropped connection, then completes", async () => {
     const { manager, feed } = start();
     feed.push({ kind: "start", sessionId: "s1", domain: "itinerary", eventId: "e1" });

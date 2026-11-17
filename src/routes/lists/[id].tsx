@@ -20,6 +20,9 @@ const KIND_LABEL: Record<ListDetailItem["kind"], string> = {
   itinerary: "Itinerary",
 };
 
+const itemHref = (item: ListDetailItem) =>
+  item.kind === "itinerary" ? undefined : `/places/${item.itemId}`;
+
 /**
  * One list: its places on a map and in order, each removable.
  *
@@ -65,9 +68,6 @@ export default function ListDetailPage() {
       },
     );
   };
-
-  const itemHref = (item: ListDetailItem) =>
-    item.kind === "itinerary" ? undefined : `/places/${item.itemId}`;
 
   return (
     <main class="mx-auto w-full max-w-6xl px-4 py-8">

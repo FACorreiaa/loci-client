@@ -28,7 +28,8 @@ vi.mock("../streaming/chatStream", () => ({
       },
     };
     return (async function* () {
-      while (!signal?.aborted) {
+      for (;;) {
+        if (signal?.aborted) return;
         if (queue.length) {
           const e = queue.shift()!;
           yield e;
@@ -61,14 +62,14 @@ describe("useStreamedRpc", () => {
   it("keeps streaming after the page unmounts, and lists the run", async () => {
     const onStart = vi.fn();
     let hook!: ReturnType<typeof useStreamedRpc>;
-    const dispose = createRoot((dispose) => {
+    const dispose = createRoot((disposeRoot) => {
       hook = useStreamedRpc(
         () => "3 days in Porto",
         () => "Porto",
         () => "p1",
         { onStart },
       );
-      return dispose;
+      return disposeRoot;
     });
     void hook.connect();
     expect(calls[0]).toMatchObject({

@@ -58,10 +58,11 @@ export default function ReviewForm(props: ReviewFormProps) {
   const isEdit = () => Boolean(props.isEdit);
   const canSend = () => issues().length === 0 && !props.isSubmitting;
 
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape" && !props.isSubmitting) props.onCancel();
+  };
+
   onMount(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !props.isSubmitting) props.onCancel();
-    };
     document.addEventListener("keydown", onKey);
     onCleanup(() => document.removeEventListener("keydown", onKey));
   });
@@ -79,6 +80,7 @@ export default function ReviewForm(props: ReviewFormProps) {
   };
 
   const stars = () =>
+    // eslint-disable-next-line solid/reactivity -- runs inside an accessor that JSX reads, so it is already tracked
     Array.from({ length: 5 }, (_, i) => {
       const value = i + 1;
       const filled = value <= (hoverRating() || rating());

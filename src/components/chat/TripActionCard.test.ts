@@ -82,7 +82,7 @@ const mount = (props: TripActionCardProps) => {
   return host;
 };
 const byId = (host: HTMLElement, id: string) =>
-  host.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
+  host.querySelector<HTMLElement>(`[data-testid="${id}"]`);
 
 describe("TripActionCard", () => {
   it("a co-planner's card is a suggestion: no Confirm, only Take back", async () => {

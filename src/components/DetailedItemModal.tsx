@@ -5,7 +5,7 @@ import type { FavoriteItem } from "~/lib/api/favorites";
 import type { POIImageCredit } from "~/lib/api/types";
 import ProgressiveImage from "./itinerary/ProgressiveImage";
 import { GroundedBadge } from "./ui/GroundedBadge";
-import PlaceFacts from "./poi/PlaceFacts";
+import { PlaceFacts } from "./poi/PlaceFacts";
 import { useGetPlaceFacts } from "~/lib/api/place-intelligence";
 import { useAuth } from "~/contexts/AuthContext";
 import { Show, createSignal, createEffect, For } from "solid-js";
@@ -72,6 +72,51 @@ interface DetailedItemModalProps {
   onClose: () => void;
 }
 
+const getTypeColor = (_type: string) => "text-primary";
+
+const getTypeIcon = (type: string) => {
+  switch (type) {
+    case "hotel":
+      return "🏨";
+    case "restaurant":
+      return "🍽️";
+    case "activity":
+      return "🎯";
+    case "poi":
+      return "📍";
+    default:
+      return "📍";
+  }
+};
+
+const getRatingColor = (rating: number) => {
+  if (rating >= 4.0) return "text-accent";
+  if (rating >= 3.5) return "text-primary";
+  return "text-muted-foreground";
+};
+
+const getPriceColor = (_priceRange: string) => "text-primary";
+
+const getAmenityIcon = (amenity: string) => {
+  const amenityLower = amenity.toLowerCase();
+  if (amenityLower.includes("wifi") || amenityLower.includes("internet"))
+    return <Wifi class="w-4 h-4" />;
+  if (amenityLower.includes("parking") || amenityLower.includes("car"))
+    return <Car class="w-4 h-4" />;
+  if (amenityLower.includes("breakfast") || amenityLower.includes("coffee"))
+    return <Coffee class="w-4 h-4" />;
+  if (amenityLower.includes("restaurant") || amenityLower.includes("dining"))
+    return <Utensils class="w-4 h-4" />;
+  return null;
+};
+
+const openMaps = (url: string | null) => {
+  if (!url) return;
+  // noopener,noreferrer to match every other external link in the app; the
+  // previous call omitted both and handed the opened tab window.opener.
+  window.open(url, "_blank", "noopener,noreferrer");
+};
+
 export default function DetailedItemModal(props: DetailedItemModalProps) {
   const locale = useLocale();
   const { isAuthenticated } = useAuth();
@@ -87,54 +132,19 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
     }
   });
 
-  const getTypeColor = (_type: string) => "text-primary";
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "hotel":
-        return "🏨";
-      case "restaurant":
-        return "🍽️";
-      case "activity":
-        return "🎯";
-      case "poi":
-        return "📍";
-      default:
-        return "📍";
-    }
-  };
-
-  const getRatingColor = (rating: number) => {
-    if (rating >= 4.0) return "text-accent";
-    if (rating >= 3.5) return "text-primary";
-    return "text-muted-foreground";
-  };
-
-  const getPriceColor = (_priceRange: string) => "text-primary";
-
-  const getAmenityIcon = (amenity: string) => {
-    const amenityLower = amenity.toLowerCase();
-    if (amenityLower.includes("wifi") || amenityLower.includes("internet"))
-      return <Wifi class="w-4 h-4" />;
-    if (amenityLower.includes("parking") || amenityLower.includes("car"))
-      return <Car class="w-4 h-4" />;
-    if (amenityLower.includes("breakfast") || amenityLower.includes("coffee"))
-      return <Coffee class="w-4 h-4" />;
-    if (amenityLower.includes("restaurant") || amenityLower.includes("dining"))
-      return <Utensils class="w-4 h-4" />;
-    return null;
-  };
-
   const handleShare = () => {
     if (navigator.share && props.item) {
-      navigator.share({
-        title: props.item.name,
-        text: props.item.description_poi || `Check out ${props.item.name}`,
-        url: window.location.href,
-      });
+      // share() rejects when the sheet is dismissed, which is not an error.
+      navigator
+        .share({
+          title: props.item.name,
+          text: props.item.description_poi || `Check out ${props.item.name}`,
+          url: window.location.href,
+        })
+        .catch(() => {});
     } else {
-      // Fallback to clipboard
-      navigator.clipboard.writeText(window.location.href);
+      // Fallback to clipboard; a refused write has nowhere to be reported.
+      navigator.clipboard.writeText(window.location.href).catch(() => {});
     }
   };
 
@@ -171,13 +181,6 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
       rating: item.rating,
       category: item.category,
     };
-  };
-
-  const openMaps = (url: string | null) => {
-    if (!url) return;
-    // noopener,noreferrer to match every other external link in the app; the
-    // previous call omitted both and handed the opened tab window.opener.
-    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -392,7 +395,7 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                 </div>
 
                 {/* Amenities/Tags */}
-                <Show when={props.item!.amenities && props.item!.amenities!.length > 0}>
+                <Show when={props.item!.amenities && props.item!.amenities.length > 0}>
                   <div>
                     <h3 class="font-semibold text-foreground mb-3">Amenities</h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -410,7 +413,7 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
                   </div>
                 </Show>
 
-                <Show when={props.item!.tags && props.item!.tags!.length > 0}>
+                <Show when={props.item!.tags && props.item!.tags.length > 0}>
                   <div>
                     <h3 class="font-semibold text-foreground mb-3">Tags</h3>
                     <div class="flex flex-wrap gap-2">

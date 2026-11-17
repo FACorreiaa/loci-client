@@ -80,9 +80,9 @@ describe("defaultListName", () => {
   });
 });
 
-describe("saveImported", () => {
-  const picked = () => toImportView(response()).places.filter((p) => p.poiId);
+const picked = () => toImportView(response()).places.filter((p) => p.poiId);
 
+describe("saveImported", () => {
   it("creates the list first, then adds each place in order", async () => {
     const calls: string[] = [];
     const deps = {

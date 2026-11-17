@@ -78,7 +78,7 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
       <Show when={props.open}>
         <div
           class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 lg:hidden"
-          onClick={props.onClose}
+          onClick={() => props.onClose?.()}
         />
       </Show>
 
@@ -93,14 +93,14 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
             <h2 class="text-base sm:text-lg font-semibold text-foreground">Loci</h2>
             <div class="flex items-center gap-1">
               <button
-                onClick={props.onNewChat}
+                onClick={() => props.onNewChat()}
                 class="cb-button cb-button-primary p-2 text-sm"
                 title="New chat"
               >
                 <Plus class="w-4 h-4" />
               </button>
               <button
-                onClick={props.onClose}
+                onClick={() => props.onClose?.()}
                 class="p-2 text-muted-foreground hover:bg-muted rounded-lg lg:hidden"
                 title="Close"
               >
@@ -112,7 +112,7 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
           {/* Profile Selector */}
           <div class="relative">
             <button
-              onClick={props.onToggleProfileSelector}
+              onClick={() => props.onToggleProfileSelector()}
               class="w-full flex items-center gap-2 p-2 sm:p-3 bg-secondary/50 rounded-lg hover:bg-secondary transition-all border border-border"
             >
               <div class="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
@@ -179,7 +179,10 @@ const ChatSidebar: Component<ChatSidebarProps> = (props) => {
                   There's a temporary issue loading your chat history. You can still start new
                   conversations.
                 </p>
-                <button onClick={props.onRefetch} class="text-xs text-primary hover:underline">
+                <button
+                  onClick={() => props.onRefetch()}
+                  class="text-xs text-primary hover:underline"
+                >
                   Try again
                 </button>
               </div>

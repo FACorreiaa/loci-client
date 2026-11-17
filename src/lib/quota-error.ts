@@ -82,8 +82,7 @@ export function classifyQuotaError(error: unknown): QuotaErrorInfo {
     return infoForKind(null);
   }
 
-  const message =
-    typeof error === "string" ? error : error instanceof Error ? error.message : String(error ?? "");
+  const message = typeof error === "string" ? error : error instanceof Error ? error.message : "";
   if (!message) return infoForKind(null);
 
   // Fall back to message sniffing for stream error events, which carry only a

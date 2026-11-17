@@ -31,6 +31,7 @@ type LegacyStreamEvent = {
   SessionId?: string;
 };
 
+// oxlint-disable-next-line typescript/consistent-return -- the switch is exhaustive, and the compiler rejects a missing case
 function toLegacyEvent(ev: LociStreamEvent): LegacyStreamEvent {
   switch (ev.kind) {
     case "start":
@@ -144,7 +145,7 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
   };
 
   // Helper function to parse buffered chunk data
-  const tryParseBufferedData = (part: string): any | null => {
+  const tryParseBufferedData = (part: string): any => {
     let buffer = chunkBuffer[part as keyof typeof chunkBuffer];
 
     // Remove markdown code blocks
@@ -315,15 +316,15 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
               }
 
               const mergedHotels = mergeUniqueById(
-                (options.getStreamingData?.() as any)?.hotels,
+                options.getStreamingData?.()?.hotels,
                 itineraryData2.hotels || derivedLists2.hotels,
               );
               const mergedRestaurants = mergeUniqueById(
-                (options.getStreamingData?.() as any)?.restaurants,
+                options.getStreamingData?.()?.restaurants,
                 itineraryData2.restaurants || derivedLists2.restaurants,
               );
               const mergedActivities = mergeUniqueById(
-                (options.getStreamingData?.() as any)?.activities,
+                options.getStreamingData?.()?.activities,
                 itineraryData2.activities || derivedLists2.activities,
               );
 
@@ -902,6 +903,7 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
 
                   // Update the streaming data with new itinerary information
                   if (options.setStreamingData) {
+                    // eslint-disable-next-line solid/reactivity -- a callback invoked later: it reads the current value when it runs
                     options.setStreamingData((prev: any) => {
                       if (!prev) return itineraryData;
 
@@ -1184,7 +1186,7 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendChatMessage();
+      void sendChatMessage();
     }
   };
 

@@ -93,10 +93,10 @@
         if (d.kind === "relay") {
           // Same same-site check as the notification path: a relayed message
           // is still attacker payload until targetUrl has looked at it.
-          d.client.postMessage({
-            lociPush: Object.assign({}, payload, { url: targetUrl(payload) }),
-          });
-          return;
+          var relayed = { lociPush: Object.assign({}, payload, { url: targetUrl(payload) }) };
+          // oxlint-disable-next-line unicorn/require-post-message-target-origin -- Client.postMessage, not Window.postMessage: it takes no targetOrigin
+          d.client.postMessage(relayed);
+          return undefined;
         }
         return root.registration.showNotification(payload.title || "Loci", {
           body: payload.body || "",

@@ -161,7 +161,7 @@ export const isValidStreamEvent = (event: unknown): boolean => {
   if (e.type === "error" && !("error" in e)) return false;
 
   // Data events should have data
-  if (["itinerary", "chunk", "complete"].includes(e.type as string)) {
+  if (["itinerary", "chunk", "complete"].includes(e.type)) {
     // Allow empty data for complete events
     if (e.type === "complete") return true;
     if (!("data" in e)) return false;
@@ -237,5 +237,6 @@ export const withRetry = async <T>(
     }
   }
 
-  throw lastError;
+  // Only reachable with maxRetries <= 0, where fn never ran.
+  throw lastError ?? new Error("withRetry: no attempt was made");
 };

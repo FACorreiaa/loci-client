@@ -21,7 +21,7 @@ describe("what the locale context resolves", () => {
       // the units every distance is already in rather than guessing.
       ["nautical", "metric"],
     ])("stored %j -> %s", (stored, want) => {
-      expect(unitsOf(stored as string | undefined)).toBe(want);
+      expect(unitsOf(stored)).toBe(want);
     });
 
     it("changes what a distance reads as", () => {
@@ -36,7 +36,7 @@ describe("what the locale context resolves", () => {
       ["", "EUR"],
       ["GBP", "GBP"],
     ])("stored %j -> %s", (stored, want) => {
-      expect(currencyOf(stored as string | undefined)).toBe(want);
+      expect(currencyOf(stored)).toBe(want);
     });
 
     it("changes the symbol on a price", () => {

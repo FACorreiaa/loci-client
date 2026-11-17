@@ -86,6 +86,14 @@ const createMockItinerary = (prefs: ItineraryPreferences): GeneratedItinerary =>
         : "€200+/day",
 });
 
+const isValidDuration = (duration: number) => duration > 0;
+
+const isValidDestination = (dest: string) => dest.trim().length > 0;
+
+const isValidBudget = (budget: string) => ["low", "medium", "high"].includes(budget);
+
+const isValidPace = (pace: string) => ["relaxed", "moderate", "intensive"].includes(pace);
+
 // ==================
 // Preference Flow Tests
 // ==================
@@ -274,27 +282,23 @@ describe("Itinerary Generation Preference Flow", () => {
 
   describe("Validation", () => {
     it("should reject negative duration", () => {
-      const isValidDuration = (duration: number) => duration > 0;
       expect(isValidDuration(-1)).toBe(false);
       expect(isValidDuration(0)).toBe(false);
       expect(isValidDuration(1)).toBe(true);
     });
 
     it("should require destination", () => {
-      const isValidDestination = (dest: string) => dest.trim().length > 0;
       expect(isValidDestination("")).toBe(false);
       expect(isValidDestination("   ")).toBe(false);
       expect(isValidDestination("Rome")).toBe(true);
     });
 
     it("should validate budget level", () => {
-      const isValidBudget = (budget: string) => ["low", "medium", "high"].includes(budget);
       expect(isValidBudget("invalid")).toBe(false);
       expect(isValidBudget("medium")).toBe(true);
     });
 
     it("should validate pace level", () => {
-      const isValidPace = (pace: string) => ["relaxed", "moderate", "intensive"].includes(pace);
       expect(isValidPace("invalid")).toBe(false);
       expect(isValidPace("moderate")).toBe(true);
     });

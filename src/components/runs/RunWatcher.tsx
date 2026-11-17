@@ -33,6 +33,51 @@ interface LociPushPayload {
   cityName: string;
 }
 
+// Offer to enable push the moment someone navigates away from a search
+// that is still running — the point at which "ping me when it's ready"
+// is most obviously useful. Compares the route just left, not the one just
+// entered, so this fires on the transition out of a run's own page.
+const offerPush = async (run: LiveStream) => {
+  if (pushOffered) return;
+  // Reserved synchronously, before the await below: two navigations racing
+  // through this same tick must not both pass the check above and both go
+  // on to show (or register) the offer.
+  pushOffered = true;
+  const offer = shouldOfferPush({
+    permission: getNotificationPermission(),
+    hasKey: Boolean(await getVapidKey()),
+    dismissedAt: readDismissedAt(),
+    now: Date.now(),
+  });
+  if (!offer) return;
+  showToast({
+    id: "push-offer",
+    title: `Searching ${run.city || "for you"}… Want a ping when it's ready?`,
+    // enablePush() is called synchronously inside the click handler so the
+    // browser still counts Notification.requestPermission() as
+    // user-initiated; only its result is handled later.
+    action: {
+      label: "Allow",
+      run: () => {
+        void enablePush().then((result) => {
+          const outcome = pushOutcome(result);
+          if (outcome === "refresh") void refreshPushRegistration();
+          else if (outcome) showToast(outcome);
+        });
+      },
+    },
+    secondary: {
+      label: "Not now",
+      run: () => {
+        rememberDismissed();
+        dismissToast("push-offer");
+      },
+    },
+  });
+};
+
+const finishedHere = (id: string) => readCompletedSession(id) !== null;
+
 export default function RunWatcher() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -92,49 +137,6 @@ export default function RunWatcher() {
     ),
   );
 
-  // Offer to enable push the moment someone navigates away from a search
-  // that is still running — the point at which "ping me when it's ready"
-  // is most obviously useful. Compares the route just left, not the one just
-  // entered, so this fires on the transition out of a run's own page.
-  const offerPush = async (run: LiveStream) => {
-    if (pushOffered) return;
-    // Reserved synchronously, before the await below: two navigations racing
-    // through this same tick must not both pass the check above and both go
-    // on to show (or register) the offer.
-    pushOffered = true;
-    const offer = shouldOfferPush({
-      permission: getNotificationPermission(),
-      hasKey: Boolean(await getVapidKey()),
-      dismissedAt: readDismissedAt(),
-      now: Date.now(),
-    });
-    if (!offer) return;
-    showToast({
-      id: "push-offer",
-      title: `Searching ${run.city || "for you"}… Want a ping when it's ready?`,
-      // enablePush() is called synchronously inside the click handler so the
-      // browser still counts Notification.requestPermission() as
-      // user-initiated; only its result is handled later.
-      action: {
-        label: "Allow",
-        run: () => {
-          void enablePush().then((result) => {
-            const outcome = pushOutcome(result);
-            if (outcome === "refresh") void refreshPushRegistration();
-            else if (outcome) showToast(outcome);
-          });
-        },
-      },
-      secondary: {
-        label: "Not now",
-        run: () => {
-          rememberDismissed();
-          dismissToast("push-offer");
-        },
-      },
-    });
-  };
-
   createEffect(
     on(
       () => ({ pathname: location.pathname, search: location.search }),
@@ -176,7 +178,6 @@ export default function RunWatcher() {
       // Read before anything settles: the envelope is the only place a
       // reloaded run's original query survives, and Retry needs it.
       const envelopes = new Map(readActiveSessions().map((e) => [e.sessionId, e]));
-      const finishedHere = (id: string) => readCompletedSession(id) !== null;
       // A run this tab saw finish was announced then; its envelope is stale.
       for (const id of envelopes.keys()) if (finishedHere(id)) clearActiveSession(id);
       const resumed = new Set(resumeAllLive());

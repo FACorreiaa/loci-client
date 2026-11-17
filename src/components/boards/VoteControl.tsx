@@ -16,7 +16,10 @@ export default function VoteControl(props: {
   signedIn: boolean;
   class?: string;
 }) {
-  const [state, setState] = createSignal({ score: props.score, myVote: props.myVote });
+  const [state, setState] = createSignal(
+    // eslint-disable-next-line solid/reactivity -- a seed value, read once on purpose
+    { score: props.score, myVote: props.myVote },
+  );
   // A refetch brings the server's numbers back in.
   createEffect(() => setState({ score: props.score, myVote: props.myVote }));
   const [busy, setBusy] = createSignal(false);

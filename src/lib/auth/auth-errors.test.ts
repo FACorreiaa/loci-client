@@ -33,16 +33,13 @@ describe("no server string ever reaches the page", () => {
 
   it("maps every Code to a sentence, or to silence on purpose", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    for (const code of EVERY_CODE) {
+    for (const code of EVERY_CODE.filter((c) => c !== Code.Canceled)) {
       const { message } = describeAuthError(new ConnectError("x", code), "sign-in");
-      // Canceled is the one deliberate empty string: the user navigated away.
-      if (code === Code.Canceled) {
-        expect(message).toBe("");
-      } else {
-        expect(message.length).toBeGreaterThan(10);
-        expect(message.trimEnd()).toMatch(/[.!]$/);
-      }
+      expect(message.length).toBeGreaterThan(10);
+      expect(message.trimEnd()).toMatch(/[.!]$/);
     }
+    // Canceled is the one deliberate empty string: the user navigated away.
+    expect(describeAuthError(new ConnectError("x", Code.Canceled), "sign-in").message).toBe("");
     vi.restoreAllMocks();
   });
 });
@@ -97,10 +94,7 @@ describe("naming the provider that failed", () => {
     ["google", "Google"],
     ["apple", "Apple"],
   ] as const)("says %s by name", (action, label) => {
-    const { message } = describeAuthError(
-      new ConnectError("x", Code.FailedPrecondition),
-      action as AuthAction,
-    );
+    const { message } = describeAuthError(new ConnectError("x", Code.FailedPrecondition), action);
     expect(message).toContain(label);
   });
 });

@@ -74,8 +74,8 @@ export const buildPoiData = (pois: POI[], index: PoiIndex): PoiData => {
   });
 
   return {
-    points: { type: "FeatureCollection", features: pointFeatures } as FeatureCollection,
-    routes: { type: "FeatureCollection", features: routeFeatures } as FeatureCollection,
+    points: { type: "FeatureCollection", features: pointFeatures },
+    routes: { type: "FeatureCollection", features: routeFeatures },
     valid,
   };
 };

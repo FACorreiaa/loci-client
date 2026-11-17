@@ -13,6 +13,15 @@ import ActivityTypeChips, {
 } from "~/components/features/Recents/ActivityTypeChips";
 import CitiesView from "~/components/features/Recents/CitiesView";
 
+const matchesType = (entry: ActivityEntry, filterId: string) => {
+  if (filterId === "all") return true;
+  const option = ACTIVITY_TYPE_OPTIONS.find((o) => o.id === filterId);
+  if (!option) return true;
+  if (option.kind && entry.kind !== option.kind) return false;
+  if (option.detail && entry.detail !== option.detail) return false;
+  return true;
+};
+
 /**
  * /recents — what you did, newest first.
  *
@@ -44,15 +53,6 @@ export default function RecentsPage() {
 
   const activityQuery = useActivityHistory(pages);
   const allEntries = (): ActivityEntry[] => activityQuery.data?.entries ?? [];
-
-  const matchesType = (entry: ActivityEntry, filterId: string) => {
-    if (filterId === "all") return true;
-    const option = ACTIVITY_TYPE_OPTIONS.find((o) => o.id === filterId);
-    if (!option) return true;
-    if (option.kind && entry.kind !== option.kind) return false;
-    if (option.detail && entry.detail !== option.detail) return false;
-    return true;
-  };
 
   // Filtering happens here rather than in the request. The server supports it,
   // but its InteractionFilter message declares city_id and search_query with a
@@ -178,7 +178,7 @@ function ViewTab(props: {
   return (
     <button
       type="button"
-      onClick={props.onClick}
+      onClick={() => props.onClick()}
       aria-pressed={props.active}
       class={cn(
         "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors",

@@ -29,7 +29,7 @@ const ResetPassword: Component = () => {
   const token = (): string => {
     const t = searchParams.token;
     if (!t) return "";
-    return Array.isArray(t) ? t[0] : String(t);
+    return Array.isArray(t) ? t[0] : t;
   };
 
   onMount(() => {

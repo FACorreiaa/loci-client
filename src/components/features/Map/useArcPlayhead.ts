@@ -1,4 +1,3 @@
-import type { Feature } from "geojson";
 import { createEffect, onCleanup } from "solid-js";
 import type mapboxgl from "mapbox-gl";
 import { prefersReducedMotion } from "~/lib/hooks/useInView";
@@ -55,12 +54,12 @@ export const useArcPlayhead = (opts: ArcPlayheadOptions) => {
     }
 
     const { lngLat, bearing } = sampleAlongPath(arc, cached.cumulative, t);
-    const source = map.getSource(SOURCE_GLOBE_MARKER) as mapboxgl.GeoJSONSource | undefined;
+    const source = map.getSource<mapboxgl.GeoJSONSource>(SOURCE_GLOBE_MARKER);
     source?.setData({
       type: "Feature",
       properties: { bearing, label: opts.label() },
       geometry: { type: "Point", coordinates: lngLat },
-    } as Feature);
+    });
   };
 
   const clear = () => {

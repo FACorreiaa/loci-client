@@ -104,7 +104,7 @@ export const useCreateProfileMutation = () => {
         ...old,
         newProfile,
       ]);
-      queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profiles });
     },
   }));
 };
@@ -137,7 +137,7 @@ export const useUserProfileQuery = () => {
         first_name: profile.firstname ?? undefined,
         last_name: profile.lastname ?? undefined,
         phone: profile.phoneNumber ?? undefined,
-        age: profile.age ? Number(profile.age) : undefined,
+        age: profile.age || undefined,
         city: profile.city ?? undefined,
         country: profile.country ?? undefined,
         about_you: profile.aboutYou ?? undefined,
@@ -278,8 +278,8 @@ export const useUpdateProfileMutation = () => {
     },
     onSuccess: () => {
       // Invalidate both profile queries to refetch updated data
-      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
+      void queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
     },
   }));
 };
@@ -323,7 +323,7 @@ export const useUploadAvatarMutation = () => {
       queryClient.setQueryData(queryKeys.defaultProfile, (old: UserProfile) =>
         old ? { ...old, avatar: result.avatar_url } : old,
       );
-      queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.defaultProfile });
     },
   }));
 };

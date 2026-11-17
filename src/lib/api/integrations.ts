@@ -119,7 +119,7 @@ export function useConnectIntegration() {
       return resp.connection ? toView(resp.connection) : null;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: connectionsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: connectionsQueryKey });
     },
   }));
 }
@@ -131,7 +131,7 @@ export function useDisconnectIntegration() {
       await integrationsClient.disconnect(create(DisconnectRequestSchema, { provider }));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: connectionsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: connectionsQueryKey });
     },
   }));
 }
@@ -154,7 +154,7 @@ export function useTestConnection() {
     },
     onSuccess: () => {
       // A failed test is recorded as last_error on the connection.
-      queryClient.invalidateQueries({ queryKey: connectionsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: connectionsQueryKey });
     },
   }));
 }

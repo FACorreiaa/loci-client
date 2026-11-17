@@ -118,6 +118,7 @@ describe("feed mappers", () => {
 
   it("drops a kind it does not know, or one without its detail", () => {
     expect(
+      // oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- a kind this build has no member for is the case under test
       mapFeedItem(create(FeedItemSchema, { kind: 99 as FeedItemKind, actor })),
     ).toBeUndefined();
     expect(
@@ -125,16 +126,17 @@ describe("feed mappers", () => {
     ).toBeUndefined();
   });
 
+  const item = (id: string) => ({
+    id,
+    actor: mapPublicUser(actor)!,
+    createdAt: "",
+    detail: { kind: "city" as const, cityName: "Porto", country: "" },
+    cheers: 0,
+    cheeredByMe: false,
+    cheerers: [],
+  });
+
   it("applies a cheer to the one item it names", () => {
-    const item = (id: string) => ({
-      id,
-      actor: mapPublicUser(actor)!,
-      createdAt: "",
-      detail: { kind: "city" as const, cityName: "Porto", country: "" },
-      cheers: 0,
-      cheeredByMe: false,
-      cheerers: [],
-    });
     const data = {
       pages: [{ items: [item("1"), item("2")], next: "" }] as FeedPage[],
       pageParams: [""],

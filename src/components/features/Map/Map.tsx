@@ -29,6 +29,15 @@ import { MapErrorBoundary, MapUnavailable } from "./MapErrorBoundary";
 import { MOBILE_MAP_WIDTH, resolveMapStyle } from "./style";
 import { useMapLifecycle } from "./useMapLifecycle";
 
+const setFeatureSelected = (map: mapboxgl.Map, fid: number | null, selected: boolean) => {
+  if (fid == null) return;
+  try {
+    map.setFeatureState({ source: SOURCE_POIS, id: fid }, { selected });
+  } catch {
+    /* source may not be ready yet */
+  }
+};
+
 const MapComponent = (_props: MapComponentProps) => {
   const props = mergeProps(
     {
@@ -65,15 +74,6 @@ const MapComponent = (_props: MapComponentProps) => {
       followColorMode: props.followColorMode,
       isDark: theme.isDark(),
     });
-
-  const setFeatureSelected = (map: mapboxgl.Map, fid: number | null, selected: boolean) => {
-    if (fid == null) return;
-    try {
-      map.setFeatureState({ source: SOURCE_POIS, id: fid }, { selected });
-    } catch {
-      /* source may not be ready yet */
-    }
-  };
 
   const applySelection = (selectedId?: string) => {
     const map = lifecycle.map();
@@ -128,6 +128,7 @@ const MapComponent = (_props: MapComponentProps) => {
     });
 
     // Click a point -> select + popup.
+    // eslint-disable-next-line solid/reactivity -- a map event handler: it reads the current props when the event fires
     map.on("click", LAYER_POINTS, (e) => {
       const feature = e.features?.[0];
       const fid = feature?.id as number | undefined;
@@ -188,21 +189,21 @@ const MapComponent = (_props: MapComponentProps) => {
     // moment the style lands, so nothing is lost by skipping here.
     if (!map.getSource(SOURCE_POIS) && !map.isStyleLoaded()) return;
     ensureLayers(map);
-    const source = map.getSource(SOURCE_POIS) as mapboxgl.GeoJSONSource | undefined;
+    const source = map.getSource<mapboxgl.GeoJSONSource>(SOURCE_POIS);
     if (!source) return;
     const { points, routes, valid } = buildPoiData(pois, index);
     source.setData(points);
-    (map.getSource(SOURCE_ROUTES) as mapboxgl.GeoJSONSource | undefined)?.setData(routes);
+    map.getSource<mapboxgl.GeoJSONSource>(SOURCE_ROUTES)?.setData(routes);
     if (routes.features.length > 0) {
       routeAnimFrame = animateRoutes(map, routeAnimFrame);
     }
-    (map.getSource(SOURCE_SIGNALS) as mapboxgl.GeoJSONSource | undefined)?.setData(
-      buildSignalData(props.alerts ?? []),
-    );
+    map
+      .getSource<mapboxgl.GeoJSONSource>(SOURCE_SIGNALS)
+      ?.setData(buildSignalData(props.alerts ?? []));
     applyVisibility(map);
     // Follow the pins only while the user is not steering (refit.ts): a city
     // still streaming must not cancel the pan they just started.
-    const ids = valid.map((p) => String(p.id ?? p.name));
+    const ids = valid.map((p) => p.id ?? p.name);
     const refit = fit && shouldRefit(follow, ids);
     if (refit) fitToData(map, valid, mapContainer);
     follow = { ids: new Set(ids), userMoved: refit ? false : (follow?.userMoved ?? false) };
@@ -323,7 +324,7 @@ const MapComponent = (_props: MapComponentProps) => {
     const alerts = props.alerts;
     const map = lifecycle.map();
     if (!map) return;
-    const source = map.getSource(SOURCE_SIGNALS) as mapboxgl.GeoJSONSource | undefined;
+    const source = map.getSource<mapboxgl.GeoJSONSource>(SOURCE_SIGNALS);
     source?.setData(buildSignalData(alerts ?? []));
   });
 
