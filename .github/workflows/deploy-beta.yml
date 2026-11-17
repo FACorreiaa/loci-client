@@ -43,6 +43,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # `pnpm run build` no longer typechecks on its own.
+      - name: Run TypeScript check
+        run: pnpm run typecheck
+
       - name: Build for beta
         run: pnpm run build
         env:

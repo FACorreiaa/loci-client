@@ -38,7 +38,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run TypeScript check
-        run: pnpm exec tsc --noEmit
+        run: pnpm run typecheck
 
       - name: Build for staging
         run: pnpm run build
