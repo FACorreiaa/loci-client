@@ -141,9 +141,10 @@ describe("tripCoords", () => {
   });
 });
 
+const stop = (n: string) => ({ id: n, poiId: n, orderIndex: 0, name: n, notes: "" });
+
 describe("tripStopCount", () => {
   it("sums stops across days", () => {
-    const stop = (n: string) => ({ id: n, poiId: n, orderIndex: 0, name: n, notes: "" });
     const t = makeTrip({
       days: [
         { id: "a", dayNumber: 1, stops: [stop("1"), stop("2")] },

@@ -11,11 +11,38 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+// Don't show if dismissed recently
+const wasDismissed = () => {
+  return localStorage.getItem("pwa-install-banner-dismissed") === "true";
+};
+
 export default function PWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = createSignal<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = createSignal(false);
   const [isInstalled, setIsInstalled] = createSignal(false);
   const [showInstallBanner, setShowInstallBanner] = createSignal(false);
+
+  // Listen for the beforeinstallprompt event
+  const handleBeforeInstallPrompt = (e: Event) => {
+    // Prevent the mini-infobar from appearing on mobile
+    e.preventDefault();
+    // Save the event so it can be triggered later
+    setDeferredPrompt(e as BeforeInstallPromptEvent);
+    setShowInstallButton(true);
+
+    // Show install banner after a delay
+    setTimeout(() => {
+      setShowInstallBanner(true);
+    }, 3000);
+  };
+
+  // Listen for app installed event
+  const handleAppInstalled = () => {
+    setIsInstalled(true);
+    setShowInstallButton(false);
+    setShowInstallBanner(false);
+    console.log("Loci PWA was installed");
+  };
 
   onMount(() => {
     // Check if app is already installed
@@ -26,28 +53,6 @@ export default function PWAInstall() {
       setIsInstalled(true);
       return;
     }
-
-    // Listen for the beforeinstallprompt event
-    const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
-      // Save the event so it can be triggered later
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setShowInstallButton(true);
-
-      // Show install banner after a delay
-      setTimeout(() => {
-        setShowInstallBanner(true);
-      }, 3000);
-    };
-
-    // Listen for app installed event
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
-      setShowInstallButton(false);
-      setShowInstallBanner(false);
-      console.log("Loci PWA was installed");
-    };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
@@ -86,11 +91,6 @@ export default function PWAInstall() {
     setShowInstallBanner(false);
     // Remember user dismissed banner
     localStorage.setItem("pwa-install-banner-dismissed", "true");
-  };
-
-  // Don't show if dismissed recently
-  const wasDismissed = () => {
-    return localStorage.getItem("pwa-install-banner-dismissed") === "true";
   };
 
   return (

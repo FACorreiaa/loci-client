@@ -31,6 +31,11 @@ export function stopFromImported(place: ImportedPlaceView): NewStop {
   };
 }
 
+const tabClass = (active: boolean) =>
+  `inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+    active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+  }`;
+
 /**
  * Add a place to one day: find it by name, or paste a link to it.
  *
@@ -65,11 +70,6 @@ export default function AddPlacePanel(props: AddPlacePanelProps) {
       setReading(false);
     }
   };
-
-  const tabClass = (active: boolean) =>
-    `inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-      active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
-    }`;
 
   return (
     <section class="space-y-2" aria-label={`Add a place to ${props.dayLabel}`}>

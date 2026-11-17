@@ -8,9 +8,10 @@ import {
   runToast,
 } from "./watcher-rules";
 
+const noop = () => {};
+
 describe("watcher rules", () => {
   const url = "/itinerary?sessionId=s1&cityName=Crete&domain=itinerary";
-  const noop = () => {};
 
   it("knows when you are already looking at the result", () => {
     expect(

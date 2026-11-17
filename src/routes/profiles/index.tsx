@@ -72,6 +72,60 @@ interface ProfileForm {
   isPublic: boolean;
 }
 
+const levelToBudget = (n: number) =>
+  n <= 1 ? "low" : n === 2 ? "medium" : n === 3 ? "high" : "luxury";
+
+const budgetToLevel = (b: string) =>
+  b === "low" ? 1 : b === "medium" ? 2 : b === "high" ? 3 : b === "luxury" ? 4 : 2;
+
+const toggleArrayItem = (array: string[], item: string, setter: (newValue: string[]) => void) => {
+  if (array.includes(item)) {
+    setter(array.filter((i) => i !== item));
+  } else {
+    setter([...array, item]);
+  }
+};
+
+// Lucide marks in place of emoji: they take the theme's colour, render the
+// same on every OS, and sit on the icon grid the rest of the page uses.
+const budgetIcon = (budget: string) => ({ low: Coins, medium: Wallet, high: Gem })[budget] ?? Coins;
+
+const travelStyleIcon = (style: string) =>
+  ({
+    cultural: Palette,
+    culinary: Utensils,
+    adventure: Mountain,
+    relaxed: Leaf,
+    family: Users,
+    balanced: Scale,
+  })[style] ?? Scale;
+
+// Description, group size, public, usage counts and per-profile stats have no
+// backing on the server. They are not rendered as if they were live data --
+// see the card below, which omits them rather than showing invented zeroes.
+const mapToDisplay = (p: SearchProfile): Profile => ({
+  id: p.id,
+  name: p.profile_name,
+  description: "",
+  interests: p.interests ?? [],
+  tags: p.tags ?? [],
+  budget: levelToBudget(p.budget_level),
+  // formToApi writes the travel style into preferred_vibes, so read it back
+  // from there. Reading preferred_pace meant the label lookup never matched
+  // and the card rendered undefined.
+  travelStyle: p.preferred_vibes?.[0] || "balanced",
+  accessibility: [
+    ...(p.prefer_accessible_pois ? ["Wheelchair Accessible"] : []),
+    ...(p.prefer_dog_friendly ? ["Dog Friendly"] : []),
+  ],
+  isDefault: p.is_default,
+  isPublic: false,
+  createdAt: p.created_at,
+  usageCount: 0,
+  lastUsed: null,
+  stats: { placesVisited: 0, itinerariesCreated: 0, avgRating: 0 },
+});
+
 function ProfilesPageContent() {
   const [selectedProfile, setSelectedProfile] = createSignal<Profile | null>(null);
   const [showCreateModal, setShowCreateModal] = createSignal(false);
@@ -98,37 +152,6 @@ function ProfilesPageContent() {
   const updateMut = useUpdateSearchProfileMutation();
   const deleteMut = useDeleteSearchProfileMutation();
   const setDefaultMut = useSetDefaultProfileMutation();
-
-  const levelToBudget = (n: number) =>
-    n <= 1 ? "low" : n === 2 ? "medium" : n === 3 ? "high" : "luxury";
-  const budgetToLevel = (b: string) =>
-    b === "low" ? 1 : b === "medium" ? 2 : b === "high" ? 3 : b === "luxury" ? 4 : 2;
-
-  // Description, group size, public, usage counts and per-profile stats have no
-  // backing on the server. They are not rendered as if they were live data --
-  // see the card below, which omits them rather than showing invented zeroes.
-  const mapToDisplay = (p: SearchProfile): Profile => ({
-    id: p.id,
-    name: p.profile_name,
-    description: "",
-    interests: p.interests ?? [],
-    tags: p.tags ?? [],
-    budget: levelToBudget(p.budget_level),
-    // formToApi writes the travel style into preferred_vibes, so read it back
-    // from there. Reading preferred_pace meant the label lookup never matched
-    // and the card rendered undefined.
-    travelStyle: p.preferred_vibes?.[0] || "balanced",
-    accessibility: [
-      ...(p.prefer_accessible_pois ? ["Wheelchair Accessible"] : []),
-      ...(p.prefer_dog_friendly ? ["Dog Friendly"] : []),
-    ],
-    isDefault: p.is_default,
-    isPublic: false,
-    createdAt: p.created_at,
-    usageCount: 0,
-    lastUsed: null,
-    stats: { placesVisited: 0, itinerariesCreated: 0, avgRating: 0 },
-  });
 
   const profiles = createMemo<Profile[]>(() => (searchProfilesQuery.data ?? []).map(mapToDisplay));
 
@@ -267,29 +290,6 @@ function ProfilesPageContent() {
     });
     setShowEditModal(true);
   };
-
-  const toggleArrayItem = (array: string[], item: string, setter: (newValue: string[]) => void) => {
-    if (array.includes(item)) {
-      setter(array.filter((i) => i !== item));
-    } else {
-      setter([...array, item]);
-    }
-  };
-
-  // Lucide marks in place of emoji: they take the theme's colour, render the
-  // same on every OS, and sit on the icon grid the rest of the page uses.
-  const budgetIcon = (budget: string) =>
-    ({ low: Coins, medium: Wallet, high: Gem })[budget] ?? Coins;
-
-  const travelStyleIcon = (style: string) =>
-    ({
-      cultural: Palette,
-      culinary: Utensils,
-      adventure: Mountain,
-      relaxed: Leaf,
-      family: Users,
-      balanced: Scale,
-    })[style] ?? Scale;
 
   const renderProfileCard = (profile: Profile) => (
     <div

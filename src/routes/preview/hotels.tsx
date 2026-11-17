@@ -7,6 +7,12 @@ import SplitView from "~/components/layout/SplitView";
 import { CityInfoHeader } from "~/components/ui/CityInfoHeader";
 import { ActionToolbar } from "~/components/ui/ActionToolbar";
 
+const handleDownload = () => alert("Sign in to download functionality!");
+
+const handleShare = () => alert("Sign in to share!");
+
+const handleBookmark = () => alert("Sign in to bookmark!");
+
 export default function PreviewHotelsPage() {
   const cityData = createMemo(() => TOKYO_CITY_DATA);
   const hotels = createMemo(() =>
@@ -25,10 +31,6 @@ export default function PreviewHotelsPage() {
       id: h.name,
     }));
   });
-
-  const handleDownload = () => alert("Sign in to download functionality!");
-  const handleShare = () => alert("Sign in to share!");
-  const handleBookmark = () => alert("Sign in to bookmark!");
 
   const MapContent = (
     <div class="h-full w-full bg-muted relative">

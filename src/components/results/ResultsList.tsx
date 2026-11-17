@@ -58,6 +58,14 @@ export interface ResultsListProps {
 
 const MAX_AMENITIES = 4;
 
+const record = (
+  poi: POIDetailedInfo,
+  type: "RECOMMENDATION_EVENT_TYPE_OPENED" | "RECOMMENDATION_EVENT_TYPE_DISMISSED",
+) => {
+  const event = outcomeEvent(poi, type);
+  if (event) void recordRecommendationEvents([event]);
+};
+
 /**
  * A domain list as stop cards: the same card the itinerary uses, with what
  * each kind of place says about itself in the card's meta slot. The three
@@ -72,14 +80,6 @@ export default function ResultsList(props: ResultsListProps) {
     const pois = props.limit ? visible.slice(0, props.limit) : visible;
     return pois.map((poi, i) => ({ poi, stop: stopFromPoi(poi, start + i), index: start + i }));
   });
-
-  const record = (
-    poi: POIDetailedInfo,
-    type: "RECOMMENDATION_EVENT_TYPE_OPENED" | "RECOMMENDATION_EVENT_TYPE_DISMISSED",
-  ) => {
-    const event = outcomeEvent(poi, type);
-    if (event) void recordRecommendationEvents([event]);
-  };
 
   const dismiss = (poi: POIDetailedInfo) => {
     record(poi, "RECOMMENDATION_EVENT_TYPE_DISMISSED");

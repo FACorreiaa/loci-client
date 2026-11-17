@@ -7,6 +7,8 @@ import { A } from "@solidjs/router";
 import { useNewsTicker } from "~/lib/api/newsTicker";
 import { flagFor, groupByCountry, timeAgo } from "~/lib/news/ticker";
 
+const now = () => new Date();
+
 export default function NewsTickerBand() {
   const query = useNewsTicker();
   const groups = createMemo(() => {
@@ -14,7 +16,6 @@ export default function NewsTickerBand() {
     if (!data || !data.enabled || data.items.length === 0) return [];
     return groupByCountry(data);
   });
-  const now = () => new Date();
 
   return (
     <Show when={groups().length > 0}>
@@ -43,7 +44,9 @@ export default function NewsTickerBand() {
                     class="loci-chip--surface flex w-72 shrink-0 snap-start flex-col gap-1 rounded-2xl px-4 py-3 text-left active:scale-[0.98]"
                   >
                     <span class="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <Show when={flagFor(group.code)}>{(f) => <span aria-hidden="true">{f()}</span>}</Show>
+                      <Show when={flagFor(group.code)}>
+                        {(f) => <span aria-hidden="true">{f()}</span>}
+                      </Show>
                       <span class="truncate">{item.source}</span>
                       <span aria-hidden="true">·</span>
                       <span>{timeAgo(item.publishedAt, now())}</span>
@@ -55,7 +58,9 @@ export default function NewsTickerBand() {
             )}
           </For>
         </div>
-        <p class="mt-1 text-[11px] text-muted-foreground">Headlines from publishers' own feeds. Links open the publisher.</p>
+        <p class="mt-1 text-[11px] text-muted-foreground">
+          Headlines from publishers' own feeds. Links open the publisher.
+        </p>
       </section>
     </Show>
   );

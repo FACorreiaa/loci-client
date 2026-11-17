@@ -86,6 +86,12 @@ export const ThemeProvider = (props: ThemeProviderProps) => {
     color: colorMode(),
   });
 
+  const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+    if (colorMode() === "system") {
+      setIsDark(e.matches);
+    }
+  };
+
   onMount(() => {
     const savedPreference = themePreferenceFromLocalStorage();
     if (savedPreference) {
@@ -103,11 +109,6 @@ export const ThemeProvider = (props: ThemeProviderProps) => {
     setInitialized(true);
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
-      if (colorMode() === "system") {
-        setIsDark(e.matches);
-      }
-    };
 
     mediaQuery.addEventListener("change", handleSystemThemeChange);
 

@@ -29,6 +29,15 @@ import { MapErrorBoundary, MapUnavailable } from "./MapErrorBoundary";
 import { MOBILE_MAP_WIDTH, resolveMapStyle } from "./style";
 import { useMapLifecycle } from "./useMapLifecycle";
 
+const setFeatureSelected = (map: mapboxgl.Map, fid: number | null, selected: boolean) => {
+  if (fid == null) return;
+  try {
+    map.setFeatureState({ source: SOURCE_POIS, id: fid }, { selected });
+  } catch {
+    /* source may not be ready yet */
+  }
+};
+
 const MapComponent = (_props: MapComponentProps) => {
   const props = mergeProps(
     {
@@ -65,15 +74,6 @@ const MapComponent = (_props: MapComponentProps) => {
       followColorMode: props.followColorMode,
       isDark: theme.isDark(),
     });
-
-  const setFeatureSelected = (map: mapboxgl.Map, fid: number | null, selected: boolean) => {
-    if (fid == null) return;
-    try {
-      map.setFeatureState({ source: SOURCE_POIS, id: fid }, { selected });
-    } catch {
-      /* source may not be ready yet */
-    }
-  };
 
   const applySelection = (selectedId?: string) => {
     const map = lifecycle.map();

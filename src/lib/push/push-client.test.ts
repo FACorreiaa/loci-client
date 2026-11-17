@@ -20,6 +20,9 @@ vi.mock("@connectrpc/connect", () => ({
 
 vi.mock("~/lib/connect-transport", () => ({ transport: {} }));
 
+// Stands in for window.PushManager: only its presence is checked.
+function PushManager() {}
+
 describe("enablePush", () => {
   let requestPermission: ReturnType<typeof vi.fn>;
   let subscribe: ReturnType<typeof vi.fn>;
@@ -38,7 +41,7 @@ describe("enablePush", () => {
     });
 
     Object.defineProperty(globalThis, "window", {
-      value: { PushManager: function PushManager() {} },
+      value: { PushManager },
       configurable: true,
       writable: true,
     });
@@ -142,7 +145,7 @@ describe("subscribeAndRegister — VAPID key rotation", () => {
     });
     getSubscription = vi.fn();
     Object.defineProperty(globalThis, "window", {
-      value: { PushManager: function PushManager() {} },
+      value: { PushManager },
       configurable: true,
       writable: true,
     });
@@ -219,7 +222,7 @@ describe("unregisterPushDevice (logout)", () => {
     mockUnregisterPushDevice.mockReset().mockResolvedValue({});
     getRegistration = vi.fn();
     Object.defineProperty(globalThis, "window", {
-      value: { PushManager: function PushManager() {} },
+      value: { PushManager },
       configurable: true,
       writable: true,
     });

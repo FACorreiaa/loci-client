@@ -126,16 +126,17 @@ describe("feed mappers", () => {
     ).toBeUndefined();
   });
 
+  const item = (id: string) => ({
+    id,
+    actor: mapPublicUser(actor)!,
+    createdAt: "",
+    detail: { kind: "city" as const, cityName: "Porto", country: "" },
+    cheers: 0,
+    cheeredByMe: false,
+    cheerers: [],
+  });
+
   it("applies a cheer to the one item it names", () => {
-    const item = (id: string) => ({
-      id,
-      actor: mapPublicUser(actor)!,
-      createdAt: "",
-      detail: { kind: "city" as const, cityName: "Porto", country: "" },
-      cheers: 0,
-      cheeredByMe: false,
-      cheerers: [],
-    });
     const data = {
       pages: [{ items: [item("1"), item("2")], next: "" }] as FeedPage[],
       pageParams: [""],

@@ -76,6 +76,16 @@ const welcomeMessage = (profile: string): ChatMessage => ({
   hasItinerary: false,
 });
 
+const progressLabel = (updated: any) => {
+  if ("general_city_data" in updated.data && updated.data.general_city_data) {
+    return `Found information about ${updated.data.general_city_data.city}...`;
+  }
+  if (updated.domain === "accommodation") return "Finding hotels...";
+  if (updated.domain === "dining") return "Searching restaurants...";
+  if (updated.domain === "activities") return "Discovering activities...";
+  return "Creating your itinerary...";
+};
+
 /**
  * All /chat state + actions. The route only wires this into the view components.
  */
@@ -351,16 +361,6 @@ export function useChat(
     } catch (error) {
       logger.error("Failed to save session locally:", error);
     }
-  };
-
-  const progressLabel = (updated: any) => {
-    if ("general_city_data" in updated.data && updated.data.general_city_data) {
-      return `Found information about ${updated.data.general_city_data.city}...`;
-    }
-    if (updated.domain === "accommodation") return "Finding hotels...";
-    if (updated.domain === "dining") return "Searching restaurants...";
-    if (updated.domain === "activities") return "Discovering activities...";
-    return "Creating your itinerary...";
   };
 
   const startNewSession = async (messageContent: string, streamId: string) => {

@@ -114,9 +114,10 @@ const AssistantOverlay: Component<AssistantOverlayProps> = (props) => {
     }
   };
 
+  // A hold ends with the finger lifting, which is the gesture speech needs.
+  const unlock = () => speech.unlock();
+
   onMount(() => {
-    // A hold ends with the finger lifting, which is the gesture speech needs.
-    const unlock = () => speech.unlock();
     document.addEventListener("pointerup", unlock, { once: true, capture: true });
     onCleanup(() => document.removeEventListener("pointerup", unlock, { capture: true }));
 

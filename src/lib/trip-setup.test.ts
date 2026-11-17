@@ -112,6 +112,8 @@ const serverDefault = {
   tags: null,
 };
 
+const loadServerDefault = async () => [serverDefault];
+
 const input = {
   budget: "3",
   pace: "relaxed",
@@ -200,7 +202,7 @@ describe("first-run offer", () => {
   });
 
   it("routes a new sign-up through the wizard, then on to where they were headed", async () => {
-    const loadProfiles = async () => [serverDefault];
+    const loadProfiles = loadServerDefault;
     expect(await postSignInTarget({ isNewUser: true, seen: null, loadProfiles })).toBe(
       "/trip-setup",
     );

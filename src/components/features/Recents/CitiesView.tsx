@@ -29,6 +29,47 @@ import { useSelection, type SelectionItem } from "~/lib/hooks/useSelection";
 import { SelectionToolbar } from "~/components/ui/SelectionToolbar";
 import { exportPOIsToPDF } from "~/lib/utils/pdf-export";
 
+// Convert city to selection item format
+const cityToSelectionItem = (city: CityInteractions): SelectionItem => ({
+  id: city.city_name,
+  name: city.city_name,
+  category: "City",
+  description: `${city.interactions.length} interactions, ${city.poi_count} places`,
+});
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+  if (diffInHours < 1) return "Just now";
+  if (diffInHours < 24) return `${Math.floor(diffInHours)} hours ago`;
+  if (diffInHours < 48) return "Yesterday";
+  if (diffInHours < 168) return `${Math.floor(diffInHours / 24)} days ago`;
+
+  return date.toLocaleDateString();
+};
+
+const getActivityLevel = (interactionCount: number) => {
+  if (interactionCount >= 10)
+    return {
+      level: "high",
+      color: "text-destructive bg-destructive/10",
+      icon: Flame,
+    };
+  if (interactionCount >= 5)
+    return {
+      level: "medium",
+      color: "text-accent bg-accent/10",
+      icon: Star,
+    };
+  return {
+    level: "low",
+    color: "text-primary bg-primary/10",
+    icon: MapPin,
+  };
+};
+
 /**
  * The explored-cities grid: the whole of what /recents used to be.
  *
@@ -50,14 +91,6 @@ export default function CitiesView() {
 
   // Selection state for cities
   const selection = useSelection<SelectionItem>();
-
-  // Convert city to selection item format
-  const cityToSelectionItem = (city: CityInteractions): SelectionItem => ({
-    id: city.city_name,
-    name: city.city_name,
-    category: "City",
-    description: `${city.interactions.length} interactions, ${city.poi_count} places`,
-  });
 
   // Handle city selection toggle
   const handleCitySelect = (city: CityInteractions, e: Event) => {
@@ -124,39 +157,6 @@ export default function CitiesView() {
     filtered.sort(compareCities(currentSortBy, currentSortOrder));
 
     return filtered;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
-    if (diffInHours < 1) return "Just now";
-    if (diffInHours < 24) return `${Math.floor(diffInHours)} hours ago`;
-    if (diffInHours < 48) return "Yesterday";
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)} days ago`;
-
-    return date.toLocaleDateString();
-  };
-
-  const getActivityLevel = (interactionCount: number) => {
-    if (interactionCount >= 10)
-      return {
-        level: "high",
-        color: "text-destructive bg-destructive/10",
-        icon: Flame,
-      };
-    if (interactionCount >= 5)
-      return {
-        level: "medium",
-        color: "text-accent bg-accent/10",
-        icon: Star,
-      };
-    return {
-      level: "low",
-      color: "text-primary bg-primary/10",
-      icon: MapPin,
-    };
   };
 
   const handleCityClick = (cityName: string) => {

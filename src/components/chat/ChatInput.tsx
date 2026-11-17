@@ -24,13 +24,13 @@ export interface ChatInputProps {
 
 const MAX_TEXTAREA_PX = 160; // ~6 rows
 
-const ChatInput: Component<ChatInputProps> = (props) => {
-  // Auto-grow the textarea up to a cap, then scroll.
-  const autoGrow = (el: HTMLTextAreaElement) => {
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_PX)}px`;
-  };
+// Auto-grow the textarea up to a cap, then scroll.
+const autoGrow = (el: HTMLTextAreaElement) => {
+  el.style.height = "auto";
+  el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_PX)}px`;
+};
 
+const ChatInput: Component<ChatInputProps> = (props) => {
   // The transcript lands in the box rather than being sent. Speech recognition
   // mangles place names, and a wrong city produces a confident itinerary for
   // somewhere nobody asked about — so it is put where it can be corrected

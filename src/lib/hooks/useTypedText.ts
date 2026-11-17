@@ -1,5 +1,10 @@
 import { createEffect, createSignal, on, onCleanup } from "solid-js";
 
+const reducedMotion = () =>
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 /**
  * Types `source()` out when it arrives live; shows it whole otherwise.
  *
@@ -22,11 +27,6 @@ export function useTypedText(
   const tickMs = opts.tickMs ?? 16;
   const [text, setText] = createSignal("");
   let timer: ReturnType<typeof setInterval> | undefined;
-
-  const reducedMotion = () =>
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const stop = () => {
     if (timer) clearInterval(timer);

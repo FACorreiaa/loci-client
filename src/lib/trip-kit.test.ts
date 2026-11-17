@@ -390,9 +390,9 @@ describe("export day range", () => {
   });
 });
 
-describe("pinnedTripStart", () => {
-  const parse = (iso?: string) => (iso ? new Date(`${iso}T00:00:00`) : undefined);
+const parse = (iso?: string) => (iso ? new Date(`${iso}T00:00:00`) : undefined);
 
+describe("pinnedTripStart", () => {
   it("walks the first dated day back to Day 1", () => {
     expect(
       pinnedTripStart(

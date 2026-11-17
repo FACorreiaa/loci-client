@@ -29,33 +29,34 @@ describe("fitWithin", () => {
   });
 });
 
-describe("uploadPhoto", () => {
-  const deps = (overrides: Partial<UploadDeps> = {}) => {
-    const calls: string[] = [];
-    const d: UploadDeps = {
-      create: vi.fn(async () => {
-        calls.push("create");
-        return {
-          photoId: "p1",
-          uploadUrl: "https://media.lociai.fyi/put",
-          headers: { "Content-Type": "image/jpeg", "Content-Length": "3", Host: "x" },
-        };
-      }),
-      put: vi.fn(async () => {
-        calls.push("put");
-        return { ok: true, status: 200 };
-      }),
-      confirm: vi.fn(async () => {
-        calls.push("confirm");
-        return { id: "p1", url: "https://media.lociai.fyi/get", caption: "" };
-      }),
-      remove: vi.fn(async () => {
-        calls.push("remove");
-      }),
-      ...overrides,
-    };
-    return { d, calls };
+const deps = (overrides: Partial<UploadDeps> = {}) => {
+  const calls: string[] = [];
+  const d: UploadDeps = {
+    create: vi.fn(async () => {
+      calls.push("create");
+      return {
+        photoId: "p1",
+        uploadUrl: "https://media.lociai.fyi/put",
+        headers: { "Content-Type": "image/jpeg", "Content-Length": "3", Host: "x" },
+      };
+    }),
+    put: vi.fn(async () => {
+      calls.push("put");
+      return { ok: true, status: 200 };
+    }),
+    confirm: vi.fn(async () => {
+      calls.push("confirm");
+      return { id: "p1", url: "https://media.lociai.fyi/get", caption: "" };
+    }),
+    remove: vi.fn(async () => {
+      calls.push("remove");
+    }),
+    ...overrides,
   };
+  return { d, calls };
+};
+
+describe("uploadPhoto", () => {
   const blob = new Blob(["abc"], { type: "image/jpeg" });
 
   it("signs, sends the bytes, then confirms", async () => {
@@ -114,8 +115,9 @@ describe("uploadPhoto", () => {
   });
 });
 
+const at = (iso: string) => timestampFromDate(new Date(iso));
+
 describe("toJournalView", () => {
-  const at = (iso: string) => timestampFromDate(new Date(iso));
   const journal = create(TripJournalSchema, {
     tripId: "t1",
     title: "Lisbon weekend",

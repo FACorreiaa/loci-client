@@ -20,13 +20,14 @@ export const AssistantMount: Component = () => {
   const navigate = useNavigate();
   const place = useUserLocation();
 
+  const onKeyDown = (e: KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && auth.isAuthenticated()) {
+      e.preventDefault();
+      openAssistant("keyboard");
+    }
+  };
+
   onMount(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && auth.isAuthenticated()) {
-        e.preventDefault();
-        openAssistant("keyboard");
-      }
-    };
     document.addEventListener("keydown", onKeyDown);
     onCleanup(() => document.removeEventListener("keydown", onKeyDown));
   });

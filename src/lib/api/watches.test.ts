@@ -42,8 +42,9 @@ describe("toChatMessage", () => {
   });
 });
 
+const err = (code: Code) => new ConnectError("raw", code);
+
 describe("watchErrorMessage", () => {
-  const err = (code: Code) => new ConnectError("raw", code);
   it("gives each WatchService code its own copy", () => {
     expect(watchErrorMessage(err(Code.ResourceExhausted), "create")).toMatch(/10 standing tasks/);
     expect(watchErrorMessage(err(Code.Unauthenticated), "delete")).toMatch(/Sign in again/);

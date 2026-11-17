@@ -16,8 +16,9 @@ import { timeAgo, type NewsTickerItem } from "~/lib/news/ticker";
 
 const VISIBLE = 3;
 
+const now = () => new Date();
+
 function HeadlineList(props: { title: string; items: NewsTickerItem[] }) {
-  const now = () => new Date();
   return (
     <Show when={props.items.length > 0}>
       <div class="min-w-0">

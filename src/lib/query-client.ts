@@ -253,6 +253,16 @@ export const performanceUtils = {
   },
 };
 
+const handleOnline = () => {
+  void queryClient.resumePausedMutations();
+  void queryClient.invalidateQueries();
+};
+
+const handleOffline = () => {
+  // Queries will automatically pause when offline
+  console.info("App is offline. Queries will resume when back online.");
+};
+
 // Offline support utilities
 export const offlineUtils = {
   // Check if browser is online
@@ -260,16 +270,6 @@ export const offlineUtils = {
 
   // Setup offline/online event listeners
   setupOfflineSupport: () => {
-    const handleOnline = () => {
-      void queryClient.resumePausedMutations();
-      void queryClient.invalidateQueries();
-    };
-
-    const handleOffline = () => {
-      // Queries will automatically pause when offline
-      console.info("App is offline. Queries will resume when back online.");
-    };
-
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 

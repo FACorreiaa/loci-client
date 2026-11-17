@@ -44,6 +44,8 @@ afterEach(() => {
   host.remove();
 });
 
+const slopes = () => [...host.querySelectorAll("span")].some((s) => s.textContent === "Slopes");
+
 describe("AccessibilityNeedsSection", () => {
   it("starts locked behind an unticked consent box", () => {
     mount(accessibilityFormFor(null));
@@ -63,7 +65,6 @@ describe("AccessibilityNeedsSection", () => {
 
   it("shows the slope choice only when routes must be step-free", () => {
     mount({ ...accessibilityFormFor(null), consentGiven: true });
-    const slopes = () => [...host.querySelectorAll("span")].some((s) => s.textContent === "Slopes");
     expect(slopes()).toBe(false);
     toggle("Step-free routes and entrances only");
     expect(slopes()).toBe(true);

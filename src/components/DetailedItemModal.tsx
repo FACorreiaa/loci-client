@@ -72,6 +72,51 @@ interface DetailedItemModalProps {
   onClose: () => void;
 }
 
+const getTypeColor = (_type: string) => "text-primary";
+
+const getTypeIcon = (type: string) => {
+  switch (type) {
+    case "hotel":
+      return "🏨";
+    case "restaurant":
+      return "🍽️";
+    case "activity":
+      return "🎯";
+    case "poi":
+      return "📍";
+    default:
+      return "📍";
+  }
+};
+
+const getRatingColor = (rating: number) => {
+  if (rating >= 4.0) return "text-accent";
+  if (rating >= 3.5) return "text-primary";
+  return "text-muted-foreground";
+};
+
+const getPriceColor = (_priceRange: string) => "text-primary";
+
+const getAmenityIcon = (amenity: string) => {
+  const amenityLower = amenity.toLowerCase();
+  if (amenityLower.includes("wifi") || amenityLower.includes("internet"))
+    return <Wifi class="w-4 h-4" />;
+  if (amenityLower.includes("parking") || amenityLower.includes("car"))
+    return <Car class="w-4 h-4" />;
+  if (amenityLower.includes("breakfast") || amenityLower.includes("coffee"))
+    return <Coffee class="w-4 h-4" />;
+  if (amenityLower.includes("restaurant") || amenityLower.includes("dining"))
+    return <Utensils class="w-4 h-4" />;
+  return null;
+};
+
+const openMaps = (url: string | null) => {
+  if (!url) return;
+  // noopener,noreferrer to match every other external link in the app; the
+  // previous call omitted both and handed the opened tab window.opener.
+  window.open(url, "_blank", "noopener,noreferrer");
+};
+
 export default function DetailedItemModal(props: DetailedItemModalProps) {
   const locale = useLocale();
   const { isAuthenticated } = useAuth();
@@ -86,44 +131,6 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
       setActiveTab("details");
     }
   });
-
-  const getTypeColor = (_type: string) => "text-primary";
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "hotel":
-        return "🏨";
-      case "restaurant":
-        return "🍽️";
-      case "activity":
-        return "🎯";
-      case "poi":
-        return "📍";
-      default:
-        return "📍";
-    }
-  };
-
-  const getRatingColor = (rating: number) => {
-    if (rating >= 4.0) return "text-accent";
-    if (rating >= 3.5) return "text-primary";
-    return "text-muted-foreground";
-  };
-
-  const getPriceColor = (_priceRange: string) => "text-primary";
-
-  const getAmenityIcon = (amenity: string) => {
-    const amenityLower = amenity.toLowerCase();
-    if (amenityLower.includes("wifi") || amenityLower.includes("internet"))
-      return <Wifi class="w-4 h-4" />;
-    if (amenityLower.includes("parking") || amenityLower.includes("car"))
-      return <Car class="w-4 h-4" />;
-    if (amenityLower.includes("breakfast") || amenityLower.includes("coffee"))
-      return <Coffee class="w-4 h-4" />;
-    if (amenityLower.includes("restaurant") || amenityLower.includes("dining"))
-      return <Utensils class="w-4 h-4" />;
-    return null;
-  };
 
   const handleShare = () => {
     if (navigator.share && props.item) {
@@ -174,13 +181,6 @@ export default function DetailedItemModal(props: DetailedItemModalProps) {
       rating: item.rating,
       category: item.category,
     };
-  };
-
-  const openMaps = (url: string | null) => {
-    if (!url) return;
-    // noopener,noreferrer to match every other external link in the app; the
-    // previous call omitted both and handed the opened tab window.opener.
-    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (

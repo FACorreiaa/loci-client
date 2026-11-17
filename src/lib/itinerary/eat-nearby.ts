@@ -63,6 +63,11 @@ export interface EatOption extends NearbyPlace {
   walkMinutes?: number;
 }
 
+const known = (p: { latitude?: number; longitude?: number }) =>
+  typeof p.latitude === "number" &&
+  typeof p.longitude === "number" &&
+  (p.latitude !== 0 || p.longitude !== 0);
+
 /**
  * How far a place is from the stop, in km: the server's figure when it sent
  * one, otherwise measured from both positions. Undefined when neither is
@@ -75,10 +80,6 @@ export function placeDistanceKm(
   to: { latitude?: number; longitude?: number },
 ): number | undefined {
   if (typeof serverKm === "number" && serverKm > 0) return serverKm;
-  const known = (p: { latitude?: number; longitude?: number }) =>
-    typeof p.latitude === "number" &&
-    typeof p.longitude === "number" &&
-    (p.latitude !== 0 || p.longitude !== 0);
   if (!known(from) || !known(to)) return undefined;
   return distanceKm(
     { latitude: from.latitude!, longitude: from.longitude! },

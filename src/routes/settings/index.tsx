@@ -87,6 +87,32 @@ const TAB_IDS = new Set(TABS.map((t) => t.id));
 // there — support answers, the /mcp guide — and should land somewhere useful.
 const LEGACY_TABS: Record<string, string> = { apikeys: "connections" };
 
+const triggerFileInput = () => {
+  const fileInput = document.getElementById("photo-upload") as HTMLInputElement;
+  fileInput?.click();
+};
+
+// The memory page is a route of its own rather than a panel: it is long,
+// deep-linkable, and the thing you send someone when they ask what the app
+// knows about them.
+const renderMemoryLink = () => (
+  <div class="loci-card rounded-3xl p-6 sm:p-8">
+    <h3 class="text-lg font-semibold text-foreground mb-2">What Loci remembers about you</h3>
+    <p class="text-sm text-muted-foreground mb-5">
+      Everything Loci has learned about your travel taste, the actions that taught it, and a delete
+      button on each one.
+    </p>
+    <A
+      href="/settings/memory"
+      class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+    >
+      <Brain class="w-4 h-4" />
+      Open
+      <ChevronRight class="w-4 h-4" />
+    </A>
+  </div>
+);
+
 function SettingsPageContent() {
   const { user } = useAuth();
   const [notification, setNotification] = createSignal<{
@@ -360,11 +386,6 @@ function SettingsPageContent() {
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const triggerFileInput = () => {
-    const fileInput = document.getElementById("photo-upload") as HTMLInputElement;
-    fileInput?.click();
   };
 
   const renderSettings = () => {
@@ -999,27 +1020,6 @@ function SettingsPageContent() {
           </span>
         </A>
       </div>
-    </div>
-  );
-
-  // The memory page is a route of its own rather than a panel: it is long,
-  // deep-linkable, and the thing you send someone when they ask what the app
-  // knows about them.
-  const renderMemoryLink = () => (
-    <div class="loci-card rounded-3xl p-6 sm:p-8">
-      <h3 class="text-lg font-semibold text-foreground mb-2">What Loci remembers about you</h3>
-      <p class="text-sm text-muted-foreground mb-5">
-        Everything Loci has learned about your travel taste, the actions that taught it, and a
-        delete button on each one.
-      </p>
-      <A
-        href="/settings/memory"
-        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-      >
-        <Brain class="w-4 h-4" />
-        Open
-        <ChevronRight class="w-4 h-4" />
-      </A>
     </div>
   );
 

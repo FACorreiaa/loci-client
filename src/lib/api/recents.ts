@@ -56,6 +56,32 @@ const getCurrentUserId = async (): Promise<string | null> => {
 
 type RecentsClient = Pick<typeof recentsClient, "getRecentInteractions">;
 
+// Helper to extract clean message from "Unified Chat Stream - Domain: X, Message: Y" format
+const extractMessage = (description: string, cityName: string): string => {
+  if (!description) return cityName;
+
+  // Unwrap the prompt the server built around the user's message
+  const message = stripPromptWrapper(description);
+  if (message !== description) {
+    // If message ends with just the city name, include it
+    if (message && message !== cityName) {
+      return message.endsWith(cityName) ? message : `${message} ${cityName}`;
+    }
+    return message || cityName;
+  }
+
+  // If no match, check if it's a POI lookup prompt (starts with "Return ONLY")
+  if (description.startsWith("Return ONLY")) {
+    const poiMatch = description.match(/for "([^"]+)" in ([^.]+)/);
+    if (poiMatch) {
+      return `Looking up ${poiMatch[1]} in ${poiMatch[2]}`;
+    }
+  }
+
+  // Fallback to first 50 chars or city name
+  return description.length > 50 ? description.slice(0, 50) + "..." : description || cityName;
+};
+
 /**
  * Recent interactions grouped by city.
  *
@@ -82,32 +108,6 @@ export async function fetchRecentInteractions(
       groupByCity: true,
     }),
   );
-
-  // Helper to extract clean message from "Unified Chat Stream - Domain: X, Message: Y" format
-  const extractMessage = (description: string, cityName: string): string => {
-    if (!description) return cityName;
-
-    // Unwrap the prompt the server built around the user's message
-    const message = stripPromptWrapper(description);
-    if (message !== description) {
-      // If message ends with just the city name, include it
-      if (message && message !== cityName) {
-        return message.endsWith(cityName) ? message : `${message} ${cityName}`;
-      }
-      return message || cityName;
-    }
-
-    // If no match, check if it's a POI lookup prompt (starts with "Return ONLY")
-    if (description.startsWith("Return ONLY")) {
-      const poiMatch = description.match(/for "([^"]+)" in ([^.]+)/);
-      if (poiMatch) {
-        return `Looking up ${poiMatch[1]} in ${poiMatch[2]}`;
-      }
-    }
-
-    // Fallback to first 50 chars or city name
-    return description.length > 50 ? description.slice(0, 50) + "..." : description || cityName;
-  };
 
   // Map proto response to frontend types
   const cities: CityInteractions[] = (response.citySummaries || []).map((summary) => ({

@@ -99,10 +99,11 @@ export default function StoryPlayer(props: StoryPlayerProps) {
     }
   };
 
+  const onVisibility = () => document.hidden && setPaused(true);
+
   onMount(() => {
     root?.focus();
     props.onCardShown?.(cards()[0], 0);
-    const onVisibility = () => document.hidden && setPaused(true);
     document.addEventListener("visibilitychange", onVisibility);
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";

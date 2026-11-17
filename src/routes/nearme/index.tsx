@@ -53,6 +53,29 @@ export default function NearmePage() {
   );
 }
 
+const handleBookmark = () => {
+  console.log("Bookmark nearby results");
+};
+
+// Skeleton component
+const NearbyLoadingSkeleton = () => (
+  <div class="space-y-4">
+    <For each={[1, 2, 3, 4]}>
+      {() => (
+        <Card class="bg-card/80 backdrop-blur-sm border-border">
+          <CardHeader>
+            <Skeleton class="h-6 w-3/4" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton class="h-4 w-full mb-2" />
+            <Skeleton class="h-4 w-2/3" />
+          </CardContent>
+        </Card>
+      )}
+    </For>
+  </div>
+);
+
 function NearmeView(props: { adopt: (sessionId: string) => void }) {
   const [searchParams, setSearchParams] = useSearchParams();
   let mounted = true;
@@ -289,29 +312,6 @@ function NearmeView(props: { adopt: (sessionId: string) => void }) {
         .catch(console.error);
     }
   };
-
-  const handleBookmark = () => {
-    console.log("Bookmark nearby results");
-  };
-
-  // Skeleton component
-  const NearbyLoadingSkeleton = () => (
-    <div class="space-y-4">
-      <For each={[1, 2, 3, 4]}>
-        {() => (
-          <Card class="bg-card/80 backdrop-blur-sm border-border">
-            <CardHeader>
-              <Skeleton class="h-6 w-3/4" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton class="h-4 w-full mb-2" />
-              <Skeleton class="h-4 w-2/3" />
-            </CardContent>
-          </Card>
-        )}
-      </For>
-    </div>
-  );
 
   // Map Content
   const MapContent = (

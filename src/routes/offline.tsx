@@ -12,6 +12,10 @@ import {
 import { listOfflineItineraries, type OfflineItinerary } from "~/lib/itinerary-offline-store";
 import { savedItineraryHref } from "~/lib/saved-itineraries";
 
+const handleRetry = () => {
+  window.location.reload();
+};
+
 const OfflinePage: Component = () => {
   const [cached, setCached] = createSignal<CachedTripSummary[]>([]);
 
@@ -25,10 +29,6 @@ const OfflinePage: Component = () => {
   };
 
   onMount(refresh);
-
-  const handleRetry = () => {
-    window.location.reload();
-  };
 
   const handleClear = () => {
     clearOfflineTripCache(currentOfflineUserId());

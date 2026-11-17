@@ -47,6 +47,11 @@ export default function TripProposals(props: TripProposalsProps) {
   );
 }
 
+const reactionClass = (on: boolean) =>
+  `inline-flex h-8 items-center gap-1 rounded-full border px-3 text-sm tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 ${
+    on ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+  }`;
+
 function ProposalRow(props: TripProposalsProps & { proposal: TripProposal }) {
   const react = useReactToProposal();
   const apply = useApplyProposal();
@@ -94,11 +99,6 @@ function ProposalRow(props: TripProposalsProps & { proposal: TripProposal }) {
       { tripId: props.tripId, proposalId: p().id },
       { onError: () => setError("Couldn't turn this down. Try again.") },
     );
-
-  const reactionClass = (on: boolean) =>
-    `inline-flex h-8 items-center gap-1 rounded-full border px-3 text-sm tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 ${
-      on ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
-    }`;
 
   return (
     <li class="rounded-xl border border-border p-3" data-testid="trip-proposal">

@@ -58,10 +58,11 @@ export default function ReviewForm(props: ReviewFormProps) {
   const isEdit = () => Boolean(props.isEdit);
   const canSend = () => issues().length === 0 && !props.isSubmitting;
 
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape" && !props.isSubmitting) props.onCancel();
+  };
+
   onMount(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !props.isSubmitting) props.onCancel();
-    };
     document.addEventListener("keydown", onKey);
     onCleanup(() => document.removeEventListener("keydown", onKey));
   });

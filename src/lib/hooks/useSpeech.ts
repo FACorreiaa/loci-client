@@ -9,6 +9,11 @@ export interface Speech extends Speaker {
   unlock(): void;
 }
 
+const synth = (): SpeechSynthesis | null =>
+  typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null;
+
+const stop = () => synth()?.cancel();
+
 /**
  * Reading answers aloud with the voice the device already has.
  *
@@ -16,11 +21,6 @@ export interface Speech extends Speaker {
  * Nothing keeps talking after the overlay closes or the page goes away.
  */
 export function useSpeech(): Speech {
-  const synth = (): SpeechSynthesis | null =>
-    typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null;
-
-  const stop = () => synth()?.cancel();
-
   if (typeof window !== "undefined") {
     window.addEventListener("pagehide", stop);
     onCleanup(() => window.removeEventListener("pagehide", stop));

@@ -62,13 +62,19 @@ describe("chatStream terminal errors", () => {
   });
 });
 
+const frame = (init: Parameters<typeof create<typeof StreamEventSchema>>[1]) =>
+  create(StreamEventSchema, init);
+
+const collect = async (signal?: AbortSignal) => {
+  const out = [];
+  for await (const e of streamChatEvents({ message: "Porto" }, signal)) out.push(e);
+  return out;
+};
+
 // A dropped connection is not a failed search: the server keeps generating
 // after the client goes away. streamChatEvents marks errors that came from
 // the transport so callers can resume instead of declaring the run failed.
 describe("chatStream transport classification", () => {
-  const frame = (init: Parameters<typeof create<typeof StreamEventSchema>>[1]) =>
-    create(StreamEventSchema, init);
-
   // Yields `frames`, then fails with `err` (or ends cleanly when undefined).
   const script = (frames: ReturnType<typeof frame>[], err?: Error) =>
     streamChat.mockImplementation(() =>
@@ -77,12 +83,6 @@ describe("chatStream transport classification", () => {
         if (err !== undefined) throw err;
       })(),
     );
-
-  const collect = async (signal?: AbortSignal) => {
-    const out = [];
-    for await (const e of streamChatEvents({ message: "Porto" }, signal)) out.push(e);
-    return out;
-  };
 
   const start = frame({
     eventId: "e1",

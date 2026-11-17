@@ -189,6 +189,45 @@ export function createItineraryStream() {
       }),
     );
 
+  const handle = (evt: any) => {
+    switch (evt.type) {
+      case "skeleton":
+        setSkeleton({
+          title: evt.title ?? evt.itinerary_name,
+          summary: evt.summary ?? evt.overall_description,
+          stops: (evt.stops ?? evt.items ?? []).map((s: any) => ({
+            name: s.name,
+            category: s.category,
+            blurb: s.blurb ?? s.description_poi ?? s.description,
+            priority: s.priority,
+            timeToSpend: s.time_to_spend ?? s.timeToSpend,
+            budget: s.budget,
+            distance: s.distance,
+            key: s.key ?? s.id,
+          })),
+        });
+        break;
+      case "enrich":
+      case "enrichment":
+        enrich({
+          key: evt.key ?? evt.id,
+          index: evt.index,
+          placeId: evt.place_id ?? evt.placeId,
+          imageUrl: evt.image_url ?? evt.imageUrl,
+          rating: evt.rating,
+          failed: evt.failed,
+        });
+        break;
+      case "done":
+      case "complete":
+        done();
+        break;
+      case "error":
+        fail(evt.message ?? "Stream error");
+        break;
+    }
+  };
+
   /* ---------------------------------------------------------------
      SSE consumer — wire this to the Go backend's text/event-stream.
      Expected events (one JSON object per `data:` line):
@@ -204,45 +243,6 @@ export function createItineraryStream() {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buf = "";
-
-    const handle = (evt: any) => {
-      switch (evt.type) {
-        case "skeleton":
-          setSkeleton({
-            title: evt.title ?? evt.itinerary_name,
-            summary: evt.summary ?? evt.overall_description,
-            stops: (evt.stops ?? evt.items ?? []).map((s: any) => ({
-              name: s.name,
-              category: s.category,
-              blurb: s.blurb ?? s.description_poi ?? s.description,
-              priority: s.priority,
-              timeToSpend: s.time_to_spend ?? s.timeToSpend,
-              budget: s.budget,
-              distance: s.distance,
-              key: s.key ?? s.id,
-            })),
-          });
-          break;
-        case "enrich":
-        case "enrichment":
-          enrich({
-            key: evt.key ?? evt.id,
-            index: evt.index,
-            placeId: evt.place_id ?? evt.placeId,
-            imageUrl: evt.image_url ?? evt.imageUrl,
-            rating: evt.rating,
-            failed: evt.failed,
-          });
-          break;
-        case "done":
-        case "complete":
-          done();
-          break;
-        case "error":
-          fail(evt.message ?? "Stream error");
-          break;
-      }
-    };
 
     try {
       while (true) {

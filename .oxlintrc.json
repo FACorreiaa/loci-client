@@ -78,7 +78,6 @@
     // (category rules) or move it to "error" (the two pedantic rules,
     // only-throw-error and prefer-promise-reject-errors). Never add a rule here.
     "typescript/no-unsafe-type-assertion": "warn", // 444
-    "unicorn/consistent-function-scoping": "warn", // 137
     "typescript/prefer-promise-reject-errors": "error",
     "typescript/only-throw-error": "error"
   }

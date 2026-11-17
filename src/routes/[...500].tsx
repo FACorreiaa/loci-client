@@ -2,11 +2,11 @@ import { A } from "@solidjs/router";
 import { AlertTriangle, Home, Compass, RefreshCw } from "lucide-solid";
 import { Button } from "~/ui/button";
 
-export default function ServerError() {
-  const handleRefresh = () => {
-    window.location.reload();
-  };
+const handleRefresh = () => {
+  window.location.reload();
+};
 
+export default function ServerError() {
   return (
     <div class="min-h-screen flex items-center justify-center px-4 py-8">
       <div class="text-center max-w-md mx-auto loci-card p-8">

@@ -84,6 +84,9 @@ export const parseTripDate = (iso?: string): Date | undefined => {
 export const formatTripDates = (days: TripDay[]): string | undefined =>
   formatDateRange(days.map((d) => d.date));
 
+const dayMonth = (d: Date) => d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+const dayOfMonth = (d: Date) => d.toLocaleDateString(undefined, { day: "numeric" });
+
 /** The same range from any ISO dates, e.g. a trip's planned start and end. */
 export const formatDateRange = (isos: (string | undefined)[]): string | undefined => {
   const dates = isos
@@ -94,12 +97,10 @@ export const formatDateRange = (isos: (string | undefined)[]): string | undefine
 
   const first = dates[0];
   const last = dates[dates.length - 1];
-  const day = (d: Date) => d.toLocaleDateString(undefined, { day: "numeric" });
-  const dayMonth = (d: Date) => d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 
   if (first.getTime() === last.getTime()) return dayMonth(first);
   if (first.getMonth() === last.getMonth() && first.getFullYear() === last.getFullYear()) {
-    return `${day(first)}–${dayMonth(last)}`;
+    return `${dayOfMonth(first)}–${dayMonth(last)}`;
   }
   return `${dayMonth(first)} – ${dayMonth(last)}`;
 };

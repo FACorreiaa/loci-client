@@ -22,6 +22,17 @@ interface InterestsUIProps {
   isToggling: boolean;
 }
 
+// Rendered through Show rather than an early return: a component body runs
+// once in Solid, so returning early on props.isLoading would freeze this
+// panel on its spinner the moment the request settled.
+const loadingView = () => (
+  <div class="space-y-8">
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+    </div>
+  </div>
+);
+
 export default function InterestsComponent(props: InterestsUIProps) {
   // Form state
   const [newInterest, setNewInterest] = createSignal("");
@@ -122,17 +133,6 @@ export default function InterestsComponent(props: InterestsUIProps) {
     setEditInterestName("");
     setEditInterestDescription("");
   };
-
-  // Rendered through Show rather than an early return: a component body runs
-  // once in Solid, so returning early on props.isLoading would freeze this
-  // panel on its spinner the moment the request settled.
-  const loadingView = () => (
-    <div class="space-y-8">
-      <div class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    </div>
-  );
 
   const errorView = () => (
     <div class="space-y-8">

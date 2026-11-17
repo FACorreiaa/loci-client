@@ -125,9 +125,10 @@ export function dateOfDay(start: Date, index: number): Date {
   return d;
 }
 
+const utc = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+
 /** Which position a picked date falls on, inside the trip. */
 export function dayIndexOf(date: Date, start: Date, dayCount: number): number {
-  const utc = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
   const offset = Math.round((utc(date) - utc(start)) / 86_400_000);
   return Math.min(Math.max(offset, 0), Math.max(dayCount - 1, 0));
 }
@@ -366,14 +367,15 @@ export function parseLocalDate(value: string, dayStartHour: number): Date | null
   return date;
 }
 
+const fmt = (d: Date) =>
+  d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+
 /**
  * "Wed 8 – Sat 11 Oct", so the page can say what it is about to write into
  * the calendar before anybody downloads it.
  */
 export function tripDateRange(startDate: Date, dayCount: number): string {
   if (dayCount <= 0) return "";
-  const fmt = (d: Date) =>
-    d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
   if (dayCount === 1) return fmt(startDate);
   const end = new Date(startDate);
   end.setDate(startDate.getDate() + dayCount - 1);

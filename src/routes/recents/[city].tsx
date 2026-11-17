@@ -17,6 +17,83 @@ import { TOP_N } from "~/lib/ranking/flow";
 import RankedList from "~/components/ranking/RankedList";
 import type { RecentInteraction } from "~/lib/api/types";
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+  if (diffInHours < 1) return "Just now";
+  if (diffInHours < 24) return `${Math.floor(diffInHours)} hours ago`;
+  if (diffInHours < 48) return "Yesterday";
+  if (diffInHours < 168) return `${Math.floor(diffInHours / 24)} days ago`;
+
+  return date.toLocaleDateString();
+};
+
+const renderInteractionCard = (interaction: RecentInteraction) => (
+  <div class="bg-card rounded-lg shadow-sm border border-border p-4 hover:shadow-md transition-all duration-200">
+    <div class="flex items-start gap-3">
+      <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+        <MessageCircle class="w-5 h-5 text-primary" />
+      </div>
+
+      <div class="flex-1 min-w-0">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex-1 min-w-0">
+            <h3 class="font-medium text-foreground text-sm mb-1">Chat Interaction</h3>
+            <div class="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock class="w-3 h-3" />
+              <span>{formatDate(interaction.created_at)}</span>
+              <span>•</span>
+              <span>{interaction.model_used}</span>
+              <Show when={interaction.latency_ms}>
+                <span>•</span>
+                <span>{interaction.latency_ms}ms</span>
+              </Show>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <p class="text-xs font-medium text-muted-foreground mb-1">Your Question:</p>
+            <p class="text-sm text-foreground bg-muted rounded-lg p-2">{interaction.prompt}</p>
+          </div>
+
+          <Show when={interaction.response_text}>
+            <div>
+              <p class="text-xs font-medium text-muted-foreground mb-1">AI Response:</p>
+              <p class="text-sm text-muted-foreground line-clamp-3">{interaction.response_text}</p>
+            </div>
+          </Show>
+
+          {/* Results Summary */}
+          <div class="flex items-center gap-4 pt-2 border-t border-border">
+            <Show when={interaction.pois && interaction.pois.length > 0}>
+              <div class="flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin class="w-3 h-3" />
+                <span>{interaction.pois.length} places</span>
+              </div>
+            </Show>
+            <Show when={interaction.hotels && interaction.hotels.length > 0}>
+              <div class="flex items-center gap-1 text-xs text-muted-foreground">
+                <Building class="w-3 h-3" />
+                <span>{interaction.hotels.length} hotels</span>
+              </div>
+            </Show>
+            <Show when={interaction.restaurants && interaction.restaurants.length > 0}>
+              <div class="flex items-center gap-1 text-xs text-muted-foreground">
+                <Coffee class="w-3 h-3" />
+                <span>{interaction.restaurants.length} restaurants</span>
+              </div>
+            </Show>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export default function CityDetailsPage() {
   const params = useParams();
   const navigate = useNavigate();
@@ -25,85 +102,6 @@ export default function CityDetailsPage() {
   const cityName = () => decodeURIComponent(params.city || "");
   const cityDetailsQuery = useCityDetails(cityName());
   const myRankings = useMyRankings(cityName);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
-    if (diffInHours < 1) return "Just now";
-    if (diffInHours < 24) return `${Math.floor(diffInHours)} hours ago`;
-    if (diffInHours < 48) return "Yesterday";
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)} days ago`;
-
-    return date.toLocaleDateString();
-  };
-
-  const renderInteractionCard = (interaction: RecentInteraction) => (
-    <div class="bg-card rounded-lg shadow-sm border border-border p-4 hover:shadow-md transition-all duration-200">
-      <div class="flex items-start gap-3">
-        <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-          <MessageCircle class="w-5 h-5 text-primary" />
-        </div>
-
-        <div class="flex-1 min-w-0">
-          <div class="flex items-start justify-between mb-2">
-            <div class="flex-1 min-w-0">
-              <h3 class="font-medium text-foreground text-sm mb-1">Chat Interaction</h3>
-              <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                <Clock class="w-3 h-3" />
-                <span>{formatDate(interaction.created_at)}</span>
-                <span>•</span>
-                <span>{interaction.model_used}</span>
-                <Show when={interaction.latency_ms}>
-                  <span>•</span>
-                  <span>{interaction.latency_ms}ms</span>
-                </Show>
-              </div>
-            </div>
-          </div>
-
-          <div class="space-y-3">
-            <div>
-              <p class="text-xs font-medium text-muted-foreground mb-1">Your Question:</p>
-              <p class="text-sm text-foreground bg-muted rounded-lg p-2">{interaction.prompt}</p>
-            </div>
-
-            <Show when={interaction.response_text}>
-              <div>
-                <p class="text-xs font-medium text-muted-foreground mb-1">AI Response:</p>
-                <p class="text-sm text-muted-foreground line-clamp-3">
-                  {interaction.response_text}
-                </p>
-              </div>
-            </Show>
-
-            {/* Results Summary */}
-            <div class="flex items-center gap-4 pt-2 border-t border-border">
-              <Show when={interaction.pois && interaction.pois.length > 0}>
-                <div class="flex items-center gap-1 text-xs text-muted-foreground">
-                  <MapPin class="w-3 h-3" />
-                  <span>{interaction.pois.length} places</span>
-                </div>
-              </Show>
-              <Show when={interaction.hotels && interaction.hotels.length > 0}>
-                <div class="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Building class="w-3 h-3" />
-                  <span>{interaction.hotels.length} hotels</span>
-                </div>
-              </Show>
-              <Show when={interaction.restaurants && interaction.restaurants.length > 0}>
-                <div class="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Coffee class="w-3 h-3" />
-                  <span>{interaction.restaurants.length} restaurants</span>
-                </div>
-              </Show>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div class="min-h-screen bg-background relative transition-colors">

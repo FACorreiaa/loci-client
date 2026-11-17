@@ -9,6 +9,30 @@ import { capture } from "~/lib/analytics";
 
 type BillingInterval = "monthly" | "annual";
 
+const prices = () => stripePriceIds();
+
+const checkoutReady = () => hasCheckoutConfigured();
+
+const cell = (value: boolean | string) => {
+  if (typeof value === "boolean") {
+    // `aria-label` is prohibited on a plain <div> (no role to label), so the
+    // "not included" marker announced as nothing. Give both states an
+    // explicit img role so the meaning survives for screen readers.
+    return value ? (
+      <Check class="w-5 h-5 text-accent mx-auto" role="img" aria-label="Included" />
+    ) : (
+      <div
+        class="w-5 h-5 mx-auto flex items-center justify-center"
+        role="img"
+        aria-label="Not included"
+      >
+        <div class="w-4 h-0.5 bg-muted-foreground/50" />
+      </div>
+    );
+  }
+  return <span class="text-sm text-muted-foreground font-medium">{value}</span>;
+};
+
 export default function Pricing() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -20,8 +44,6 @@ export default function Pricing() {
   const [loading, setLoading] = createSignal(false);
 
   const alreadyPro = () => isProPlan(subscriptionQuery.data?.plan);
-  const prices = () => stripePriceIds();
-  const checkoutReady = () => hasCheckoutConfigured();
 
   const monthlyPrice = 9.99;
   const annualPrice = 99.9;
@@ -136,26 +158,6 @@ export default function Pricing() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const cell = (value: boolean | string) => {
-    if (typeof value === "boolean") {
-      // `aria-label` is prohibited on a plain <div> (no role to label), so the
-      // "not included" marker announced as nothing. Give both states an
-      // explicit img role so the meaning survives for screen readers.
-      return value ? (
-        <Check class="w-5 h-5 text-accent mx-auto" role="img" aria-label="Included" />
-      ) : (
-        <div
-          class="w-5 h-5 mx-auto flex items-center justify-center"
-          role="img"
-          aria-label="Not included"
-        >
-          <div class="w-4 h-0.5 bg-muted-foreground/50" />
-        </div>
-      );
-    }
-    return <span class="text-sm text-muted-foreground font-medium">{value}</span>;
   };
 
   return (

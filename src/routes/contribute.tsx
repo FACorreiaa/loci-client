@@ -29,6 +29,17 @@ import { ErrorView } from "~/components/ErrorView";
 import RegisterBanner from "~/components/ui/RegisterBanner";
 import SectionHeader from "~/components/ui/SectionHeader";
 
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const revealReport = () => {
+  if (window.matchMedia("(min-width: 1024px)").matches) return;
+  document.getElementById("contribute-report")?.scrollIntoView({
+    behavior: prefersReducedMotion() ? "auto" : "smooth",
+    block: "start",
+  });
+};
+
 export default function ContributePage() {
   const { isAuthenticated } = useAuth();
   // Every one of these RPCs is authenticated, so firing them signed out buys
@@ -66,23 +77,12 @@ export default function ContributePage() {
   );
   const visibleTasks = createMemo(() => pageSlice(allTasks(), currentPage()));
 
-  const prefersReducedMotion = () =>
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
   const goToPage = (next: number) => {
     const page = clampPage(next, allTasks().length);
     setSearchParams({ page: page <= 1 ? undefined : String(page) }, { replace: true });
     listAnchor?.scrollIntoView({
       behavior: prefersReducedMotion() ? "auto" : "smooth",
       block: "nearest",
-    });
-  };
-
-  const revealReport = () => {
-    if (window.matchMedia("(min-width: 1024px)").matches) return;
-    document.getElementById("contribute-report")?.scrollIntoView({
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
-      block: "start",
     });
   };
 

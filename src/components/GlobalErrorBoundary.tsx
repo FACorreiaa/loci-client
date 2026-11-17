@@ -13,6 +13,10 @@ interface ErrorFallbackProps {
   reset: () => void;
 }
 
+const handleRefresh = () => {
+  window.location.reload();
+};
+
 const ErrorFallback: Component<ErrorFallbackProps> = (props) => {
   const [showDetails, setShowDetails] = createSignal(false);
 
@@ -21,10 +25,6 @@ const ErrorFallback: Component<ErrorFallbackProps> = (props) => {
   const handleGoHome = () => {
     props.reset();
     if (typeof window !== "undefined") window.location.assign("/");
-  };
-
-  const handleRefresh = () => {
-    window.location.reload();
   };
 
   return (
