@@ -17,11 +17,17 @@
   "overrides": [
     // `export {}` is what makes an ambient declaration file a module.
     { "files": ["**/*.d.ts"], "rules": { "unicorn/require-module-specifiers": "off" } },
-    // expect(api.method).toHaveBeenCalled() names a mock and never calls it,
-    // so there is no `this` to lose. Still an error outside tests.
     {
       "files": ["**/*.test.ts", "**/*.test.tsx"],
-      "rules": { "typescript/unbound-method": "off" }
+      "rules": {
+        // expect(api.method).toHaveBeenCalled() names a mock and never calls
+        // it, so there is no `this` to lose. Still an error outside tests.
+        "typescript/unbound-method": "off",
+        // A bare vi.fn() is a spy whose signature the test does not care
+        // about, and the rule also wants parameters on vi.fn(impl), which
+        // already infers them.
+        "vitest/require-mock-type-parameters": "off"
+      }
     }
   ],
   "rules": {
@@ -72,7 +78,6 @@
     // (category rules) or move it to "error" (the two pedantic rules,
     // only-throw-error and prefer-promise-reject-errors). Never add a rule here.
     "typescript/no-unsafe-type-assertion": "warn", // 444
-    "vitest/require-mock-type-parameters": "warn", // 201
     "unicorn/consistent-function-scoping": "warn", // 137
     "typescript/prefer-promise-reject-errors": "error",
     "typescript/only-throw-error": "error"
