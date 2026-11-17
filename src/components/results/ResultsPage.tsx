@@ -47,7 +47,7 @@ import SectionHeader from "~/components/ui/SectionHeader";
 import LocalWeather from "~/components/LocalWeather";
 import TripMoney from "~/components/TripMoney";
 import LayerLegend, { type LayerVisibility } from "~/components/features/Map/LayerLegend";
-import FloatingChat from "~/components/features/Chat/FloatingChat";
+import { FloatingChat } from "~/components/features/Chat/FloatingChat";
 import StopCardSkeleton from "~/components/itinerary/StopCardSkeleton";
 import TripKit from "~/components/itinerary/TripKit";
 import ResultsList from "./ResultsList";

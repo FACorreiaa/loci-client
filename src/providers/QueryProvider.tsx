@@ -2,7 +2,7 @@
 import { JSX, onMount, onCleanup } from "solid-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query";
 import { SolidQueryDevtools } from "@tanstack/solid-query-devtools";
-import queryClient, { performanceUtils, offlineUtils } from "@/lib/query-client";
+import { queryClient, performanceUtils, offlineUtils } from "@/lib/query-client";
 
 interface QueryProviderProps {
   children: JSX.Element;

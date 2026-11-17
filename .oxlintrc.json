@@ -68,7 +68,6 @@
     "no-await-in-loop": "warn", // 18
     "promise/always-return": "warn", // 16
     "unicorn/prefer-add-event-listener": "warn", // 16
-    "import/no-named-as-default": "warn", // 11
     "typescript/consistent-return": "warn", // 11
     "typescript/prefer-promise-reject-errors": "error",
     "typescript/only-throw-error": "error"

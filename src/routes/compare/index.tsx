@@ -17,7 +17,7 @@ import { useSaveTrip } from "~/lib/api/trips";
 import type { Trip } from "~/lib/api/trips";
 import { TripPace } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import { MultiCityPlanCard } from "~/components/ui/MultiCityPlanCard";
-import ErrorView from "~/components/ErrorView";
+import { ErrorView } from "~/components/ErrorView";
 import { friendlyError } from "~/lib/connect-errors";
 import { handleEntitlementError } from "~/lib/entitlement-error";
 import { showUpgradePrompt } from "~/lib/upgrade-prompt";

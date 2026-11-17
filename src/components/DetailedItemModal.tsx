@@ -5,7 +5,7 @@ import type { FavoriteItem } from "~/lib/api/favorites";
 import type { POIImageCredit } from "~/lib/api/types";
 import ProgressiveImage from "./itinerary/ProgressiveImage";
 import { GroundedBadge } from "./ui/GroundedBadge";
-import PlaceFacts from "./poi/PlaceFacts";
+import { PlaceFacts } from "./poi/PlaceFacts";
 import { useGetPlaceFacts } from "~/lib/api/place-intelligence";
 import { useAuth } from "~/contexts/AuthContext";
 import { Show, createSignal, createEffect, For } from "solid-js";

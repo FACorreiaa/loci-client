@@ -6,7 +6,7 @@ import { Meta, MetaProvider } from "@solidjs/meta";
 import Nav from "~/components/Nav";
 import Footer from "~/components/Footer";
 import PWAInstall from "~/components/PWAInstall";
-import GlobalErrorBoundary from "~/components/GlobalErrorBoundary";
+import { GlobalErrorBoundary } from "~/components/GlobalErrorBoundary";
 import PageLoading from "~/components/PageLoading";
 import "./app.css";
 import { QueryClientProvider } from "@tanstack/solid-query";
@@ -17,7 +17,7 @@ import { LanguageProvider } from "~/contexts/LanguageContext";
 import { LocaleProvider } from "~/contexts/LocaleContext";
 // @ts-ignore - Context type
 import { LocationProvider } from "~/contexts/LocationContext";
-import queryClient from "~/lib/query-client";
+import { queryClient } from "~/lib/query-client";
 import PageBackground from "./components/PageBackground";
 import ProfilePreferencesSync from "~/components/ProfilePreferencesSync";
 import ThemeMetaSync from "~/components/ThemeMetaSync";

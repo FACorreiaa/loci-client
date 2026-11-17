@@ -12,7 +12,7 @@ import { POIDetailedInfo } from "~/lib/api/types";
 const MapComponent = lazyChunk(() => import("~/components/features/Map/Map"));
 import SplitView from "@/components/layout/SplitView";
 import { ActionToolbar } from "@/components/ui/ActionToolbar";
-import FloatingChat from "~/components/features/Chat/FloatingChat";
+import { FloatingChat } from "~/components/features/Chat/FloatingChat";
 import { Skeleton } from "~/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "~/ui/card";
 import { Badge } from "~/ui/badge";

@@ -90,7 +90,7 @@ import LayerLegend, { type LayerVisibility } from "@/components/features/Map/Lay
 import { isLocatedAlert, useLocalContext } from "@/lib/api/localContext";
 import { ActionToolbar } from "@/components/ui/ActionToolbar";
 import { StreamErrorCard } from "@/components/ui/StreamErrorCard";
-import FloatingChat from "@/components/features/Chat/FloatingChat";
+import { FloatingChat } from "@/components/features/Chat/FloatingChat";
 import { useSaveItineraryMutation } from "@/lib/api/itineraries";
 import { useUserSubscription } from "@/lib/api/billing";
 import { canUsePro } from "@/lib/subscription";
