@@ -404,6 +404,7 @@ export function useChat(
         profileId: profile,
         userLocation: { userLat: userLatitude, userLon: userLongitude },
         tripId: opts.tripId?.(),
+        rendersHotelComparison: true,
       },
       {
         session,
@@ -461,6 +462,7 @@ export function useChat(
         cityName: currentCity,
         userLocation: { userLat: userLatitude, userLon: userLongitude },
         tripId: opts.tripId?.(),
+        rendersHotelComparison: true,
       },
       {
         session,

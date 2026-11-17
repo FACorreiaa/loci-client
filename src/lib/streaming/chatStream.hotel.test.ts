@@ -56,14 +56,16 @@ describe("hotel comparison on the chat stream", () => {
     expect(mapProtoEvent(empty)).toBeNull();
   });
 
-  it("every request says this client renders hotel comparisons", () => {
-    expect(buildRequest({ message: "hi" }).capabilities).toEqual([
+  it("a request lists the capability only when its surface opts in", () => {
+    expect(buildRequest({ message: "hi", rendersHotelComparison: true }).capabilities).toEqual([
       ClientCapability.HOTEL_COMPARISON,
     ]);
+    expect(buildRequest({ message: "hi" }).capabilities).toEqual([]);
     expect(
       buildRequest({ message: "more", sessionId: "s", resumeToken: "e1", tripId: "t" })
         .capabilities,
-    ).toContain(ClientCapability.HOTEL_COMPARISON);
+    ).toEqual([]);
+    expect(buildRequest({ message: "hi", rendersHotelComparison: false }).capabilities).toEqual([]);
   });
 
   it("the request that reaches StreamChat carries the capability, and the report is yielded", async () => {
@@ -77,7 +79,11 @@ describe("hotel comparison on the chat stream", () => {
       })(),
     );
     const kinds: string[] = [];
-    for await (const e of streamChatEvents({ message: "which hotel?" })) kinds.push(e.kind);
+    for await (const e of streamChatEvents({
+      message: "which hotel?",
+      rendersHotelComparison: true,
+    }))
+      kinds.push(e.kind);
     expect(kinds).toEqual(["hotel_comparison", "complete"]);
     expect(streamChat.mock.calls[0][0].capabilities).toEqual([ClientCapability.HOTEL_COMPARISON]);
   });

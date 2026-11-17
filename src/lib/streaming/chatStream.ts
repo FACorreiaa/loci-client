@@ -158,6 +158,13 @@ export interface ChatStreamParams {
   suggestOrder?: boolean;
   /** The trip this chat is about: its turns propose changes to it. */
   tripId?: string;
+  /**
+   * The surface sending this can draw a hotel comparison report card. Off by
+   * default: only the chats built on useChat set it. A search box or a
+   * results page that asked for one would get a `start` for a turn with no
+   * results to show.
+   */
+  rendersHotelComparison?: boolean;
 }
 
 const mapNavigation = (nav: ProtoStreamEvent["navigation"]): NavigationInfo | undefined =>
@@ -327,13 +334,6 @@ function mapPayload(ev: ProtoStreamEvent): LociStreamEvent | null {
 /** What this client can render, sent on every stream (server: featuresHeader). */
 export const CLIENT_FEATURES = { "Loci-Features": "multi-city" } as const;
 
-/**
- * The newer stream events this client renders, sent on every request: the
- * server only sends `hotel_comparison` (and the choose_stay action) to a
- * client that lists it.
- */
-export const CLIENT_CAPABILITIES = [ClientCapability.HOTEL_COMPARISON] as const;
-
 export const buildRequest = (params: ChatStreamParams) =>
   // These are `optional` fields with a min_len:1 validator. Sending "" POPULATES
   // them (proto3 optional tracks presence), so the server rejects the request on
@@ -351,7 +351,10 @@ export const buildRequest = (params: ChatStreamParams) =>
     userLocation: params.userLocation
       ? { latitude: params.userLocation.userLat, longitude: params.userLocation.userLon }
       : undefined,
-    capabilities: [...CLIENT_CAPABILITIES],
+    // Opt-in per surface: the server only sends `hotel_comparison` (and the
+    // choose_stay action) to a request that lists it, and answers every other
+    // request as it always has.
+    capabilities: params.rendersHotelComparison ? [ClientCapability.HOTEL_COMPARISON] : [],
   });
 
 /**

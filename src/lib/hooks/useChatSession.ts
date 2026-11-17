@@ -68,8 +68,10 @@ function toLegacyEvent(ev: LociStreamEvent): LegacyStreamEvent {
       // arrives, its one-line summary is all this view can show.
       return { Type: "progress", Data: ev.proposal.summary };
     case "hotel_comparison":
-      // This legacy view has no report card; the verdict is all it can say.
-      return { Type: "progress", Data: ev.report.verdict };
+      // Not reachable: this legacy chat never asks for one (it does not set
+      // rendersHotelComparison), so the server never sends it. Here only to
+      // keep the switch exhaustive.
+      return { Type: "progress", Data: "" };
     case "route":
       // A multi-city trip: the outline is the progress line.
       return { Type: "progress", Data: ev.route.outline };
