@@ -26,14 +26,22 @@
         // A bare vi.fn() is a spy whose signature the test does not care
         // about, and the rule also wants parameters on vi.fn(impl), which
         // already infers them.
-        "vitest/require-mock-type-parameters": "off"
+        "vitest/require-mock-type-parameters": "off",
+        // Fixtures and stubs are partial objects asserted to the full type on
+        // purpose; a wrong one fails the test that uses it.
+        "typescript/no-unsafe-type-assertion": "off"
       }
-    }
+    },
+    // The vendored Kobalte wrappers narrow their polymorphic props with
+    // `props as XProps<"div">`, the pattern the library documents.
+    { "files": ["src/ui/**"], "rules": { "typescript/no-unsafe-type-assertion": "off" } }
   ],
   "rules": {
     // Type-aware bug rules that oxlint files under pedantic.
     "typescript/return-await": "error",
     "typescript/no-mixed-enums": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-promise-reject-errors": "error",
     // Non-type-aware pedantic rules that catch defects rather than style.
     "eqeqeq": ["error", "always", { "null": "ignore" }],
     "array-callback-return": "error",
@@ -58,27 +66,28 @@
       "error",
       { "allow": ["__dirname", "__lociPush", "__resetAnalyticsForTest"] }
     ],
-    // Off: toSorted()/toReversed() are ES2023 and the app ships no polyfills.
-    // Every .sort()/.reverse() here already runs on a fresh copy.
     // A then() whose result nobody reads has nothing to return.
     "promise/always-return": ["error", { "ignoreLastCallback": true }],
+
+    // Category rules switched off for this codebase, each with its reason.
+    // toSorted()/toReversed() are ES2023 and the app ships no polyfills.
+    // Every .sort()/.reverse() here already runs on a fresh copy.
     "unicorn/no-array-sort": "off",
-    // Off: every await in a loop here is sequential on purpose (retry with
+    "unicorn/no-array-reverse": "off",
+    // Every await in a loop here is sequential on purpose (retry with
     // backoff, polling, reading a stream, one upload at a time).
     "no-await-in-loop": "off",
-    // Off: its fix is to mutate the mapped item in place. The copies are the
+    // Its fix is to mutate the mapped item in place. The copies are the
     // point: the source objects are query data and store state.
     "oxc/no-map-spread": "off",
-    "unicorn/no-array-reverse": "off",
 
-    // BACKLOG. Rules of this profile that the existing code still breaks
-    // (hit count as of 2026-11-17, with --type-aware; 1271 in total). They
-    // report as warnings so CI stays green while every clean rule above is
-    // already enforced. To retire one: fix its hits, then delete the line
-    // (category rules) or move it to "error" (the two pedantic rules,
-    // only-throw-error and prefer-promise-reject-errors). Never add a rule here.
-    "typescript/no-unsafe-type-assertion": "warn", // 444
-    "typescript/prefer-promise-reject-errors": "error",
-    "typescript/only-throw-error": "error"
+    // BACKLOG. The one rule of this profile that the existing code still
+    // breaks (hit count as of 2026-11-17, with --type-aware; down from 1271
+    // across 33 rules). It reports as a warning so CI stays green while every
+    // other rule is enforced. What is left is `as any` and `as T` on data
+    // that crosses a boundary untyped (JSON, storage, legacy REST shapes):
+    // each needs a parser or a type guard, not a rewrite of the cast. To
+    // retire it: fix the hits, then delete the line. Never add a rule here.
+    "typescript/no-unsafe-type-assertion": "warn" // 193
   }
 }

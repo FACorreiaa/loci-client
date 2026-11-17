@@ -1,3 +1,4 @@
+import { oneParam } from "~/lib/search-param";
 import {
   createSignal,
   createMemo,
@@ -138,15 +139,15 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // itinerary to somebody who had asked about Funchal. Streaming the wrong city
   // is worse than showing nothing, so an absent query renders the empty state
   // instead.
-  const [message] = createSignal((searchParams.message as string) || "");
-  const [cityName] = createSignal((searchParams.cityName as string) || "");
-  const [profileId] = createSignal((searchParams.profileId as string) || "");
+  const [message] = createSignal(oneParam(searchParams.message) || "");
+  const [cityName] = createSignal(oneParam(searchParams.cityName) || "");
+  const [profileId] = createSignal(oneParam(searchParams.profileId) || "");
   const { isAuthenticated } = useAuth();
 
   // The stream that a search on `/` started is still running on the service
   // singleton; if its session id is the one in the URL, render it as it
   // arrives instead of waiting for sessionStorage or the server.
-  const live = useLiveSession(() => searchParams.sessionId as string | undefined);
+  const live = useLiveSession(() => oneParam(searchParams.sessionId));
   const [boundLive, setBoundLive] = createSignal(false);
   // Set once a finished live run has been handed to the server fetch below.
   let hydratedAfterLive = false;
@@ -158,7 +159,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // render it from the live store like any other run. A `start` that lands
   // after you left must not touch the URL of wherever you are now.
   // A multi-city search from the stop builder: ?stops=Lisbon:3,Porto:2&suggest=1
-  const [stopsParam] = createSignal(parseStopsParam(searchParams.stops as string | undefined));
+  const [stopsParam] = createSignal(parseStopsParam(oneParam(searchParams.stops)));
   const [suggestOrder] = createSignal(searchParams.suggest === "1");
   const { store, connect, setStore } = useStreamedRpc(
     message,
@@ -347,7 +348,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     if (await restoreFromDevice(sessionIdFromUrl)) {
       return;
     }
-    const tripIdFromUrl = searchParams.tripId as string | undefined;
+    const tripIdFromUrl = oneParam(searchParams.tripId);
     if (tripIdFromUrl && (await restoreFromTrip(tripIdFromUrl))) {
       return;
     }
@@ -395,7 +396,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     const err = live.error();
     if (err) setStore("error", new Error(err));
     if (phase === "complete" && (!data || !hasItineraryContent(store.data))) {
-      const sessionId = searchParams.sessionId as string | undefined;
+      const sessionId = oneParam(searchParams.sessionId);
       if (hydratedAfterLive || !sessionId) return;
       hydratedAfterLive = true;
       void hydrateFromServer(sessionId).then((found) => {
@@ -410,7 +411,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   });
 
   onMount(() => {
-    const sessionIdFromUrl = searchParams.sessionId as string;
+    const sessionIdFromUrl = oneParam(searchParams.sessionId)!;
 
     // Check if this itinerary is already saved offline
     if (sessionIdFromUrl) {
@@ -460,7 +461,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // Once the server has saved the trip, name it in the URL: a reload then
   // reopens every city rather than the first city's session alone.
   createEffect(() => {
-    const tripId = tripIdToAdopt(searchParams.tripId as string | undefined, route()?.tripId);
+    const tripId = tripIdToAdopt(oneParam(searchParams.tripId), route()?.tripId);
     if (tripId && mounted) setSearchParams({ tripId }, { replace: true });
   });
   const [activeStop, setActiveStop] = createSignal<number | "all">("all");
@@ -525,21 +526,20 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // Single-city only for now: the multi-city page draws one list per city and
   // stays as generated; its trip is edited from /trips/:id.
   const tripView = createTripView({
-    tripId: () => store.tripId || (searchParams.tripId as string | undefined) || undefined,
-    sessionId: () =>
-      (searchParams.sessionId as string | undefined) || store.data?.session_id || undefined,
+    tripId: () => store.tripId || oneParam(searchParams.tripId) || undefined,
+    sessionId: () => oneParam(searchParams.sessionId) || store.data?.session_id || undefined,
     enabled: () =>
       isAuthenticated() && !isMulti() && !store.isLoading && itineraryModel().stops.length > 0,
     // Kept beside the device copy of the itinerary (when there is one), so a
     // saved itinerary opens offline in the order the traveller left it.
     onTrip: (trip) => {
-      const id = (searchParams.sessionId as string | undefined) || store.data?.session_id;
+      const id = oneParam(searchParams.sessionId) || store.data?.session_id;
       if (id) {
         void updateItineraryMeta(id, { tripId: trip.id, tripSnapshot: trip }).catch(() => {});
       }
     },
     deviceCopy: async () => {
-      const id = (searchParams.sessionId as string | undefined) || store.data?.session_id;
+      const id = oneParam(searchParams.sessionId) || store.data?.session_id;
       const saved = id ? await getOfflineItinerary(id) : undefined;
       return saved?.tripSnapshot as Trip | undefined;
     },
@@ -562,7 +562,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   const [addFor, setAddFor] = createSignal<string | undefined>();
 
   const handleRetryHydrate = () => {
-    const sessionIdFromUrl = searchParams.sessionId as string;
+    const sessionIdFromUrl = oneParam(searchParams.sessionId)!;
     if (sessionIdFromUrl) {
       void hydrateFromServer(sessionIdFromUrl);
     }
@@ -697,7 +697,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // A trip already pinned to dates starts there, unless this itinerary has a
   // start of its own. Best effort: without it Trip Kit keeps its default.
   createEffect(() => {
-    const tripId = store.tripId || (searchParams.tripId as string | undefined);
+    const tripId = store.tripId || oneParam(searchParams.tripId);
     if (!tripId) return;
     void fetchTrip(tripId)
       // eslint-disable-next-line solid/reactivity -- runs when the promise settles and reads the current value then
@@ -865,7 +865,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
   // is reported, not treated as losing the save.
   const handleSave = async () => {
     if (isMulti()) return saveMultiCity();
-    const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
+    const sessionId = oneParam(searchParams.sessionId) || store.data?.session_id;
     const city = cityData();
     if (!sessionId || !store.data || !hasItineraryContent(store.data)) {
       showStatus("Nothing to save yet");
@@ -1350,13 +1350,13 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
             startDate={tripStartDate()}
             onStartDateChange={(d) => {
               setTripStartDate(d);
-              const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
+              const sessionId = oneParam(searchParams.sessionId) || store.data?.session_id;
               if (sessionId) void updateItineraryMeta(sessionId, { tripStartDate: d });
             }}
             stopNotes={stopNotes()}
             onStopNotesChange={(notes) => {
               setStopNotes(notes);
-              const sessionId = (searchParams.sessionId as string) || store.data?.session_id;
+              const sessionId = oneParam(searchParams.sessionId) || store.data?.session_id;
               if (sessionId) void updateItineraryMeta(sessionId, { stopNotes: notes });
             }}
           />
@@ -1376,10 +1376,10 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
             </p>
           </Show>
 
-          <Show when={store.tripId || (searchParams.tripId as string | undefined)}>
+          <Show when={store.tripId || oneParam(searchParams.tripId)}>
             <div class="mt-4">
               <EditTripCTA
-                tripId={(store.tripId || (searchParams.tripId as string)) ?? null}
+                tripId={(store.tripId || oneParam(searchParams.tripId)) ?? null}
                 cityName={cityName()}
               />
             </div>
@@ -1428,7 +1428,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
       <FloatingChat
         getStreamingData={() => store.data}
         setStreamingData={(fn) => setStore("data", fn)}
-        initialSessionId={searchParams.sessionId as string}
+        initialSessionId={oneParam(searchParams.sessionId)}
         trip={chatTrip()}
         onTripChanged={(trip, kind) => {
           // The card hands back the trip as applied; without one, reread it.

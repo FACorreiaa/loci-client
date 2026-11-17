@@ -1,4 +1,5 @@
 // SignIn.tsx
+import { oneParam } from "~/lib/search-param";
 import { Button } from "~/ui/button";
 import { TextField, TextFieldRoot } from "~/ui/textfield";
 import { Label } from "~/ui/label";
@@ -100,7 +101,7 @@ const SignIn: Component = () => {
   // Social sign-in on this page can still create an account; the server says
   // so, and a brand-new one sees the trip questionnaire once on the way.
   const afterAuthNavigate = (result: { userId: string; isNewUser: boolean }) => {
-    const returnTo = (searchParams.returnTo as string) || sessionStorage.getItem("auth_return_to");
+    const returnTo = oneParam(searchParams.returnTo) || sessionStorage.getItem("auth_return_to");
     if (returnTo) sessionStorage.removeItem("auth_return_to");
     void afterSignInTarget({ ...result, returnTo }).then((target) => navigate(target));
   };

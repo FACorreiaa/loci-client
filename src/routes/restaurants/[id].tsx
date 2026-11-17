@@ -1,3 +1,4 @@
+import { oneParam } from "~/lib/search-param";
 import { For, Show, createMemo } from "solid-js";
 import { useParams, useSearchParams } from "@solidjs/router";
 import { Clock, Check } from "lucide-solid";
@@ -46,7 +47,7 @@ export default function RestaurantDetailPage() {
       contentType: "restaurant",
       description: r.description,
       llmInteractionId: r.llm_interaction_id || undefined,
-      cityName: r.city || (searchParams.cityName as string) || undefined,
+      cityName: r.city || oneParam(searchParams.cityName) || undefined,
       latitude: r.latitude,
       longitude: r.longitude,
       rating: r.rating > 0 ? r.rating : undefined,
@@ -179,7 +180,7 @@ export default function RestaurantDetailPage() {
           : undefined
       }
       favorite={favorite()}
-      cityHint={searchParams.cityName as string | undefined}
+      cityHint={oneParam(searchParams.cityName)}
       backTo={backFromSaved(searchParams.from)}
       facts={
         <>

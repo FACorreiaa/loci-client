@@ -1,3 +1,4 @@
+import { oneParam } from "~/lib/search-param";
 import { createEffect, createSignal, For, Show } from "solid-js";
 import { A, useSearchParams } from "@solidjs/router";
 import {
@@ -125,7 +126,7 @@ function SettingsPageContent() {
   // the reader back on the profile tab.
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = () => {
-    const requested = searchParams.tab as string | undefined;
+    const requested = oneParam(searchParams.tab);
     if (!requested) return "settings";
     const resolved = LEGACY_TABS[requested] ?? requested;
     return TAB_IDS.has(resolved) ? resolved : "settings";

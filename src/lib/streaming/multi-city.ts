@@ -7,10 +7,7 @@
 import type { LociStreamEvent, RouteInfo } from "./chatStream";
 import { withAccessibleRoute } from "~/lib/accessibility";
 import type {
-  AccommodationResponse,
-  ActivitiesResponse,
   AiCityResponse,
-  DiningResponse,
   HotelDetailedInfo,
   RestaurantDetailedInfo,
   UnifiedChatResponse,

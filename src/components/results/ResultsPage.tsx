@@ -1,3 +1,4 @@
+import { oneParam } from "~/lib/search-param";
 import {
   createEffect,
   createMemo,
@@ -110,9 +111,9 @@ export default function ResultsPage(props: ResultsPageProps) {
   // No defaults. These used to fall back to a generic query and "London", so
   // a lost session id silently streamed London to somebody who had asked
   // about somewhere else. An absent query is an error, not a different city.
-  const [message] = createSignal((searchParams.message as string) || "");
-  const [cityName, setCityName] = createSignal((searchParams.cityName as string) || "");
-  const [profileId] = createSignal((searchParams.profileId as string) || "");
+  const [message] = createSignal(oneParam(searchParams.message) || "");
+  const [cityName, setCityName] = createSignal(oneParam(searchParams.cityName) || "");
+  const [profileId] = createSignal(oneParam(searchParams.profileId) || "");
   const { isAuthenticated } = useAuth();
 
   const { state, startStream, setError } = useChatRPC({
@@ -136,7 +137,7 @@ export default function ResultsPage(props: ResultsPageProps) {
   const [restoredData, setRestoredData] = createSignal<any>(null);
   // A search started on `/` streams on the service singleton; when its
   // session is the one in the URL, read it live (see live-stream-store.ts).
-  const live = useLiveSession(() => searchParams.sessionId as string | undefined);
+  const live = useLiveSession(() => oneParam(searchParams.sessionId));
   const [boundLive, setBoundLive] = createSignal(false);
   // True while a restore is in flight, so the skeleton shows instead of a
   // blank panel during the fetch.
@@ -231,7 +232,7 @@ export default function ResultsPage(props: ResultsPageProps) {
   };
 
   onMount(() => {
-    const sessionIdFromUrl = searchParams.sessionId as string;
+    const sessionIdFromUrl = oneParam(searchParams.sessionId)!;
 
     if (sessionIdFromUrl) {
       rememberResultsSession(props.domain, { sessionId: sessionIdFromUrl, cityName: cityName() });
@@ -543,7 +544,7 @@ export default function ResultsPage(props: ResultsPageProps) {
   // One Save, as on /itinerary: the device copy first (it is what makes the
   // list open with no network), then the account bookmark when signed in.
   const handleSave = async () => {
-    const sessionId = (searchParams.sessionId as string) || results()?.sessionId;
+    const sessionId = oneParam(searchParams.sessionId) || results()?.sessionId;
     const data = effectiveData();
     if (!sessionId || !data || list().length === 0) {
       showStatus("Nothing to save yet");
@@ -869,7 +870,7 @@ export default function ResultsPage(props: ResultsPageProps) {
           const newData = typeof fn === "function" ? fn(currentData) : fn;
           setRestoredData(newData);
         }}
-        initialSessionId={searchParams.sessionId as string}
+        initialSessionId={oneParam(searchParams.sessionId)}
       />
     </>
   );

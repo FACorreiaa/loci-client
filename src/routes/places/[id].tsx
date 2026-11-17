@@ -1,3 +1,4 @@
+import { oneParam } from "~/lib/search-param";
 import { For, Show, createMemo } from "solid-js";
 import { useParams, useSearchParams } from "@solidjs/router";
 import { Clock, Tag, Wallet } from "lucide-solid";
@@ -183,7 +184,7 @@ export default function PlaceDetailPage() {
       status={status}
       place={place()}
       favorite={favorite()}
-      cityHint={searchParams.cityName as string | undefined}
+      cityHint={oneParam(searchParams.cityName)}
       backTo={backFromSaved(searchParams.from)}
       tabs={tabs()}
     />

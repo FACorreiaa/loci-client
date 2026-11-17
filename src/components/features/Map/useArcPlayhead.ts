@@ -1,4 +1,3 @@
-import type { Feature } from "geojson";
 import { createEffect, onCleanup } from "solid-js";
 import type mapboxgl from "mapbox-gl";
 import { prefersReducedMotion } from "~/lib/hooks/useInView";

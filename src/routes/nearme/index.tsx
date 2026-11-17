@@ -1,3 +1,4 @@
+import { oneParam } from "~/lib/search-param";
 import { createSignal, createMemo, Show, onMount, For, onCleanup } from "solid-js";
 import { lazyChunk } from "@/lib/lazyChunk";
 import { useSearchParams } from "@solidjs/router";
@@ -99,7 +100,7 @@ function NearmeView(props: { adopt: (sessionId: string) => void }) {
   // exists for this page: resume it live, restore it from storage, or ask
   // the server, instead of asking for geolocation and re-running it.
   const [restoredData, setRestoredData] = createSignal<any>(null);
-  const live = useLiveSession(() => searchParams.sessionId as string | undefined);
+  const live = useLiveSession(() => oneParam(searchParams.sessionId));
   const [boundLive, setBoundLive] = createSignal(false);
   // True while hydrateSession is in flight, so the loading skeleton shows
   // instead of a blank panel during that fetch.
@@ -196,7 +197,7 @@ function NearmeView(props: { adopt: (sessionId: string) => void }) {
   // (opened from a notification, or reloaded after the run finished), in
   // which case render that run's data instead of asking for geolocation.
   onMount(() => {
-    const sessionIdFromUrl = searchParams.sessionId as string;
+    const sessionIdFromUrl = oneParam(searchParams.sessionId)!;
 
     if (sessionIdFromUrl) {
       // A live run in phase "error" is still listed (finished runs stay for
