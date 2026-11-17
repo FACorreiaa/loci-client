@@ -330,8 +330,8 @@ describe("buildItineraryIcs start date", () => {
     tomorrow.setHours(9, 0, 0, 0);
     const expected =
       `${tomorrow.getUTCFullYear()}` +
-      `${String(tomorrow.getUTCMonth() + 1).padStart(2, "0")}` +
-      `${String(tomorrow.getUTCDate()).padStart(2, "0")}`;
+      String(tomorrow.getUTCMonth() + 1).padStart(2, "0") +
+      String(tomorrow.getUTCDate()).padStart(2, "0");
     expect(dtstarts(ics)[0].slice(0, 8)).toBe(expected);
   });
 });

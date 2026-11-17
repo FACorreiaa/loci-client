@@ -86,8 +86,6 @@ export class StreamingChatService {
   // session id until the server's `start` event mints one.
   private runs = new Map<string, Run>();
 
-  constructor() {}
-
   /**
    * Open a chat stream for the given request and drive the manager callbacks.
    * Other runs keep going: each has its own manager, controller and store

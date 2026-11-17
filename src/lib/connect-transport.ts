@@ -93,7 +93,7 @@ const authInterceptor: Interceptor = (next) => async (req) => {
   if (token) {
     req.header.set("Authorization", `Bearer ${token}`);
   }
-  return await next(req);
+  return next(req);
 };
 
 /**
@@ -120,7 +120,7 @@ const tokenRefreshInterceptor: Interceptor = (next) => async (req) => {
           if (newToken) {
             req.header.set("Authorization", `Bearer ${newToken}`);
           }
-          return await next(req);
+          return next(req);
         }
 
         // Refresh genuinely failed - the session is dead. Clear tokens and

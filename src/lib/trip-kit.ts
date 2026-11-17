@@ -302,7 +302,7 @@ function pad(n: number): string {
  * fields (YYYYMMDD). All-day events must NOT use DATE-TIME or a UTC suffix.
  */
 function toIcsDate(date: Date): string {
-  return `${date.getFullYear()}` + `${pad(date.getMonth() + 1)}` + `${pad(date.getDate())}`;
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
 }
 
 /** Format a Date as UTC iCalendar DATE-TIME (YYYYMMDDTHHMMSSZ). */

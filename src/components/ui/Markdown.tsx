@@ -129,11 +129,11 @@ export interface MarkdownProps {
 }
 
 const Markdown: Component<MarkdownProps> = (props) => {
-  // eslint-disable-next-line solid/no-innerhtml
   return (
     <div
       class={`prose-chat space-y-1 ${props.class ?? ""}`}
       // Content is escaped-then-rebuilt above; only our own tags are emitted.
+      // eslint-disable-next-line solid/no-innerhtml
       innerHTML={renderMarkdown(props.text)}
     />
   );
