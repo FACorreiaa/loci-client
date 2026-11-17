@@ -51,6 +51,12 @@
     // A then() whose result nobody reads has nothing to return.
     "promise/always-return": ["error", { "ignoreLastCallback": true }],
     "unicorn/no-array-sort": "off",
+    // Off: every await in a loop here is sequential on purpose (retry with
+    // backoff, polling, reading a stream, one upload at a time).
+    "no-await-in-loop": "off",
+    // Off: its fix is to mutate the mapped item in place. The copies are the
+    // point: the source objects are query data and store state.
+    "oxc/no-map-spread": "off",
     "unicorn/no-array-reverse": "off",
 
     // BACKLOG. Rules of this profile that the existing code still breaks
@@ -66,8 +72,6 @@
     "typescript/no-unnecessary-type-assertion": "warn", // 91
     "typescript/no-unnecessary-type-conversion": "warn", // 34
     "typescript/unbound-method": "warn", // 28
-    "oxc/no-map-spread": "warn", // 20
-    "no-await-in-loop": "warn", // 18
     "typescript/prefer-promise-reject-errors": "error",
     "typescript/only-throw-error": "error"
   }
