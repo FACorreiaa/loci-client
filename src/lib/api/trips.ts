@@ -146,6 +146,12 @@ export interface TripStay {
   checkIn?: string;
   checkOut?: string;
   bookingUrl?: string;
+  /** Where the stay is, when the server knows; without it there is no transport section. */
+  latitude?: number;
+  longitude?: number;
+  address?: string;
+  /** What the traveller said they would pay, in their words. Never a quoted rate. */
+  priceNote?: string;
 }
 
 export interface FlightPlace {
@@ -321,6 +327,10 @@ export const mapStay = (s: ProtoTripStay): TripStay => ({
   checkIn: s.checkIn || undefined,
   checkOut: s.checkOut || undefined,
   bookingUrl: s.bookingUrl || undefined,
+  latitude: s.latitude,
+  longitude: s.longitude,
+  address: s.address || undefined,
+  priceNote: s.priceNote || undefined,
 });
 
 export const mapFlight = (f: ProtoTripFlight): TripFlight => ({
