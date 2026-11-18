@@ -3,6 +3,8 @@ import { A } from "@solidjs/router";
 import { CalendarDays, MapPin } from "lucide-solid";
 import TripGlobe from "~/components/features/Globe/TripGlobe";
 import UserAvatar from "~/components/social/UserAvatar";
+import CheckStamp, { CheckSourceNote, DayVerdictLine } from "~/components/itinerary/CheckStamp";
+import { tallyChecks } from "~/lib/stop-check";
 import { profilePath } from "~/lib/api/social";
 import type { Trip } from "~/lib/api/trips";
 import { formatDuration, formatTripDates, minutesToHHMM, summariseDay } from "~/lib/trip-format";
@@ -83,6 +85,7 @@ export default function SharedTripView(props: { trip: Trip; actions?: JSX.Elemen
       <For each={props.trip.days}>
         {(day) => {
           const summary = summariseDay(day);
+          const checks = tallyChecks(day.stops);
           return (
             <section class="loci-card mb-6">
               <header class="rounded-t-2xl border-b border-border px-4 py-3">
@@ -100,6 +103,10 @@ export default function SharedTripView(props: { trip: Trip; actions?: JSX.Elemen
                 <p class="font-coord mt-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                   {summary.stopCount} stop{summary.stopCount === 1 ? "" : "s"}
                   <Show when={summary.window}>{(w) => <> · {w()}</>}</Show>
+                  <Show when={checks.total > 0}>
+                    {" · "}
+                    <DayVerdictLine tally={checks} />
+                  </Show>
                 </p>
               </header>
               <ol class="divide-y divide-border px-4">
@@ -111,6 +118,9 @@ export default function SharedTripView(props: { trip: Trip; actions?: JSX.Elemen
                       </span>
                       <div class="min-w-0 flex-1">
                         <p class="font-medium">{stop.name}</p>
+                        <Show when={stop.check}>
+                          {(check) => <CheckStamp check={check()} dayDate={day.date} />}
+                        </Show>
                         <Show when={stop.notes}>
                           <p class="mt-0.5 text-sm text-muted-foreground">{stop.notes}</p>
                         </Show>
@@ -133,6 +143,9 @@ export default function SharedTripView(props: { trip: Trip; actions?: JSX.Elemen
           );
         }}
       </For>
+      <Show when={props.trip.days.some((d) => d.stops.some((s) => s.check))}>
+        <CheckSourceNote class="mb-6" />
+      </Show>
     </article>
   );
 }

@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "~/ui/dropdown-menu";
 import WhyThisStop from "~/components/poi/WhyThisStop";
+import CheckStamp from "~/components/itinerary/CheckStamp";
 import { formatDuration, hhmmToMinutes, minutesToHHMM } from "~/lib/trip-format";
 import type { TripStop } from "~/lib/api/trips";
 import type { RecommendationEventName } from "~/lib/api/recommendations";
@@ -64,6 +65,8 @@ export interface TripStopRowProps {
    * and a viewer only reads. Renaming and retiming stay the owner's.
    */
   changes?: "direct" | "suggest" | "none";
+  /** The day's ISO date, so a stamp can name the weekday a place is shut on. */
+  dayDate?: string;
 }
 
 const timeInputClass =
@@ -253,6 +256,9 @@ export default function TripStopRow(props: TripStopRowProps) {
                   <p class="font-coord mt-0.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                     {mark() === "done" ? "Walked" : "Skipped"}
                   </p>
+                </Show>
+                <Show when={props.stop.check}>
+                  {(check) => <CheckStamp check={check()} dayDate={props.dayDate} />}
                 </Show>
                 <WhyThisStop reason={props.stop.notes} />
               </div>

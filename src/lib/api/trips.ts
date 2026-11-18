@@ -50,6 +50,7 @@ import {
   toProtoRecommendationTrace,
   type RecommendationTrace,
 } from "./recommendations";
+import { stopCheckFromWire, type StopCheck } from "../stop-check";
 import { useAppQuery } from "./authed-query";
 import { capture } from "../analytics";
 import { mapPublicUser, type PublicUser } from "./social";
@@ -86,6 +87,11 @@ export interface TripStop {
   place?: TripStopPlace;
   /** Read side only: the place's picture, with the credit it must be shown with. */
   image?: TripStopImage;
+  /**
+   * Read side only: what a real map says about the place. Absent until the
+   * server has looked it up; show no stamp then.
+   */
+  check?: StopCheck;
 }
 
 export interface TripStopPlace {
@@ -417,6 +423,7 @@ export const mapTrip = (p: ProtoTripDraft): Trip => ({
       bookingUrl: s.bookingUrl,
       recommendationTrace: fromProtoRecommendationTrace(s.recommendationTrace),
       mark: stopMarkOf(s.status),
+      check: stopCheckFromWire(s.check),
       ...stopPin(s),
       place: s.poi
         ? {

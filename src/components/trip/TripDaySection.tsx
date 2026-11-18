@@ -4,6 +4,8 @@ import { summariseDay } from "~/lib/trip-format";
 import type { TripDay } from "~/lib/api/trips";
 import type { DayStart } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import DayStartLine from "./DayStartLine";
+import { DayVerdictLine } from "~/components/itinerary/CheckStamp";
+import { tallyChecks } from "~/lib/stop-check";
 
 export interface TripDaySectionProps {
   day: TripDay;
@@ -28,6 +30,7 @@ export default function TripDaySection(props: TripDaySectionProps) {
   const summary = () => summariseDay(props.day);
   const showCity = () => props.day.cityName && props.day.cityName !== props.tripCityName;
   const walked = () => props.day.stops.filter((s) => s.mark === "done").length;
+  const checks = () => tallyChecks(props.day.stops);
 
   return (
     <section class="loci-card mb-6">
@@ -73,6 +76,10 @@ export default function TripDaySection(props: TripDaySectionProps) {
           <Show when={summary().window}>{(w) => <> · {w()}</>}</Show>
           <Show when={summary().totalLabel}>{(t) => <> · {t()} planned</>}</Show>
           <Show when={walked()}>{(n) => <> · {n()} walked</>}</Show>
+          <Show when={checks().total > 0}>
+            {" · "}
+            <DayVerdictLine tally={checks()} />
+          </Show>
         </p>
       </header>
 

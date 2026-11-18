@@ -34,6 +34,7 @@ import TripHero from "~/components/trip/TripHero";
 import TripPreferences from "~/components/trip/TripPreferences";
 import TripDaySection from "~/components/trip/TripDaySection";
 import TripStopRow from "~/components/trip/TripStopRow";
+import { CheckSourceNote } from "~/components/itinerary/CheckStamp";
 import HowWasIt from "~/components/ranking/HowWasIt";
 import TripLegRow from "~/components/trip/TripLegRow";
 import TripDetailSkeleton from "~/components/trip/TripDetailSkeleton";
@@ -633,6 +634,7 @@ export default function TripEditor() {
                             }
                             onMark={isOwner() ? (mark) => setStopMark(day, stop, mark) : undefined}
                             marking={markingStopID() === stop.id}
+                            dayDate={day.date}
                           >
                             <PlacePicker
                               cityName={t.cityName}
@@ -659,6 +661,10 @@ export default function TripEditor() {
                 </>
               )}
             </For>
+
+            <Show when={t.days.some((d) => d.stops.some((s) => s.check))}>
+              <CheckSourceNote class="mb-6" />
+            </Show>
 
             {/* The journey home, which has no day after it. */}
             <For each={(t.legs ?? []).filter((l) => l.afterDay >= t.days.length && l.afterDay > 0)}>
