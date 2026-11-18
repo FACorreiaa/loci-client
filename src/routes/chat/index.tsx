@@ -75,6 +75,22 @@ export default function ChatPage() {
   // Another trip (or none) is another conversation: its cards would apply to
   // the wrong trip's version.
   createEffect(on(tripId, () => chat.newChat(), { defer: true }));
+  // /chat?sessionId=<id> opens that conversation. A hotel comparison has no
+  // results page of its own, so when it finishes while nobody is watching,
+  // its notification and toast link here. Opened once per id, so picking
+  // another conversation in the sidebar is not undone when the list refetches.
+  const linkedSessionId = () =>
+    typeof search.sessionId === "string" && search.sessionId ? search.sessionId : undefined;
+  let openedLinked: string | undefined;
+  createEffect(
+    on([linkedSessionId, () => chat.sessions()], ([id, list]) => {
+      if (!id || id === openedLinked) return;
+      const found = list.find((s: { id?: string }) => s.id === id);
+      if (!found) return;
+      openedLinked = id;
+      untrack(() => chat.loadSession(found));
+    }),
+  );
   // Ask Loci sent something to plan. If a search is still running here it waits
   // for that one, as sendMessage would otherwise drop it without a word.
   createEffect(() => {
