@@ -19,6 +19,35 @@ const card = (over: Partial<ItineraryStop> & { key: string; name: string }): Iti
 });
 
 describe("mergeTripIntoStops", () => {
+  it("carries a stop's map check and its day's date onto the card", () => {
+    const view = mergeTripIntoStops(
+      {
+        ...trip([]),
+        days: [
+          {
+            id: "d1",
+            dayNumber: 1,
+            date: "2026-04-14T00:00:00.000Z",
+            stops: [
+              stop({
+                id: "s1",
+                name: "Museu",
+                check: { status: "checked", hours: "shut_that_day" },
+              }),
+              stop({ id: "s2", name: "Miradouro" }),
+            ],
+          },
+        ],
+      },
+      [],
+    );
+    expect(view.stops[0]).toMatchObject({
+      check: { status: "checked", hours: "shut_that_day" },
+      dayDate: "2026-04-14T00:00:00.000Z",
+    });
+    expect(view.stops[1].check).toBeUndefined();
+  });
+
   it("draws the trip's order, not the generated one", () => {
     const view = mergeTripIntoStops(
       trip([

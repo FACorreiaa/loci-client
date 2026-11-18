@@ -5,6 +5,7 @@ import type { ItineraryStop } from "@/lib/itinerary/createItineraryStream";
 import { cn } from "@/cn";
 import { CategoryIcon } from "~/components/shared/CategoryIcon";
 import { AccessibilityNotesList } from "~/components/poi/AccessibilityNotes";
+import CheckStamp from "./CheckStamp";
 
 export interface StopCardProps {
   stop: ItineraryStop;
@@ -156,6 +157,10 @@ export default function StopCard(props: StopCardProps) {
         <h3 class="editorial-title text-base sm:text-lg text-foreground truncate">
           {props.stop.name}
         </h3>
+
+        <Show when={props.stop.check}>
+          {(check) => <CheckStamp check={check()} dayDate={props.stop.dayDate} />}
+        </Show>
 
         <Show when={props.stop.blurb}>
           <p class="editorial-lead text-sm mt-1 line-clamp-2">{props.stop.blurb}</p>
