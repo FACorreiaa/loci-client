@@ -13,7 +13,7 @@ import {
 } from "~/components/chat";
 import ChatMessage from "~/components/chat/ChatMessage";
 import TripActionCard from "~/components/chat/TripActionCard";
-import HotelComparisonCard from "~/components/chat/HotelComparisonCard";
+import HotelComparisonCard from "~/components/chat/LazyHotelComparisonCard";
 import { useChat } from "~/lib/hooks/useChat";
 import { clearHandoff, pendingHandoff } from "~/lib/assistant/open-state";
 import { tripKeys, useTrip } from "~/lib/api/trips";

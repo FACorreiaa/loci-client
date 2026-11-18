@@ -1,7 +1,7 @@
 import { createSignal, Show, type Component } from "solid-js";
 import { PlaceActionKind } from "@buf/loci_loci-proto.bufbuild_es/loci/assistant/assistant_pb.js";
 import TripActionCard from "~/components/chat/TripActionCard";
-import HotelComparisonCard from "~/components/chat/HotelComparisonCard";
+import HotelComparisonCard from "~/components/chat/LazyHotelComparisonCard";
 import type { StayAdded } from "~/lib/hotels/stay-from-report";
 import type { AssistantApi } from "~/lib/api/assistant";
 import { queryKeys } from "~/lib/api/shared";

@@ -1,7 +1,7 @@
 import { createMemo, createSignal, type Component } from "solid-js";
 import ChatInterface, { type ChatInterfaceMessage } from "~/components/ui/ChatInterface";
 import TripActionCard from "~/components/chat/TripActionCard";
-import HotelComparisonCard from "~/components/chat/HotelComparisonCard";
+import HotelComparisonCard from "~/components/chat/LazyHotelComparisonCard";
 import { useNavigate } from "@solidjs/router";
 import { sendToPlanner } from "~/lib/assistant/open-state";
 import { useChat } from "~/lib/hooks/useChat";
