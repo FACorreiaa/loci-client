@@ -67,6 +67,11 @@ export const AssistantTripCard: Component<{
  * through the assistant, which checks the trip's version itself; with no
  * proposal the card's own trip picker sets the stay.
  */
+const refreshTrip = (tripId: string) => {
+  void queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+  void queryClient.invalidateQueries({ queryKey: tripKeys.list() });
+};
+
 export const AssistantHotelReportCard: Component<{
   card: HotelReportCardData;
   api: AssistantApi;
@@ -79,10 +84,6 @@ export const AssistantHotelReportCard: Component<{
     apply: async (id, option) => ({ trip: (await props.api.confirm(id, option)).trip }),
     dismiss: (id) => props.api.dismiss(id),
   };
-  const refresh = (tripId: string) => {
-    void queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
-    void queryClient.invalidateQueries({ queryKey: tripKeys.list() });
-  };
   return (
     <HotelComparisonCard
       report={props.card.report}
@@ -92,10 +93,10 @@ export const AssistantHotelReportCard: Component<{
       tripVersion={0n}
       added={props.card.added}
       actionApi={adapter}
-      onConflict={refresh}
+      onConflict={refreshTrip}
       onAdded={(added, trip) => {
         if (trip) rememberTrip(queryClient, trip);
-        else refresh(added.tripId);
+        else refreshTrip(added.tripId);
         props.onAdded(added);
       }}
       onPlanTrip={props.onPlanTrip}

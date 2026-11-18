@@ -62,7 +62,7 @@ const mount = (t = transport(), stayName?: string) => {
   return host;
 };
 const byId = (host: HTMLElement, id: string) =>
-  host.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
+  host.querySelector<HTMLElement>(`[data-testid="${id}"]`);
 const stops = (host: HTMLElement) =>
   [...host.querySelectorAll('[data-testid="stay-transport-stop"]')].map((li) =>
     [...li.children].map((c) => c.textContent),
@@ -154,25 +154,26 @@ describe("StayTransportSection", () => {
   });
 });
 
-describe("DayStartLine", () => {
-  const start = (over: Record<string, unknown> = {}) =>
-    create(DayStartSchema, {
-      dayId: "d1",
-      dayNumber: 1,
-      firstStopName: "Park Güell",
-      walkMinutes: 12,
-      routed: true,
-      suggestedMode: "walk",
-      googleDirectionsUrl: "https://maps.example/dir?travelmode=transit",
-      ...over,
-    });
-  const mountLine = (s = start()) => {
-    const host = document.createElement("div");
-    document.body.appendChild(host);
-    dispose = render(() => createComponent(DayStartLine, { start: s, source: "trip" }), host);
-    return host;
-  };
+const start = (over: Record<string, unknown> = {}) =>
+  create(DayStartSchema, {
+    dayId: "d1",
+    dayNumber: 1,
+    firstStopName: "Park Güell",
+    walkMinutes: 12,
+    routed: true,
+    suggestedMode: "walk",
+    googleDirectionsUrl: "https://maps.example/dir?travelmode=transit",
+    ...over,
+  });
 
+const mountLine = (s = start()) => {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  dispose = render(() => createComponent(DayStartLine, { start: s, source: "trip" }), host);
+  return host;
+};
+
+describe("DayStartLine", () => {
   it("a walk: the minutes and a Directions link", () => {
     const host = mountLine();
     expect(host.textContent).toContain("From your hotel: 12 min walk");

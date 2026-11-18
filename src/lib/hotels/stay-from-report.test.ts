@@ -3,7 +3,7 @@ vi.mock("../connect-transport", () => ({ transport: {} }));
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ComparedHotelSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/hotel_report_pb.js";
-import { TripDraftSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
+import { TripDraftSchema, TripPace } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import type { Trip } from "../api/trips";
 import {
   CityNotOnTripError,
@@ -19,7 +19,7 @@ const trip = (over: Partial<Trip> = {}): Trip => ({
   cityName: "Barcelona",
   title: "Barcelona",
   version: 3n,
-  constraints: { pace: 0 as never, interests: [] },
+  constraints: { pace: TripPace.UNSPECIFIED, interests: [] },
   createdAt: "",
   updatedAt: "",
   days: [{ id: "d1", dayNumber: 1, stops: [] }],

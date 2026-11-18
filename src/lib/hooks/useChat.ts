@@ -510,7 +510,7 @@ export function useChat(
       if (completed.sessionId) setSessionId(completed.sessionId);
       setMessages((prev) => prev.filter((m) => m.id !== streamId));
       const pid = activeProfileId();
-      if (pid) queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
+      if (pid) void queryClient.invalidateQueries({ queryKey: ["chatSessions", pid] });
       return;
     }
     // A turn that proposed changes has cards, not results: no local

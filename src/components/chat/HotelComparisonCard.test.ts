@@ -10,7 +10,7 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ActionProposalSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/chat_pb.js";
 import { HotelComparisonReportSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/chat/hotel_report_pb.js";
-import { TripDraftSchema } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
+import { TripDraftSchema, TripPace } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import HotelComparisonCard, {
   type HotelComparisonCardProps,
   type TripsSource,
@@ -124,7 +124,7 @@ const trip = (over: Partial<Trip> = {}): Trip => ({
   cityName: "Barcelona",
   title: "Barcelona in May",
   version: 3n,
-  constraints: { pace: 0 as never, interests: [] },
+  constraints: { pace: TripPace.UNSPECIFIED, interests: [] },
   createdAt: "",
   updatedAt: "",
   days: [{ id: "d1", dayNumber: 1, stops: [] }],
@@ -155,7 +155,7 @@ const mount = (props: Partial<HotelComparisonCardProps> = {}) => {
   return host;
 };
 const byId = (host: HTMLElement, id: string) =>
-  host.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
+  host.querySelector<HTMLElement>(`[data-testid="${id}"]`);
 const allById = (host: HTMLElement, id: string) =>
   [...host.querySelectorAll(`[data-testid="${id}"]`)] as HTMLElement[];
 
@@ -265,7 +265,7 @@ describe("HotelComparisonCard: the report", () => {
   });
 
   it("report text is text: no HTML, no markdown, no links made from it", () => {
-    const html = '<img src=x onerror="window.__pwned = 1"><script>window.__pwned = 1</script>';
+    const html = '<img src=x onerror="window.lociPwned = 1"><script>window.lociPwned = 1</script>';
     const md = "[x](javascript:alert(1)) **bold** https://evil.example";
     const r = report({
       verdict: `${html} ${md}`,
@@ -283,7 +283,7 @@ describe("HotelComparisonCard: the report", () => {
     const host = mount({ report: r, proposal });
 
     expect(host.querySelector("img, script, b, i, strong, em")).toBeNull();
-    expect((window as unknown as { __pwned?: number }).__pwned).toBeUndefined();
+    expect((window as unknown as { lociPwned?: number }).lociPwned).toBeUndefined();
     // The markup is on screen as the characters it was sent as.
     expect(byId(host, "hotel-report-verdict")?.textContent).toBe(`${html} ${md}`);
     expect(byId(host, "hotel-report-title")?.textContent).toContain("<i>Verdi</i>");

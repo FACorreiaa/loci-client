@@ -294,9 +294,9 @@ export const useStayTransport = (
       queryKey: stayTransportKey(tripId, cityName, version),
       enabled: !!tripId && !!cityName,
       queryFn: async () => {
-        const transport = await fetchStayTransport(tripId, cityName);
-        lastStayTransport.set(`${tripId}:${cityName.trim().toLowerCase()}`, transport);
-        return transport;
+        const answer = await fetchStayTransport(tripId, cityName);
+        lastStayTransport.set(`${tripId}:${cityName.trim().toLowerCase()}`, answer);
+        return answer;
       },
       // Shown while the new version's answer loads. A caller must check it is
       // still about the same stay (isPlaceholderData + stayName).

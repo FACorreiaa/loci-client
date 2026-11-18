@@ -80,6 +80,9 @@ const isVersionConflict = (err: unknown) =>
   err.code === Code.FailedPrecondition &&
   err.rawMessage.includes("version");
 
+/** The city a hotel's stay would be saved under; empty when Loci doesn't know it. */
+const cityOf = (hotel: ComparedHotel) => hotel.stay?.cityName.trim() ?? "";
+
 const defaultTripsSource = (): TripsSource => useTrips({ includeMember: true });
 
 /**
@@ -95,6 +98,7 @@ const TripPicker: Component<{
   onPlanTrip?: () => void;
   onCancel: () => void;
 }> = (props) => {
+  // eslint-disable-next-line solid/reactivity -- the source is chosen once, when the picker opens
   const query = (props.tripsSource ?? defaultTripsSource)();
   // Guarded: reading `.data` of a pending query suspends the route.
   const trips = () => (query.isPending ? [] : (query.data ?? []));
@@ -187,8 +191,6 @@ const HotelComparisonCard: Component<HotelComparisonCardProps> = (props) => {
   const name = (i: number) => hotelName(hotels()[i], i);
   const isPick = (i: number) => props.report.recommendedIndex === i;
   const via = () => (props.proposal ? "proposal" : "picker");
-  /** The city a hotel's stay would be saved under; empty when Loci doesn't know it. */
-  const cityOf = (hotel: ComparedHotel) => hotel.stay?.cityName.trim() ?? "";
   const title = () => {
     const names = hotels()
       .map((_, i) => name(i))

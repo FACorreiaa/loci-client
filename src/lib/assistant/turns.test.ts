@@ -69,34 +69,34 @@ describe("closingNote", () => {
   });
 });
 
-describe("hotel reports", () => {
-  const report = (stayProposalId: string) =>
-    ev({
-      case: "hotelReport",
-      value: {
-        id: "r1",
-        cityName: "Barcelona",
-        stayProposalId,
-        hotels: [{ stay: { cityName: "Barcelona", name: "Verdi 254" } }],
-      } as never,
-    });
-  const tripProposal = (id: string, awaitsOwner = false, reportId = "r1") =>
-    ev({
-      case: "proposal",
-      value: {
-        kind: {
-          case: "trip",
-          value: {
-            id,
-            tripId: "t1",
-            summary: "Pick where to stay.",
-            action: { kind: { case: "chooseStay", value: { cityName: "Barcelona", reportId } } },
-          },
+const report = (stayProposalId: string) =>
+  ev({
+    case: "hotelReport",
+    value: {
+      id: "r1",
+      cityName: "Barcelona",
+      stayProposalId,
+      hotels: [{ stay: { cityName: "Barcelona", name: "Verdi 254" } }],
+    } as never,
+  });
+const tripProposal = (id: string, awaitsOwner = false, reportId = "r1") =>
+  ev({
+    case: "proposal",
+    value: {
+      kind: {
+        case: "trip",
+        value: {
+          id,
+          tripId: "t1",
+          summary: "Pick where to stay.",
+          action: { kind: { case: "chooseStay", value: { cityName: "Barcelona", reportId } } },
         },
-        awaitsOwner,
-      } as never,
-    });
+      },
+      awaitsOwner,
+    } as never,
+  });
 
+describe("hotel reports", () => {
   it("a report is a card of its own", () => {
     const cards = play(report("")).cards;
     expect(cards).toHaveLength(1);
