@@ -1,6 +1,9 @@
 import { createMemo, createSignal, type Component } from "solid-js";
 import ChatInterface, { type ChatInterfaceMessage } from "~/components/ui/ChatInterface";
 import TripActionCard from "~/components/chat/TripActionCard";
+import HotelComparisonCard from "~/components/chat/LazyHotelComparisonCard";
+import { useNavigate } from "@solidjs/router";
+import { sendToPlanner } from "~/lib/assistant/open-state";
 import { useChat } from "~/lib/hooks/useChat";
 import { sendOnEnter, type FloatingChatProps, type FloatingChatTrip } from "./FloatingChat";
 
@@ -8,10 +11,41 @@ import { sendOnEnter, type FloatingChatProps, type FloatingChatTrip } from "./Fl
 const TripChat: Component<FloatingChatProps & { trip: FloatingChatTrip }> = (props) => {
   const chat = useChat({ tripId: () => props.trip.id, embedded: true });
   const [showChat, setShowChat] = createSignal(false);
+  const navigate = useNavigate();
 
   const history = createMemo<ChatInterfaceMessage[]>(() =>
     chat.messages().map((message) => {
       const proposal = message.type === "trip-action" ? message.tripAction : undefined;
+      const report = message.type === "hotel-report" ? message.hotelReport : undefined;
+      if (report) {
+        const stay = message.stayProposal;
+        return {
+          type: "assistant" as const,
+          content: message.content,
+          timestamp: message.timestamp,
+          card: () => (
+            <HotelComparisonCard
+              report={report}
+              source="trip_chat"
+              compact
+              proposal={stay}
+              tripVersion={stay?.tripId === props.trip.id ? props.trip.version : undefined}
+              added={message.stayAdded}
+              onConflict={() => props.onTripStale?.()}
+              onAdded={(added, trip) => {
+                chat.settleHotelReport(message.id, added, trip);
+                // Only this page's trip is the page's business.
+                if (added.tripId === props.trip.id) props.onTripChanged?.(trip, "chooseStay");
+              }}
+              // This chat is about one trip; a new one is planned in the planner.
+              onPlanTrip={(query, city) => {
+                sendToPlanner(query, city);
+                navigate("/chat");
+              }}
+            />
+          ),
+        };
+      }
       return {
         type: message.type === "user" || message.type === "error" ? message.type : "assistant",
         content: message.content,

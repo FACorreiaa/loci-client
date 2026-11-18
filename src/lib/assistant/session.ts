@@ -95,7 +95,11 @@ export function createAssistantSession(api: AssistantApi, speaker: Speaker) {
       }),
     }));
 
-  return { turns, asking, ask, stop, settleCard, speakTyped, setSpeakTyped };
+  /** A card changed but stays: a report whose hotel is now on a trip. */
+  const patchCard = (turnId: number, cardId: string, change: (card: Card) => Card) =>
+    update(turnId, (t) => ({ ...t, cards: t.cards.map((c) => (c.id === cardId ? change(c) : c)) }));
+
+  return { turns, asking, ask, stop, settleCard, patchCard, speakTyped, setSpeakTyped };
 }
 
 function failureFor(err: unknown): string {

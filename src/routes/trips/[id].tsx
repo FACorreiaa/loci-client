@@ -20,6 +20,8 @@ import {
 } from "~/lib/api/trips";
 import { useQueryClient } from "@tanstack/solid-query";
 import TripPlanPanel from "~/components/trip/TripPlanPanel";
+import { TripStayTransport } from "~/components/trip/StayTransportSection";
+import type { DayStart } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import { useUserSubscription } from "~/lib/api/billing";
 import { canUsePro } from "~/lib/subscription";
 import { cacheTripOffline } from "~/lib/trip-offline-cache";
@@ -119,6 +121,21 @@ export default function TripEditor() {
   const changes = () => (isOwner() ? "direct" : canSuggest() ? "suggest" : "none");
   const stopControls = () => (isOwner() ? editing() : canSuggest() && suggesting());
   const version = () => trip()?.version ?? 0n;
+
+  // Each stay's transport section loads on its own and hands back how every
+  // day in its city begins from the hotel; the day sections draw that line.
+  const [dayStarts, setDayStarts] = createSignal<Record<string, DayStart[]>>({});
+  const reportDayStarts = (city: string, starts: DayStart[] | undefined) =>
+    setDayStarts((all) => {
+      const next = { ...all };
+      if (starts) next[city] = starts;
+      else delete next[city];
+      return next;
+    });
+  const dayStartFor = (dayId: string) =>
+    Object.values(dayStarts())
+      .flat()
+      .find((s) => s.dayId === dayId);
 
   const propose = useProposeTripChange();
   /** Only a trip planned together has suggestions to show. */
@@ -535,6 +552,22 @@ export default function TripEditor() {
               />
             </Show>
 
+            {/* Getting around from each stay. Unlike the plan panel this is
+                for everyone who can open the trip: a friend reading it wants
+                to know how far the metro is as much as the planner does. */}
+            <For each={t.stays}>
+              {(stay) => (
+                <TripStayTransport
+                  tripId={t.id}
+                  cityName={stay.cityName}
+                  stayName={stay.name}
+                  version={t.version}
+                  source="trip"
+                  onDayStarts={reportDayStarts}
+                />
+              )}
+            </For>
+
             <Show when={isOwner()}>
               <TripPreferences constraints={t.constraints} onChange={updateConstraints} />
             </Show>
@@ -555,6 +588,7 @@ export default function TripEditor() {
                   <TripDaySection
                     day={day}
                     tripCityName={t.cityName}
+                    dayStart={dayStartFor(day.id)}
                     dotColor={colorForMapDay(day.dayNumber - 1)}
                     addSlot={
                       stopControls() ? (

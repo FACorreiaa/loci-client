@@ -104,6 +104,8 @@ import {
 } from "@/lib/itinerary-offline-store";
 import { SHARE_HOME_URL, type SharePayload } from "@/lib/share";
 import { FindFlightsButton } from "~/components/flights/FindFlightsDialog";
+import DayStartLine from "~/components/trip/DayStartLine";
+import { createDayStarts } from "~/lib/itinerary/day-starts";
 
 /**
  * Keyed on the search it shows, so Open from a toast to this same route with
@@ -1038,6 +1040,14 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     }),
   );
 
+  // How each day begins from the stay in its city, when the trip has one.
+  const dayStarts = createDayStarts(() => tripView.trip());
+  const dayHeader = (day: ItineraryDayMeta) => (
+    <Show when={dayStarts()[day.dayId]}>
+      {(start) => <DayStartLine start={start()} source="itinerary" />}
+    </Show>
+  );
+
   const dayFooter = (day: ItineraryDayMeta) => (
     <Show when={tripView.canEdit()}>
       <Suspense>
@@ -1267,6 +1277,7 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
                     enrichedCount={listEnrichedCount()}
                     days={tripMerged()?.days}
                     stopFooter={stopFooter}
+                    dayHeader={dayHeader}
                     dayFooter={dayFooter}
                     error={store.error?.message}
                     onRetry={searchParams.sessionId ? handleRetryHydrate : undefined}

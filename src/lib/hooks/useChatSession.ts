@@ -67,6 +67,11 @@ function toLegacyEvent(ev: LociStreamEvent): LegacyStreamEvent {
       // This legacy session never binds a trip, so it gets none; if one
       // arrives, its one-line summary is all this view can show.
       return { Type: "progress", Data: ev.proposal.summary };
+    case "hotel_comparison":
+      // Not reachable: this legacy chat never asks for one (it does not set
+      // rendersHotelComparison), so the server never sends it. Here only to
+      // keep the switch exhaustive.
+      return { Type: "progress", Data: "" };
     case "route":
       // A multi-city trip: the outline is the progress line.
       return { Type: "progress", Data: ev.route.outline };

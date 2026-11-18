@@ -324,6 +324,17 @@ export class StreamingChatService {
         mgr.onProgress(mgr.session);
         break;
 
+      case "hotel_comparison":
+        // The report is the turn's whole answer and belongs to the thread,
+        // not to a results page: it reached the caller through onEvent above.
+        // The session only notes that there was one, so a caller that sees
+        // just the finished run can tell it had an answer. Not the report
+        // itself: sessions are written to sessionStorage as JSON, and a proto
+        // message carries bigints.
+        mgr.session.hasHotelReport = true;
+        mgr.onProgress(mgr.session);
+        break;
+
       case "error":
         mgr.session.error = event.userMessage;
         this.live(run, { phase: "error", error: event.userMessage });

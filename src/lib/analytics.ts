@@ -79,7 +79,17 @@ export type AnalyticsEvent =
   /** "Eat nearby" was opened for a stop. result_count, has_coords. */
   | "eat_nearby_opened"
   /** A change asked for in words on the itinerary page was confirmed. kind. */
-  | "itinerary_change_applied";
+  | "itinerary_change_applied"
+  /** A hotel comparison report was shown. source, hotels, identified, has_verdict, has_pick, has_proposal, web_search_used, sources. */
+  | "hotel_report_shown"
+  /** "Add … to trip" was tapped on a report. source, via: proposal | picker, is_pick. */
+  | "hotel_report_add_tapped"
+  /** A report's hotel became a trip's stay. source, via, is_pick, identified. */
+  | "stay_set_from_report"
+  /** "Getting around from …" was shown for a stay. source, status, stops, day_starts, has_airport. */
+  | "stay_transport_viewed"
+  /** A Directions link from a stay was opened. source, kind: day | airport, mode?. */
+  | "stay_directions_opened";
 
 export type AnalyticsProperties = Record<string, unknown>;
 

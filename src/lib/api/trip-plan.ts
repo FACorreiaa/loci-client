@@ -3,13 +3,14 @@
 // the Plan panel needs: hotels near a city filtered by stars, and where a
 // city of the trip is.
 import { create } from "@bufbuild/protobuf";
-import { createClient } from "@connectrpc/connect";
+import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import {
   AddFlightRequestSchema,
   BuildFlightLinksRequestSchema,
   ClearStayRequestSchema,
   FlightCabin,
   FlightPlaceKind,
+  GetStayTransportRequestSchema,
   RemoveFlightRequestSchema,
   ResolveFlightDestinationRequestSchema,
   SearchAirportsRequestSchema,
@@ -17,6 +18,7 @@ import {
   SetTripDatesRequestSchema,
   TripService,
   type FlightPlaceOption as ProtoFlightPlaceOption,
+  type StayTransport,
   type TripDraft as ProtoTripDraft,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import {
@@ -24,6 +26,7 @@ import {
   GetNearbyHotelsRequestSchema,
 } from "@buf/loci_loci-proto.bufbuild_es/loci/favorites/v1/favorites_pb.js";
 import { transport } from "../connect-transport";
+import { useAppQuery } from "./authed-query";
 import { mapProtoToHotel } from "./hotels";
 import type { HotelDetailedInfo } from "./types";
 import type { FlightCabinName, FlightLink, FlightPlace, Trip, TripStay } from "./trips";
@@ -123,6 +126,10 @@ export const planApi: PlanApi = {
           checkOut: s.checkOut || undefined,
           // The server takes https links only; anything else is left off.
           bookingUrl: s.bookingUrl?.startsWith("https://") ? s.bookingUrl : undefined,
+          latitude: s.latitude,
+          longitude: s.longitude,
+          address: s.address ?? "",
+          priceNote: s.priceNote || undefined,
         },
       }),
     ),
@@ -235,3 +242,65 @@ export const cityCoords = (
 /** The cities a stay can be set for: a multi-city trip's, else the trip's own. */
 export const tripCities = (trip: Pick<Trip, "cityName" | "cities">): string[] =>
   trip.cities?.length ? trip.cities.map((c) => c.cityName) : trip.cityName ? [trip.cityName] : [];
+
+// ---- Getting around from a stay (TripService.GetStayTransport) ----
+
+export type { StayTransport };
+
+/**
+ * How to get around from the stay in one city, or null when there is nothing
+ * to show: the city has no stay (NotFound), or the server is older than this
+ * client (Unimplemented). Anyone who may open the trip may read it.
+ */
+export async function fetchStayTransport(
+  tripId: string,
+  cityName: string,
+): Promise<StayTransport | null> {
+  try {
+    const res = await tripClient.getStayTransport(
+      create(GetStayTransportRequestSchema, { tripId, cityName }),
+    );
+    return res.transport ?? null;
+  } catch (err) {
+    if (
+      err instanceof ConnectError &&
+      (err.code === Code.NotFound || err.code === Code.Unimplemented)
+    ) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Keyed by the trip's version as well as the city: setting, changing or
+ * clearing the stay bumps the version, so the section refetches without
+ * anyone having to remember to invalidate it.
+ */
+export const stayTransportKey = (tripId: string, cityName: string, version: bigint) =>
+  ["trips", "stay-transport", tripId, cityName.trim().toLowerCase(), version.toString()] as const;
+
+// The last answer per trip and city. The trip page redraws from scratch on
+// every edit, and each edit moves the query key; without this the section
+// would blink out and back whenever a stop is renamed.
+const lastStayTransport = new Map<string, StayTransport | null>();
+
+export const useStayTransport = (
+  input: () => { tripId: string; cityName: string; version: bigint },
+) =>
+  useAppQuery(() => {
+    const { tripId, cityName, version } = input();
+    return {
+      queryKey: stayTransportKey(tripId, cityName, version),
+      enabled: !!tripId && !!cityName,
+      queryFn: async () => {
+        const answer = await fetchStayTransport(tripId, cityName);
+        lastStayTransport.set(`${tripId}:${cityName.trim().toLowerCase()}`, answer);
+        return answer;
+      },
+      // Shown while the new version's answer loads. A caller must check it is
+      // still about the same stay (isPlaceholderData + stayName).
+      placeholderData: () =>
+        lastStayTransport.get(`${tripId}:${cityName.trim().toLowerCase()}`) ?? undefined,
+    };
+  });

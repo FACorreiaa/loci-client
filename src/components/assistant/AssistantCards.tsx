@@ -1,9 +1,11 @@
 import { createSignal, Show, type Component } from "solid-js";
 import { PlaceActionKind } from "@buf/loci_loci-proto.bufbuild_es/loci/assistant/assistant_pb.js";
 import TripActionCard from "~/components/chat/TripActionCard";
+import HotelComparisonCard from "~/components/chat/LazyHotelComparisonCard";
+import type { StayAdded } from "~/lib/hotels/stay-from-report";
 import type { AssistantApi } from "~/lib/api/assistant";
 import { queryKeys } from "~/lib/api/shared";
-import { tripKeys } from "~/lib/api/trips";
+import { rememberTrip, tripKeys } from "~/lib/api/trips";
 import { tripActionErrorMessage, type TripActionApi } from "~/lib/api/trip-actions";
 import type { Card } from "~/lib/assistant/turns";
 import { queryClient } from "~/lib/query-client";
@@ -11,6 +13,7 @@ import { queryClient } from "~/lib/query-client";
 export type TripCardData = Extract<Card, { kind: "trip" }>;
 export type PlaceCardData = Extract<Card, { kind: "place" }>;
 export type HandoffCardData = Extract<Card, { kind: "handoff" }>;
+export type HotelReportCardData = Extract<Card, { kind: "hotel-report" }>;
 
 const pill =
   "h-9 rounded-full px-4 text-sm disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -55,6 +58,49 @@ export const AssistantTripCard: Component<{
         props.onSettled(confirmation ?? "Done.");
       }}
       onDismissed={() => props.onSettled()}
+    />
+  );
+};
+
+/**
+ * A hotel comparison, the same card the chat draws. Its pick-one is confirmed
+ * through the assistant, which checks the trip's version itself; with no
+ * proposal the card's own trip picker sets the stay.
+ */
+const refreshTrip = (tripId: string) => {
+  void queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) });
+  void queryClient.invalidateQueries({ queryKey: tripKeys.list() });
+};
+
+export const AssistantHotelReportCard: Component<{
+  card: HotelReportCardData;
+  api: AssistantApi;
+  onAdded: (added: StayAdded) => void;
+  onPlanTrip: (query: string, city: string) => void;
+  /** The link to the trip was followed: the overlay gets out of the way. */
+  onNavigate: () => void;
+}> = (props) => {
+  const adapter: TripActionApi = {
+    apply: async (id, option) => ({ trip: (await props.api.confirm(id, option)).trip }),
+    dismiss: (id) => props.api.dismiss(id),
+  };
+  return (
+    <HotelComparisonCard
+      report={props.card.report}
+      source="assistant"
+      compact
+      proposal={props.card.proposal}
+      tripVersion={0n}
+      added={props.card.added}
+      actionApi={adapter}
+      onConflict={refreshTrip}
+      onAdded={(added, trip) => {
+        if (trip) rememberTrip(queryClient, trip);
+        else refreshTrip(added.tripId);
+        props.onAdded(added);
+      }}
+      onPlanTrip={props.onPlanTrip}
+      onNavigate={props.onNavigate}
     />
   );
 };
