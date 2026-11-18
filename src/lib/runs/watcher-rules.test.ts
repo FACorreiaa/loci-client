@@ -43,6 +43,7 @@ describe("watcher rules", () => {
     expect(nounFor("/nearme?sessionId=s1")).toBe("nearby places");
     expect(nounFor("/something-else?sessionId=s1")).toBe("itinerary");
     expect(nounFor("")).toBe("itinerary");
+    expect(nounFor("/chat?sessionId=s1&cityName=&domain=chat")).toBe("hotel comparison");
   });
 
   it("words a finished run with the verb its noun takes", () => {
@@ -53,6 +54,9 @@ describe("watcher rules", () => {
     expect(done("/restaurants?sessionId=s1")).toBe("Your Lisbon restaurants are ready");
     expect(done("/activities?sessionId=s1")).toBe("Your Lisbon activities are ready");
     expect(done("/nearme?sessionId=s1")).toBe("Your Lisbon nearby places are ready");
+    expect(done("/chat?sessionId=s1&cityName=&domain=chat", "")).toBe(
+      "Your hotel comparison is ready",
+    );
     const open = runToast({ sessionId: "s1", phase: "complete", city: "Crete", url }, noop);
     expect(open.action).toEqual({ label: "Open", href: url });
   });
@@ -93,6 +97,10 @@ describe("watcher rules", () => {
     );
     expect(retryHref({ url: "", query: "x", city: "Porto" })).toBe(
       "/itinerary?message=x&cityName=Porto",
+    );
+    // /chat is where a comparison is shown, not a page that re-runs a query.
+    expect(retryHref({ url: "/chat?sessionId=s1", query: "x", city: "" })).toBe(
+      "/itinerary?message=x",
     );
   });
 

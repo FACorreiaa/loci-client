@@ -18,9 +18,19 @@ const PATH_NOUNS: Record<string, string> = {
 
 const pathOf = (url: string): string => new URL(url || "/", "https://x").pathname;
 
+// Pages a run opens on that are not result pages, so Retry does not re-run a
+// search there. The server links only a hotel comparison to /chat.
+const HOST_NOUNS: Record<string, string> = {
+  "/chat": "hotel comparison",
+};
+
+// Nouns that take "is": every result-page noun but itinerary is plural.
+const SINGULAR_NOUNS = new Set(["itinerary", "hotel comparison"]);
+
 /** The noun for a run's result page, keyed by its URL's path. */
 export function nounFor(url: string): string {
-  return PATH_NOUNS[pathOf(url)] ?? "itinerary";
+  const path = pathOf(url);
+  return PATH_NOUNS[path] ?? HOST_NOUNS[path] ?? "itinerary";
 }
 
 /**
@@ -79,8 +89,9 @@ export function runToast(
   const noun = nounFor(run.url);
   const subject = `${run.city} ${noun}`.trim();
   if (run.phase === "complete") {
-    // "itinerary is", but "hotels / restaurants / activities / nearby places are".
-    const verb = noun === "itinerary" ? "is" : "are";
+    // "itinerary / hotel comparison is", but "hotels / restaurants / activities
+    // / nearby places are".
+    const verb = SINGULAR_NOUNS.has(noun) ? "is" : "are";
     return {
       id: run.sessionId,
       title: `Your ${subject} ${verb} ready`,

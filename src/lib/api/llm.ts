@@ -666,6 +666,18 @@ export const getUserChatSessions = async (profileId: string): Promise<ChatSessio
   return response.sessions.map(mapProtoChatSession);
 };
 
+/**
+ * One chat session, shaped like an entry of the sessions list: for a session
+ * that list leaves out (a hotel comparison makes no model call filed under
+ * it). Null when the server has no such session.
+ */
+export const getChatSessionSummary = async (
+  sessionId: string,
+): Promise<ChatSessionSummary | null> => {
+  const response = await chatClient.getChatSession({ sessionId });
+  return response.session ? mapProtoChatSession(response.session) : null;
+};
+
 /** Load a single chat session and return its saved itinerary payload, if any. */
 export const getChatSession = async (sessionId: string): Promise<AiCityResponse | null> => {
   const response = await chatClient.getChatSession({ sessionId });
