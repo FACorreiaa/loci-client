@@ -11,6 +11,8 @@ export interface SharedTripMeta {
 
 interface WireStop {
   name?: string;
+  /** Present once the server has looked the stop's place up on a real map. */
+  check?: { status?: string };
 }
 interface WireDay {
   stops?: WireStop[];
@@ -22,6 +24,22 @@ interface WireTrip {
   days?: WireDay[];
   owner?: { displayName?: string; username?: string };
 }
+
+/**
+ * "13 of 14 checked against the map", or undefined when the map has answered
+ * for none of the stops or found none of them: the preview makes no claim it
+ * cannot back. "Checked" means the place was found, nothing about its hours.
+ */
+const checkedLine = (stops: WireStop[]): string | undefined => {
+  const found = stops.filter((s) => s.check?.status === "STOP_CHECK_STATUS_CHECKED").length;
+  const answered =
+    found + stops.filter((s) => s.check?.status === "STOP_CHECK_STATUS_NOT_FOUND").length;
+  return found > 0 ? `${found} of ${answered} checked against the map` : undefined;
+};
+
+/** Where the API draws a shared trip's link-preview image. */
+export const sharedTripImageUrl = (baseUrl: string, code: string) =>
+  `${baseUrl}/trip-img/${encodeURIComponent(code)}/og.png`;
 
 /** Builds the preview text from a GetSharedTrip JSON response. Pure. */
 export const sharedTripMeta = (trip: WireTrip | undefined): SharedTripMeta | undefined => {
@@ -36,6 +54,7 @@ export const sharedTripMeta = (trip: WireTrip | undefined): SharedTripMeta | und
     `${days.length} day${days.length === 1 ? "" : "s"}`,
     cities.length ? cities.slice(0, 3).join(", ") : undefined,
     `${stops.length} stop${stops.length === 1 ? "" : "s"}`,
+    checkedLine(stops),
   ].filter(Boolean);
   const highlights = stops
     .slice(0, 3)
