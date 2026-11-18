@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  awaitingChecks,
   describeCheck,
   needsAttention,
   stopCheckFromWire,
@@ -140,5 +141,23 @@ describe("needsAttention", () => {
     expect(needsAttention(checked({ hours: "open" }))).toBe(false);
     expect(needsAttention({ status: "not_found", hours: "not_listed" })).toBe(false);
     expect(needsAttention(undefined)).toBe(false);
+  });
+});
+
+describe("awaitingChecks", () => {
+  it("is for a plan with places and no answers yet", () => {
+    expect(awaitingChecks([{ stops: [{ poiId: "a" }, { poiId: "b" }] }])).toBe(true);
+  });
+
+  it("is over once any stop has an answer, found or not", () => {
+    const answered = { status: "not_found", hours: "not_listed" } as StopCheck;
+    expect(awaitingChecks([{ stops: [{ poiId: "a", check: answered }, { poiId: "b" }] }])).toBe(
+      false,
+    );
+  });
+
+  it("is not for a plan with nothing to check", () => {
+    expect(awaitingChecks([{ stops: [{ poiId: "" }, {}] }])).toBe(false);
+    expect(awaitingChecks([])).toBe(false);
   });
 });

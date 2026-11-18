@@ -216,3 +216,15 @@ export const tallyChecks = (stops: { check?: StopCheck }[]): DayTally => {
   }
   return t;
 };
+
+/**
+ * True for a plan whose places the server has not answered for yet: it has
+ * stops with a place behind them and none carries a check. The server looks
+ * places up behind the response that first shows them, so such a plan is
+ * worth reading once more a little later. Also true wherever checks are
+ * switched off, which is why a caller asks again once and not on a loop.
+ */
+export const awaitingChecks = (days: { stops: { poiId?: string; check?: StopCheck }[] }[]) => {
+  const stops = days.flatMap((d) => d.stops);
+  return stops.some((s) => s.poiId) && !stops.some((s) => s.check);
+};
