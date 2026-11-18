@@ -15,6 +15,7 @@ import ChatMessage from "~/components/chat/ChatMessage";
 import TripActionCard from "~/components/chat/TripActionCard";
 import HotelComparisonCard from "~/components/chat/LazyHotelComparisonCard";
 import { useChat } from "~/lib/hooks/useChat";
+import { getChatSessionSummary } from "~/lib/api/llm";
 import { clearHandoff, pendingHandoff } from "~/lib/assistant/open-state";
 import { tripKeys, useTrip } from "~/lib/api/trips";
 import { A, useSearchParams } from "@solidjs/router";
@@ -79,17 +80,35 @@ export default function ChatPage() {
   // results page of its own, so when it finishes while nobody is watching,
   // its notification and toast link here. Opened once per id, so picking
   // another conversation in the sidebar is not undone when the list refetches.
+  //
+  // The sidebar list is built from model calls, and a comparison makes none
+  // that are filed under its session, so it is never in that list: once the
+  // list has loaded without it, the session is fetched by id.
   const linkedSessionId = () =>
     typeof search.sessionId === "string" && search.sessionId ? search.sessionId : undefined;
   let openedLinked: string | undefined;
   createEffect(
-    on([linkedSessionId, () => chat.sessions()], ([id, list]) => {
-      if (!id || id === openedLinked) return;
-      const found = list.find((s: { id?: string }) => s.id === id);
-      if (!found) return;
-      openedLinked = id;
-      untrack(() => chat.loadSession(found));
-    }),
+    on(
+      [linkedSessionId, () => chat.sessions(), () => chat.chatSessionsQuery.isFetching],
+      ([id, list, fetching]) => {
+        if (!id || id === openedLinked) return;
+        const found = list.find((s: { id?: string }) => s.id === id);
+        if (found) {
+          openedLinked = id;
+          untrack(() => chat.loadSession(found));
+          return;
+        }
+        if (fetching) return;
+        openedLinked = id;
+        getChatSessionSummary(id)
+          .then((session) => {
+            if (session && linkedSessionId() === id) chat.loadSession(session);
+          })
+          .catch(() => {
+            /* not theirs, gone, or offline: stay on a fresh chat */
+          });
+      },
+    ),
   );
   // Ask Loci sent something to plan. If a search is still running here it waits
   // for that one, as sendMessage would otherwise drop it without a word.
