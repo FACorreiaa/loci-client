@@ -3,7 +3,7 @@ import { A } from "@solidjs/router";
 import { CalendarDays, MapPin } from "lucide-solid";
 import TripGlobe from "~/components/features/Globe/TripGlobe";
 import UserAvatar from "~/components/social/UserAvatar";
-import CheckStamp, { CheckSourceNote, DayVerdictLine } from "~/components/itinerary/CheckStamp";
+import { CheckSourceNote, CheckStamp, DayVerdictLine } from "~/components/itinerary/LazyCheck";
 import { tallyChecks } from "~/lib/stop-check";
 import { profilePath } from "~/lib/api/social";
 import type { Trip } from "~/lib/api/trips";

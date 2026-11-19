@@ -1,5 +1,6 @@
 import { Show } from "solid-js";
-import { describeCheck, type DayTally, type StopCheck } from "~/lib/stop-check";
+import type { DayTally, StopCheck } from "~/lib/stop-check";
+import { describeCheck } from "~/lib/stop-check-words";
 
 export interface CheckStampProps {
   check: StopCheck;

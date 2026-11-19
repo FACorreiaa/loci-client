@@ -4,7 +4,7 @@ import { summariseDay } from "~/lib/trip-format";
 import type { TripDay } from "~/lib/api/trips";
 import type { DayStart } from "@buf/loci_loci-proto.bufbuild_es/loci/trip/trip_pb.js";
 import DayStartLine from "./DayStartLine";
-import { DayVerdictLine } from "~/components/itinerary/CheckStamp";
+import { DayVerdictLine } from "~/components/itinerary/LazyCheck";
 import { tallyChecks } from "~/lib/stop-check";
 
 export interface TripDaySectionProps {

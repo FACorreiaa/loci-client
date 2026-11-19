@@ -9,7 +9,7 @@ import { colorForMapDay } from "@/lib/theme-colors";
 import { legBetween, type AccessibleRoute } from "@/lib/accessibility";
 import { RouteDaySummary, WalkingLegRow } from "@/components/poi/AccessibilityNotes";
 import type { ItineraryDayMeta } from "@/lib/itinerary/trip-view";
-import { CheckSourceNote, DayVerdictLine } from "./CheckStamp";
+import { CheckSourceNote, DayVerdictLine } from "./LazyCheck";
 import { tallyChecks } from "~/lib/stop-check";
 
 /** Where a stop sits in its day, for a footer that offers to move it. */

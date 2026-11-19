@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "~/ui/dropdown-menu";
 import WhyThisStop from "~/components/poi/WhyThisStop";
-import CheckStamp from "~/components/itinerary/CheckStamp";
+import { CheckStamp } from "~/components/itinerary/LazyCheck";
 import { formatDuration, hhmmToMinutes, minutesToHHMM } from "~/lib/trip-format";
 import type { TripStop } from "~/lib/api/trips";
 import type { RecommendationEventName } from "~/lib/api/recommendations";

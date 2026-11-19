@@ -34,7 +34,7 @@ import TripHero from "~/components/trip/TripHero";
 import TripPreferences from "~/components/trip/TripPreferences";
 import TripDaySection from "~/components/trip/TripDaySection";
 import TripStopRow from "~/components/trip/TripStopRow";
-import { CheckSourceNote } from "~/components/itinerary/CheckStamp";
+import { CheckSourceNote } from "~/components/itinerary/LazyCheck";
 import HowWasIt from "~/components/ranking/HowWasIt";
 import TripLegRow from "~/components/trip/TripLegRow";
 import TripDetailSkeleton from "~/components/trip/TripDetailSkeleton";

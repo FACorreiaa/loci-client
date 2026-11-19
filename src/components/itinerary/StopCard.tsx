@@ -5,7 +5,7 @@ import type { ItineraryStop } from "@/lib/itinerary/createItineraryStream";
 import { cn } from "@/cn";
 import { CategoryIcon } from "~/components/shared/CategoryIcon";
 import { AccessibilityNotesList } from "~/components/poi/AccessibilityNotes";
-import CheckStamp from "./CheckStamp";
+import { CheckStamp } from "./LazyCheck";
 
 export interface StopCardProps {
   stop: ItineraryStop;
