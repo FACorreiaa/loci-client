@@ -160,15 +160,24 @@ export default function TripEditor() {
   // The server works a fix out behind the read that shows the shut stop, so
   // the first look for suggestions can come back before it is stored. Look
   // once more, once per trip; a trip with no fix to offer stays empty.
+  //
+  // The timer is held outside the effect on purpose: the effect runs again
+  // whenever the trip or the list changes, and a timer it owned would be
+  // cleared by the first of those and never set again.
   let lookedAgainFor: string | undefined;
+  let lookAgain: ReturnType<typeof setTimeout> | undefined;
   createEffect(() => {
     const id = trip()?.id;
     if (!id || lookedAgainFor === id || !mayHaveFix()) return;
     if (!proposalsQuery.isSuccess || proposals().length > 0) return;
     lookedAgainFor = id;
-    const timer = setTimeout(() => void proposalsQuery.refetch(), FIX_RECHECK_MS);
-    onCleanup(() => clearTimeout(timer));
+    clearTimeout(lookAgain);
+    lookAgain = setTimeout(() => {
+      // Still on that trip: the route is reused from one trip to the next.
+      if (trip()?.id === id) void proposalsQuery.refetch();
+    }, FIX_RECHECK_MS);
   });
+  onCleanup(() => clearTimeout(lookAgain));
   const commentsQuery = useTripComments(() => params.id, shared);
   // Guarded read: touching .data while pending suspends the whole route. Not
   // isSuccess: a failed "Load older" turns the status to error but keeps the
