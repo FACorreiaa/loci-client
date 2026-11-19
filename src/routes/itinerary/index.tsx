@@ -48,6 +48,7 @@ import {
 const EatNearbyPanel = lazyChunk(() => import("@/components/itinerary/EatNearbyPanel"));
 const AddPlacePanel = lazyChunk(() => import("@/components/itinerary/AddPlacePanel"));
 const DaySuggestions = lazyChunk(() => import("@/components/itinerary/DaySuggestions"));
+const TripSharePanel = lazyChunk(() => import("@/components/social/TripSharePanel"));
 
 const MapComponent = lazyChunk(() => import("@/components/features/Map/Map"));
 const DetailedItemModal = lazyChunk(() => import("@/components/DetailedItemModal"));
@@ -103,6 +104,7 @@ import {
   updateItineraryMeta,
 } from "@/lib/itinerary-offline-store";
 import { SHARE_HOME_URL, type SharePayload } from "@/lib/share";
+import { strangerLinkFor } from "@/lib/social/visibility";
 import { FindFlightsButton } from "~/components/flights/FindFlightsDialog";
 import DayStartLine from "~/components/trip/DayStartLine";
 import { createDayStarts } from "~/lib/itinerary/day-starts";
@@ -796,14 +798,24 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
     cityName: cityData()?.city || cityName() || "",
     title: itineraryModel().title || `${cityData()?.city || cityName()} Itinerary`,
     description: cityData()?.description,
-    // The Loci home, not this page: this URL names a private session nobody
-    // else can open. See src/lib/share.ts.
-    url: SHARE_HOME_URL,
+    // The plan's own link when it has one a stranger can open, where the
+    // preview shows the plan. Otherwise the Loci home, not this page: this
+    // URL names a private session nobody else can open. Sharing never makes
+    // a plan public; the link button beside it is where that is chosen.
+    url: strangerLinkFor(tripView.trip()) ?? SHARE_HOME_URL,
     stopCount: listStops().length,
     stops: listStops().map((s, i) => ({ name: s.name, day: dayOf(s, i) })),
     // A multi-city trip writes its own text: its days grouped by city.
     ...(isMulti() && route() ? { text: multiShareText(route()!, cityStops()) } : {}),
   }));
+
+  // Who can open this plan. Opened from the link button; once opened it
+  // stays mounted so the dialog can close with its own motion.
+  const [linkOpen, setLinkOpen] = createSignal(false);
+  const [linkAsked, setLinkAsked] = createSignal(false);
+  createEffect(() => {
+    if (linkOpen()) setLinkAsked(true);
+  });
 
   const [saving, setSaving] = createSignal(false);
   const [saveStatus, setSaveStatus] = createSignal("");
@@ -1179,6 +1191,8 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
           saving={saving()}
           status={saveStatus()}
           sharePayload={sharePayload()}
+          onLinkSettings={tripView.canEdit() ? () => setLinkOpen(true) : undefined}
+          hasLink={Boolean(strangerLinkFor(tripView.trip()))}
         />
       </div>
     </div>
@@ -1437,6 +1451,22 @@ function ItineraryView(props: { adopt: (sessionId: string) => void }) {
           isOpen={detailOpen()}
           onClose={() => setDetailOpen(false)}
         />
+      </Show>
+      <Show when={linkAsked() && tripView.trip()}>
+        {(trip) => (
+          <Suspense>
+            <TripSharePanel
+              open={linkOpen()}
+              onOpenChange={setLinkOpen}
+              tripId={trip().id}
+              visibility={trip().visibility}
+              shareCode={trip().shareCode}
+              // The trip here is held by hand, not read from the query the
+              // panel refreshes, so its new level is written onto it.
+              onChanged={(now) => tripView.adopt({ ...trip(), ...now })}
+            />
+          </Suspense>
+        )}
       </Show>
       <FloatingChat
         getStreamingData={() => store.data}

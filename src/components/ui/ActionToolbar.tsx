@@ -1,5 +1,5 @@
 import { Component, Show } from "solid-js";
-import { Download, Share2, Bookmark, WifiOff, Loader2 } from "lucide-solid";
+import { Download, Share2, Bookmark, WifiOff, Loader2, Link2 } from "lucide-solid";
 import { ShareMenu } from "~/components/ShareMenu";
 import type { SharePayload } from "~/lib/share";
 
@@ -22,6 +22,14 @@ interface ActionToolbarProps {
   saving?: boolean;
   /** A short line next to the buttons, e.g. "Saved on this device". */
   status?: string;
+  /**
+   * Opens the choice of who can open this plan. Its own button, not an entry
+   * in the share menu: where there is a native share sheet the menu never
+   * opens. Share itself never changes who can see anything.
+   */
+  onLinkSettings?: () => void;
+  /** The plan has a link anyone can open, and Share sends it. */
+  hasLink?: boolean;
 }
 
 // One vocabulary for every icon button in the bar: muted at rest, ink on
@@ -115,6 +123,20 @@ export const ActionToolbar: Component<ActionToolbarProps> = (props) => {
         }
       >
         {(payload) => <ShareMenu payload={payload()} />}
+      </Show>
+
+      <Show when={props.onLinkSettings}>
+        <button
+          type="button"
+          onClick={() => props.onLinkSettings?.()}
+          class={props.hasLink ? activeButton : idleButton}
+          title={props.hasLink ? "Anyone with the link can open this" : "Get a link to this plan"}
+          aria-label={
+            props.hasLink ? "Anyone with the link can open this" : "Get a link to this plan"
+          }
+        >
+          <Link2 class="h-4 w-4" aria-hidden="true" />
+        </button>
       </Show>
 
       <Show when={props.status}>

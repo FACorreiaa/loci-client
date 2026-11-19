@@ -37,3 +37,19 @@ export const hasShareLink = (v: TripVisibility | undefined): boolean => !!v && v
 export const SHARE_ORIGIN = "https://lociai.fyi";
 export const sharedTripPath = (code: string): string => `/t/${encodeURIComponent(code)}`;
 export const sharedTripUrl = (code: string): string => SHARE_ORIGIN + sharedTripPath(code);
+
+/**
+ * The link to hand a stranger for this trip, when it has one that will open
+ * for them: "anyone with the link" and "public" only.
+ *
+ * A friends-only trip has a code too, and it opens for friends alone, so it
+ * is not a link to put in a message. A trip made private again keeps its old
+ * code on the server; the level is what says whether it still opens. Nothing
+ * here changes who can see a trip.
+ */
+export const strangerLinkFor = (
+  trip: { visibility?: TripVisibility; shareCode?: string } | undefined,
+): string | undefined =>
+  trip?.shareCode && (trip.visibility === "link" || trip.visibility === "public")
+    ? sharedTripUrl(trip.shareCode)
+    : undefined;
