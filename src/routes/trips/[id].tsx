@@ -1,4 +1,4 @@
-import { createSignal, For, Show, createEffect, createMemo, onMount } from "solid-js";
+import { createSignal, For, Show, createEffect, createMemo, onCleanup, onMount } from "solid-js";
 import { A, useParams, useSearchParams } from "@solidjs/router";
 import { AlertTriangle, Sparkles } from "lucide-solid";
 import TripChecklists from "~/components/trip/TripChecklists";
@@ -46,6 +46,7 @@ import { Button } from "~/ui/button";
 import { colorForMapDay } from "~/lib/theme-colors";
 import type { POI } from "~/lib/api/types";
 import TripSharePanel from "~/components/social/TripSharePanel";
+import { hasShutStop } from "~/lib/stop-check";
 import TripMembersBar from "~/components/trip/TripMembersBar";
 import TripProposals from "~/components/trip/TripProposals";
 import TripComments from "~/components/trip/TripComments";
@@ -66,6 +67,9 @@ import { Code, ConnectError } from "@connectrpc/connect";
 
 /** Per-trip edit-mode memory, so a reload mid-edit does not drop you back into read mode. */
 const editingKey = (tripId: string) => `loci.trip.editing.${tripId}`;
+
+/** How long after a trip opens to look once more for a fix the server offers. */
+const FIX_RECHECK_MS = 4000;
 
 export default function TripEditor() {
   const params = useParams();
@@ -139,14 +143,41 @@ export default function TripEditor() {
       .find((s) => s.dayId === dayId);
 
   const propose = useProposeTripChange();
-  /** Only a trip planned together has suggestions to show. */
-  const proposalsQuery = useTripProposals(
-    () => params.id,
-    () => !!trip() && (!isOwner() || (trip()?.members?.length ?? 0) > 0),
-  );
-  const proposals = () => proposalsQuery.data ?? [];
   /** A trip planned together has comments; one nobody else is on does not. */
   const shared = () => !!trip() && (!isOwner() || (trip()?.members?.length ?? 0) > 0);
+  /**
+   * A stop whose place is shut all day: the server may be offering to move
+   * it to a day the place is open, as a suggestion for the owner.
+   */
+  const mayHaveFix = () => isOwner() && hasShutStop(trip()?.days ?? []);
+  /** A trip planned together has suggestions; so does one with a fix. */
+  const proposalsQuery = useTripProposals(
+    () => params.id,
+    () => !!trip() && (shared() || mayHaveFix()),
+  );
+  const proposals = () => proposalsQuery.data ?? [];
+
+  // The server works a fix out behind the read that shows the shut stop, so
+  // the first look for suggestions can come back before it is stored. Look
+  // once more, once per trip; a trip with no fix to offer stays empty.
+  //
+  // The timer is held outside the effect on purpose: the effect runs again
+  // whenever the trip or the list changes, and a timer it owned would be
+  // cleared by the first of those and never set again.
+  let lookedAgainFor: string | undefined;
+  let lookAgain: ReturnType<typeof setTimeout> | undefined;
+  createEffect(() => {
+    const id = trip()?.id;
+    if (!id || lookedAgainFor === id || !mayHaveFix()) return;
+    if (!proposalsQuery.isSuccess || proposals().length > 0) return;
+    lookedAgainFor = id;
+    clearTimeout(lookAgain);
+    lookAgain = setTimeout(() => {
+      // Still on that trip: the route is reused from one trip to the next.
+      if (trip()?.id === id) void proposalsQuery.refetch();
+    }, FIX_RECHECK_MS);
+  });
+  onCleanup(() => clearTimeout(lookAgain));
   const commentsQuery = useTripComments(() => params.id, shared);
   // Guarded read: touching .data while pending suspends the whole route. Not
   // isSuccess: a failed "Load older" turns the status to error but keeps the
@@ -445,6 +476,7 @@ export default function TripEditor() {
                 tripId={t.id}
                 proposals={proposals()}
                 isOwner={isOwner()}
+                reactions={shared()}
                 mayApply={mayApplySuggestions(t)}
                 currentUserId={user()?.id}
                 baseVersion={tripQuery.isFetching ? undefined : t.version}
