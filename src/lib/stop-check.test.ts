@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   awaitingChecks,
+  hasShutStop,
   needsAttention,
   stopCheckFromWire,
   tallyChecks,
@@ -100,5 +101,23 @@ describe("awaitingChecks", () => {
   it("is not for a plan with nothing to check", () => {
     expect(awaitingChecks([{ stops: [{ poiId: "" }, {}] }])).toBe(false);
     expect(awaitingChecks([])).toBe(false);
+  });
+});
+
+const stopWith = (check?: StopCheck) => ({ check });
+
+describe("hasShutStop", () => {
+  it("is true only for a place found and shut all day", () => {
+    expect(
+      hasShutStop([{ stops: [stopWith({ status: "checked", hours: "shut_that_day" })] }]),
+    ).toBe(true);
+    expect(
+      hasShutStop([
+        { stops: [stopWith(), stopWith({ status: "checked", hours: "opens_later" })] },
+        { stops: [stopWith({ status: "not_found", hours: "not_listed" })] },
+        { stops: [stopWith({ status: "checked", hours: "open" })] },
+      ]),
+    ).toBe(false);
+    expect(hasShutStop([])).toBe(false);
   });
 });

@@ -116,6 +116,16 @@ export const tallyChecks = (stops: { check?: StopCheck }[]): DayTally => {
 };
 
 /**
+ * True when some stop's place does not open at all on the stop's day. That is
+ * the one clash the server may have a fix for (a move to a day the place is
+ * open), offered among the trip's suggestions.
+ */
+export const hasShutStop = (days: { stops: { check?: StopCheck }[] }[]) =>
+  days.some((d) =>
+    d.stops.some((s) => s.check?.status === "checked" && s.check.hours === "shut_that_day"),
+  );
+
+/**
  * True for a plan whose places the server has not answered for yet: it has
  * stops with a place behind them and none carries a check. The server looks
  * places up behind the response that first shows them, so such a plan is

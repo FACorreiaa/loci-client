@@ -17,6 +17,12 @@ export interface TripProposalsProps {
   tripId: string;
   proposals: TripProposal[];
   isOwner: boolean;
+  /**
+   * Thumbs up and down are how a trip's members weigh in. On a trip nobody
+   * else is on there is nobody to weigh in with; leave them out (default:
+   * shown).
+   */
+  reactions?: boolean;
   /** The owner, or a co-planner the owner lets apply. */
   mayApply: boolean;
   currentUserId?: string;
@@ -119,28 +125,30 @@ function ProposalRow(props: TripProposalsProps & { proposal: TripProposal }) {
       </Show>
 
       <div class="mt-3 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          class={reactionClass(p().myReaction === 1)}
-          aria-pressed={p().myReaction === 1}
-          aria-label={`Thumbs up, ${p().upVotes}`}
-          disabled={busy()}
-          onClick={() => setReaction(1)}
-        >
-          <ThumbsUp class="h-3.5 w-3.5" aria-hidden="true" />
-          {p().upVotes}
-        </button>
-        <button
-          type="button"
-          class={reactionClass(p().myReaction === -1)}
-          aria-pressed={p().myReaction === -1}
-          aria-label={`Thumbs down, ${p().downVotes}`}
-          disabled={busy()}
-          onClick={() => setReaction(-1)}
-        >
-          <ThumbsDown class="h-3.5 w-3.5" aria-hidden="true" />
-          {p().downVotes}
-        </button>
+        <Show when={props.reactions !== false}>
+          <button
+            type="button"
+            class={reactionClass(p().myReaction === 1)}
+            aria-pressed={p().myReaction === 1}
+            aria-label={`Thumbs up, ${p().upVotes}`}
+            disabled={busy()}
+            onClick={() => setReaction(1)}
+          >
+            <ThumbsUp class="h-3.5 w-3.5" aria-hidden="true" />
+            {p().upVotes}
+          </button>
+          <button
+            type="button"
+            class={reactionClass(p().myReaction === -1)}
+            aria-pressed={p().myReaction === -1}
+            aria-label={`Thumbs down, ${p().downVotes}`}
+            disabled={busy()}
+            onClick={() => setReaction(-1)}
+          >
+            <ThumbsDown class="h-3.5 w-3.5" aria-hidden="true" />
+            {p().downVotes}
+          </button>
+        </Show>
 
         <div class="ml-auto flex flex-wrap gap-2">
           <Show when={props.mayApply}>
@@ -163,7 +171,10 @@ function ProposalRow(props: TripProposalsProps & { proposal: TripProposal }) {
           </Show>
           <Show when={props.isOwner || mine()}>
             <Button size="sm" variant="ghost" disabled={busy()} onClick={doDismiss}>
-              {props.isOwner && !mine() ? "Not now" : "Take back"}
+              {/* "Take back" is for a suggestion somebody made by hand. A card
+                  from the planner is nobody's to take back, the owner's own
+                  included: it is turned down. */}
+              {props.isOwner && (!mine() || p().source === "chat") ? "Not now" : "Take back"}
             </Button>
           </Show>
         </div>
