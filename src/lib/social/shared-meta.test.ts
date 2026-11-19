@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchSharedTripMeta, sharedTripMeta } from "./shared-meta";
+import { fetchSharedTripMeta, sharedTripImageUrl, sharedTripMeta } from "./shared-meta";
 
 describe("sharedTripMeta", () => {
   it("summarises days, cities, stops and the owner", () => {
@@ -19,9 +19,30 @@ describe("sharedTripMeta", () => {
     });
   });
 
+  it("says how many stops were found on the map, and nothing when none were", () => {
+    const checked = { check: { status: "STOP_CHECK_STATUS_CHECKED" } };
+    const missing = { check: { status: "STOP_CHECK_STATUS_NOT_FOUND" } };
+    const withChecks = sharedTripMeta({
+      title: "Porto",
+      days: [{ stops: [{ name: "A", ...checked }, { name: "B", ...checked }, { ...missing }, {}] }],
+    });
+    expect(withChecks?.description).toBe("1 day · 4 stops · 2 of 3 checked against the map. A · B");
+
+    const noneFound = sharedTripMeta({ title: "Porto", days: [{ stops: [{ ...missing }] }] });
+    expect(noneFound?.description).toBe("1 day · 1 stop");
+  });
+
   it("is undefined without a trip", () => {
     expect(sharedTripMeta(undefined)).toBeUndefined();
     expect(sharedTripMeta({})).toBeUndefined();
+  });
+});
+
+describe("sharedTripImageUrl", () => {
+  it("points at the API's image for the share code", () => {
+    expect(sharedTripImageUrl("https://api.lociai.fyi", "ab c")).toBe(
+      "https://api.lociai.fyi/trip-img/ab%20c/og.png",
+    );
   });
 });
 

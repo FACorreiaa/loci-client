@@ -7,7 +7,7 @@ import SharedTripView from "~/components/social/SharedTripView";
 import { Button } from "~/ui/button";
 import { useAuth } from "~/contexts/AuthContext";
 import { useCopyTrip, useSharedTrip } from "~/lib/api/trips";
-import { fetchSharedTripMeta } from "~/lib/social/shared-meta";
+import { fetchSharedTripMeta, sharedTripImageUrl } from "~/lib/social/shared-meta";
 import { sharedTripPath, sharedTripUrl } from "~/lib/social/visibility";
 
 const API_BASE_URL = import.meta.env.VITE_CONNECT_BASE_URL || "http://localhost:8000";
@@ -37,6 +37,10 @@ export default function SharedTripPage() {
   const title = () => meta()?.title ?? trip()?.title ?? "A shared trip";
   const description = () =>
     meta()?.description ?? "A route planned with Loci. Open it, then make it yours.";
+  // Drawn by the API from the same signed-out view this page shows: the
+  // trip's name, its length, how many stops were found on a real map, and
+  // the route.
+  const image = () => sharedTripImageUrl(API_BASE_URL, params.code);
 
   const copyTrip = () => {
     if (!isAuthenticated()) {
@@ -53,7 +57,11 @@ export default function SharedTripPage() {
       <Meta property="og:title" content={title()} />
       <Meta property="og:description" content={description()} />
       <Meta property="og:url" content={sharedTripUrl(params.code)} />
-      <Meta name="twitter:card" content="summary" />
+      <Meta property="og:image" content={image()} />
+      <Meta property="og:image:width" content="1200" />
+      <Meta property="og:image:height" content="630" />
+      <Meta name="twitter:card" content="summary_large_image" />
+      <Meta name="twitter:image" content={image()} />
       <Meta name="robots" content="noindex" />
 
       <Show when={tripQuery.isLoading}>

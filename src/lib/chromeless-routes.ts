@@ -27,7 +27,7 @@ export const isChromeless = (pathname: string): boolean =>
  * brand card is left out; otherwise a crawler, which takes the first image,
  * shows the brand card instead of the page's own.
  */
-export const OWN_SOCIAL_IMAGE_PREFIXES = ["/r"] as const;
+export const OWN_SOCIAL_IMAGE_PREFIXES = ["/r", "/t"] as const;
 
 export const hasOwnSocialImage = (pathname: string): boolean =>
   underPrefix(pathname, OWN_SOCIAL_IMAGE_PREFIXES);

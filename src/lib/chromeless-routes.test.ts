@@ -13,6 +13,8 @@ describe("chromeless routes", () => {
 
   it("knows which pages bring their own social image", () => {
     expect(hasOwnSocialImage("/r/abc")).toBe(true);
+    expect(hasOwnSocialImage("/t/abc")).toBe(true);
+    expect(hasOwnSocialImage("/trips/abc")).toBe(false);
     expect(hasOwnSocialImage("/recap/trip/abc")).toBe(false);
     expect(hasOwnSocialImage("/")).toBe(false);
   });

@@ -26,6 +26,8 @@ export default function TripSharePanel(props: {
   tripId: string;
   visibility?: TripVisibility;
   shareCode?: string;
+  /** Told once the server has taken a new level, with the trip's link if any. */
+  onChanged?: (now: { visibility: TripVisibility; shareCode?: string }) => void;
 }) {
   const setVisibility = useSetTripVisibility();
   const [level, setLevel] = createSignal<TripVisibility>(
@@ -50,6 +52,7 @@ export default function TripSharePanel(props: {
       {
         onSuccess: (r) => {
           setCode(r.shareCode);
+          props.onChanged?.({ visibility: r.visibility, shareCode: r.shareCode || undefined });
           if (v !== "private") capture("share_link_created", { content_type: "trip" });
         },
         onError: () => setLevel(previous),
