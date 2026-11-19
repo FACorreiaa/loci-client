@@ -122,6 +122,8 @@ export function mergeTripIntoStops(trip: Trip, generated: ItineraryStop[]): Trip
         placeId: usableId(stop.poiId) || card?.placeId,
         tripStopId: stop.id,
         tripDayId: day.id,
+        check: stop.check,
+        dayDate: day.date,
         latitude: stop.latitude,
         longitude: stop.longitude,
         address: stop.address,

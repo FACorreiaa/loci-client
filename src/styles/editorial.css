@@ -64,6 +64,112 @@
   letter-spacing: -0.04em;
 }
 
+/* ---- Check stamp ------------------------------------------
+   What a real map says about a stop. The mark is the stamped part: a ruled
+   box in the instrument face, like the stamp on a ticket. The detail beside
+   it is plain writing, because it is a separate fact (the listed hours) and
+   must not read as part of the stamp.
+
+   Tones use only the two signal tokens: --holo for "found", --lantern for
+   "the plan as timed meets a shut door". Not found is muted and dashed: it
+   says "we could not tell", never "this is wrong". */
+.check-stamp {
+  --check-ink: hsl(var(--holo));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.375rem;
+  font-family: "Space Mono", ui-monospace, "SF Mono", "Cascadia Code", monospace;
+  font-size: 0.625rem; /* 10px */
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.check-stamp[data-tone="attention"] {
+  --check-ink: hsl(var(--lantern));
+}
+
+.check-stamp[data-tone="unknown"] {
+  --check-ink: hsl(var(--muted-foreground));
+}
+
+.check-stamp__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.1875rem 0.375rem 0.1875rem 0.3125rem;
+  border: 1px solid var(--check-ink);
+  border-radius: 2px;
+  color: var(--check-ink);
+  font-weight: 700;
+  transform-origin: left center;
+  animation: check-stamp-settle var(--motion-base, 220ms) var(--ease-settle, ease-out) both;
+}
+
+.check-stamp[data-tone="unknown"] .check-stamp__mark {
+  border-style: dashed;
+  font-weight: 400;
+}
+
+.check-stamp__glyph {
+  width: 0.625rem;
+  height: 0.625rem;
+  flex: none;
+}
+
+.check-stamp__detail {
+  color: hsl(var(--muted-foreground));
+}
+
+.check-stamp[data-tone="attention"] .check-stamp__detail {
+  color: hsl(var(--foreground));
+}
+
+/* The stamp lands: pressed slightly large, then settles to size. */
+@keyframes check-stamp-settle {
+  from {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* The day's sum, inline in the day header's instrument line. */
+.check-verdict {
+  white-space: nowrap;
+}
+
+.check-verdict__count {
+  color: hsl(var(--holo));
+}
+
+.check-verdict__attention {
+  color: hsl(var(--lantern));
+}
+
+.check-verdict__attention::before {
+  content: " · ";
+  color: hsl(var(--muted-foreground));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .check-stamp__mark {
+    animation: none;
+  }
+}
+
+@media print {
+  .check-stamp__mark {
+    animation: none;
+  }
+}
+
 /* ---- Progressive image (blur-up + LQIP) ------------------- */
 
 .pi-frame {

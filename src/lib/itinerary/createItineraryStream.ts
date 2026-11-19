@@ -16,6 +16,7 @@
    ============================================================ */
 
 import { createStore, produce } from "solid-js/store";
+import type { StopCheck } from "~/lib/stop-check";
 import type { AiCityResponse, POIDetailedInfo, POIImageCredit } from "@/lib/api/types";
 import { routeRef, type AccessibilityNote } from "@/lib/accessibility";
 
@@ -59,6 +60,10 @@ export interface ItineraryStop {
   tripStopId?: string;
   /** The trip day this row is on. */
   tripDayId?: string;
+  /** What a real map says about the stop's place, once the trip has it. */
+  check?: StopCheck;
+  /** The trip day's ISO date, so the check can name a weekday. */
+  dayDate?: string;
   /** Where the stop is, when the trip knows. */
   latitude?: number;
   longitude?: number;

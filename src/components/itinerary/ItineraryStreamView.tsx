@@ -9,6 +9,8 @@ import { colorForMapDay } from "@/lib/theme-colors";
 import { legBetween, type AccessibleRoute } from "@/lib/accessibility";
 import { RouteDaySummary, WalkingLegRow } from "@/components/poi/AccessibilityNotes";
 import type { ItineraryDayMeta } from "@/lib/itinerary/trip-view";
+import { CheckSourceNote, DayVerdictLine } from "./LazyCheck";
+import { tallyChecks } from "~/lib/stop-check";
 
 /** Where a stop sits in its day, for a footer that offers to move it. */
 export interface StopPlacement {
@@ -237,6 +239,9 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
       </Show>
 
       {/* ---- Stops ------------------------------------------- */}
+      <Show when={props.stops.some((s) => s.check)}>
+        <CheckSourceNote class="mb-3" />
+      </Show>
       <div class="space-y-3">
         <Show
           when={hasStops()}
@@ -278,6 +283,9 @@ export default function ItineraryStreamView(props: ItineraryStreamViewProps) {
                       style={{ "background-color": colorForMapDay(group.day) }}
                     />
                     <p class="kicker">{group.label}</p>
+                    <p class="font-coord text-[11px] uppercase tracking-[0.14em]">
+                      <DayVerdictLine tally={tallyChecks(group.items.map((item) => item.stop))} />
+                    </p>
                   </div>
                   <Show when={routeFor(group.day)}>
                     {(route) => <RouteDaySummary route={route()} />}

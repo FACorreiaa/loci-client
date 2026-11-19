@@ -25,8 +25,12 @@ import {
 } from "@/lib/api/trips";
 import { showToast } from "@/lib/toast-store";
 import { findTripStop, orderAfterNudge } from "./trip-view";
+import { awaitingChecks } from "~/lib/stop-check";
 
 /** "stale" is a copy kept on this device, shown because the trip could not be read. */
+/** How long after a first read to look again for the map's answers. */
+const CHECKS_RECHECK_MS = 10_000;
+
 export type TripViewStatus = "idle" | "loading" | "ready" | "stale" | "none" | "error";
 
 export interface TripViewOptions {
@@ -72,6 +76,22 @@ export function createTripView(opts: TripViewOptions) {
     opts.onTrip?.(merged);
   };
 
+  // The server looks a new trip's places up on the map behind the response
+  // that first shows them, so the first read of a fresh trip carries no
+  // checks. One more read a little later picks them up. Once per trip: where
+  // checks are switched off there is nothing to wait for.
+  const askedAgain = new Set<string>();
+  let againTimer: ReturnType<typeof setTimeout> | undefined;
+  const awaitChecks = (t: Trip) => {
+    if (askedAgain.has(t.id) || !awaitingChecks(t.days)) return;
+    askedAgain.add(t.id);
+    clearTimeout(againTimer);
+    againTimer = setTimeout(() => {
+      if (trip()?.id === t.id && !busy()) void load();
+    }, CHECKS_RECHECK_MS);
+  };
+  onCleanup(() => clearTimeout(againTimer));
+
   const load = async () => {
     if (!opts.enabled()) {
       setStatus("idle");
@@ -85,8 +105,10 @@ export function createTripView(opts: TripViewOptions) {
     try {
       const found = tripId ? await fetchTrip(tripId) : await fetchTripForSession(sessionId!);
       if (seq !== loadSeq) return;
-      if (found) adopt(found);
-      else if (!trip()) setStatus("none");
+      if (found) {
+        adopt(found);
+        awaitChecks(found);
+      } else if (!trip()) setStatus("none");
     } catch {
       if (seq !== loadSeq) return;
       // A trip already on screen stays; a failed refresh is not a reason to
